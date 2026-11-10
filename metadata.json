@@ -1,0 +1,6 @@
+{
+  "name": "GTA Abidjan: Babi Stories",
+  "description": "3D open-world GTA game set in Abidjan with realistic driving physics, authentic GTA San Andreas HUD, Gbaka and Wôrô-wôrô vehicles, mission storylines, and wanted levels.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
