@@ -109,11 +109,11 @@ export const GtaHud: React.FC<GtaHudProps> = ({
             ◀
           </button>
 
-          <div className="flex flex-col items-center justify-center w-24 h-16 bg-gradient-to-b from-stone-900 to-black rounded border border-stone-700 p-1">
+          <div className="flex flex-col items-center justify-center w-28 h-20 bg-gradient-to-b from-stone-900 to-black rounded border border-stone-700 px-1 py-1.5">
             <div className="h-8 flex items-center justify-center">
               {renderWeaponIcon(player.currentWeapon)}
             </div>
-            <div className="text-[10px] text-amber-400 font-bold uppercase tracking-wider truncate max-w-[90px]">
+            <div className="text-[11px] text-amber-400 font-bold uppercase tracking-wider truncate max-w-[100px] text-center mt-0.5">
               {currentWeapon?.name || 'Poings'}
             </div>
             <div className="text-xs font-mono font-bold text-white tracking-widest">
@@ -449,23 +449,35 @@ export const GtaHud: React.FC<GtaHudProps> = ({
 
                 {/* Districts */}
                 <rect x="-60" y="45" width="120" height="95" fill="#3b82f6" opacity="0.25" stroke="#3b82f6" strokeWidth="2" />
-                <text x="0" y="90" fill="#60a5fa" fontSize="12" fontWeight="900" textAnchor="middle">
-                  LE PLATEAU (TOURS & AFFAIRES)
+                <text x="0" y="85" fill="#60a5fa" fontSize="9" fontWeight="900" textAnchor="middle">
+                  LE PLATEAU
+                </text>
+                <text x="0" y="100" fill="#93c5fd" fontSize="7" fontWeight="bold" textAnchor="middle">
+                  (TOURS & AFFAIRES)
                 </text>
 
                 <rect x="-60" y="-140" width="120" height="105" fill="#f97316" opacity="0.25" stroke="#f97316" strokeWidth="2" />
-                <text x="0" y="-85" fill="#fb923c" fontSize="12" fontWeight="900" textAnchor="middle">
-                  TREICHVILLE (PORT & MARCHÉS)
+                <text x="0" y="-95" fill="#fb923c" fontSize="9" fontWeight="900" textAnchor="middle">
+                  TREICHVILLE
+                </text>
+                <text x="0" y="-80" fill="#fdba74" fontSize="7" fontWeight="bold" textAnchor="middle">
+                  (PORT & MARCHÉS)
                 </text>
 
                 <rect x="65" y="45" width="90" height="95" fill="#10b981" opacity="0.25" stroke="#10b981" strokeWidth="2" />
-                <text x="110" y="90" fill="#34d399" fontSize="11" fontWeight="900" textAnchor="middle">
-                  COCODY (VILLAS & HÔTEL IVOIRE)
+                <text x="110" y="85" fill="#34d399" fontSize="9" fontWeight="900" textAnchor="middle">
+                  COCODY
+                </text>
+                <text x="110" y="100" fill="#a7f3d0" fontSize="6.5" fontWeight="bold" textAnchor="middle">
+                  (VILLAS & HÔTEL IVOIRE)
                 </text>
 
                 <rect x="-155" y="45" width="90" height="95" fill="#a855f7" opacity="0.25" stroke="#a855f7" strokeWidth="2" />
-                <text x="-110" y="90" fill="#c084fc" fontSize="11" fontWeight="900" textAnchor="middle">
-                  YOPOUGON ("YOP CITY - SIPOREX")
+                <text x="-110" y="85" fill="#c084fc" fontSize="9" fontWeight="900" textAnchor="middle">
+                  YOPOUGON
+                </text>
+                <text x="-110" y="100" fill="#e9d5ff" fontSize="6.5" fontWeight="bold" textAnchor="middle">
+                  ("YOP CITY - SIPOREX")
                 </text>
 
                 {/* Player Blip */}
