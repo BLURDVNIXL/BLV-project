@@ -1,6 +1,6 @@
 {
-  "name": "GTA Abidjan: Babi Stories",
-  "description": "3D open-world GTA game set in Abidjan with realistic driving physics, authentic GTA San Andreas HUD, Gbaka and Wôrô-wôrô vehicles, mission storylines, and wanted levels.",
+  "name": "BLV — Babi Life Vibes",
+  "description": "Le jeu de simulation de vie urbaine en 3D à Abidjan (Côte d'Ivoire). Découvre ton destin parmi 19 classes, vis l'ascension sociale, pilote des woro-woros et écoute les radios en direct.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
