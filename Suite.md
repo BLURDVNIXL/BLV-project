@@ -1,6 +1,6 @@
 # SUITE — Comment reprendre BLV dans une nouvelle discussion
 
-> Rédigé à la fin de la session du 11–12 novembre 2026 (contexte saturé). Dernier commit : `137ec5c` sur `main`.
+> Rédigé à la fin de la session du 11–12 novembre 2026 (contexte saturé). Dernier commit de la session : `137ec5c`. Mis à jour le 13/11/2026 : `main` contient maintenant la version fusion (`106206d`) plus les correctifs de remise en état (voir `CONTEXT.md` §12).
 > **Le jeton GitHub ne figure nulle part dans ce dépôt.** Révoque l'ancien (il a été collé en clair dans une conversation) et fournis-en un nouveau, limité à ce dépôt, au début de la prochaine discussion.
 
 ## 1. Verdict honnête : le cahier des charges n'est PAS entièrement respecté

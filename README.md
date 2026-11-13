@@ -33,6 +33,8 @@ npm run dev          # Lance Express + Vite + WS sur le port 3000
 npm run test:physics # Tests C++/WASM physiques et d'intégration
 npm run test:world   # Tests de la géographie lagunaire et du streaming
 npm run test:city    # Tests de non-chevauchement routier/lagunaire de la ville
+npm run build:wasm   # Recompile physics/physics.cpp vers public/physics.wasm (clang + lld requis)
+npm run test:e2e     # Test navigateur Chromium de bout en bout (Playwright, python3)
 npm test             # Tests des 19 destins, 19 missions, économie et RGPD
 npm run lint         # Vérification TypeScript (tsc --noEmit)
 npm run build        # Build production Vite
