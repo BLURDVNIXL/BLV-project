@@ -1,290 +1,373 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- * 
- * BLV — Babi Life Vibes
- * Interface HUD en Jeu (Terre d'Ivoire Dock × GTA San Andreas Stats)
- */
-
-import React from 'react';
-import { PlayerState } from '../types/game';
+import React, { useState } from 'react';
 import {
   Sparkles,
-  Radio,
-  Play,
-  Pause,
-  Utensils,
-  Moon,
-  Droplets,
   Smartphone,
-  ShieldAlert,
-  Sun,
-  CloudRain,
-  Wind,
-  HeartCrack,
-  Map,
-  Briefcase,
-  Home,
-  Plus
+  Radio,
+  Settings,
+  ChevronDown,
+  ChevronUp,
+  Flame,
+  Volume2,
+  VolumeX,
+  Lock,
+  RotateCcw,
+  Pause,
+  Users,
+  Wrench,
 } from 'lucide-react';
-import { radioService } from '../services/radioService';
+import { PlayerState } from '../types/game';
+import { RADIO_STATIONS } from '../core/destinies';
+import { formatGameTime, hasUnlimitedPlatinum } from '../core/simulation';
+import { getMissionForDestiny } from '../core/missions';
+import { t } from '../core/i18n';
+import { CityHotspot, RadarSnapshot } from '../3d/sceneManager';
+import { MinimapRadar } from './MinimapRadar';
+import { RadioPlayStatus } from '../audio/radioManager';
 
 interface GameHUDProps {
   playerState: PlayerState;
+  currentDistrict: string;
+  onlineCount: number;
+  nearbyHotspot: CityHotspot | null;
+  nearbyVehicle: { id: string; label: string } | null;
+  radioStatus: RadioPlayStatus;
+  getRadarSnapshot: () => RadarSnapshot | null;
+  onInteractClick: () => void;
+  onRepairEngine: () => void;
   onOpenPhone: () => void;
-  onEatFoodModal: () => void;
-  onOpenMap: () => void;
-  onGoToWork: () => void;
-  onRest: () => void;
-  onShower: () => void;
-  onTragicEnding: () => void;
-  onToggleRadio: () => void;
+  onOpenSettings: () => void;
+  onOpenAdmin: () => void;
+  onOpenRoulette: () => void;
+  onNextRadio: () => void;
+  onToggleSound: () => void;
+  onPauseClick: () => void;
+  isMuted: boolean;
 }
 
 export const GameHUD: React.FC<GameHUDProps> = ({
   playerState,
+  currentDistrict,
+  onlineCount,
+  nearbyHotspot,
+  nearbyVehicle,
+  radioStatus,
+  getRadarSnapshot,
+  onInteractClick,
+  onRepairEngine,
   onOpenPhone,
-  onEatFoodModal,
-  onOpenMap,
-  onGoToWork,
-  onRest,
-  onShower,
-  onTragicEnding,
-  onToggleRadio
+  onOpenSettings,
+  onOpenAdmin,
+  onOpenRoulette,
+  onNextRadio,
+  onToggleSound,
+  onPauseClick,
+  isMuted,
 }) => {
-  const isEnglish = playerState.isEnglishLocked;
-  const currentStation = radioService.getCurrentStation();
-  const radioStatus = radioService.getStatus();
-
-  // Formatage heure in-game
-  const hours = Math.floor(playerState.inGameMinute / 60) % 24;
-  const minutes = playerState.inGameMinute % 60;
-  const formattedTime = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
-
-  // Statut vital (Épuisé, En forme, Affamé)
-  const isExhausted = playerState.needs.energie < 20;
-  const isHungry = playerState.needs.faim < 25;
-  const vitalLabel = isExhausted
-    ? (isEnglish ? 'Exhausted' : 'Épuisé')
-    : isHungry
-    ? (isEnglish ? 'Starving' : 'Affamé')
-    : (isEnglish ? 'In Shape' : 'En forme');
+  const [isDockCollapsed, setIsDockCollapsed] = useState(false);
+  const s = t(playerState.language);
+  const currentRadio = RADIO_STATIONS.find((r) => r.id === playerState.activeRadioId) || RADIO_STATIONS[0];
+  const platinumActive = hasUnlimitedPlatinum(playerState);
 
   return (
-    <div className="pointer-events-none fixed inset-0 z-20 flex flex-col justify-between p-2 sm:p-4 select-none">
-      {/* 1. TOP BAR : Horloge, Météo, Solde FCFA, Étoile, Heat Police & Radio Live */}
-      <div className="flex w-full items-start justify-between gap-2">
-        {/* Gauche : Horloge, Météo, Statut Vital & Étoile */}
-        <div className="pointer-events-auto flex flex-wrap items-center gap-1.5 sm:gap-2">
-          {/* Horloge & Météo */}
-          <div className="flex items-center gap-2 rounded-2xl border border-slate-800 bg-slate-950/85 px-3 py-1.5 shadow-xl backdrop-blur-md">
-            <span className="text-sm font-black font-mono text-amber-400">
-              {formattedTime}
-            </span>
-            <span className="text-xs text-slate-400 font-bold">J{playerState.dayCount}</span>
-            <div className="h-3 w-px bg-slate-800" />
-            {playerState.weather === 'sunny' && <Sun className="h-4 w-4 text-amber-400" />}
-            {playerState.weather === 'rain_tropical' && <CloudRain className="h-4 w-4 text-sky-400 animate-bounce" />}
-            {playerState.weather === 'flood_inondation' && <span className="text-xs font-bold text-rose-400">🌊 Inondation</span>}
-            {playerState.weather === 'harmattan' && <Wind className="h-4 w-4 text-amber-600" />}
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-              isExhausted ? 'bg-rose-950 text-rose-300' : 'bg-emerald-950 text-emerald-300'
-            }`}>
-              {vitalLabel}
-            </span>
+    <div className="pointer-events-none fixed inset-0 z-20 flex flex-col justify-between p-3 md:p-4 select-none">
+      {/* TOP PERIMETER CLUSTER */}
+      <div className="flex items-start justify-between w-full gap-2">
+        {/* TOP-LEFT: DESTINY DOSSIER & FCFA */}
+        <div className="pointer-events-auto flex items-center gap-3 rounded-xl bg-slate-950/92 px-3 py-2.5 border border-amber-500/40 shadow-xl max-w-xs md:max-w-sm">
+          <div
+            style={{ backgroundColor: playerState.destiny.color }}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-white font-black text-base border border-white/20"
+          >
+            🇨🇮
           </div>
 
-          {/* L'Étoile (Chance / Baraka) */}
-          <div className="flex items-center gap-1.5 rounded-2xl border border-amber-500/40 bg-amber-950/50 px-3 py-1.5 shadow-xl backdrop-blur-md">
-            <Sparkles className="h-4 w-4 text-amber-400 animate-pulse" />
-            <span className="text-xs font-black text-amber-300 font-mono">
-              {isEnglish ? 'Lucky Star' : 'Étoile'} : {playerState.luckStar}/100
-            </span>
-          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5">
+              <span className="font-bold text-xs text-white truncate">{playerState.destiny.name}</span>
+              <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[9px] font-black uppercase text-amber-400">
+                {playerState.destiny.rarity}
+              </span>
+            </div>
 
-          {/* Étoiles de Recherche Police (GTA Heat) */}
-          {playerState.policeHeat > 0 && (
-            <div className="flex items-center gap-1 rounded-2xl border border-rose-500 bg-rose-950/80 px-2.5 py-1 text-rose-400 animate-pulse shadow-lg">
-              <ShieldAlert className="h-4 w-4" />
-              <div className="flex text-xs font-black">
-                {Array.from({ length: playerState.policeHeat }).map((_, i) => (
-                  <span key={i}>★</span>
-                ))}
-              </div>
+            <div className="flex items-baseline gap-1.5 mt-0.5 tabular-nums">
+              <span className="font-mono font-black text-base md:text-lg text-emerald-400">
+                {Math.round(playerState.cash).toLocaleString('fr-FR')} F
+              </span>
+              {playerState.bankCash > 0 && (
+                <span className="text-[10px] text-cyan-300 font-mono">
+                  ({s.bankBalance}: {Math.round(playerState.bankCash).toLocaleString('fr-FR')} F)
+                </span>
+              )}
+              {playerState.debt > 0 && (
+                <span className="text-[10px] text-rose-400 font-mono font-bold">
+                  (-{Math.round(playerState.debt).toLocaleString('fr-FR')} F)
+                </span>
+              )}
+            </div>
+
+            <div className="flex flex-wrap gap-2 mt-0.5 text-[9px] font-bold">
+              {playerState.destiny.englishLock && (
+                <span className={platinumActive ? 'text-amber-300' : 'text-rose-400'}>
+                  {platinumActive ? `${s.platinumActive} (${playerState.goldenBoyDaysLeft}d)` : s.platinumExpired}
+                </span>
+              )}
+              {playerState.destiny.rehabJourney && (
+                <span className={playerState.redemptionTrophyUnlocked ? 'text-emerald-400' : 'text-amber-300'}>
+                  {playerState.redemptionTrophyUnlocked
+                    ? '🏆 Trophée Rédemption Débloqué'
+                    : `Sevrage: ${playerState.cleanDaysStreak}/7 j`}
+                </span>
+              )}
+              {playerState.destiny.realMadridSuperstar && (
+                <span className="text-sky-300">⚽ Académie Niv.{playerState.yannisAcademyLevel}/3</span>
+              )}
+            </div>
+
+            {(() => {
+              const m = getMissionForDestiny(playerState.destiny.id);
+              const idx = Math.min(playerState.activeMission.stepIndex, m.steps.length - 1);
+              const step = m.steps[idx];
+              return (
+                <div className="mt-1 pt-1 border-t border-slate-800/80 text-[10px] flex items-center gap-1.5 text-amber-200 truncate">
+                  <span className="rounded bg-amber-500/20 px-1 py-0.5 text-[8px] font-black text-amber-400 shrink-0">
+                    {playerState.activeMission.completed ? 'FINI 🏆' : `M${idx + 1}/${m.steps.length}`}
+                  </span>
+                  <span className="truncate font-semibold">
+                    {playerState.activeMission.completed ? m.title : step.title}
+                  </span>
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+
+        {/* TOP-CENTER: INTERACTION OR STALL PROMPT */}
+        <div className="flex flex-col items-center gap-1.5">
+          {playerState.engineStalled && (
+            <button
+              type="button"
+              onClick={onRepairEngine}
+              className="pointer-events-auto flex items-center gap-2 rounded-xl bg-rose-950/95 border-2 border-rose-500 px-3.5 py-2 text-xs font-black text-rose-200 shadow-lg cursor-pointer"
+            >
+              <Wrench className="w-4 h-4 text-amber-400" />
+              <span>{s.engineStalled} — Réparer (5 000 F)</span>
+            </button>
+          )}
+
+          {(nearbyHotspot || nearbyVehicle || playerState.isDriving) && (
+            <button
+              type="button"
+              onClick={onInteractClick}
+              className="pointer-events-auto flex items-center gap-2 rounded-xl bg-slate-950/95 px-4 py-2 border-2 border-cyan-400 shadow-xl text-xs font-bold text-white cursor-pointer"
+            >
+              <span className="flex h-5 w-5 items-center justify-center rounded bg-cyan-400 text-slate-950 font-black text-[11px]">
+                E
+              </span>
+              <span>
+                {playerState.isDriving
+                  ? s.exitVehicle
+                  : nearbyHotspot
+                  ? nearbyHotspot.label
+                  : `${s.enterVehicle} ${nearbyVehicle?.label || ''}`}
+              </span>
+            </button>
+          )}
+
+          {playerState.isDepressed && (
+            <div className="rounded-lg bg-rose-950/95 border border-rose-500 px-3 py-1 text-[10px] font-black text-rose-200 shadow">
+              {s.depressedWarning}
             </div>
           )}
         </div>
 
-        {/* Droite : Solde FCFA & Tuner Radio Live */}
-        <div className="pointer-events-auto flex flex-wrap items-center justify-end gap-2">
-          {/* Solde FCFA */}
-          <div className="flex items-center gap-2 rounded-2xl border border-emerald-500/50 bg-slate-950/85 px-3.5 py-1.5 shadow-xl backdrop-blur-md">
-            <span className="text-sm sm:text-base font-black font-mono text-emerald-400">
-              {playerState.unlimitedCashUntilDay !== undefined && playerState.dayCount <= playerState.unlimitedCashUntilDay
-                ? (isEnglish ? '∞ UNLIMITED FCFA' : '∞ ILLIMITÉ FCFA')
-                : `${playerState.cash.toLocaleString('fr-FR')} F`}
-            </span>
+        {/* TOP-RIGHT: CLOCK, WEATHER, STAR, POLICE, ONLINE & PAUSE */}
+        <div className="pointer-events-auto flex flex-col items-end gap-1.5">
+          <div className="flex items-center gap-2 rounded-xl bg-slate-950/92 px-3 py-1.5 border border-slate-700 shadow-lg">
+            <div className="text-right">
+              <div className="font-mono text-sm font-black text-white tabular-nums">
+                {formatGameTime(playerState.gameTimeHours)}
+              </div>
+              <div className="text-[9px] font-bold text-slate-400 uppercase">
+                {s.day} {playerState.daysLived} · {playerState.weather}
+              </div>
+            </div>
+            <div className="text-base">
+              {playerState.weather === 'soleil'
+                ? '☀️'
+                : playerState.weather === 'pluie'
+                ? '🌧️'
+                : playerState.weather === 'inondation'
+                ? '🌊'
+                : '🌪️'}
+            </div>
+            <div className="h-6 w-px bg-slate-700" />
             <button
-              onClick={onOpenPhone}
-              className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-slate-950 hover:bg-emerald-400 font-bold"
-              title="Wave Money / Recharger"
+              type="button"
+              onClick={onToggleSound}
+              tabIndex={-1}
+              aria-label={isMuted ? 'Activer le son' : 'Couper le son'}
+              className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 cursor-pointer"
             >
-              <Plus className="h-3 w-3 stroke-[3]" />
+              {isMuted ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4 text-emerald-400" />}
+            </button>
+            <button
+              type="button"
+              onClick={onPauseClick}
+              tabIndex={-1}
+              aria-label="Mettre en pause"
+              className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 cursor-pointer"
+            >
+              <Pause className="w-4 h-4 text-amber-400" />
             </button>
           </div>
 
-          {/* Widget Radio Live */}
-          <button
-            onClick={onToggleRadio}
-            className={`group flex items-center gap-2 rounded-2xl border px-3 py-1.5 shadow-xl backdrop-blur-md transition-all ${
-              radioStatus.isPlaying
-                ? 'border-rose-500/60 bg-rose-950/70 text-rose-300'
-                : 'border-slate-800 bg-slate-950/85 text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Radio className={`h-4 w-4 ${radioStatus.isPlaying ? 'animate-pulse text-rose-400' : ''}`} />
-            <div className="flex flex-col text-left">
-              <span className="text-[10px] font-black uppercase tracking-wider line-clamp-1">
-                {currentStation.name}
-              </span>
-              <span className="text-[9px] text-slate-400">{currentStation.frequency}</span>
+          <div className="flex items-center gap-2 rounded-xl bg-slate-950/92 px-3 py-1.5 border border-amber-500/40 shadow-lg">
+            <Sparkles className="h-3.5 w-3.5 text-amber-400" />
+            <div>
+              <div className="flex items-center justify-between gap-2 text-[9px] font-bold text-amber-300 uppercase">
+                <span>{s.starLabel}</span>
+                <span className="font-mono font-black text-amber-400 tabular-nums">{Math.round(playerState.star)}/100</span>
+              </div>
+              <div className="h-1.5 w-28 rounded-full bg-slate-800 overflow-hidden mt-0.5">
+                <div
+                  style={{ width: `${Math.min(100, Math.max(0, playerState.star))}%` }}
+                  className="h-full bg-amber-400 transition-all duration-300"
+                />
+              </div>
             </div>
-            {radioStatus.isPlaying ? (
-              <Pause className="h-3.5 w-3.5 text-rose-400" />
-            ) : (
-              <Play className="h-3.5 w-3.5 text-slate-400 group-hover:text-amber-400" />
-            )}
-          </button>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 rounded-lg bg-slate-950/92 px-2 py-1 border border-slate-700 text-[10px] font-bold text-emerald-400">
+              <Users className="w-3 h-3" />
+              <span>{onlineCount}</span>
+            </div>
+
+            <div className="flex items-center gap-0.5 rounded-lg bg-slate-950/92 px-2 py-1 border border-slate-700">
+              {[1, 2, 3, 4, 5].map((starIndex) => (
+                <span
+                  key={starIndex}
+                  className={`text-xs ${
+                    starIndex <= playerState.policeWanted ? 'text-amber-400 font-black' : 'text-slate-700'
+                  }`}
+                >
+                  ★
+                </span>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* 2. CENTRE / BAS : JAUGE D'ENVIE & DOCK DE NAVIGATION TERRE D'IVOIRE */}
-      <div className="pointer-events-auto flex flex-col items-center gap-2 w-full max-w-2xl mx-auto mb-20 sm:mb-24">
-        {/* LA JAUGE D'ENVIE UNIVERSELLE */}
-        <div className="w-full rounded-2xl border border-amber-500/40 bg-slate-950/85 p-2.5 shadow-2xl backdrop-blur-lg">
-          <div className="mb-1 flex items-center justify-between text-xs">
-            <span className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-amber-400 font-mono">
-              <span className="text-sm">🔥</span>
-              {isEnglish ? 'Craving Gauge' : 'Jauge d\'Envie'} : {playerState.envieJauge}%
-            </span>
-            {playerState.envieBuff ? (
-              <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-[10px] font-bold text-amber-300 animate-pulse">
-                ✨ {playerState.envieBuff.name}
-              </span>
-            ) : (
-              <span className="text-[10px] text-slate-400">
-                {isEnglish ? 'Satisfied by Garba, Love, Success' : 'Comblée par le Garba, l\'Amour, le Succès'}
-              </span>
-            )}
-          </div>
-          <div className="h-2.5 w-full rounded-full bg-slate-800 overflow-hidden p-0.5">
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-amber-600 via-amber-400 to-yellow-300 shadow-[0_0_12px_rgba(251,191,36,0.8)] transition-all duration-500"
-              style={{ width: `${playerState.envieJauge}%` }}
-            />
-          </div>
+      {/* BOTTOM PERIMETER: RADAR + NEEDS + DOCK */}
+      <div className="flex items-end justify-between gap-3 w-full">
+        {/* BOTTOM-LEFT: MINIMAP RADAR + COMPACT NEEDS */}
+        <div className="flex items-end gap-2.5">
+          <MinimapRadar getSnapshot={getRadarSnapshot} district={currentDistrict} />
 
-          {/* Les 6 Besoins Sims */}
-          <div className="mt-2 grid grid-cols-6 gap-1 text-[10px] text-slate-300">
-            <div className="flex flex-col items-center">
-              <span>🍛 Faim</span>
-              <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden mt-0.5">
-                <div className="h-full bg-amber-500" style={{ width: `${playerState.needs.faim}%` }} />
-              </div>
+          <div className="pointer-events-auto hidden sm:flex flex-col gap-1 rounded-xl bg-slate-950/92 p-2.5 border border-slate-700 shadow-xl w-52">
+            <div className="flex items-center justify-between text-[10px] font-black uppercase text-amber-400">
+              <span className="flex items-center gap-1 truncate">
+                <Flame className="h-3.5 w-3.5 text-orange-500" />
+                {s.envyGauge}
+              </span>
+              <span className="font-mono tabular-nums">{Math.round(playerState.needs.envy)}%</span>
             </div>
-            <div className="flex flex-col items-center">
-              <span>⚡ Énergie</span>
-              <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden mt-0.5">
-                <div className="h-full bg-sky-500" style={{ width: `${playerState.needs.energie}%` }} />
-              </div>
+            <div className="h-2 w-full rounded-full bg-slate-800 overflow-hidden">
+              <div
+                style={{ width: `${Math.round(playerState.needs.envy)}%` }}
+                className="h-full bg-orange-500 transition-all duration-300"
+              />
             </div>
-            <div className="flex flex-col items-center">
-              <span>🚿 Hygiène</span>
-              <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden mt-0.5">
-                <div className="h-full bg-teal-400" style={{ width: `${playerState.needs.hygiene}%` }} />
-              </div>
-            </div>
-            <div className="flex flex-col items-center">
-              <span>🚽 Vessie</span>
-              <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden mt-0.5">
-                <div className="h-full bg-blue-500" style={{ width: `${playerState.needs.vessie}%` }} />
-              </div>
-            </div>
-            <div className="flex flex-col items-center">
-              <span>💬 Social</span>
-              <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden mt-0.5">
-                <div className="h-full bg-pink-500" style={{ width: `${playerState.needs.social}%` }} />
-              </div>
-            </div>
-            <div className="flex flex-col items-center">
-              <span>🎉 Loisirs</span>
-              <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden mt-0.5">
-                <div className="h-full bg-indigo-500" style={{ width: `${playerState.needs.loisirs}%` }} />
-              </div>
+
+            <div className="grid grid-cols-2 gap-x-2.5 gap-y-1 mt-1 pt-1 border-t border-slate-800 text-[9px] tabular-nums">
+              {[
+                { label: s.hunger, val: playerState.needs.hunger, color: 'bg-emerald-400' },
+                { label: s.energy, val: playerState.needs.energy, color: 'bg-cyan-400' },
+                { label: s.hygiene, val: playerState.needs.hygiene, color: 'bg-sky-400' },
+                { label: s.bladder, val: playerState.needs.bladder, color: 'bg-indigo-400' },
+              ].map((n) => (
+                <div key={n.label}>
+                  <div className="flex justify-between text-slate-300 font-semibold">
+                    <span>{n.label}</span>
+                    <span>{Math.round(n.val)}%</span>
+                  </div>
+                  <div className="h-1 rounded-full bg-slate-800 overflow-hidden">
+                    <div
+                      style={{ width: `${Math.round(n.val)}%` }}
+                      className={`h-full ${n.val < 20 ? 'bg-rose-500' : n.color}`}
+                    />
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
 
-        {/* 3. DOCK NAVIGATION INSPIRÉ DE TERRE D'IVOIRE (Ici, Carte, Manger, Phone, Aller au travail) */}
-        <div className="flex items-center gap-2 rounded-2xl border border-slate-800 bg-slate-950/90 p-1.5 shadow-2xl backdrop-blur-md">
-          {/* Ici (Maison) */}
+        {/* BOTTOM-CENTER/RIGHT: ACTION DOCK */}
+        <div className="pointer-events-auto flex flex-col items-center">
           <button
-            onClick={onRest}
-            className="flex items-center gap-1.5 rounded-xl border border-slate-800 bg-slate-900 px-3 py-1.5 text-xs font-bold text-slate-200 hover:border-amber-500/50 hover:text-amber-300 transition"
-            title="Logement / Lieu actuel"
+            type="button"
+            onClick={() => setIsDockCollapsed(!isDockCollapsed)}
+            className="flex items-center gap-1 rounded-t-lg bg-slate-950/92 px-3 py-0.5 text-[10px] font-bold uppercase text-slate-400 hover:text-white border-t border-x border-slate-700 cursor-pointer"
           >
-            <Home className="h-4 w-4 text-amber-400" />
-            <span className="hidden sm:inline">Ici (Maison)</span>
+            {isDockCollapsed ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+            <span>{isDockCollapsed ? s.showDock : s.hideDock}</span>
           </button>
 
-          {/* Carte d'Abidjan */}
-          <button
-            onClick={onOpenMap}
-            className="flex items-center gap-1.5 rounded-xl border border-sky-500/40 bg-sky-950/40 px-3 py-1.5 text-xs font-bold text-sky-300 hover:bg-sky-900/50 transition"
-            title="Carte d'Abidjan & Déplacements"
-          >
-            <Map className="h-4 w-4 text-sky-400" />
-            <span>{isEnglish ? 'Map' : 'Carte'}</span>
-          </button>
+          {!isDockCollapsed && (
+            <div className="flex items-center gap-2 rounded-xl bg-slate-950/94 px-3 py-2 border border-slate-700 shadow-2xl">
+              <button
+                type="button"
+                onClick={onOpenPhone}
+                className="flex items-center gap-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 px-3 py-2 text-xs font-black text-slate-950 cursor-pointer"
+              >
+                <Smartphone className="h-4 w-4" />
+                <span>BabiOS</span>
+              </button>
 
-          {/* Manger */}
-          <button
-            onClick={onEatFoodModal}
-            className="flex items-center gap-1.5 rounded-xl border border-pink-500/40 bg-pink-950/30 px-3 py-1.5 text-xs font-bold text-pink-300 hover:bg-pink-900/40 transition"
-            title="Gastronomie ivoirienne (Garba, Alloco)"
-          >
-            <Utensils className="h-4 w-4 text-pink-400" />
-            <span>{isEnglish ? 'Eat' : 'Manger'}</span>
-          </button>
+              <button
+                type="button"
+                onClick={onNextRadio}
+                className="flex items-center gap-2 rounded-lg bg-slate-800 hover:bg-slate-700 px-2.5 py-1.5 border border-slate-700 text-left cursor-pointer"
+              >
+                <Radio className="h-4 w-4 text-emerald-400 shrink-0" />
+                <div className="max-w-[110px] truncate">
+                  <div className="text-[10px] font-bold text-white truncate">{currentRadio.name}</div>
+                  <div className="text-[9px] text-emerald-400 font-mono">
+                    {currentRadio.freq} · {radioStatus === 'live' ? 'LIVE' : radioStatus === 'synth-fallback' ? 'SYNTH' : 'OFF'}
+                  </div>
+                </div>
+              </button>
 
-          {/* Smartphone BabiOS */}
-          <button
-            onClick={onOpenPhone}
-            className="flex items-center gap-1.5 rounded-xl border border-emerald-500/40 bg-emerald-950/40 px-3 py-1.5 text-xs font-bold text-emerald-300 hover:bg-emerald-900/50 transition"
-            title="Wave Money, Tontine, Badges d'Écoles"
-          >
-            <Smartphone className="h-4 w-4 text-emerald-400" />
-            <span>BabiOS</span>
-          </button>
+              <button
+                type="button"
+                onClick={onOpenRoulette}
+                className="flex items-center gap-1 rounded-lg bg-slate-800 hover:bg-slate-700 px-2.5 py-2 border border-slate-700 text-xs font-semibold text-slate-200 cursor-pointer"
+              >
+                <RotateCcw className="h-3.5 w-3.5 text-cyan-400" />
+                <span className="hidden md:inline">{s.destinyBtn}</span>
+              </button>
 
-          {/* Aller au Travail */}
-          <button
-            onClick={onGoToWork}
-            className="flex items-center gap-1.5 rounded-xl border border-amber-500 bg-gradient-to-r from-amber-600 to-amber-500 px-3.5 py-1.5 text-xs font-black text-slate-950 hover:from-amber-500 hover:to-amber-400 active:scale-95 transition shadow-lg shadow-amber-600/30"
-            title="Aller au travail / Gagner des FCFA"
-          >
-            <Briefcase className="h-4 w-4" />
-            <span>{isEnglish ? 'Go to Work' : 'Travailler'}</span>
-          </button>
+              <button
+                type="button"
+                onClick={onOpenSettings}
+                aria-label="Réglages"
+                className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 cursor-pointer"
+              >
+                <Settings className="h-4 w-4" />
+              </button>
 
-          {/* Fin Tragique (Baisser les bras) */}
-          <button
-            onClick={onTragicEnding}
-            className="rounded-xl p-1.5 text-slate-600 hover:text-rose-400 transition"
-            title={isEnglish ? "Give up / Tragic ending" : "Baisser les bras / Fin tragique"}
-          >
-            <HeartCrack className="h-4 w-4" />
-          </button>
+              <button
+                type="button"
+                onClick={onOpenAdmin}
+                aria-label="Admin Sandbox"
+                className="p-2 rounded-lg bg-slate-900 hover:bg-slate-800 border border-amber-500/40 text-amber-400 cursor-pointer"
+              >
+                <Lock className="h-4 w-4" />
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

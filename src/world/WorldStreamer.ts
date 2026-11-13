@@ -25,7 +25,7 @@ export class WorldStreamer {
   /** Rayon de chargement (en chunks de 64 m). */
   radius: number;
   /** Nombre maximal de requêtes simultanées auprès du Worker. */
-  maxInFlight = 6;
+  maxInFlight = 12;
 
   constructor(
     private scene: THREE.Scene,

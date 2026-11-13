@@ -33,6 +33,7 @@ export const GRIDS: Record<string, DistrictGrid> = {
   marcory:    { angleDeg: 4,   pitch: 66,  street: 9,  lot: 16, style: 'block' },   // rues rectilignes (sourcé)
   koumassi:   { angleDeg: -3,  pitch: 54,  street: 8,  lot: 12, style: 'block' },   // rues rectilignes (sourcé)
   port_bouet: { angleDeg: 12,  pitch: 72,  street: 9,  lot: 16, style: 'block' },
+  grand_bassam: { angleDeg: 8, pitch: 76, street: 9,  lot: 18, style: 'villa' },
   vridi:      { angleDeg: 0,   pitch: 110, street: 12, lot: 44, style: 'warehouse' },
   banco:      { angleDeg: 0,   pitch: 1000, street: 0, lot: 0,  style: 'none' }
 };
@@ -67,7 +68,7 @@ const ARTERIAL_SPECS: ArterialSpec[] = [
   { id: 'plateau_fhb', name: 'Boulevard de la République', nodes: [center('plateau'), bridgeNode('fhb', 'from'), bridgeNode('fhb', 'to'), center('treichville')] },
   { id: 'plateau_degaulle', name: 'Boulevard Carde', nodes: [center('plateau'), bridgeNode('degaulle', 'from'), bridgeNode('degaulle', 'to'), center('treichville')] },
   { id: 'treichville_marcory', name: 'Boulevard de Marseille', nodes: [center('treichville'), [5.305, -3.998], center('marcory')] },
-  { id: 'marcory_airport', name: "Boulevard de l'Aéroport", nodes: [center('marcory'), center('koumassi'), center('port_bouet'), [5.2614, -3.9263]] },
+  { id: 'marcory_airport', name: "Boulevard de l'Aéroport & Route de Bassam", nodes: [center('marcory'), center('koumassi'), center('port_bouet'), [5.2614, -3.9263], center('grand_bassam')] },
   { id: 'treichville_vridi', name: 'Boulevard de Vridi', nodes: [center('treichville'), [5.285, -4.005], center('vridi')] },
   { id: 'plateau_cocody', name: 'Boulevard Latrille', nodes: [center('plateau'), bridgeNode('ado', 'from'), bridgeNode('ado', 'to'), [5.34, -3.984], [5.352, -3.984], center('cocody')] },
   { id: 'cocody_riviera', name: 'Boulevard Mitterrand', nodes: [center('cocody'), center('riviera')] },

@@ -1,6 +1,6 @@
 {
-  "name": "BLV — Babi Life Vibes",
-  "description": "Le jeu de simulation de vie urbaine en 3D à Abidjan (Côte d'Ivoire). Découvre ton destin parmi 19 classes, vis l'ascension sociale, pilote des woro-woros et écoute les radios en direct.",
+  "name": "BLV — Babi Life Vibes | Simulation 3D Abidjan",
+  "description": "La simulation de vie urbaine 3D à Abidjan (GTA Roleplay × The Sims). Parcourez le Plateau, Cocody et Yopougon, pilotez gbaka et woro-woro, et faites briller votre Étoile.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

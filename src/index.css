@@ -1,1 +1,33 @@
 @import "tailwindcss";
+
+@layer utilities {
+  .touch-none {
+    touch-action: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .font-display {
+    font-family: 'Bebas Neue', sans-serif;
+  }
+  .font-mono-code {
+    font-family: 'JetBrains Mono', monospace;
+  }
+}
+
+/* Custom PlayStation button styling */
+.ps-btn {
+  transition: transform 0.08s ease, filter 0.08s ease;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+.ps-btn:active {
+  transform: scale(0.92);
+  filter: brightness(1.2);
+}

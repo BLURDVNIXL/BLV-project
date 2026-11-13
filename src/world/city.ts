@@ -102,10 +102,10 @@ export const SPECIALS: SpecialSpec[] = [
   { id: 'palais_culture', name: 'Palais de la Culture', at: landmark('palais_sports'), w: 60, d: 40, h: 20, angleDeg: 0, color: 0xd8d4c8, snapToBlock: false },
   { id: 'aeroport', name: 'Aéroport Félix Houphouët-Boigny', at: landmark('airport'), w: 130, d: 44, h: 18, angleDeg: 12, color: 0xc9d1d8, snapToBlock: false },
   { id: 'port', name: "Port Autonome d'Abidjan", at: landmark('port'), w: 70, d: 40, h: 8, angleDeg: 0, color: 0x7a8a99, snapToBlock: false, containers: { cols: 10, rows: 5, levels: 3 } },
-  // Lycées d'Excellence (fiction du jeu, voir CONTEXT.md)
-  { id: 'lycee_caiman', name: 'Lycée Classique (Caïman)', at: { lat: 5.3585, lon: -3.998 }, w: 16, d: 10, h: 7, angleDeg: 0, color: 0xe8c07a, snapToBlock: true },
-  { id: 'lycee_alysma', name: 'Sainte-Marie (Alysma)', at: { lat: 5.3545, lon: -3.989 }, w: 14, d: 8, h: 6, angleDeg: 0, color: 0xf0a8a0, snapToBlock: true },
-  { id: 'lycee_alex', name: "Lycée d'Excellence (Alex)", at: { lat: 5.2985, lon: -3.978 }, w: 18, d: 12, h: 8, angleDeg: 0, color: 0x9ec8e8, snapToBlock: true }
+  // Lycées d'Excellence (emplacements corrigés Cocody & Grand-Bassam)
+  { id: 'lycee_caiman', name: 'Lycée Classique (Caïman)', at: { lat: 5.344, lon: -4.000 }, w: 22, d: 14, h: 8, angleDeg: 0, color: 0xe8c07a, snapToBlock: true },
+  { id: 'lycee_alysma', name: 'Sainte-Marie (Alysma)', at: { lat: 5.354, lon: -3.984 }, w: 20, d: 12, h: 8, angleDeg: 0, color: 0xf0a8a0, snapToBlock: true },
+  { id: 'lycee_alex', name: "Lycée d'Excellence (Alex · Bassam)", at: { lat: 5.250, lon: -3.904 }, w: 26, d: 16, h: 10, angleDeg: 0, color: 0x9ec8e8, snapToBlock: true }
 ];
 
 export interface SpecialFootprint { spec: SpecialSpec; x: number; z: number; w: number; d: number; angle: number }
@@ -400,25 +400,40 @@ function buildWater(out: ChunkData, x0: number, z0: number): void {
  * Choisit de façon déterministe une parcelle pour un logement donné.
  * En production, le serveur tient le registre des parcelles occupées ; ici la graine joue ce rôle.
  */
-export function findHouseLot(home: HomeType, seed: number, taken: ReadonlySet<string> = new Set()): HouseLot | null {
-  const districts = districtsForHome(home);
+export function findHouseLot(
+  home: HomeType,
+  seed: number,
+  taken: ReadonlySet<string> = new Set(),
+  preferredDistrict?: string
+): HouseLot | null {
+  const allForHome = districtsForHome(home);
+  const preferred = preferredDistrict ? DISTRICTS.find((d) => d.id === preferredDistrict && d.homes.length > 0) : undefined;
+  const districts = preferred
+    ? [preferred, ...allForHome.filter((d) => d.id !== preferred.id)]
+    : allForHome;
   if (districts.length === 0) return null;
-  const start = hash32(seed, 1) % districts.length;
+  const start = preferred ? 0 : hash32(seed, 1) % districts.length;
   for (let k = 0; k < districts.length; k++) {
     const dist = districts[(start + k) % districts.length];
     const c = project(dist.center.lat, dist.center.lon);
     const ccx = chunkOf(c.x);
     const ccz = chunkOf(c.z);
     const found: HouseLot[] = [];
+    const foundAnyHome: HouseLot[] = [];
     for (let ring = 0; ring <= 8 && found.length < 40; ring++) {
       for (let dx = -ring; dx <= ring; dx++) for (let dz = -ring; dz <= ring; dz++) {
         if (Math.max(Math.abs(dx), Math.abs(dz)) !== ring) continue;
-        for (const l of generateChunk(ccx + dx, ccz + dz).houseLots) if (l.district === dist.id && l.homes.includes(home) && !taken.has(l.id)) found.push(l);
+        for (const l of generateChunk(ccx + dx, ccz + dz).houseLots) {
+          if (l.district !== dist.id || taken.has(l.id)) continue;
+          if (l.homes.includes(home)) found.push(l);
+          else if (preferred && dist.id === preferred.id) foundAnyHome.push(l);
+        }
       }
     }
-    if (found.length === 0) continue;
-    found.sort((a, b) => (a.id < b.id ? -1 : 1));
-    return found[hash32(seed, 2) % found.length];
+    const pool = found.length > 0 ? found : foundAnyHome;
+    if (pool.length === 0) continue;
+    pool.sort((a, b) => (a.id < b.id ? -1 : 1));
+    return pool[hash32(seed, 2) % pool.length];
   }
   return null;
 }

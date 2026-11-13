@@ -35,7 +35,7 @@ export interface District {
 
 export const DISTRICTS: District[] = [
   { id: 'plateau', name: 'Le Plateau', center: { lat: 5.325, lon: -4.02 }, confidence: 'approximate', social: 'luxury', radiusM: 1500, heightM: [30, 110], density: 0.8, homes: ['bunker'] },
-  { id: 'adjame', name: 'Adjamé', center: { lat: 5.356, lon: -4.025 }, confidence: 'approximate', social: 'popular', radiusM: 1800, heightM: [6, 24], density: 0.9, homes: ['chambre_cour', 'studio'] },
+  { id: 'adjame', name: 'Adjamé', center: { lat: 5.356, lon: -4.025 }, confidence: 'approximate', social: 'popular', radiusM: 1800, heightM: [6, 24], density: 0.9, homes: ['chambre_cour', 'studio', 'squat'] },
   { id: 'attecoube', name: 'Attécoubé', center: { lat: 5.338, lon: -4.048 }, confidence: 'approximate', social: 'informal', radiusM: 1500, heightM: [3, 9], density: 0.9, homes: ['squat', 'chambre_cour'] },
   { id: 'yopougon', name: 'Yopougon', center: { lat: 5.335, lon: -4.075 }, confidence: 'approximate', social: 'middle', radiusM: 3500, heightM: [4, 15], density: 0.7, homes: ['deux_pieces', 'trois_pieces', 'studio', 'chambre_cour'] },
   { id: 'abobo', name: 'Abobo', center: { lat: 5.417, lon: -4.017 }, confidence: 'approximate', social: 'popular', radiusM: 3500, heightM: [4, 14], density: 0.85, homes: ['chambre_cour', 'squat', 'deux_pieces'] },
@@ -44,7 +44,8 @@ export const DISTRICTS: District[] = [
   { id: 'treichville', name: 'Treichville', center: { lat: 5.3102, lon: -4.0129 }, confidence: 'sourced', social: 'popular', radiusM: 1500, heightM: [6, 20], density: 0.9, homes: ['chambre_cour', 'studio', 'deux_pieces'] },
   { id: 'marcory', name: 'Marcory · Zone 4', center: { lat: 5.3, lon: -3.983 }, confidence: 'sourced', social: 'middle', radiusM: 2000, heightM: [6, 28], density: 0.7, homes: ['studio', 'deux_pieces', 'trois_pieces', 'duplex_mer'] },
   { id: 'koumassi', name: 'Koumassi', center: { lat: 5.3, lon: -3.95 }, confidence: 'sourced', social: 'popular', radiusM: 2200, heightM: [4, 14], density: 0.85, homes: ['chambre_cour', 'deux_pieces', 'squat'] },
-  { id: 'port_bouet', name: 'Port-Bouët', center: { lat: 5.262, lon: -3.945 }, confidence: 'approximate', social: 'middle', radiusM: 2500, heightM: [4, 12], density: 0.6, homes: ['deux_pieces', 'trois_pieces', 'duplex_mer'] },
+  { id: 'port_bouet', name: 'Port-Bouët', center: { lat: 5.262, lon: -3.945 }, confidence: 'approximate', social: 'middle', radiusM: 2200, heightM: [4, 12], density: 0.6, homes: ['deux_pieces', 'trois_pieces', 'duplex_mer'] },
+  { id: 'grand_bassam', name: 'Grand-Bassam · Littoral', center: { lat: 5.252, lon: -3.902 }, confidence: 'approximate', social: 'middle', radiusM: 1600, heightM: [4, 14], density: 0.55, homes: ['duplex_mer', 'villa_ambassade', 'trois_pieces'] },
   { id: 'vridi', name: 'Vridi', center: { lat: 5.25, lon: -3.995 }, confidence: 'approximate', social: 'industrial', radiusM: 1800, heightM: [8, 30], density: 0.4, homes: [] },
   { id: 'banco', name: 'Forêt du Banco', center: { lat: 5.385, lon: -4.05 }, confidence: 'approximate', social: 'nature', radiusM: 2300, heightM: [0, 0], density: 0, homes: [] }
 ];
