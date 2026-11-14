@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
-    "test": "tsx --test src/core/simulation.test.ts",
+    "test": "tsx --test src/core/simulation.test.ts src/3d/ambiance.test.ts",
     "test:physics": "node physics/test.mjs && npx tsx physics/integration.test.ts",
     "test:world": "npx tsx physics/world.test.ts",
     "test:city": "npx tsx physics/city.test.ts",

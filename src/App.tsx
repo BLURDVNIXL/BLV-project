@@ -347,6 +347,10 @@ export default function App() {
     });
 
     sceneRef.current = mgr;
+    // Aide au débogage et aux tests visuels : `?blvdebug` expose le gestionnaire de scène (window.__blvScene)
+    if (new URLSearchParams(window.location.search).has('blvdebug')) {
+      (window as unknown as { __blvScene?: unknown }).__blvScene = mgr;
+    }
 
     if (isAutostart) {
       const p = playerStateRef.current;

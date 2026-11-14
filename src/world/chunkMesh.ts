@@ -16,6 +16,8 @@ export interface ChunkMaterials {
   plain: THREE.MeshStandardMaterial;
   trees: THREE.MeshLambertMaterial;
   setNight: (night: boolean) => void;
+  /** Temps (secondes) pour le balancement des arbres dans le vent (sans effet si le vent est désactivé). */
+  setWindTime: (timeSec: number) => void;
   dispose(): void;
 }
 
@@ -73,7 +75,7 @@ function makeFacadeTextures(): { map: THREE.CanvasTexture; emissive: THREE.Canva
   return { map: mk(draw(false)), emissive: mk(draw(true)) };
 }
 
-export function createChunkMaterials(night: boolean): ChunkMaterials {
+export function createChunkMaterials(night: boolean, wind = false): ChunkMaterials {
   const tex = makeFacadeTextures();
   const facade = new THREE.MeshStandardMaterial({
     map: tex.map,
@@ -91,6 +93,27 @@ export function createChunkMaterials(night: boolean): ChunkMaterials {
   });
   const trees = new THREE.MeshLambertMaterial({ vertexColors: true });
 
+  // Vent tropical : les cimes (haut des arbres) oscillent doucement, le pied du tronc reste fixe.
+  // Calcul 100 % dans le vertex shader (aucun coût CPU) ; désactivé sur rendu logiciel.
+  const windTime = { value: 0 };
+  if (wind) {
+    trees.onBeforeCompile = (shader) => {
+      shader.uniforms.uWindTime = windTime;
+      shader.vertexShader = `uniform float uWindTime;\n` + shader.vertexShader;
+      shader.vertexShader = shader.vertexShader.replace(
+        '#include <begin_vertex>',
+        `#include <begin_vertex>
+         {
+           vec4 wp = modelMatrix * vec4(transformed, 1.0);
+           float sway = pow(clamp(transformed.y / 9.0, 0.0, 1.0), 1.6);
+           float phase = wp.x * 0.21 + wp.z * 0.17;
+           transformed.x += sin(uWindTime * 1.25 + phase) * 0.32 * sway;
+           transformed.z += cos(uWindTime * 0.95 + phase * 1.3) * 0.22 * sway;
+         }`
+      );
+    };
+  }
+
   const setNight = (isNight: boolean) => {
     facade.emissiveIntensity = isNight ? 0.95 : 0.0;
   };
@@ -100,6 +123,9 @@ export function createChunkMaterials(night: boolean): ChunkMaterials {
     plain,
     trees,
     setNight,
+    setWindTime: (timeSec: number) => {
+      windTime.value = timeSec;
+    },
     dispose: () => {
       tex.map.dispose();
       tex.emissive.dispose();

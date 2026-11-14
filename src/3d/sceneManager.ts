@@ -50,6 +50,8 @@ import {
 } from '../physics/PhysicsCore';
 import { WorldStreamer } from '../world/WorldStreamer';
 import { ChunkMaterials, createChunkMaterials } from '../world/chunkMesh';
+import { daylight, sampleAmbient, sunDirection } from './ambiance';
+import { createSkyDome, SkyDome } from './sky';
 import { createChunkProvider } from '../world/chunkProvider';
 import {
   HouseLot,
@@ -156,6 +158,10 @@ export class AbidjanSceneManager {
   private npcSystem!: NpcSystem;
 
   private lagoonWaterHandle!: AnimatedWaterHandle;
+  /** Dôme de ciel (null sur rendu logiciel : le fond uni est alors utilisé). */
+  private skyDome: SkyDome | null = null;
+  /** Direction unitaire du soleil (ou de la lune la nuit), mise à jour avec l'heure de jeu. */
+  private sunDir = new THREE.Vector3(0.5, 0.78, 0.37).normalize();
   private floodWaterMesh!: THREE.Mesh;
   private bridgeSetNights: Array<(night: boolean) => void> = [];
   private beaconRings: THREE.Mesh[] = [];
@@ -267,7 +273,9 @@ export class AbidjanSceneManager {
     const gl = this.renderer.getContext();
     const dbg = gl.getExtension('WEBGL_debug_renderer_info');
     const glName = dbg ? String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL)) : '';
-    this.isSoftwareGl = /SwiftShader|llvmpipe|Software/i.test(glName);
+    // `?quality=high` force le chemin graphique complet (ciel, eau, vent) même sur rendu logiciel : utile pour les tests.
+    const forceHigh = typeof location !== 'undefined' && /[?&]quality=high/.test(location.search);
+    this.isSoftwareGl = !forceHigh && /SwiftShader|llvmpipe|Software/i.test(glName);
 
     const lowEnd =
       this.isSoftwareGl ||
@@ -290,6 +298,11 @@ export class AbidjanSceneManager {
     this.scene.fog = new THREE.FogExp2(day.fogHex, this.isSoftwareGl ? 0.0042 : day.fogDensity);
 
     this.camera = new THREE.PerspectiveCamera(56, width / height, 0.4, this.isSoftwareGl ? 280 : 720);
+
+    if (!this.isSoftwareGl) {
+      this.skyDome = createSkyDome(this.camera.far * 0.9);
+      this.scene.add(this.skyDome.mesh);
+    }
 
     if (!this.isSoftwareGl) {
       try {
@@ -346,7 +359,7 @@ export class AbidjanSceneManager {
     this.scene.add(this.floodWaterMesh);
 
     // 2. Chunk Materials + 5 Abidjan Bridges + Hero Landmarks + Pedestrian NPCs
-    this.chunkMats = createChunkMaterials(false);
+    this.chunkMats = createChunkMaterials(false, !this.isSoftwareGl);
     this.buildAllBridges();
     this.buildStaticHeroLandmarks();
     this.buildStaticHotspotsAndPickups();
@@ -924,7 +937,6 @@ export class AbidjanSceneManager {
     this.star = star;
 
     const mood = getLightingMood(gameTimeHours);
-    const cfg = LIGHTING_MOODS[mood];
     if (mood !== this.currentMood) {
       this.currentMood = mood;
       const isNight = mood === 'night';
@@ -932,29 +944,46 @@ export class AbidjanSceneManager {
       this.bridgeSetNights.forEach((fn) => fn(isNight));
     }
 
-    let skyHex = cfg.skyHex;
-    let sunInt = cfg.sunIntensity;
-    let fogDensity = cfg.fogDensity;
+    // Ambiance continue : palette chaude interpolée selon l'heure, soleil qui voyage d'est en ouest
+    const amb = sampleAmbient(gameTimeHours);
+    sunDirection(gameTimeHours, this.sunDir);
+    const isNightMood = mood === 'night';
+    const zenith = amb.zenith.clone();
+    const horizon = amb.horizon.clone();
+    let sunInt = amb.sunIntensity;
+    let fogDensity = amb.fogDensity;
+    let skyGlowScale = 1;
+    let glint = daylight(gameTimeHours);
 
     if (weather === 'pluie' || weather === 'inondation') {
-      skyHex = mood === 'night' ? 0x09101d : 0x475569;
+      horizon.setHex(isNightMood ? 0x09101d : 0x475569);
+      zenith.setHex(isNightMood ? 0x050911 : 0x2e3a4c);
       sunInt *= 0.55;
       fogDensity = 0.0032;
+      skyGlowScale = 0.1;
+      glint *= 0.15;
     } else if (weather === 'harmattan') {
-      skyHex = mood === 'night' ? 0x1e1810 : 0xd6b07c;
+      horizon.setHex(isNightMood ? 0x1e1810 : 0xd6b07c);
+      zenith.setHex(isNightMood ? 0x120e08 : 0xb89868);
       sunInt *= 0.85;
       fogDensity = 0.0045;
+      skyGlowScale = 0.35;
+      glint *= 0.5;
     }
 
-    this.dirLight.color.setHex(cfg.sunColor);
+    this.dirLight.color.copy(amb.sunColor);
     this.dirLight.intensity = sunInt;
-    this.hemiLight.color.setHex(cfg.hemiSky);
-    this.hemiLight.groundColor.setHex(cfg.hemiGround);
-    this.hemiLight.intensity = cfg.hemiIntensity;
-    this.renderer.toneMappingExposure = cfg.exposure;
-    (this.scene.background as THREE.Color).setHex(skyHex);
-    (this.scene.fog as THREE.FogExp2).color.setHex(skyHex);
+    this.hemiLight.color.copy(amb.hemiSky);
+    this.hemiLight.groundColor.copy(amb.hemiGround);
+    this.hemiLight.intensity = amb.hemiIntensity;
+    this.renderer.toneMappingExposure = amb.exposure;
+    // Le brouillard prend la couleur de l'horizon : la ville se fond dans le ciel sans couture
+    (this.scene.background as THREE.Color).copy(horizon);
+    (this.scene.fog as THREE.FogExp2).color.copy(horizon);
     (this.scene.fog as THREE.FogExp2).density = fogDensity;
+
+    this.skyDome?.apply(amb, this.sunDir, { zenith, horizon, glowScale: skyGlowScale });
+    this.lagoonWaterHandle.setAmbient(this.sunDir, amb.sunColor, horizon, glint);
   }
 
   public syncRemotePlayers(players: RemotePlayer[]) {
@@ -1237,6 +1266,7 @@ export class AbidjanSceneManager {
   private stepSimulation(dt: number, nowSec: number) {
     // 1. Lagoon shader & flood water animation
     this.lagoonWaterHandle.updateTime(nowSec);
+    this.chunkMats.setWindTime(nowSec);
     const isFlood = this.weather === 'inondation';
     this.floodWaterMesh.visible = isFlood || this.floodWaterMesh.position.y > -1.2;
     const targetFloodY = isFlood ? 0.36 : -1.8;
@@ -1291,7 +1321,11 @@ export class AbidjanSceneManager {
       this.camLook.set(this.flyoverCenter.x, 9, this.flyoverCenter.z);
       this.camera.position.copy(this.camPos);
       this.camera.lookAt(this.camLook);
-      this.dirLight.position.set(this.flyoverCenter.x + 80, 120, this.flyoverCenter.z + 60);
+      this.dirLight.position.set(
+        this.flyoverCenter.x + this.sunDir.x * 150,
+        this.sunDir.y * 150,
+        this.flyoverCenter.z + this.sunDir.z * 150
+      );
       this.dirLight.target.position.set(this.flyoverCenter.x, 0, this.flyoverCenter.z);
       return;
     }
@@ -1453,7 +1487,11 @@ export class AbidjanSceneManager {
     this.camera.position.copy(this.camPos);
     this.camera.lookAt(this.camLook);
 
-    this.dirLight.position.set(this.playerX + 75, 115, this.playerZ + 55);
+    this.dirLight.position.set(
+      this.playerX + this.sunDir.x * 150,
+      this.sunDir.y * 150,
+      this.playerZ + this.sunDir.z * 150
+    );
     this.dirLight.target.position.set(this.playerX, 0, this.playerZ);
 
     // 9. Throttled HUD & Network Sync (<= 10Hz)
@@ -1494,6 +1532,7 @@ export class AbidjanSceneManager {
       this.lastTime = now;
 
       this.stepSimulation(dt, now / 1000);
+      this.skyDome?.followCamera(this.camera);
       this.renderer.render(this.scene, this.camera);
 
       if (this.isSoftwareGl) {
@@ -1524,6 +1563,7 @@ export class AbidjanSceneManager {
     dom.removeEventListener('wheel', this.onWheel);
 
     this.streamer?.dispose();
+    this.skyDome?.dispose();
     this.chunkMats.dispose();
     this.npcSystem.dispose();
     this.renderer.dispose();

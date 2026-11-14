@@ -240,6 +240,11 @@ export function getWaterNormalTexture(): THREE.CanvasTexture {
 export interface AnimatedWaterHandle {
   material: THREE.MeshStandardMaterial;
   updateTime: (timeSec: number) => void;
+  /**
+   * Ambiance de l'eau : direction et couleur du soleil, couleur de l'horizon (reflet de Fresnel),
+   * et force du scintillement (0 la nuit). Sans effet sur rendu logiciel.
+   */
+  setAmbient: (sunDir: THREE.Vector3, sunColor: THREE.Color, horizon: THREE.Color, glint: number) => void;
 }
 
 /**
@@ -253,6 +258,10 @@ export function createAnimatedWaterMaterial(
 ): AnimatedWaterHandle {
   const waterTex = getWaterNormalTexture();
   const timeUniform = { value: 0 };
+  const sunDirUniform = { value: new THREE.Vector3(0.5, 0.8, 0.3) };
+  const sunColorUniform = { value: new THREE.Color(0xfff6dc) };
+  const horizonUniform = { value: new THREE.Color(0xbfe7f7) };
+  const glintUniform = { value: 1 };
 
   const material = new THREE.MeshStandardMaterial({
     color: colorHex,
@@ -267,11 +276,45 @@ export function createAnimatedWaterMaterial(
   if (!isSoftwareGl) {
     material.onBeforeCompile = (shader) => {
       shader.uniforms.uWaterTime = timeUniform;
-      shader.vertexShader = `uniform float uWaterTime;\n` + shader.vertexShader;
+      shader.uniforms.uSunDir = sunDirUniform;
+      shader.uniforms.uSunColor = sunColorUniform;
+      shader.uniforms.uHorizon = horizonUniform;
+      shader.uniforms.uGlint = glintUniform;
+
+      shader.vertexShader = `uniform float uWaterTime;\nvarying vec3 vWaterWorld;\n` + shader.vertexShader;
       shader.vertexShader = shader.vertexShader.replace(
         '#include <begin_vertex>',
         `#include <begin_vertex>
-         transformed.z += sin(position.x * 0.08 + uWaterTime * 1.4) * 0.08 + cos(position.y * 0.09 + uWaterTime * 1.1) * 0.06;`
+         transformed.z += sin(position.x * 0.08 + uWaterTime * 1.4) * 0.08 + cos(position.y * 0.09 + uWaterTime * 1.1) * 0.06;
+         vWaterWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;`
+      );
+
+      shader.fragmentShader =
+        `uniform float uWaterTime;
+         uniform vec3 uSunDir;
+         uniform vec3 uSunColor;
+         uniform vec3 uHorizon;
+         uniform float uGlint;
+         varying vec3 vWaterWorld;\n` + shader.fragmentShader;
+      // Reflet de Fresnel vers la couleur de l'horizon + scintillement du soleil sur les vaguelettes.
+      // Les vaguelettes sont calculées en espace monde (deux fréquences) : aucune texture supplémentaire.
+      shader.fragmentShader = shader.fragmentShader.replace(
+        '#include <opaque_fragment>',
+        `{
+           vec3 V = normalize(cameraPosition - vWaterWorld);
+           vec2 p = vWaterWorld.xz;
+           float t = uWaterTime;
+           vec3 n = normalize(vec3(
+             sin(p.x * 0.55 + t * 1.3) * 0.11 + sin(p.y * 1.7 - t * 1.9) * 0.07,
+             1.0,
+             cos(p.y * 0.48 + t * 1.1) * 0.11 + cos(p.x * 1.9 + t * 1.6) * 0.07));
+           float fres = pow(1.0 - clamp(dot(V, vec3(0.0, 1.0, 0.0)), 0.0, 1.0), 3.0);
+           outgoingLight = mix(outgoingLight, uHorizon, fres * 0.5);
+           vec3 R = reflect(-V, n);
+           float glint = pow(max(dot(R, normalize(uSunDir)), 0.0), 140.0);
+           outgoingLight += uSunColor * glint * 1.6 * uGlint;
+         }
+         #include <opaque_fragment>`
       );
     };
   }
@@ -282,6 +325,16 @@ export function createAnimatedWaterMaterial(
       timeUniform.value = timeSec;
       waterTex.offset.x = (timeSec * 0.015) % 1;
       waterTex.offset.y = (timeSec * 0.01) % 1;
+    },
+    setAmbient: (sunDir, sunColor, horizon, glint) => {
+      sunDirUniform.value.copy(sunDir);
+      sunColorUniform.value.copy(sunColor);
+      horizonUniform.value.copy(horizon);
+      glintUniform.value = glint;
+      // La nuit (ou sous la pluie), l'eau ne reflète plus l'environnement lumineux de studio : fini la bande grise à l'horizon
+      material.envMapIntensity = 0.2 + 0.8 * Math.min(1, glint);
+      // Même logique pour la lune : une eau plus mate évite le gros reflet blanc quand on regarde vers elle
+      material.roughness = 0.55 - 0.37 * Math.min(1, glint);
     },
   };
 }
