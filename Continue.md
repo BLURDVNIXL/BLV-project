@@ -1,5 +1,6 @@
-# SUITE — Comment reprendre BLV dans une nouvelle discussion
+# CONTINUE — Comment reprendre BLV dans une nouvelle discussion
 
+> *(Ce fichier s'appelait `Suite.md` jusqu'au 14/11/2026 ; renommé `Continue.md` à la demande du créateur. Les trois documents `README.md`, `CONTEXT.md` et `Continue.md` doivent être mis à jour à CHAQUE livraison — c'est la Règle 3, souvent oubliée et cruciale.)*
 > Rédigé à la fin de la session du 11–12 novembre 2026 (contexte saturé). Dernier commit de la session : `137ec5c`. Mis à jour le 13/11/2026 : `main` contient maintenant la version fusion (`106206d`) plus les correctifs de remise en état (voir `CONTEXT.md` §12).
 > **Le jeton GitHub ne figure nulle part dans ce dépôt.** Révoque l'ancien (il a été collé en clair dans une conversation) et fournis-en un nouveau, limité à ce dépôt, au début de la prochaine discussion.
 
@@ -82,4 +83,4 @@ npm run dev           # port 3000
 6. Relief, vrais ponts, eau animée, PNJ piétons, intérieurs explorables, découpage de `ThreeCanvas.tsx`.
 
 ## 7. Texte à coller au début de la nouvelle discussion
-> Je reprends le projet BLV (https://github.com/BLURDVNIXL/BLV-project, branche `main`). Lis d'abord `Suite.md`, `CONTEXT.md` et `README.md` du dépôt et respecte-les absolument (Règles 1, 2, 3 ; projet 100 % gratuit). Voici un NOUVEAU jeton GitHub limité à ce dépôt : `<à fournir>`. Ne code pas avant d'avoir résumé ce que tu as compris et posé tes questions. On commence par l'étape 1 de `Suite.md` §6 (multijoueur gratuit).
+> Je reprends le projet BLV (https://github.com/BLURDVNIXL/BLV-project, branche `main`). Lis d'abord `Continue.md`, `CONTEXT.md` et `README.md` du dépôt et respecte-les absolument (Règles 1, 2, 3 ; projet 100 % gratuit). Voici un NOUVEAU jeton GitHub limité à ce dépôt : `<à fournir>`. Ne code pas avant d'avoir résumé ce que tu as compris et posé tes questions. On commence par l'étape 1 de `Suite.md` §6 (multijoueur gratuit).

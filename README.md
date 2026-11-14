@@ -25,6 +25,10 @@ Simulation de vie urbaine 3D temps réel à Abidjan (Côte d’Ivoire), construi
   - Consentement bilatéral persistant et annulable (`consent_requests`), plus visites de maisons entre joueurs (`open` / `friends` / `closed`).
   - Espace Admin protégé par secret serveur (`ADMIN_SANDBOX_SECRET` ou code éphémère généré par CSPRNG au démarrage en dev), limitation par IP (5 essais / 10 min) et journal d’audit SQLite (`admin_audit_log`).
 
+## Documentation de reprise
+
+Trois fichiers à lire en premier et à mettre à jour à **chaque** livraison : `README.md` (ce fichier), `CONTEXT.md` (règles inviolables, décisions, feuille de route) et `Continue.md` (comment reprendre le projet dans une nouvelle discussion).
+
 ## Hébergement & Limites Connues
 
 - Le serveur full-stack Node/Express/WebSocket/SQLite fonctionne en autonomie complète (mode solo hors-ligne également supporté via IndexedDB + Service Worker PWA).
