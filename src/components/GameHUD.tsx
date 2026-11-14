@@ -33,6 +33,7 @@ import { RadioPlayStatus } from '../audio/radioManager';
 import { JellyButton, RoundIconButton } from './ui/Jelly';
 import { BarGauge, RingGauge } from './ui/Gauge';
 import { FcfaCoin, GroupBadge, StarBadge } from './ui/icons';
+import { useMediaQuery } from './useMediaQuery';
 
 interface GameHUDProps {
   playerState: PlayerState;
@@ -64,7 +65,7 @@ const WEATHER_LABEL: Record<'fr' | 'en', Record<WeatherType, string>> = {
 };
 
 function WeatherIcon({ weather }: { weather: WeatherType }) {
-  const cls = 'h-7 w-7';
+  const cls = 'h-7 w-7 short:h-5 short:w-5';
   if (weather === 'soleil') return <Sun className={`${cls} text-sun-500`} />;
   if (weather === 'pluie') return <CloudRain className={`${cls} text-lagoon-500`} />;
   if (weather === 'inondation') return <Waves className={`${cls} text-lagoon-600`} />;
@@ -126,6 +127,8 @@ export const GameHUD: React.FC<GameHUDProps> = ({
   isMuted,
 }) => {
   const [openPanel, setOpenPanel] = useState<OpenPanel>(null);
+  /** Téléphone en paysage : le HUD se resserre pour laisser voir le paysage. */
+  const compact = useMediaQuery('(max-height: 480px)');
   const s = t(playerState.language);
   const currentRadio = RADIO_STATIONS.find((r) => r.id === playerState.activeRadioId) || RADIO_STATIONS[0];
   const platinumActive = hasUnlimitedPlatinum(playerState);
@@ -141,16 +144,16 @@ export const GameHUD: React.FC<GameHUDProps> = ({
   };
 
   const vitals = [
-    { label: s.hunger, value: playerState.needs.hunger, tone: 'palm' as const, icon: <Utensils className="h-5 w-5" /> },
-    { label: s.energy, value: playerState.needs.energy, tone: 'sun' as const, icon: <Zap className="h-5 w-5" /> },
-    { label: s.hygiene, value: playerState.needs.hygiene, tone: 'lagoon' as const, icon: <ShowerHead className="h-5 w-5" /> },
-    { label: s.bladder, value: playerState.needs.bladder, tone: 'plum' as const, icon: <Droplet className="h-5 w-5" /> },
+    { label: s.hunger, value: playerState.needs.hunger, tone: 'palm' as const, icon: <Utensils className={compact ? 'h-4 w-4' : 'h-5 w-5'} /> },
+    { label: s.energy, value: playerState.needs.energy, tone: 'sun' as const, icon: <Zap className={compact ? 'h-4 w-4' : 'h-5 w-5'} /> },
+    { label: s.hygiene, value: playerState.needs.hygiene, tone: 'lagoon' as const, icon: <ShowerHead className={compact ? 'h-4 w-4' : 'h-5 w-5'} /> },
+    { label: s.bladder, value: playerState.needs.bladder, tone: 'plum' as const, icon: <Droplet className={compact ? 'h-4 w-4' : 'h-5 w-5'} /> },
   ];
 
   const showInteractPrompt = !touchControls && (nearbyHotspot || nearbyVehicle || playerState.isDriving);
 
   return (
-    <div className="pointer-events-none fixed inset-0 z-20 flex select-none flex-col justify-between p-3 md:p-4">
+    <div className="pointer-events-none fixed inset-0 z-20 flex select-none flex-col justify-between p-3 md:p-4 short:p-2">
       {/* Fond invisible : un toucher en dehors d'une fiche ou du menu la referme */}
       {openPanel && <div className="pointer-events-auto absolute inset-0 z-0" onClick={closePanel} aria-hidden="true" />}
 
@@ -160,18 +163,18 @@ export const GameHUD: React.FC<GameHUDProps> = ({
         <div className="flex items-start gap-2">
           <MinimapRadar getSnapshot={getRadarSnapshot} district={currentDistrict} />
 
-          <div className="relative flex flex-col gap-2">
-            <div className="flex items-center gap-2">
+          <div className="relative flex flex-col gap-2 short:gap-1">
+            <div className="flex items-center gap-2 short:gap-1.5">
               <button
                 type="button"
                 onClick={() => toggle('flag')}
                 aria-expanded={openPanel === 'flag'}
                 aria-label={`${playerState.destiny.name} : voir la fiche`}
                 title={playerState.destiny.name}
-                className="pointer-events-auto flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border-2 border-white shadow-md transition-transform active:scale-95"
+                className="pointer-events-auto flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border-2 border-white shadow-md transition-transform active:scale-95 short:h-9 short:w-9 short:rounded-xl"
                 style={{ backgroundColor: playerState.destiny.color }}
               >
-                <IvoryFlag className="h-6 w-9 rounded-sm border border-white/80" />
+                <IvoryFlag className="h-6 w-9 rounded-sm border border-white/80 short:h-4 short:w-6" />
               </button>
 
               <button
@@ -179,7 +182,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({
                 onClick={() => toggle('mission')}
                 aria-expanded={openPanel === 'mission'}
                 aria-label="Voir la mission en cours"
-                className="pointer-events-auto flex h-10 items-center gap-1 rounded-full border-2 border-white bg-sun-300 px-3 text-sm font-bold tabular-nums text-sun-600 shadow-md transition-transform active:scale-95"
+                className="pointer-events-auto flex h-10 items-center gap-1 rounded-full border-2 border-white bg-sun-300 px-3 text-sm font-bold tabular-nums text-sun-600 shadow-md transition-transform active:scale-95 short:h-8 short:px-2 short:text-xs"
               >
                 <Trophy className="h-4 w-4" />
                 {playerState.activeMission.completed ? 'Fini' : `${missionIdx + 1}/${mission.steps.length}`}
@@ -187,7 +190,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({
             </div>
 
             {openPanel === 'flag' && (
-              <div className="panel panel-solid pointer-events-auto absolute left-0 top-14 z-30 w-64 space-y-1.5 p-3">
+              <div className="panel panel-solid pointer-events-auto absolute left-0 top-14 z-30 short:top-11 w-64 space-y-1.5 p-3">
                 <div className="flex flex-wrap items-center gap-1.5">
                   <span className="font-display text-base font-semibold leading-tight">{playerState.destiny.name}</span>
                   <span className="shrink-0 rounded-full bg-sun-300 px-2 py-0.5 text-[11px] font-bold uppercase text-sun-600">
@@ -227,7 +230,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({
             )}
 
             {openPanel === 'mission' && (
-              <div className="panel panel-solid pointer-events-auto absolute left-0 top-14 z-30 w-64 space-y-1 p-3">
+              <div className="panel panel-solid pointer-events-auto absolute left-0 top-14 z-30 short:top-11 w-64 space-y-1 p-3">
                 <div className="font-display text-sm font-semibold leading-tight text-ink-600">{mission.title}</div>
                 {playerState.activeMission.completed ? (
                   <div className="text-sm font-bold text-palm-600">Trophée : {mission.finalTrophy}</div>
@@ -240,20 +243,20 @@ export const GameHUD: React.FC<GameHUDProps> = ({
               </div>
             )}
 
-            <div className="panel pointer-events-auto hidden flex-col gap-2 p-2.5 sm:flex">
+            <div className="panel pointer-events-auto hidden flex-col gap-2 p-2.5 sm:flex short:gap-1 short:p-1.5">
               <div className="flex items-center gap-2">
-                <Flame className="h-5 w-5 shrink-0 text-sun-500" />
-                <div className="w-44 short:w-36">
+                <Flame className="h-5 w-5 shrink-0 text-sun-500 short:h-4 short:w-4" />
+                <div className="w-44 short:w-32">
                   <div className="flex items-baseline justify-between text-xs font-bold text-ink-600">
-                    <span className="truncate">{s.envyGauge}</span>
+                    <span className="truncate short:hidden">{s.envyGauge}</span>
                     {playerState.needs.envy < 30 && <span className="tabular-nums text-coral-600">{Math.round(playerState.needs.envy)}%</span>}
                   </div>
                   <BarGauge value={playerState.needs.envy} tone={playerState.needs.envy < 30 ? 'coral' : 'sun'} label={s.envyGauge} />
                 </div>
               </div>
-              <div className="flex items-center justify-between gap-1.5">
+              <div className="flex items-center justify-between gap-1.5 short:gap-1">
                 {vitals.map((v) => (
-                  <RingGauge key={v.label} value={v.value} tone={v.tone} label={v.label} icon={v.icon} size={42} />
+                  <RingGauge key={v.label} value={v.value} tone={v.tone} label={v.label} icon={v.icon} size={compact ? 32 : 42} />
                 ))}
               </div>
             </div>
@@ -290,12 +293,12 @@ export const GameHUD: React.FC<GameHUDProps> = ({
         </div>
 
         {/* Haut droite : heure, météo, son, menu ; Étoile ; recherche et joueurs */}
-        <div className="pointer-events-auto relative flex flex-col items-end gap-2">
-          <div className="panel flex items-center gap-2.5 px-3 py-2">
+        <div className="pointer-events-auto relative flex flex-col items-end gap-2 short:gap-1">
+          <div className="panel flex items-center gap-2.5 px-3 py-2 short:gap-1.5 short:px-2 short:py-1">
             <WeatherIcon weather={playerState.weather} />
             <div className="leading-tight">
-              <div className="font-display text-xl font-bold tabular-nums">{formatGameTime(playerState.gameTimeHours)}</div>
-              <div className="text-xs font-semibold text-ink-600">
+              <div className="font-display text-xl font-bold tabular-nums short:text-base">{formatGameTime(playerState.gameTimeHours)}</div>
+              <div className="text-xs font-semibold text-ink-600 short:text-[10px]">
                 {s.day} {playerState.daysLived} · {WEATHER_LABEL[playerState.language][playerState.weather]}
               </div>
             </div>
@@ -305,6 +308,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({
               label={isMuted ? 'Activer le son' : 'Couper le son'}
               onClick={onToggleSound}
               tabIndex={-1}
+              className="short:h-7 short:w-7"
             >
               {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
             </RoundIconButton>
@@ -315,13 +319,14 @@ export const GameHUD: React.FC<GameHUDProps> = ({
               aria-expanded={openPanel === 'menu'}
               onClick={() => toggle('menu')}
               tabIndex={-1}
+              className="short:h-7 short:w-7"
             >
               <Settings className="h-4 w-4" />
             </RoundIconButton>
           </div>
 
           {openPanel === 'menu' && (
-            <div className="panel panel-solid absolute right-0 top-[3.75rem] z-30 grid w-[21rem] max-w-[calc(100vw-1.5rem)] grid-cols-2 gap-1.5 p-2">
+            <div className="panel panel-solid absolute right-0 top-[3.75rem] z-30 grid short:top-[2.75rem] w-[21rem] max-w-[calc(100vw-1.5rem)] grid-cols-2 gap-1.5 p-2">
               <MenuItem icon={<Pause className="h-4 w-4 fill-current" />} label={s.pauseLabel} onClick={runAndClose(onPauseClick)} />
               <MenuItem icon={<SlidersHorizontal className="h-4 w-4" />} label={s.settingsLabel} onClick={runAndClose(onOpenSettings)} />
               <MenuItem icon={<Smartphone className="h-4 w-4" />} label="BabiOS" onClick={runAndClose(onOpenPhone)} />
@@ -336,9 +341,9 @@ export const GameHUD: React.FC<GameHUDProps> = ({
             </div>
           )}
 
-          <div className="panel flex items-center gap-2.5 px-3 py-2">
-            <StarBadge className="h-8 w-8 shrink-0" />
-            <div className="w-36">
+          <div className="panel flex items-center gap-2.5 px-3 py-2 short:gap-1.5 short:px-2 short:py-1">
+            <StarBadge className="h-8 w-8 shrink-0 short:h-6 short:w-6" />
+            <div className="w-36 short:w-32">
               <div className="flex items-baseline justify-between gap-2 whitespace-nowrap text-xs font-bold">
                 <span className="text-ink-600">{s.starLabel}</span>
                 <span className="tabular-nums text-sun-600">{Math.round(playerState.star)}</span>
@@ -358,8 +363,8 @@ export const GameHUD: React.FC<GameHUDProps> = ({
                 ))}
               </div>
             )}
-            <div className="panel flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-palm-600" title="Joueurs en ligne">
-              <GroupBadge className="h-6 w-6" />
+            <div className="panel flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-palm-600 short:px-2 short:py-0.5" title="Joueurs en ligne">
+              <GroupBadge className="h-6 w-6 short:h-5 short:w-5" />
               <span>{onlineCount}</span>
             </div>
           </div>

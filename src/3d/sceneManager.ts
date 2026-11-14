@@ -225,6 +225,10 @@ export class AbidjanSceneManager {
   private camLook = new THREE.Vector3(0, 10, 0);
   private flyoverCenter = project(5.3258, -4.0185);
   private isDraggingCam = false;
+  /** Doigt / pointeur qui oriente la caméra : les autres (joystick, 2e doigt) sont ignorés. */
+  private camPointerId: number | null = null;
+  /** Réglage du joueur (0,5 à 2,5), 1 = normal. */
+  private camSensitivity = 1;
   private lastMouseX = 0;
   private lastMouseY = 0;
 
@@ -290,6 +294,8 @@ export class AbidjanSceneManager {
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
     this.container.innerHTML = '';
+    // Sans cela, le navigateur tactile annule les glissements (pointercancel) pour défiler/zoomer : la caméra ne tourne presque pas.
+    this.renderer.domElement.style.touchAction = 'none';
     this.container.appendChild(this.renderer.domElement);
 
     this.scene = new THREE.Scene();
@@ -916,6 +922,7 @@ export class AbidjanSceneManager {
       this.keys.clear();
       this.joystickVec = { x: 0, y: 0 };
       this.isDraggingCam = false;
+      this.camPointerId = null;
       this.isSprinting = false;
       this.isHandbraking = false;
     }
@@ -1188,26 +1195,37 @@ export class AbidjanSceneManager {
     if (e.code === 'Space') this.isHandbraking = false;
   };
 
+  /** Le doigt va moins loin que la souris sur un petit écran : on compense un peu. */
+  private static readonly TOUCH_CAM_GAIN = 1.6;
+
+  public setCameraSensitivity(value: number) {
+    this.camSensitivity = THREE.MathUtils.clamp(value, 0.3, 3);
+  }
+
   private onPointerDown = (e: PointerEvent) => {
-    if (this.cameraMode !== 'follow') return;
+    if (this.cameraMode !== 'follow' || this.camPointerId !== null) return;
+    this.camPointerId = e.pointerId;
     this.isDraggingCam = true;
     this.lastMouseX = e.clientX;
     this.lastMouseY = e.clientY;
   };
 
   private onPointerMove = (e: PointerEvent) => {
-    if (!this.isDraggingCam || this.cameraMode !== 'follow') return;
+    if (!this.isDraggingCam || this.cameraMode !== 'follow' || e.pointerId !== this.camPointerId) return;
     const dx = e.clientX - this.lastMouseX;
     const dy = e.clientY - this.lastMouseY;
     this.lastMouseX = e.clientX;
     this.lastMouseY = e.clientY;
 
-    this.camYaw -= dx * 0.0065;
-    this.camPitch = THREE.MathUtils.clamp(this.camPitch + dy * 0.005, 0.08, 1.25);
+    const gain = this.camSensitivity * (e.pointerType === 'touch' ? AbidjanSceneManager.TOUCH_CAM_GAIN : 1);
+    this.camYaw -= dx * 0.0065 * gain;
+    this.camPitch = THREE.MathUtils.clamp(this.camPitch + dy * 0.005 * gain, 0.08, 1.25);
   };
 
-  private onPointerUp = () => {
+  private onPointerUp = (e: PointerEvent) => {
+    if (e.pointerId !== this.camPointerId) return;
     this.isDraggingCam = false;
+    this.camPointerId = null;
   };
 
   private onWheel = (e: WheelEvent) => {
@@ -1218,6 +1236,7 @@ export class AbidjanSceneManager {
   private onWindowBlur = () => {
     this.keys.clear();
     this.isDraggingCam = false;
+    this.camPointerId = null;
     this.isSprinting = false;
     this.isHandbraking = false;
     this.joystickVec = { x: 0, y: 0 };
@@ -1234,6 +1253,7 @@ export class AbidjanSceneManager {
     dom.addEventListener('pointerdown', this.onPointerDown);
     window.addEventListener('pointermove', this.onPointerMove);
     window.addEventListener('pointerup', this.onPointerUp);
+    window.addEventListener('pointercancel', this.onPointerUp);
     dom.addEventListener('wheel', this.onWheel, { passive: true });
   }
 
@@ -1557,6 +1577,7 @@ export class AbidjanSceneManager {
     window.removeEventListener('resize', this.onResize);
     window.removeEventListener('pointermove', this.onPointerMove);
     window.removeEventListener('pointerup', this.onPointerUp);
+    window.removeEventListener('pointercancel', this.onPointerUp);
 
     const dom = this.renderer.domElement;
     dom.removeEventListener('pointerdown', this.onPointerDown);

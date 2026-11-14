@@ -11,14 +11,14 @@ export default defineConfig(() => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['icon.svg', 'apple-touch-icon.png', 'blv_core.wasm'],
+        includeAssets: ['favicon-32.png', 'favicon-48.png', 'apple-touch-icon.png', 'blv_core.wasm'],
         manifest: {
           id: '/',
           name: 'BLV — Babi Life Vibes | Simulation 3D Abidjan',
           short_name: 'BLV Babi',
           description: 'La simulation de vie urbaine 3D multijoueur à Abidjan (GTA Roleplay × The Sims).',
-          theme_color: '#f97316',
-          background_color: '#020617',
+          theme_color: '#2a1040',
+          background_color: '#2a1040',
           display: 'standalone',
           orientation: 'landscape',
           start_url: '/',
@@ -46,7 +46,7 @@ export default defineConfig(() => {
         },
         workbox: {
           maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
-          globPatterns: ['**/*.{js,css,html,ico,png,svg,wasm,woff,woff2}'],
+          globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,wasm,woff,woff2}'],
           runtimeCaching: [
             {
               urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,

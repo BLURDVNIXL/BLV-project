@@ -111,6 +111,22 @@ export default function App() {
   const [radioStatus, setRadioStatus] = useState<RadioPlayStatus>('idle');
   const [forceGamepad, setForceGamepad] = useState(false);
   const touchControls = useTouchControls(forceGamepad);
+  const [cameraSensitivity, setCameraSensitivity] = useState<number>(() => {
+    try {
+      const v = Number(localStorage.getItem('blv_camera_sensitivity'));
+      return Number.isFinite(v) && v >= 0.5 && v <= 2.5 ? v : 1;
+    } catch {
+      return 1;
+    }
+  });
+  const handleCameraSensitivityChange = (v: number) => {
+    setCameraSensitivity(v);
+    try {
+      localStorage.setItem('blv_camera_sensitivity', String(v));
+    } catch {
+      /* stockage indisponible : le réglage vaut pour la session */
+    }
+  };
 
   // Multiplayer
   const [remotePlayers, setRemotePlayers] = useState<RemotePlayer[]>([]);
@@ -166,6 +182,11 @@ export default function App() {
       body: JSON.stringify({ playerId: st.playerId, state: st }),
     }).catch(() => {});
   }, []);
+
+  // Sensibilité de la caméra (réglages) : réappliquée aussi quand l'état change, la scène pouvant être créée après le premier rendu.
+  useEffect(() => {
+    sceneRef.current?.setCameraSensitivity(cameraSensitivity);
+  }, [cameraSensitivity, screenState]);
 
   // Mirror state machine to document.body.dataset.state
   useEffect(() => {
@@ -976,6 +997,8 @@ export default function App() {
           onToggleSound={handleToggleSound}
           isMuted={isMuted}
           forceGamepad={forceGamepad}
+          cameraSensitivity={cameraSensitivity}
+          onCameraSensitivityChange={handleCameraSensitivityChange}
           onToggleForceGamepad={() => setForceGamepad((v) => !v)}
           onToggleLanguage={() =>
             setPlayerState((prev) => ({
