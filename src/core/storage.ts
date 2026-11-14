@@ -3,6 +3,7 @@
  */
 
 import { PlayerState } from '../types/game';
+import { ensureHealth } from './health';
 
 const DB_NAME = 'blv_babi_life_vibes_db';
 const DB_VERSION = 1;
@@ -51,7 +52,7 @@ export function loadGameStateSync(): PlayerState | null {
     if (typeof localStorage === 'undefined') return null;
     const raw = localStorage.getItem(LOCAL_FALLBACK_KEY);
     if (!raw) return null;
-    return JSON.parse(raw) as PlayerState;
+    return ensureHealth(JSON.parse(raw) as PlayerState);
   } catch {
     return null;
   }
@@ -63,7 +64,7 @@ export async function loadGameStateAsync(): Promise<PlayerState | null> {
     const res = await new Promise<PlayerState | null>((resolve, reject) => {
       const tx = db.transaction(STORE_NAME, 'readonly');
       const req = tx.objectStore(STORE_NAME).get(SAVE_KEY);
-      req.onsuccess = () => resolve((req.result as PlayerState) || null);
+      req.onsuccess = () => resolve(req.result ? ensureHealth(req.result as PlayerState) : null);
       req.onerror = () => reject(req.error);
     });
     db.close();

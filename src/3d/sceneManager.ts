@@ -51,6 +51,7 @@ import {
 import { WorldStreamer } from '../world/WorldStreamer';
 import { ChunkMaterials, createChunkMaterials } from '../world/chunkMesh';
 import { daylight, sampleAmbient, sunDirection } from './ambiance';
+import { crashDamage, fallDamage, pedestrianHitDamage } from '../core/health';
 import { createSkyDome, SkyDome } from './sky';
 import { createChunkProvider } from '../world/chunkProvider';
 import {
@@ -124,6 +125,8 @@ export interface SceneCallbacks {
   }) => void;
   onHorn?: () => void;
   onPauseKey?: () => void;
+  /** Dégâts subis (choc de véhicule, piéton renversé, chute) : `amount` en points de vie, `cause` en français. */
+  onDamage?: (amount: number, cause: string) => void;
 }
 
 function vehicleTypeToPreset(type: VehicleModelType | null): VehiclePresetId {
@@ -171,6 +174,11 @@ export class AbidjanSceneManager {
   private playerCharId = -1;
   private charState: CharacterState = createCharacterState();
   private carState: VehicleState = createVehicleState();
+  /** Dégâts : vitesse du véhicule conduit à la frame précédente, délai entre deux dégâts, vitesse de chute. */
+  private drivingSpeed = 0;
+  private damageCooldown = 0;
+  private airVy = 0;
+  private wasAirborne = false;
   private trafficState: VehicleState = createVehicleState();
 
   private playerX = 0;
@@ -1036,6 +1044,29 @@ export class AbidjanSceneManager {
     }
   }
 
+  /** Envoie des dégâts au jeu, au plus une fois toutes les 1,2 s (un choc produit plusieurs événements). */
+  private emitDamage(amount: number, cause: string) {
+    if (this.cameraMode !== 'follow' || this.damageCooldown > 0 || amount <= 0) return;
+    this.damageCooldown = 1.2;
+    this.callbacks.onDamage?.(amount, cause);
+  }
+
+  /** Collisions du moteur physique : choc de la voiture du joueur, ou joueur à pied renversé. */
+  private handlePhysicsEvent(ev: { kind: string; a: number; b: number; speed: number }) {
+    if (this.cameraMode !== 'follow') return;
+    const vid = this.drivingVehicle?.vehId;
+    if (vid !== undefined) {
+      if (ev.kind === 'vehicle-solid' && ev.a === vid) {
+        this.emitDamage(crashDamage(ev.speed), 'Choc contre un obstacle');
+      } else if (ev.kind === 'vehicle-vehicle' && (ev.a === vid || ev.b === vid)) {
+        // Le moteur ne donne pas la vitesse pour ce type de choc : on utilise celle de la frame précédente
+        this.emitDamage(crashDamage(this.drivingSpeed * 0.8), 'Collision entre véhicules');
+      }
+    } else if (ev.kind === 'vehicle-pedestrian' && ev.b === this.playerCharId) {
+      this.emitDamage(pedestrianHitDamage(ev.speed), 'Renversé par un véhicule');
+    }
+  }
+
   public teleportPlayer(x: number, z: number) {
     if (this.drivingVehicle && this.physics) {
       this.physics.placeVehicle(this.drivingVehicle.vehId, x, z, this.playerRotY);
@@ -1414,7 +1445,8 @@ export class AbidjanSceneManager {
       }
 
       core.step(dt);
-      core.drainEvents(() => {});
+      this.damageCooldown = Math.max(0, this.damageCooldown - dt);
+      core.drainEvents((ev) => this.handlePhysicsEvent(ev));
 
       // Sync player vehicles
       for (const v of this.spawnedVehicles) {
@@ -1424,6 +1456,7 @@ export class AbidjanSceneManager {
         v.rig.setPhysicsWheelPose(vs.wheelAngle, vs.steer);
         v.rig.updateSiren(nowSec, this.policeWanted > 0);
         if (this.drivingVehicle === v) {
+          this.drivingSpeed = vs.speed;
           this.playerX = vs.x;
           this.playerY = 0;
           this.playerZ = vs.z;
@@ -1434,6 +1467,16 @@ export class AbidjanSceneManager {
       // Sync player character
       if (!this.drivingVehicle) {
         const ps = core.readCharacter(this.playerCharId, this.charState);
+        // Chute : on mémorise la vitesse verticale la plus forte en l'air, puis on compte les dégâts à l'atterrissage
+        if (!ps.grounded) {
+          this.wasAirborne = true;
+          this.airVy = Math.min(this.airVy, ps.vy);
+        } else if (this.wasAirborne) {
+          this.wasAirborne = false;
+          const fall = fallDamage(-this.airVy);
+          this.airVy = 0;
+          if (fall > 0) this.emitDamage(fall, 'Mauvaise chute');
+        }
         this.playerX = ps.x;
         this.playerY = ps.y;
         this.playerZ = ps.z;
