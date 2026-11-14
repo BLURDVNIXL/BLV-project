@@ -145,10 +145,10 @@ export function MinimapRadar({ getSnapshot, district }: MinimapRadarProps) {
   }, [getSnapshot]);
 
   return (
-    <div className="panel pointer-events-auto w-40 shrink-0 overflow-hidden p-1.5 md:w-52 short:w-36">
-      <canvas ref={canvasRef} width={208} height={156} className="block aspect-[4/3] w-full rounded-xl" />
-      <div className="flex items-center justify-between px-1.5 pt-1 text-xs">
-        <span className="truncate font-display text-sm font-semibold text-ink-800">{district}</span>
+    <div className="panel pointer-events-auto w-40 shrink-0 overflow-hidden p-1.5 md:w-52 short:w-28 short:p-1">
+      <canvas ref={canvasRef} width={208} height={156} className="block aspect-[4/3] w-full rounded-xl object-cover short:aspect-[16/10]" />
+      <div className="flex items-center justify-between px-1.5 pt-1 text-xs short:px-1 short:pt-0.5">
+        <span className="truncate font-display text-sm font-semibold text-ink-800 short:text-xs">{district}</span>
         <span className="font-semibold text-ink-400">GPS</span>
       </div>
     </div>

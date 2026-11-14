@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Settings, ShieldCheck, Trash2, Volume2, VolumeX, Globe, Gamepad2 } from 'lucide-react';
+import { Settings, ShieldCheck, Trash2, Volume2, VolumeX, Globe, Gamepad2, Move3d } from 'lucide-react';
 import { PlayerState } from '../types/game';
 import { purgeAllDataRGPD } from '../core/storage';
 import { JellyButton } from './ui/Jelly';
@@ -13,6 +13,9 @@ interface SettingsModalProps {
   onToggleLanguage: () => void;
   forceGamepad: boolean;
   onToggleForceGamepad: () => void;
+  /** 0,5 à 2,5 ; 1 = normal. */
+  cameraSensitivity: number;
+  onCameraSensitivityChange: (value: number) => void;
   onResetGame: () => void;
 }
 
@@ -24,6 +27,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onToggleLanguage,
   forceGamepad,
   onToggleForceGamepad,
+  cameraSensitivity,
+  onCameraSensitivityChange,
   onResetGame,
 }) => {
   const [confirmPurge, setConfirmPurge] = useState(false);
@@ -63,6 +68,26 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         <JellyButton tone={forceGamepad ? 'sun' : 'cream'} size="sm" onClick={onToggleForceGamepad} icon={<Gamepad2 className="h-4 w-4" />}>
           {forceGamepad ? 'Toujours visible' : 'Auto mobile'}
         </JellyButton>
+      </SettingRow>
+
+      <SettingRow
+        title={playerState.language === 'en' ? 'Camera sensitivity' : 'Sensibilité de la caméra'}
+        description={playerState.language === 'en' ? 'Swipe / mouse turning speed' : 'Vitesse de rotation au doigt ou à la souris'}
+      >
+        <div className="flex items-center gap-2">
+          <Move3d className="h-4 w-4 text-ink-600" aria-hidden="true" />
+          <input
+            type="range"
+            min={0.5}
+            max={2.5}
+            step={0.1}
+            value={cameraSensitivity}
+            onChange={(e) => onCameraSensitivityChange(Number(e.target.value))}
+            aria-label={playerState.language === 'en' ? 'Camera sensitivity' : 'Sensibilité de la caméra'}
+            className="h-2 w-28 cursor-pointer accent-sun-500"
+          />
+          <span className="w-10 text-right text-xs font-bold tabular-nums">{cameraSensitivity.toFixed(1)}×</span>
+        </div>
       </SettingRow>
 
       <SettingRow
