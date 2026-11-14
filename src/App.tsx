@@ -62,6 +62,7 @@ import { TitleScreen } from './components/TitleScreen';
 import { JellyButton } from './components/ui/Jelly';
 import { GameHUD } from './components/GameHUD';
 import { ConsoleGamepad } from './components/ConsoleGamepad';
+import { useTouchControls } from './components/useTouchControls';
 import { BabiOSPhone } from './components/BabiOSPhone';
 import { DestinyRouletteModal } from './components/DestinyRouletteModal';
 import { AdminModal } from './components/AdminModal';
@@ -109,6 +110,7 @@ export default function App() {
   const [isMuted, setIsMuted] = useState(false);
   const [radioStatus, setRadioStatus] = useState<RadioPlayStatus>('idle');
   const [forceGamepad, setForceGamepad] = useState(false);
+  const touchControls = useTouchControls(forceGamepad);
 
   // Multiplayer
   const [remotePlayers, setRemotePlayers] = useState<RemotePlayer[]>([]);
@@ -654,6 +656,7 @@ export default function App() {
             nearbyVehicle={nearbyVehicle}
             radioStatus={radioStatus}
             getRadarSnapshot={getRadarSnapshot}
+            touchControls={touchControls}
             onInteractClick={() => sceneRef.current?.triggerInteract()}
             onRepairEngine={handleRepairStalledEngine}
             onOpenPhone={() => setIsPhoneOpen(true)}
@@ -667,15 +670,25 @@ export default function App() {
           />
 
           <ConsoleGamepad
-            forceVisible={forceGamepad}
+            visible={touchControls}
             isDriving={playerState.isDriving}
+            canInteract={Boolean(nearbyHotspot || nearbyVehicle || playerState.isDriving)}
             onJoystickChange={(x, y) => sceneRef.current?.setJoystick(x, y)}
-            onCrossAction={() => sceneRef.current?.triggerInteract()}
-            onSquareAction={() =>
-              playerState.isDriving ? sceneRef.current?.triggerHorn() : sceneRef.current?.triggerJump()
-            }
-            onTriangleAction={() => setIsPhoneOpen((o) => !o)}
-            onCircleAction={() => setScreenState('paused')}
+            onInteract={() => sceneRef.current?.triggerInteract()}
+            onJump={() => (playerState.isDriving ? sceneRef.current?.triggerHorn() : sceneRef.current?.triggerJump())}
+            onPhone={() => setIsPhoneOpen((o) => !o)}
+            onHold={(active) => {
+              const scene = sceneRef.current;
+              if (!scene) return;
+              if (!active) {
+                scene.setSprint(false);
+                scene.setHandbrake(false);
+              } else if (playerState.isDriving) {
+                scene.setHandbrake(true);
+              } else {
+                scene.setSprint(true);
+              }
+            }}
           />
         </>
       )}

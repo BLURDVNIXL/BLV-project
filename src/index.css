@@ -91,6 +91,9 @@
 .jelly:hover { filter: brightness(1.07); }
 .jelly:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--j-edge), 0 3px 8px rgba(80, 40, 0, 0.28); }
 .jelly:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+/* Bouton pas encore actif : grisé, sans effet au toucher */
+.jelly:disabled { filter: grayscale(0.9); opacity: 0.55; cursor: not-allowed; }
+.jelly:disabled:active { transform: none; box-shadow: 0 5px 0 var(--j-edge), 0 10px 18px rgba(80, 40, 0, 0.28); }
 .jelly-sun    { --j-top: #ffb347; --j-bottom: #f57c00; --j-edge: #a8480a; }
 .jelly-lagoon { --j-top: #4cc3f5; --j-bottom: #1479b8; --j-edge: #0b4f7c; }
 .jelly-palm   { --j-top: #5fd66f; --j-bottom: #1f8a38; --j-edge: #125a24; }
@@ -117,6 +120,9 @@
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
 }
+
+/* Variante opaque : fiches et menus qui se posent par-dessus d'autres panneaux */
+.panel-solid { background: #fffaf1; }
 
 @media (prefers-reduced-motion: reduce) {
   .jelly { transition: none; }

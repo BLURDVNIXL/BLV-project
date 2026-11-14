@@ -1,46 +1,43 @@
-import React, { useRef, useState, useEffect } from 'react';
-import { Hand, DoorOpen, ChevronsUp, Bell, Smartphone, Pause } from 'lucide-react';
+import React, { useRef, useState } from 'react';
+import { Backpack, Bell, ChevronsUp, CircleParking, DoorOpen, Footprints, Hand, Smartphone } from 'lucide-react';
 import { RoundIconButton } from './ui/Jelly';
 
 interface ConsoleGamepadProps {
-  forceVisible: boolean;
-  onJoystickChange: (x: number, y: number) => void;
-  onCrossAction: () => void; // bas : Interagir / Entrer-Sortir véhicule
-  onSquareAction: () => void; // gauche : Sauter / Klaxon
-  onTriangleAction: () => void; // haut : BabiOS Smartphone
-  onCircleAction: () => void; // droite : Pause
+  /** Affichage décidé par le parent (appareil tactile ou option des réglages). */
+  visible: boolean;
   isDriving: boolean;
+  /** Vrai quand « Interagir » a une cible (repère proche, véhicule proche ou conducteur). */
+  canInteract: boolean;
+  onJoystickChange: (x: number, y: number) => void;
+  onInteract: () => void;
+  /** À pied : saut. En voiture : klaxon. */
+  onJump: () => void;
+  onPhone: () => void;
+  /** Bouton maintenu : sprint à pied, frein à main en voiture. `false` relâche tout. */
+  onHold: (active: boolean) => void;
 }
 
+/**
+ * Manette tactile : joystick à gauche (le radar est en haut à gauche, rien ne le recouvre),
+ * cinq boutons à droite. Les boutons gardent des places fixes : « Interagir » (au centre)
+ * apparaît et disparaît sans rien décaler.
+ */
 export const ConsoleGamepad: React.FC<ConsoleGamepadProps> = ({
-  forceVisible,
-  onJoystickChange,
-  onCrossAction,
-  onSquareAction,
-  onTriangleAction,
-  onCircleAction,
+  visible,
   isDriving,
+  canInteract,
+  onJoystickChange,
+  onInteract,
+  onJump,
+  onPhone,
+  onHold,
 }) => {
   const joystickBaseRef = useRef<HTMLDivElement>(null);
   const [knobPos, setKnobPos] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
-  const [isTouchDevice, setIsTouchDevice] = useState(false);
   const touchIdRef = useRef<number | null>(null);
 
-  useEffect(() => {
-    const check = () => {
-      const coarse = window.matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;
-      setIsTouchDevice(coarse);
-    };
-    check();
-    window.addEventListener('resize', check);
-    return () => window.removeEventListener('resize', check);
-  }, []);
-
-  // Hide virtual touch gamepad on PC desktop unless user enables it in Settings
-  if (!isTouchDevice && !forceVisible) {
-    return null;
-  }
+  if (!visible) return null;
 
   const handleJoystickMove = (clientX: number, clientY: number) => {
     if (!joystickBaseRef.current) return;
@@ -90,6 +87,18 @@ export const ConsoleGamepad: React.FC<ConsoleGamepadProps> = ({
     }
   };
 
+  // Bouton maintenu (sprint / frein à main) : on suit le doigt jusqu'au relâchement, même s'il glisse hors du bouton.
+  const holdProps = {
+    onPointerDown: (e: React.PointerEvent<HTMLButtonElement>) => {
+      e.currentTarget.setPointerCapture(e.pointerId);
+      onHold(true);
+    },
+    onPointerUp: () => onHold(false),
+    onPointerCancel: () => onHold(false),
+    onLostPointerCapture: () => onHold(false),
+    onContextMenu: (e: React.MouseEvent) => e.preventDefault(),
+  };
+
   return (
     <div className="pointer-events-none fixed inset-0 z-30 select-none overflow-hidden">
       {/* GAUCHE : joystick analogique 360° */}
@@ -113,48 +122,59 @@ export const ConsoleGamepad: React.FC<ConsoleGamepadProps> = ({
         </div>
       </div>
 
-      {/* DROITE : 4 grosses pastilles, une icône par action (plus de symboles de console) */}
+      {/* DROITE : cinq boutons, une icône par action. Rangée du haut : BabiOS + Utiliser ; rangée du bas : Saut · Interagir (centre) · Sprint/Frein */}
       <div className="pointer-events-auto absolute bottom-5 right-5 touch-none short:bottom-3 short:right-3">
-        <div className="relative h-44 w-44 short:h-32 short:w-32">
-          <RoundIconButton
-            tone="sun"
-            size="lg"
-            label="Ouvrir BabiOS"
-            onClick={onTriangleAction}
-            className="absolute left-1/2 top-0 -translate-x-1/2 short:h-11 short:w-11"
-          >
-            <Smartphone className="h-6 w-6" />
-          </RoundIconButton>
+        <div className="flex flex-col items-center gap-3 short:gap-2">
+          <div className="flex items-center gap-3 short:gap-2">
+            <RoundIconButton tone="sun" size="md" label="Ouvrir BabiOS" onClick={onPhone} className="short:h-9 short:w-9">
+              <Smartphone className="h-5 w-5" />
+            </RoundIconButton>
+            {/* Sac et objets : pas encore actif. */}
+            <RoundIconButton tone="plum" size="md" label="Utiliser (bientôt)" disabled className="short:h-9 short:w-9">
+              <Backpack className="h-5 w-5" />
+            </RoundIconButton>
+          </div>
 
-          <RoundIconButton
-            tone="palm"
-            size="lg"
-            label={isDriving ? 'Klaxonner' : 'Sauter'}
-            onClick={onSquareAction}
-            className="absolute left-0 top-1/2 -translate-y-1/2 short:h-11 short:w-11"
-          >
-            {isDriving ? <Bell className="h-6 w-6" /> : <ChevronsUp className="h-6 w-6" />}
-          </RoundIconButton>
+          <div className="flex items-center gap-2.5 short:gap-2">
+            <RoundIconButton
+              tone="palm"
+              size="lg"
+              label={isDriving ? 'Klaxonner' : 'Sauter'}
+              onClick={onJump}
+              className="short:h-11 short:w-11"
+            >
+              {isDriving ? <Bell className="h-6 w-6" /> : <ChevronsUp className="h-6 w-6" />}
+            </RoundIconButton>
 
-          <RoundIconButton
-            tone="plum"
-            size="lg"
-            label="Pause"
-            onClick={onCircleAction}
-            className="absolute right-0 top-1/2 -translate-y-1/2 short:h-11 short:w-11"
-          >
-            <Pause className="h-6 w-6 fill-white" />
-          </RoundIconButton>
+            {/* Emplacement fixe : le bouton apparaît/disparaît sans décaler les autres. */}
+            <div className="flex h-[4.5rem] w-[4.5rem] items-center justify-center short:h-14 short:w-14">
+              <button
+                type="button"
+                aria-label={isDriving ? 'Sortir du véhicule' : 'Interagir'}
+                title={isDriving ? 'Sortir du véhicule' : 'Interagir'}
+                aria-hidden={!canInteract}
+                tabIndex={canInteract ? 0 : -1}
+                onClick={onInteract}
+                className={`jelly jelly-round jelly-lagoon h-[4.5rem] w-[4.5rem] transition-[transform,opacity,box-shadow] duration-150 short:h-14 short:w-14 ${
+                  canInteract ? 'scale-100 opacity-100' : 'pointer-events-none scale-50 opacity-0'
+                }`}
+              >
+                <span className="relative flex items-center justify-center">
+                  {isDriving ? <DoorOpen className="h-7 w-7" /> : <Hand className="h-7 w-7" />}
+                </span>
+              </button>
+            </div>
 
-          <RoundIconButton
-            tone="lagoon"
-            size="lg"
-            label={isDriving ? 'Sortir du véhicule' : 'Interagir'}
-            onClick={onCrossAction}
-            className="absolute bottom-0 left-1/2 -translate-x-1/2 short:h-11 short:w-11"
-          >
-            {isDriving ? <DoorOpen className="h-6 w-6" /> : <Hand className="h-6 w-6" />}
-          </RoundIconButton>
+            <RoundIconButton
+              tone="coral"
+              size="lg"
+              label={isDriving ? 'Frein à main (maintenir)' : 'Courir (maintenir)'}
+              className="short:h-11 short:w-11"
+              {...holdProps}
+            >
+              {isDriving ? <CircleParking className="h-6 w-6" /> : <Footprints className="h-6 w-6" />}
+            </RoundIconButton>
+          </div>
         </div>
       </div>
     </div>
