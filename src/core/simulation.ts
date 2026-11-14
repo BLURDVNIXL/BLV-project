@@ -7,6 +7,7 @@ import {
   SapeOutfitId,
   FactionReputation,
   HomeAccessMode,
+  PlayerProfile,
 } from '../types/game';
 import {
   ALL_DESTINIES,
@@ -49,7 +50,12 @@ export function rollDestiny(forcedId?: string): Destiny {
   return pool[randomIndex] || ALL_DESTINIES[0];
 }
 
-export function createInitialPlayerState(destiny: Destiny, playerId?: string, sessionToken?: string): PlayerState {
+export function createInitialPlayerState(
+  destiny: Destiny,
+  playerId?: string,
+  sessionToken?: string,
+  profile?: PlayerProfile
+): PlayerState {
   const language = destiny.englishLock ? 'en' : 'fr';
   const startingPolice = destiny.shadowBaron ? 3 : destiny.blackMarketAccess ? 1 : 0;
   const startingOutfit: SapeOutfitId =
@@ -66,6 +72,8 @@ export function createInitialPlayerState(destiny: Destiny, playerId?: string, se
   return {
     playerId: playerId || `babi_${Math.random().toString(36).slice(2, 10)}`,
     sessionToken,
+    playerName: profile?.name,
+    gender: profile?.gender,
     destiny,
     cash: destiny.startingCash,
     bankCash: destiny.id === 'golden_boy' ? 50000000 : destiny.id === 'yannis_diomande' ? 100000000 : 0,

@@ -1,0 +1,378 @@
+/* Écran de création + carrousel du destin. Habillage violet / rose, plein écran. */
+.nl-root {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  overflow: hidden;
+  color: #fff;
+  background: #100d24;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.nl-bg {
+  position: absolute;
+  inset: -15%;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse at 18% 78%, rgba(104, 76, 255, 0.65), transparent 42%),
+    radial-gradient(ellipse at 82% 18%, rgba(255, 83, 157, 0.48), transparent 38%),
+    radial-gradient(ellipse at 52% 50%, rgba(71, 53, 139, 0.32), transparent 55%),
+    linear-gradient(135deg, #080b1c 0%, #19112f 48%, #35172e 100%);
+  animation: nl-bgshift 18s ease-in-out infinite alternate;
+}
+.nl-vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 35%, rgba(2, 2, 12, 0.48) 100%);
+}
+.nl-particles {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2;
+}
+.nl-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  animation: nl-appear 0.7s cubic-bezier(0.2, 0.75, 0.2, 1) both;
+}
+.nl-layer::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(90deg, rgba(5, 6, 18, 0.55), transparent 80%);
+}
+
+/* ── Retour ── */
+.nl-back {
+  position: absolute;
+  top: 18px;
+  left: 20px;
+  z-index: 6;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+  background: rgba(8, 8, 22, 0.45);
+  color: rgba(255, 255, 255, 0.9);
+  font: 700 11px/1 Inter, system-ui, sans-serif;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+.nl-back:hover { background: rgba(255, 255, 255, 0.14); border-color: rgba(255, 255, 255, 0.6); }
+
+/* ── Formulaire ── */
+.nl-left {
+  position: relative;
+  z-index: 3;
+  width: 50%;
+  height: 100%;
+  padding: clamp(72px, 10vh, 112px) clamp(24px, 5vw, 80px) 48px clamp(30px, 7vw, 110px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  animation: nl-contentIn 1s 0.1s both;
+}
+.nl-eyebrow {
+  margin: 0 0 18px;
+  font: 800 11px/1.2 Inter, system-ui, sans-serif;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: rgba(255, 200, 225, 0.85);
+}
+.nl-form { width: min(350px, 100%); display: grid; gap: 16px; }
+.nl-input {
+  height: 50px;
+  width: 100%;
+  padding: 0 15px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 2px;
+  background: rgba(5, 6, 18, 0.35);
+  color: #fff;
+  font: 600 13px Inter, system-ui, sans-serif;
+  letter-spacing: 0.12em;
+  outline: none;
+  transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+}
+.nl-input::placeholder { color: rgba(255, 255, 255, 0.62); font-size: 10px; letter-spacing: 0.2em; }
+.nl-input:focus { border-color: #ff91bf; background: rgba(255, 255, 255, 0.08); box-shadow: 0 0 22px rgba(255, 108, 170, 0.15); }
+.nl-genders { display: flex; gap: 10px; }
+.nl-gender { position: relative; flex: 1; }
+.nl-gender input { position: absolute; opacity: 0; inset: 0; }
+.nl-gender label {
+  height: 47px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.045);
+  color: rgba(255, 255, 255, 0.82);
+  font: 800 10px Inter, system-ui, sans-serif;
+  letter-spacing: 0.2em;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.nl-gender label:hover { background: rgba(255, 255, 255, 0.12); border-color: rgba(255, 255, 255, 0.7); }
+.nl-gender input:checked + label {
+  background: linear-gradient(110deg, rgba(230, 92, 145, 0.95), rgba(146, 113, 255, 0.95));
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 5px 24px rgba(174, 83, 180, 0.22);
+}
+.nl-gender input:focus-visible + label { outline: 2px solid #fff; outline-offset: 3px; }
+.nl-play {
+  height: 51px;
+  width: 100%;
+  border: 0;
+  border-radius: 2px;
+  background: linear-gradient(105deg, #e65c91, #9271ff);
+  color: #fff;
+  font: 800 14px Inter, system-ui, sans-serif;
+  letter-spacing: 0.23em;
+  cursor: pointer;
+  box-shadow: 0 9px 30px rgba(174, 83, 180, 0.25);
+  transition: transform 0.2s, filter 0.2s, box-shadow 0.2s;
+}
+.nl-play:hover { transform: translateY(-3px); filter: brightness(1.12); box-shadow: 0 13px 36px rgba(174, 83, 180, 0.38); }
+.nl-play:active { transform: translateY(0); }
+.nl-play:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+
+.nl-right { position: absolute; inset: 0 0 0 50%; z-index: 1; overflow: hidden; pointer-events: none; }
+.nl-glow {
+  position: absolute;
+  width: min(66vw, 720px);
+  aspect-ratio: 1;
+  right: -8%;
+  top: 50%;
+  transform: translateY(-50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 87, 145, 0.26), rgba(111, 75, 255, 0.18) 38%, transparent 70%);
+  filter: blur(12px);
+  animation: nl-pulse 7s ease-in-out infinite;
+}
+.nl-line { position: absolute; bottom: -12%; width: 1px; height: 110%; background: linear-gradient(transparent, rgba(255, 255, 255, 0.19), transparent); transform: rotate(28deg); }
+.nl-line-1 { right: 30%; }
+.nl-line-2 { right: 18%; opacity: 0.5; }
+.nl-character {
+  position: absolute;
+  z-index: 2;
+  right: 0;
+  bottom: 0;
+  width: min(50vw, calc(100svh * 1.34));
+  height: auto;
+  max-height: 100svh;
+  max-width: 100%;
+  object-fit: contain;
+  object-position: right bottom;
+  filter: drop-shadow(0 18px 38px rgba(0, 0, 0, 0.38));
+  animation: nl-characterIn 1.1s 0.2s cubic-bezier(0.2, 0.75, 0.2, 1) both;
+}
+
+/* ── Carrousel du destin ── */
+.nl-carousel {
+  --h: 1svh;
+  --w: min(calc(38 * var(--h)), 56vw);
+  --u: calc(var(--w) / 320);
+  position: absolute;
+  inset: 0;
+}
+.nl-head {
+  position: absolute;
+  top: clamp(14px, 4svh, 34px);
+  left: 0;
+  right: 0;
+  text-align: center;
+  font: 800 12px/1.2 Inter, system-ui, sans-serif;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: rgba(255, 210, 230, 0.9);
+  z-index: 5;
+  pointer-events: none;
+}
+.nl-stage { position: absolute; inset: 0; perspective: calc(var(--w) * 1.4); perspective-origin: 50% 46%; }
+.nl-card {
+  position: absolute;
+  top: 46%;
+  left: 50%;
+  width: var(--w);
+  aspect-ratio: 320 / 405;
+  margin-left: calc(var(--w) / -2);
+  margin-top: calc(var(--w) * 405 / 320 / -2);
+  border-radius: calc(14 * var(--u));
+  overflow: hidden;
+  isolation: isolate;
+  color: #fff;
+  background:
+    radial-gradient(120% 90% at 50% 38%, color-mix(in srgb, var(--c) 58%, #14102b) 0%, #14102b 72%),
+    #14102b;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 35px 70px rgba(0, 0, 0, 0.5);
+  will-change: transform, opacity, filter;
+  visibility: hidden;
+}
+.nl-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, 0.1) 48%, transparent 66%);
+  transform: translateX(-120%);
+}
+.nl-card__rarity {
+  position: absolute;
+  top: calc(30 * var(--u));
+  right: calc(21 * var(--u));
+  padding: calc(5 * var(--u)) calc(9 * var(--u));
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  font: 800 max(8px, calc(9 * var(--u))) / 1 Inter, system-ui, sans-serif;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.nl-card__title {
+  position: absolute;
+  top: calc(30 * var(--u));
+  left: calc(21 * var(--u));
+  width: 58%;
+  margin: 0;
+  font: 700 max(11px, calc(17 * var(--u))) / 1.2 Inter, system-ui, sans-serif;
+  letter-spacing: -0.012em;
+  color: rgba(255, 255, 255, 0.95);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.nl-card__hero {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(212 * var(--u));
+  transform: translateY(-50%);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  font-family: Inter, system-ui, sans-serif;
+  font-weight: 800;
+  font-size: max(18px, calc(42 * var(--u)));
+  line-height: 1;
+  letter-spacing: -0.035em;
+  font-variant-numeric: tabular-nums;
+  background: linear-gradient(180deg, #fff 0%, color-mix(in srgb, var(--c) 55%, #fff) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.nl-card__hero sup {
+  font-size: max(10px, calc(20 * var(--u)));
+  margin: calc(4 * var(--u)) 0 0 calc(4 * var(--u));
+  letter-spacing: 0;
+}
+.nl-card__sub {
+  position: absolute;
+  left: calc(24 * var(--u));
+  right: calc(24 * var(--u));
+  top: calc(262 * var(--u));
+  margin: 0;
+  text-align: center;
+  font: italic 500 max(9px, calc(12.5 * var(--u))) / 1.3 Inter, system-ui, sans-serif;
+  color: rgba(255, 255, 255, 0.78);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.nl-card__foot {
+  position: absolute;
+  left: calc(21 * var(--u));
+  right: calc(21 * var(--u));
+  bottom: calc(26 * var(--u));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(8 * var(--u));
+  font: 600 max(9px, calc(12 * var(--u))) / 1.2 Inter, system-ui, sans-serif;
+  color: rgba(255, 255, 255, 0.82);
+}
+.nl-card__foot span { display: inline-flex; align-items: center; gap: calc(4 * var(--u)); white-space: nowrap; }
+.nl-card__foot svg { width: max(10px, calc(13 * var(--u))); height: max(10px, calc(13 * var(--u))); flex: none; }
+
+/* Carte arrivée : halo de la couleur du destin */
+.nl-carousel.is-settled .nl-card.is-front {
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--c) 75%, #fff),
+    0 0 80px color-mix(in srgb, var(--c) 60%, transparent),
+    0 35px 70px rgba(0, 0, 0, 0.5);
+  animation: nl-pop 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.3);
+}
+.nl-carousel.is-settled .nl-card.is-front::after { animation: nl-shine 1.6s 0.3s ease-out 1 both; }
+
+/* Résultat : citation, atout et bouton d'entrée */
+.nl-result {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 6;
+  padding: 0 16px clamp(14px, 3.5svh, 34px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+  opacity: 0;
+  transform: translateY(16px);
+  pointer-events: none;
+  transition: opacity 0.5s, transform 0.5s;
+}
+.nl-result.is-shown { opacity: 1; transform: none; pointer-events: auto; }
+.nl-quote { margin: 0; max-width: 34rem; font: italic 500 13px/1.4 Inter, system-ui, sans-serif; color: rgba(255, 255, 255, 0.82); }
+.nl-perk { margin: 0; max-width: 34rem; font: 700 11px/1.35 Inter, system-ui, sans-serif; letter-spacing: 0.04em; color: #ffd9a8; }
+.nl-result .nl-play { width: min(360px, 100%); }
+
+@keyframes nl-appear { from { opacity: 0; transform: translateY(14px) scale(0.99); } to { opacity: 1; transform: none; } }
+@keyframes nl-contentIn { from { opacity: 0; transform: translateX(-18px); } to { opacity: 1; transform: none; } }
+@keyframes nl-characterIn { from { opacity: 0; transform: translateX(32px) scale(0.985); } to { opacity: 1; transform: none; } }
+@keyframes nl-bgshift { from { transform: scale(1) translate3d(-1%, 0, 0); } to { transform: scale(1.08) translate3d(1%, 1%, 0); } }
+@keyframes nl-pulse { 0%, 100% { opacity: 0.65; transform: translateY(-50%) scale(0.96); } 50% { opacity: 1; transform: translateY(-50%) scale(1.05); } }
+@keyframes nl-pop { 0% { scale: 0.96; } 60% { scale: 1.04; } 100% { scale: 1; } }
+@keyframes nl-shine { to { transform: translateX(120%); } }
+
+/* Téléphone en paysage : formulaire à gauche, personnage à droite, carte plus grande */
+@media (orientation: landscape) and (max-height: 600px) {
+  .nl-left { padding: 54px clamp(20px, 5vw, 70px) 24px clamp(24px, 6vw, 80px); }
+  .nl-form { gap: 12px; }
+  .nl-input { height: 46px; }
+  .nl-gender label { height: 43px; }
+  .nl-play { height: 47px; }
+  .nl-eyebrow { margin-bottom: 12px; }
+}
+@media (max-height: 480px) {
+  .nl-carousel { --w: min(calc(52 * var(--h)), 42vw); }
+  .nl-head { font-size: 10px; letter-spacing: 0.28em; }
+  .nl-quote { display: none; }
+  .nl-result { gap: 6px; padding-bottom: 10px; }
+  .nl-result .nl-play { height: 42px; font-size: 12px; }
+}
+/* Portrait : formulaire en haut, personnage en bas */
+@media (orientation: portrait) {
+  .nl-left { width: 100%; padding: clamp(76px, 11svh, 110px) 24px 46svh; align-items: center; text-align: center; justify-content: center; }
+  .nl-form { gap: 14px; }
+  .nl-right { inset: 48% 0 0 0; }
+  .nl-character { width: min(100vw, calc(52svh * 1.34)); max-height: 52svh; opacity: 0.96; }
+  .nl-glow { width: 100vw; right: -10%; }
+  .nl-line { opacity: 0.35; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nl-root *, .nl-root *::before, .nl-root *::after { animation: none !important; transition: none !important; }
+}

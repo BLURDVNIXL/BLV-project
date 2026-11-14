@@ -191,6 +191,9 @@ export const GameHUD: React.FC<GameHUDProps> = ({
 
             {openPanel === 'flag' && (
               <div className="panel panel-solid pointer-events-auto absolute left-0 top-14 z-30 short:top-11 w-64 space-y-1.5 p-3">
+                {playerState.playerName && (
+                  <div className="truncate text-xs font-bold uppercase tracking-wider text-ink-600">{playerState.playerName}</div>
+                )}
                 <div className="flex flex-wrap items-center gap-1.5">
                   <span className="font-display text-base font-semibold leading-tight">{playerState.destiny.name}</span>
                   <span className="shrink-0 rounded-full bg-sun-300 px-2 py-0.5 text-[11px] font-bold uppercase text-sun-600">
