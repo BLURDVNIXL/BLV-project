@@ -297,6 +297,24 @@ class SoundEngine {
     osc.stop(now + 0.38);
   }
 
+  /** Petit « clic » de la roulette à chaque carte qui passe. */
+  public playTick() {
+    this.ensureContext();
+    if (!this.audioCtx || !this.sfxGain || this.isMuted) return;
+    const now = this.audioCtx.currentTime;
+    const osc = this.audioCtx.createOscillator();
+    const gain = this.audioCtx.createGain();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(1800, now);
+    osc.frequency.exponentialRampToValueAtTime(900, now + 0.03);
+    gain.gain.setValueAtTime(0.07, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+    osc.connect(gain);
+    gain.connect(this.sfxGain);
+    osc.start(now);
+    osc.stop(now + 0.045);
+  }
+
   public playWooHooJingle() {
     this.ensureContext();
     if (!this.audioCtx || !this.sfxGain || this.isMuted) return;
