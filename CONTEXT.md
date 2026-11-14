@@ -23,9 +23,9 @@ Tout agent IA intervenant sur ce dépôt **DOIT** respecter à la lettre les 3 r
      * **OWASP Top 10 Client-Side** : Typage TypeScript strict, zéro risque d'injection XSS (zéro `dangerouslySetInnerHTML`).
      * **Cœur Sécurisé en Rust / C++ compilé en WebAssembly (WASM)** : Les algorithmes sensibles (Chance/RNG, Jauge d'Envie, système économique FCFA, secrets des destins) sont compilés en binaire machine `.wasm` afin d'empêcher toute décompilation ou vol de code via les DevTools du navigateur.
 
-3. **RÈGLE 3 (Traçabilité & Documentation Continue)** :  
-   *« Après chaque itération et chaque livraison/mise à jour du code, il faut absolument mettre à jour le README et le fichier CONTEXT.md contenant toutes les règles et le condensé de nos conversations. »*  
-   * **Consigne Agent** : À la fin de CHAQUE turn impliquant une modification ou livraison de code, mettre à jour immédiatement `README.md` et `CONTEXT.md` pour refléter l'état exact du projet.
+3. **RÈGLE 3 (Traçabilité & Documentation Continue)** — *oubli fréquent, point CRUCIAL* :  
+   *« Après chaque itération et chaque livraison/mise à jour du code, il faut absolument mettre à jour le README, le fichier CONTEXT.md contenant toutes les règles et le condensé de nos conversations, et le fichier Continue.md (ex-`Suite.md`, renommé le 14/11/2026) qui permet de reprendre le projet dans une nouvelle discussion. »*  
+   * **Consigne Agent** : à la fin de CHAQUE turn impliquant une modification ou livraison de code, mettre à jour immédiatement `README.md`, `CONTEXT.md` et `Continue.md` pour refléter l'état exact du projet, **dans le même commit** que le code. Une livraison sans ces trois mises à jour n'est pas terminée.
 
 ---
 
@@ -37,7 +37,7 @@ Tout agent IA intervenant sur ce dépôt **DOIT** respecter à la lettre les 3 r
 * **Genèse & Référence analysée** :
   * Le projet est né en analysant les faiblesses du jeu existant *Terre d'Ivoire* (`terre-divoire.vercel.app/jouer/`).
   * *Terre d'Ivoire* utilisait du Three.js rudimentaire avec des personnages et meubles en forme de cubes basiques (`RoundedBoxGeometry`), du flat shading sans ombres douces, 50+ pastilles HTML flottantes provoquant du layout thrashing, un code JavaScript en clair 100% exposé dans le navigateur, et un rythme 1h réelle = 1h de jeu très lent et ennuyeux.
-  * **BLV** surclasse Terre d'Ivoire en adoptant l'esthétique stylisée de **GTA San Andreas (PS2 Golden Era)**, des contrôles console **PlayStation en mode Paysage**, un moteur temporel dynamique accéléré, une jauge d'envie psychologique et la vraie culture ivoirienne vivante.
+  * **BLV** surclasse Terre d'Ivoire en adoptant (jusqu'au 14/11/2026) l'esthétique stylisée de **GTA San Andreas (PS2 Golden Era)** — *abandonnée au profit d'un style convivial et chaleureux* — et des contrôles tactiles **en mode Paysage**, un moteur temporel dynamique accéléré, une jauge d'envie psychologique et la vraie culture ivoirienne vivante.
 
 ---
 
@@ -45,7 +45,7 @@ Tout agent IA intervenant sur ce dépôt **DOIT** respecter à la lettre les 3 r
 
 1. **Frontend / Rendu 3D** :
    * **React 19** + **TypeScript** + **Tailwind CSS**.
-   * **Three.js PBR** : Rendu 3D stylisé GTA San Andreas, ambiance tropicale continue (ciel en dégradé, soleil voyageur, voir README « Rendu & Ambiance »), ombres douces (`PCFSoftShadowMap`), shader d'eau fluide pour la Lagune Ébrié.
+   * **Three.js PBR** : Rendu 3D au style convivial et chaleureux (abandon du style GTA San Andreas, décidé le 14/11/2026), ambiance tropicale continue (ciel en dégradé, soleil voyageur, voir README « Rendu & Ambiance »), ombres douces (`PCFSoftShadowMap`), shader d'eau fluide pour la Lagune Ébrié.
    * Modèles 3D humains articulés (squelette rigging : marche, course, assise, poses d'attitude) et parc automobile low-poly rétro d'Abidjan (Peugeot 504 Woro-woro jaune, Gbaka tôlé vert, BMW M Series, Rolls-Royce Phantom, Supercar).
 2. **Cœur Sécurisé (Rust / C++ WASM)** :
    * Module binaire WebAssembly (`.wasm`) encapsulant le moteur de Chance/Karma, la gestion métabolique de la Jauge d'Envie et les secrets des 19 Destins.
@@ -77,7 +77,7 @@ Tout agent IA intervenant sur ce dépôt **DOIT** respecter à la lettre les 3 r
 * **Détection automatique de l'appareil** :
   * **Sur Mobile / Tablette Tactile** :
     * **À Gauche** : Joystick analogique virtuel tactile 360° (déplacements, marche, course, direction des véhicules).
-    * **À Droite** : Les 4 boutons PlayStation emblématiques :
+    * **À Droite** : Les 4 boutons d'action (depuis le 14/11/2026 : pastilles « gélatine » avec une icône par action, plus de symboles de console ; les noms ✕ □ △ ◯ ci-dessous désignent les positions bas / gauche / haut / droite) :
       * **✕ (Croix bleue)** : Interagir / Valider / Entrer ou sortir d'un véhicule / Parler aux PNJ.
       * **□ (Carré rose)** : Frapper / Sauter / Sprint rapide.
       * **△ (Triangle vert)** : Dégainer le Smartphone BabiOS en surimpression fluide.
@@ -129,7 +129,7 @@ Chaque nouvelle partie débute par la **Roulette du Destin** qui détermine la c
 ### C. Les 4 Classes Épiques (🟣 25%)
 9. **Le Jeune Cadre du Plateau** : 500k F, studio standing vue lagune, costume cintré.
 10. **Le "Laté" de Cocody** : 1,2M F, 3 pièces chic, berline offerte, loyer payé 1 mois par les parents.
-11. **L'Élève de l'INP-HB (L'Élite d'État)** : 80k F, chambre campus Yamoussoukro, ordi portable. **Reçoit régulièrement la prestigieuse bourse d'État « Koidio »** (50 000 F tous les 3 jours in-game). Accès privilégié aux cabinets d'audit du Plateau.
+11. **L'Élève de l'INPolytec (L'Élite d'État)** : 80k F, chambre campus Yamoussoukro, ordi portable. **Reçoit régulièrement la prestigieuse bourse d'État « Koidio »** (50 000 F tous les 3 jours in-game). Accès privilégié aux cabinets d'audit du Plateau.
 12. **Le Golden Boy (L'Ultra-Privilégié)** :
     * Duplex les pieds dans l'eau en baie d'Assinie, BMW M Series + Rolls-Royce Phantom, **argent illimité pendant 1 mois** (carte Platinum de papa).
     * 🔒 **EASTER EGG MAJEUR : Le jeu bascule AUTOMATIQUEMENT et INTÉGRALEMENT en ANGLAIS américain jet-set sans pouvoir être modifié dans les réglages !** Pop-up humoristique : *"Bro, you literally graduated from the American International School of Abidjan, French is not in your DNA anymore!"*.
@@ -138,8 +138,8 @@ Chaque nouvelle partie débute par la **Roulette du Destin** qui détermine la c
 13. **Le Poignon (L'Extrême Précarité & la Baraka Suprême)** :
     * 2 000 F en poche, zéro logement (dort sur un carton sous un hangar au marché d'Adjamé).
     * **Équilibrage de génie** : Possède une **Chance/Baraka mystique à 95/100 (supérieure au Golden Boy !)**. Taux de jackpot au Loto démultiplié, trouvailles miraculeuses, ascension légendaire.
-14. **Yannis Diomandé (Le Crack du Real Madrid)** :
-    * Ailier droit prodige ivoirien au Real Madrid, n°25, transféré pour 125 M€. En vacances à Babi.
+14. **Yannis Diomandé (Le Crack du Reel Madird)** :
+    * Ailier droit prodige ivoirien au Reel Madird, n°25, transféré pour 125 M€. En vacances à Babi.
     * Compte colossal en devises, villa Cocody Ambassades, supercar de Madrid, vitesse athlétique surhumaine. Gérer la foule de fans et financer son académie de foot à Abidjan.
 15. **Le Brouteur (Le Cyber-Escroc / Gayman)** :
     * Studio climatisé Yopougon, 350k F cash d'arnaques en ligne, champagne au maquis. Jauge de désir/sexe très exigeante. Menace permanente de la **PLCC (Police Cybercriminalité)**.
@@ -184,7 +184,7 @@ Tuner radio officiel diffusant de vrais flux audio streaming HTTPS en direct :
      * *Histoire* : Fondé en 1962 par Félix Houphouët-Boigny et la Communauté Saint-François-Xavier (Madeleine Daniélou). Référence absolue d'excellence féminine avec 100% de réussite au Baccalauréat.
      * *Avantages* : Étoile protégée contre le mauvais œil (+10 Baraka permanente), Hygiène et allure chic naturelles, aura diplomatique dans les hautes sphères.
   3. ⚡ **Lycée d'Excellence Alassane Ouattara de Grand-Bassam** ➔ Badge **« Devenir Alex »** :
-     * *Histoire* : Inauguré en 2019 sur un campus ultra-moderne de 20 hectares, joyau scientifique de la Côte d'Ivoire préparant aux grandes écoles mondiales (Polytechnique, MIT, INP-HB).
+     * *Histoire* : Inauguré en 2019 sur un campus ultra-moderne de 20 hectares, joyau scientifique de la Côte d'Ivoire préparant aux grandes écoles mondiales (Polytechnique, MIT, INPolytec).
      * *Avantages* : Logique et calcul financier (+25% de gains aux investissements), accès prioritaire aux bourses internationales d'ingénieur.
 
 * **Fin Tragique / Bilan de Vie (Game Over)** :
@@ -256,11 +256,19 @@ Tuner radio officiel diffusant de vrais flux audio streaming HTTPS en direct :
 
 ### B. Prochaines Étapes Prévues (Itération 8 & Suivantes) — ordre validé avec le créateur
 1. **Multijoueur gratuit** (§13, validé : 24 joueurs par monde, chat texte avec filtre, signalement et mise en sourdine) : serveur de relais Cloudflare Durable Object (WebSocket Hibernation), catalogue de maisons, visites, gouverneur de budget, protection anti-abus.
-2. **Frontend calqué sur GTA** : HUD, étoiles de recherche, carte pause réelle (remplacer `AbidjanMapModal` par la vraie géographie), menu d'armes, sous-titres de mission.
+2. **~~Frontend calqué sur GTA~~ → Refonte graphique convivante et chaleureuse** (décision du 14/11/2026, voir « Direction du 14/11/2026 » ci-dessous).
 3. **Assets originaux** (personnages, véhicules d'Abidjan, props, textures, PNG) — voir « Arbitrages en cours » ci-dessous.
 4. **Système de missions principales**, relié aux destins et à la Chance.
 5. Tableau de comparaison avec la page de référence « Terre d'Ivoire » (à présenter avant de coder cette partie).
 6. Relief (Plateau en altitude), vrais ponts (viaduc HKB, haubans), eau animée, piétons PNJ, intérieurs explorables, dialogues PNJ en nouchi, module WASM pour la simulation économique.
+
+### D. Direction du 14/11/2026 (décisions du créateur — à planifier, rien n'est codé)
+* **Style** : on abandonne le style GTA ; retour à un style **convivial et chaleureux**. UI claire et peu dense (planche d'icônes fournie comme inspiration ; seules des icônes sans texte incrusté, champ libre pour les créer ; le Golden Boy force l'anglais donc aucun texte dans les images). Hébergement : on reste sur Cloudflare.
+* **Voix d'accueil + roulette subie** : une voix explique le jeu et dit « bienvenue » à chaque nouvelle partie, annonce que le hasard va choisir le destin, puis on montre la roulette. Le joueur ne choisit plus son destin (il le subit, comme dans la version précédente). Ajouter une **contextualisation rapide du mode histoire** — à écrire quand l'autre agent aura fini l'histoire V1.
+* **19 maisons personnalisées**, une par destin, en tenant compte que certains destins n'ont pas de maison, ou ont une maison très grande / petite / moyenne / au bord d'une plage. **Il n'y a pas de plage sur la carte** : à ajouter (Assinie, Grand-Bassam, Vridi…).
+* **Santé** : barre de vie et dégâts ; après chaque mort non définitive, on réapparaît à l'hôpital, hospitalisé quelques jours selon la gravité ; maladies attrapées aléatoirement.
+* **Météo** : pluie, fort soleil, etc. (types existants : soleil, pluie, inondation, harmattan ; manque l'effet visuel de pluie).
+* **Monde vivant** : plus de passants, certains qui interagissent entre eux, femmes, enfants, parcs, attractions, accidents routiers, maisons en construction.
 
 ### C. Constats techniques à traiter (non bloquants)
 * `setRadarData` est appelé à chaque image (re-rendu React à 60 Hz) : à découpler dans l'itération « frontend GTA ».
@@ -308,7 +316,9 @@ Tuner radio officiel diffusant de vrais flux audio streaming HTTPS en direct :
 * **Session du 13/11/2026 — fusion et remise en état** : la branche `backup-fusion-2026-11-13` (version fusion : serveur Express + WebSocket + SQLite, PWA, destins/missions/simulation dans `src/core/`) a été poussée dans `main` en fast-forward (`0de01f4` → `106206d`). Ce commit avait supprimé `CONTEXT.md`, `Suite.md`, `e2e/drive_city.py`, `package-lock.json` et d'anciens composants, et fait régresser `esbuild` en `^0.25` (conflit `ERESOLVE` avec `vite 8.3.8` : `npm install` et le build Cloudflare échouaient). Correctifs : `CONTEXT.md` et `Suite.md` restaurés, `esbuild ^0.28.0`, scripts `build:wasm` et `test:e2e` et `e2e/drive_city.py` remis, nom de paquet `blv-project`. Vérifié : `npm install` OK, `lint` 0 erreur, `npm test` 16/16, tests physique / géographie / ville OK, `npm run build` OK. Second échec du build Cloudflare (log du 13/11, 20:23) : Cloudflare détecte `bun@1.2.15` et lance `bun install --frozen-lockfile`, mais `bun.lock` (`lockfileVersion: 2`, généré par un Bun plus récent) est illisible → `bun.lock` supprimé, `package-lock.json` ajouté (Cloudflare utilise alors npm). Vérifié avec `npm ci` propre, lint, tests et build. Rappel : le jeton GitHub collé en clair dans la conversation doit être révoqué.
 * **Chantier shaders & ambiance (13/11/2026, branche `feat/shaders-ambiance`, validé par le créateur : « tu peux commencer avec les shaders »)** : nouveaux modules `src/3d/ambiance.ts` (images clés horaires, soleil/lune, fonctions pures testées) et `src/3d/sky.ts` (dôme de ciel) ; shader d’eau amélioré (Fresnel + scintillement du soleil, eau plus mate la nuit) dans `materials.ts` ; balancement des arbres dans `chunkMesh.ts` ; intégration dans `sceneManager.ts` (`updateWorldConditions` interpole l’ambiance en continu ; la météo pluie/harmattan garde ses teintes). Les moods discrets jour/coucher/nuit restent la référence des interrupteurs (fenêtres, lampadaires). Tout est désactivé sur rendu logiciel. Vérifié : lint 0 erreur, `npm test` (+ 9 tests d’ambiance), build OK, captures Chromium (aube, matin, midi, coucher, crépuscule, nuit) sans erreur de shader. **Non vérifié** : performances sur un vrai GPU mobile (tests faits en rendu logiciel). Écarté volontairement : passe d’étalonnage plein écran (EffectComposer) et voile de chaleur, jugés trop coûteux pour le mobile ; l’écume de rivage demande une carte de profondeur.
 * **Refonte UI (décidée le 13/11/2026)** : planche d’icônes fournie ; les boutons à texte incrusté sont abandonnés (le Golden Boy force l’anglais) ; seules les 10 icônes rondes sont retenues ; UI claire et peu dense. Pas encore codée.
-* **Décisions du 13/11/2026 (histoire V1)** : renommages INP-HB → INPolytec et Real Madrid → Reel Madird (pas encore appliqués dans le code) ; badge Alysma réservé aux filles ; bac obligatoire pour le supérieur et les emplois formels ; 4 sources d'argent (missions, quêtes PNJ, travail, entrepreneuriat) ; CEPE, BEPC et cours du soir supprimés. Le créateur propose ensuite des shaders d'ambiance tropicale et une refonte des boutons (planche à fournir).
+* **14/11/2026** : le créateur a fusionné la PR #1 (`feat/shaders-ambiance`) dans `main` (merge `6f06e44`) ; `main` vérifié à neuf : `npm ci`, lint, 25 tests, build OK. `Suite.md` renommé `Continue.md`. Nouvelles décisions consignées en §11.D (voix d'accueil, roulette subie, style chaleureux, maisons, plage, santé/hôpital/maladies, météo, monde vivant).
+* **Lot 1 — Refonte graphique (14/11/2026, branche `feat/refonte-ui`)** : thème convivial, clair et peu dense. **Système de design** : jetons de couleur dans `src/index.css` (`@theme` : sun, lagoon, palm, coral, plum, cream, ink ; police ronde Fredoka pour les titres), boutons « gélatine » (`.jelly`, inspirés de la planche), panneaux crème (`.panel`), variantes d'écran `short` (écran peu haut) et `touch-short` (téléphone en paysage). **Kit `src/components/ui/`** : `Jelly.tsx` (JellyButton, RoundIconButton), `Gauge.tsx` (RingGauge, BarGauge), `Modal.tsx` (Modal, SettingRow), `icons.tsx` (icônes originales : pièce FCFA, emblème soleil/lagune). **Écrans refaits à la main** : écran titre, HUD (jauges rondes, argent avec pièce FCFA, météo en icône, étoiles de recherche seulement si recherché), manette tactile (icônes au lieu de ✕□△◯, plus petite sur écran court), réglages, fin de partie, concours d'école, pause, boutons PWA. **Re-thématisés par table de conversion de couleurs** (à revérifier visuellement écran par écran) : BabiOS (seul l'écran d'accueil a été vérifié), roulette du destin (sera refaite au lot 4), admin. Planche : seules les icônes sans texte sont utilisées (le Golden Boy force l'anglais) ; les icônes sont des glyphes lucide sur pastilles « gélatine » + 2 icônes SVG originales. Sur téléphone en paysage, le dock du HUD est masqué (les réglages passent en haut à droite ; BabiOS et pause sont sur la manette). **Complément (même jour)** : 9 médaillons colorés dessinés pour BLV dans `ui/icons.tsx` (`StarBadge`, `CashBadge`, `GemBadge`, `HeartBadge`, `BoltBadge`, `GroupBadge`, `GearBadge`, `PinBadge`, `CalendarBadge`, plus `FcfaCoin`) — Étoile et joueurs en ligne les utilisent déjà dans le HUD, les autres sont prêts pour la santé (cœur), l'énergie, les cartes, etc. ; les 11 applications de BabiOS sont des tuiles « gélatine » (`.jelly-tile`) et leurs écrans intérieurs ont tous été ouverts et relus en capture ; renommages INPolytec / Reel Madird appliqués dans tous les textes affichés (identifiants internes inchangés) ; palette de la ville 3D réchauffée (`city.ts`, toits, asphalte). **Non fait** : relecture sur vrai téléphone, textures de façades et de sol (encore sobres), icônes de la planche restantes (voiture, maison, école…) si besoin.
+* **Décisions du 13/11/2026 (histoire V1)** : renommages INP-HB → INPolytec et Real Madrid → Reel Madird (appliqués le 14/11/2026 dans tous les textes affichés ; les identifiants internes `eleve_inphb` et `realMadridSuperstar` sont conservés pour ne pas casser les sauvegardes) ; badge Alysma réservé aux filles ; bac obligatoire pour le supérieur et les emplois formels ; 4 sources d'argent (missions, quêtes PNJ, travail, entrepreneuriat) ; CEPE, BEPC et cours du soir supprimés. Le créateur propose ensuite des shaders d'ambiance tropicale et une refonte des boutons (planche à fournir).
 * **Livraison** : rien n'a été poussé sur GitHub à l'issue de l'Itération 7 ; tout est en attente de validation du créateur.
 
 ---

@@ -249,7 +249,7 @@ test('Rescapé des Bas-fonds unlocks secret Redemption Trophy after 7 sober days
   assert.equal(state.redemptionTrophyUnlocked, true);
 });
 
-test('INP-HB Koidio scholarship pays 50,000 F every 3 days & Angré pays 75,000 F weekly', () => {
+test('INPolytec Koidio scholarship pays 50,000 F every 3 days & Angré pays 75,000 F weekly', () => {
   let inphb = createInitialPlayerState(rollDestiny('eleve_inphb'));
   const startCash = inphb.cash;
   for (let i = 0; i < 2; i++) {

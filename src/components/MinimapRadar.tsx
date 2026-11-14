@@ -8,7 +8,7 @@ interface MinimapRadarProps {
 }
 
 /**
- * GTA-style 2D Canvas Minimap Radar using the exact projected Abidjan geography
+ * 2D Canvas Minimap Radar using the exact projected Abidjan geography
  * (North/South shores, Cocody & Banco bays, Île Boulay, Océan Atlantique, and all 5 bridges).
  */
 export function MinimapRadar({ getSnapshot, district }: MinimapRadarProps) {
@@ -145,11 +145,11 @@ export function MinimapRadar({ getSnapshot, district }: MinimapRadarProps) {
   }, [getSnapshot]);
 
   return (
-    <div className="bg-slate-950/92 border-2 border-amber-500/70 rounded-xl overflow-hidden shadow-xl w-32 md:w-40 pointer-events-auto">
-      <canvas ref={canvasRef} width={160} height={116} className="w-full h-24 md:h-28 block" />
-      <div className="bg-slate-900 px-2 py-1 border-t border-slate-800 flex items-center justify-between text-[10px]">
-        <span className="font-bold text-amber-400 truncate uppercase">{district}</span>
-        <span className="text-slate-400 font-mono">GPS</span>
+    <div className="panel pointer-events-auto w-32 overflow-hidden p-1.5 md:w-40 short:w-28">
+      <canvas ref={canvasRef} width={160} height={116} className="block h-24 w-full rounded-xl md:h-28 short:h-14" />
+      <div className="flex items-center justify-between px-1.5 pt-1 text-xs">
+        <span className="truncate font-display text-sm font-semibold text-ink-800">{district}</span>
+        <span className="font-semibold text-ink-400">GPS</span>
       </div>
     </div>
   );

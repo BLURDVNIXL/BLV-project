@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { GraduationCap, CheckCircle2, XCircle, X } from 'lucide-react';
+import { GraduationCap, CheckCircle2, XCircle } from 'lucide-react';
 import { AcademicBadge } from '../types/game';
 import { ACADEMIC_BADGES, SCHOOL_EXAMS } from '../core/destinies';
+import { JellyButton } from './ui/Jelly';
+import { Modal } from './ui/Modal';
 
 interface SchoolExamModalProps {
   badgeId: AcademicBadge;
@@ -37,84 +39,66 @@ export const SchoolExamModal: React.FC<SchoolExamModalProps> = ({ badgeId, onPas
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/92 text-white select-none">
-      <div className="w-full max-w-md max-h-[92vh] flex flex-col rounded-2xl bg-slate-900 border-2 border-amber-500/60 shadow-2xl overflow-hidden">
-        <div className="flex items-center justify-between px-4 py-3 sm:px-5 sm:py-4 bg-slate-950 border-b border-slate-800 shrink-0">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <GraduationCap className="w-5 h-5 sm:w-6 sm:h-6 text-amber-400 shrink-0" />
-            <div className="min-w-0">
-              <h3 className="font-display text-base sm:text-xl tracking-wide uppercase text-white truncate">
-                Concours d’Entrée — {badge.title}
-              </h3>
-              <p className="text-[11px] text-slate-400 truncate">{badge.school}</p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Fermer le concours"
-            className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 cursor-pointer shrink-0 ml-2"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
+    <Modal
+      title={`Concours d’entrée — ${badge.title}`}
+      icon={<GraduationCap className="h-5 w-5" />}
+      onClose={onClose}
+      closeLabel="Fermer le concours"
+      widthClass="max-w-md"
+    >
+      <p className="text-xs font-semibold text-ink-400">{badge.school}</p>
+      <div className="rounded-2xl border-2 border-cream-200 bg-cream-50 p-3 text-sm text-ink-600">{badge.legend}</div>
 
-        <div className="p-4 sm:p-5 space-y-3 overflow-y-auto">
-          <div className="text-xs text-slate-300 bg-slate-950/80 border border-slate-800 rounded-xl p-2.5 sm:p-3">
-            {badge.legend}
-          </div>
-
-          <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-bold uppercase">
-            <span className="text-amber-400 shrink-0">Question {step + 1} / {questions.length}</span>
-            <span className="text-[11px] text-emerald-300">{badge.perks}</span>
-          </div>
-
-          <p className="text-sm font-bold text-white leading-snug">{currentQ.question}</p>
-
-          <div className="space-y-2">
-            {currentQ.options.map((opt, idx) => (
-              <button
-                key={opt}
-                type="button"
-                onClick={() => {
-                  setSelected(idx);
-                  setFeedback('idle');
-                }}
-                className={`w-full text-left px-4 py-2.5 rounded-xl border text-xs font-semibold transition-colors cursor-pointer ${
-                  selected === idx
-                    ? 'bg-amber-500/20 border-amber-400 text-amber-200'
-                    : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-600'
-                }`}
-              >
-                {opt}
-              </button>
-            ))}
-          </div>
-
-          {feedback === 'wrong' && (
-            <div className="flex items-center gap-2 text-xs font-bold text-rose-400 bg-rose-950/60 border border-rose-500/40 rounded-xl px-3 py-2">
-              <XCircle className="w-4 h-4 shrink-0" />
-              Mauvaise réponse ! Réessaie pour décrocher le badge d’excellence.
-            </div>
-          )}
-
-          {feedback === 'passed' && (
-            <div className="flex items-center gap-2 text-xs font-bold text-emerald-400 bg-emerald-950/60 border border-emerald-500/40 rounded-xl px-3 py-2">
-              <CheckCircle2 className="w-4 h-4 shrink-0" />
-              Concours réussi ! Remise du badge {badge.title}...
-            </div>
-          )}
-
-          <button
-            type="button"
-            disabled={selected === null || feedback === 'passed'}
-            onClick={handleSubmitAnswer}
-            className="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-40 text-slate-950 font-black text-xs uppercase tracking-wider cursor-pointer"
-          >
-            Valider la réponse
-          </button>
-        </div>
+      <div className="flex flex-wrap items-center justify-between gap-2 text-sm font-bold">
+        <span className="text-sun-600">
+          Question {step + 1} / {questions.length}
+        </span>
+        <span className="text-xs text-palm-600">{badge.perks}</span>
       </div>
-    </div>
+
+      <p className="text-base font-bold leading-snug">{currentQ.question}</p>
+
+      <div className="space-y-2">
+        {currentQ.options.map((opt, idx) => (
+          <button
+            key={opt}
+            type="button"
+            onClick={() => {
+              setSelected(idx);
+              setFeedback('idle');
+            }}
+            className={`w-full cursor-pointer rounded-2xl border-2 px-4 py-2.5 text-left text-sm font-semibold transition-colors ${
+              selected === idx ? 'border-sun-500 bg-sun-300/40' : 'border-cream-200 bg-cream-50 hover:border-sun-300'
+            }`}
+          >
+            {opt}
+          </button>
+        ))}
+      </div>
+
+      {feedback === 'wrong' && (
+        <div className="flex items-center gap-2 rounded-2xl border-2 border-coral-400/60 bg-coral-400/10 px-3 py-2 text-sm font-bold text-coral-600">
+          <XCircle className="h-5 w-5 shrink-0" />
+          Mauvaise réponse ! Réessaie pour décrocher le badge d’excellence.
+        </div>
+      )}
+
+      {feedback === 'passed' && (
+        <div className="flex items-center gap-2 rounded-2xl border-2 border-palm-400/60 bg-palm-400/10 px-3 py-2 text-sm font-bold text-palm-600">
+          <CheckCircle2 className="h-5 w-5 shrink-0" />
+          Concours réussi ! Remise du badge {badge.title}…
+        </div>
+      )}
+
+      <JellyButton
+        tone="sun"
+        size="md"
+        disabled={selected === null || feedback === 'passed'}
+        onClick={handleSubmitAnswer}
+        className="w-full disabled:cursor-not-allowed disabled:opacity-45"
+      >
+        Valider la réponse
+      </JellyButton>
+    </Modal>
   );
 };

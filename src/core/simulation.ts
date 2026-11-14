@@ -254,13 +254,13 @@ export function advanceGameTime(
       }
     }
 
-    // 2. INP-HB Koidio scholarship every 3 in-game days
+    // 2. INPolytec Koidio scholarship every 3 in-game days
     if (state.destiny.koidioBonus && newDays % 3 === 0) {
       newCash += 50000;
       newLogs.unshift({
         id: `koidio_${newDays}`,
         time: '08:00',
-        message: '🎓 Bourse « Koidio » de l\'INP-HB reçue ! +50 000 FCFA versés.',
+        message: '🎓 Bourse « Koidio » de l\'INPolytec reçue ! +50 000 FCFA versés.',
         type: 'success',
       });
     }

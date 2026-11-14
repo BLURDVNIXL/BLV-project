@@ -53,7 +53,7 @@ export interface Destiny {
   // Specific Destiny Mechanics flags
   isEasterEgg?: boolean;
   englishLock?: boolean; // Golden Boy: locked in English + 30-day Platinum timer
-  koidioBonus?: boolean; // INP-HB student: 50,000 FCFA every 3 in-game days
+  koidioBonus?: boolean; // INPolytec student: 50,000 FCFA every 3 in-game days
   mysticBaraka?: boolean; // Poignon: 95/100 star chance + street pickups
   plccTarget?: boolean; // Brouteur: Cybercrime police hunting
   realMadridSuperstar?: boolean; // Yannis Diomandé: fans + football academy

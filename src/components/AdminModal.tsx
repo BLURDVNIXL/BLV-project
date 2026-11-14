@@ -92,25 +92,25 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/92 text-white select-none">
-      <div className="relative flex flex-col w-full max-w-xl rounded-2xl bg-slate-900 border-2 border-amber-500/50 shadow-2xl overflow-hidden">
-        <div className="flex items-center justify-between border-b border-slate-800 px-5 py-4 bg-slate-950">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink-900/60 text-ink-800 select-none">
+      <div className="relative flex flex-col w-full max-w-xl rounded-2xl bg-cream-100 border-2 border-sun-400/50 shadow-2xl overflow-hidden">
+        <div className="flex items-center justify-between border-b border-cream-200 px-5 py-4 bg-cream-50">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sun-300/40 text-sun-600 border border-sun-400/30">
               {adminToken ? <Unlock className="h-5 w-5" /> : <Lock className="h-5 w-5" />}
             </div>
             <div>
-              <h3 className="font-display text-xl font-black uppercase text-white">
+              <h3 className="font-display text-xl font-bold uppercase text-ink-800">
                 Espace Admin Sandbox
               </h3>
-              <p className="text-[11px] text-slate-400">Vérification HMAC, anti-brute-force & journal d’audit</p>
+              <p className="text-xs text-ink-600">Vérification HMAC, anti-brute-force & journal d’audit</p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Fermer Admin"
-            className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 cursor-pointer"
+            className="flex h-8 w-8 items-center justify-center rounded-lg bg-cream-200 hover:bg-cream-200 text-ink-600 cursor-pointer"
           >
             <X className="h-4 w-4" />
           </button>
@@ -119,12 +119,12 @@ export const AdminModal: React.FC<AdminModalProps> = ({
         <div className="p-5 max-h-[80vh] overflow-y-auto no-scrollbar">
           {!adminToken ? (
             <form onSubmit={handleVerify} className="flex flex-col gap-4 py-4 text-center">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-sun-300/40 border border-sun-400/30 text-sun-600">
                 <ShieldAlert className="h-8 w-8" />
               </div>
               <div>
-                <h4 className="font-bold text-sm text-white">Authentification Développeur</h4>
-                <p className="text-xs text-slate-400 mt-1">
+                <h4 className="font-bold text-sm text-ink-800">Authentification Développeur</h4>
+                <p className="text-xs text-ink-600 mt-1">
                   Saisis le code secret configuré dans l’environnement serveur (ou affiché dans les logs serveur en mode dev).
                 </p>
               </div>
@@ -136,14 +136,14 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                   onChange={(e) => setPasscode(e.target.value)}
                   placeholder="Passcode serveur"
                   aria-label="Passcode administrateur"
-                  className="rounded-xl border border-slate-700 bg-slate-950 px-4 py-2.5 text-center font-mono font-bold tracking-widest text-amber-400 placeholder:text-slate-600 focus:border-amber-400 focus:outline-none"
+                  className="rounded-xl border border-cream-200 bg-cream-50 px-4 py-2.5 text-center tabular-nums font-bold tracking-widest text-sun-600 placeholder:text-ink-400 focus:border-sun-400/60 focus:outline-none"
                 />
-                {errorMsg && <div className="text-xs text-rose-400 font-semibold">{errorMsg}</div>}
+                {errorMsg && <div className="text-xs text-coral-600 font-semibold">{errorMsg}</div>}
 
                 <button
                   type="submit"
                   disabled={isChecking}
-                  className="rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 py-2.5 text-xs font-black uppercase tracking-wider text-slate-950 transition-colors cursor-pointer"
+                  className="rounded-xl bg-sun-500 hover:bg-sun-400 disabled:opacity-50 py-2.5 text-xs font-bold uppercase tracking-wider text-white transition-colors cursor-pointer"
                 >
                   {isChecking ? 'Vérification...' : 'Déverrouiller Sandbox'}
                 </button>
@@ -152,13 +152,13 @@ export const AdminModal: React.FC<AdminModalProps> = ({
           ) : (
             <div className="flex flex-col gap-4">
               {statusMsg && (
-                <div className="rounded-xl bg-emerald-950/60 border border-emerald-500/40 px-3 py-2 text-[11px] font-semibold text-emerald-300">
+                <div className="rounded-xl bg-palm-400/15 border border-palm-400/40 px-3 py-2 text-xs font-semibold text-palm-600">
                   {statusMsg}
                 </div>
               )}
 
-              <div className="rounded-2xl bg-slate-950 p-3.5 border border-slate-800">
-                <div className="text-xs font-bold uppercase text-amber-400 mb-2 flex items-center gap-1.5">
+              <div className="rounded-2xl bg-cream-50 p-3.5 border border-cream-200">
+                <div className="text-xs font-bold uppercase text-sun-600 mb-2 flex items-center gap-1.5">
                   <Star className="h-3.5 w-3.5" />
                   Forcer l’un des 19 Destins
                 </div>
@@ -170,10 +170,10 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                       onClick={() =>
                         dispatchAdminAction('force_destiny', { destinyId: d.id }, (st) => onForceDestiny(d.id, st))
                       }
-                      className={`rounded-lg px-2.5 py-1.5 text-left text-[11px] font-semibold border transition-all truncate cursor-pointer ${
+                      className={`rounded-lg px-2.5 py-1.5 text-left text-xs font-semibold border transition-all truncate cursor-pointer ${
                         playerState.destiny.id === d.id
-                          ? 'bg-amber-950 border-amber-500 text-amber-300'
-                          : 'bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-600'
+                          ? 'bg-sun-300/35 border-sun-400/60 text-sun-600'
+                          : 'bg-cream-100 border-cream-200 text-ink-600 hover:border-cream-200'
                       }`}
                     >
                       {d.name}
@@ -182,8 +182,8 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 </div>
               </div>
 
-              <div className="rounded-2xl bg-slate-950 p-3.5 border border-slate-800">
-                <div className="text-xs font-bold uppercase text-emerald-400 mb-2 flex items-center gap-1.5">
+              <div className="rounded-2xl bg-cream-50 p-3.5 border border-cream-200">
+                <div className="text-xs font-bold uppercase text-palm-600 mb-2 flex items-center gap-1.5">
                   <DollarSign className="h-3.5 w-3.5" />
                   Injection de Liquidités (FCFA)
                 </div>
@@ -195,7 +195,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                       onClick={() =>
                         dispatchAdminAction('add_cash', { amount }, (st) => onAddCash(amount, st))
                       }
-                      className="rounded-xl bg-emerald-600/30 hover:bg-emerald-600/50 border border-emerald-500/40 px-3 py-1.5 text-xs font-mono font-bold text-emerald-300 cursor-pointer"
+                      className="rounded-xl bg-palm-400/20 hover:bg-palm-600 border border-palm-400/40 px-3 py-1.5 text-xs tabular-nums font-bold text-palm-600 cursor-pointer"
                     >
                       +{amount.toLocaleString('fr-FR')} F
                     </button>
@@ -203,8 +203,8 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 </div>
               </div>
 
-              <div className="rounded-2xl bg-slate-950 p-3.5 border border-slate-800">
-                <div className="text-xs font-bold uppercase text-cyan-400 mb-2 flex items-center gap-1.5">
+              <div className="rounded-2xl bg-cream-50 p-3.5 border border-cream-200">
+                <div className="text-xs font-bold uppercase text-lagoon-600 mb-2 flex items-center gap-1.5">
                   <CloudRain className="h-3.5 w-3.5" />
                   Météo Tropicale
                 </div>
@@ -223,10 +223,10 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                           onChangeWeather(w.id as WeatherType, st)
                         )
                       }
-                      className={`rounded-xl py-1.5 text-[11px] font-bold border transition-colors cursor-pointer ${
+                      className={`rounded-xl py-1.5 text-xs font-bold border transition-colors cursor-pointer ${
                         playerState.weather === w.id
-                          ? 'bg-cyan-950 border-cyan-400 text-cyan-300'
-                          : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
+                          ? 'bg-lagoon-400/15 border-lagoon-400/60 text-lagoon-600'
+                          : 'bg-cream-100 border-cream-200 text-ink-600 hover:text-ink-800'
                       }`}
                     >
                       {w.label}
@@ -235,8 +235,8 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 </div>
               </div>
 
-              <div className="rounded-2xl bg-slate-950 p-3.5 border border-slate-800">
-                <div className="text-xs font-bold uppercase text-amber-400 mb-2">
+              <div className="rounded-2xl bg-cream-50 p-3.5 border border-cream-200">
+                <div className="text-xs font-bold uppercase text-sun-600 mb-2">
                   Indice de Recherche Police (0 - 5 ★)
                 </div>
                 <div className="flex gap-2">
@@ -247,10 +247,10 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                       onClick={() =>
                         dispatchAdminAction('set_police', { stars }, (st) => onSetPoliceStars(stars, st))
                       }
-                      className={`flex-1 rounded-xl py-1.5 text-xs font-black border transition-colors cursor-pointer ${
+                      className={`flex-1 rounded-xl py-1.5 text-xs font-bold border transition-colors cursor-pointer ${
                         playerState.policeWanted === stars
-                          ? 'bg-amber-600 text-white border-amber-400'
-                          : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-white'
+                          ? 'bg-sun-600 text-white border-sun-400/60'
+                          : 'bg-cream-100 text-ink-600 border-cream-200 hover:text-ink-800'
                       }`}
                     >
                       {stars} ★
@@ -263,7 +263,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 <button
                   type="button"
                   onClick={() => dispatchAdminAction('refill_needs', {}, (st) => onRefillNeeds(st))}
-                  className="flex-1 rounded-xl bg-orange-600 hover:bg-orange-500 py-2.5 text-xs font-bold uppercase tracking-wider text-white cursor-pointer"
+                  className="flex-1 rounded-xl bg-sun-600 hover:bg-sun-500 py-2.5 text-xs font-bold uppercase tracking-wider text-white cursor-pointer"
                 >
                   Régénérer Jauges (100%)
                 </button>
@@ -277,7 +277,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                       onUnlockBadge('alex', st);
                     })
                   }
-                  className="rounded-xl bg-purple-600 hover:bg-purple-500 px-3 py-2.5 text-xs font-bold uppercase tracking-wider text-white cursor-pointer"
+                  className="rounded-xl bg-plum-500 hover:bg-plum-500 px-3 py-2.5 text-xs font-bold uppercase tracking-wider text-white cursor-pointer"
                 >
                   Tous les Badges
                 </button>

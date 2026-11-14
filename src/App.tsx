@@ -59,6 +59,7 @@ import {
   postEconomyAction,
 } from './network/multiplayerClient';
 import { TitleScreen } from './components/TitleScreen';
+import { JellyButton } from './components/ui/Jelly';
 import { GameHUD } from './components/GameHUD';
 import { ConsoleGamepad } from './components/ConsoleGamepad';
 import { BabiOSPhone } from './components/BabiOSPhone';
@@ -615,7 +616,7 @@ export default function App() {
   }, []);
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden bg-slate-950 font-sans text-white">
+    <div className="relative w-screen h-screen overflow-hidden bg-cream-50 font-sans text-ink-800">
       {/* DEDICATED ISOLATED 3D WEBGL MOUNT */}
       <div ref={canvasContainerRef} data-testid="abidjan-canvas" className="fixed inset-0 z-0" />
 
@@ -681,37 +682,22 @@ export default function App() {
 
       {/* PAUSED MODAL */}
       {screenState === 'paused' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/92">
-          <div className="w-full max-w-sm rounded-2xl bg-slate-900 border-2 border-amber-500/60 p-6 text-center space-y-4 shadow-2xl">
-            <h2 className="font-display text-3xl uppercase tracking-wider text-white">Jeu en Pause</h2>
-            <p className="text-xs text-slate-400">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/55 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Jeu en pause">
+          <div className="panel w-full max-w-sm space-y-4 p-6 text-center">
+            <h2 className="font-display text-3xl font-semibold">Jeu en pause</h2>
+            <p className="text-sm text-ink-600">
               {playerState.destiny.name} · {currentDistrict}
             </p>
-            <div className="flex flex-col gap-2.5 pt-2">
-              <button
-                type="button"
-                onClick={() => setScreenState('playing')}
-                className="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <Play className="w-4 h-4 fill-slate-950" />
+            <div className="flex flex-col gap-3 pt-2">
+              <JellyButton tone="sun" size="md" onClick={() => setScreenState('playing')} icon={<Play className="h-5 w-5 fill-white" />}>
                 Reprendre la partie
-              </button>
-              <button
-                type="button"
-                onClick={() => setScreenState('roulette')}
-                className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs uppercase flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <RotateCcw className="w-4 h-4 text-cyan-400" />
-                Nouveau Destin
-              </button>
-              <button
-                type="button"
-                onClick={() => setScreenState('title')}
-                className="w-full py-2.5 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-700 text-slate-300 font-bold text-xs uppercase flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <Home className="w-4 h-4" />
-                Écran Titre
-              </button>
+              </JellyButton>
+              <JellyButton tone="plum" size="md" onClick={() => setScreenState('roulette')} icon={<RotateCcw className="h-5 w-5" />}>
+                Nouveau destin
+              </JellyButton>
+              <JellyButton tone="cream" size="md" onClick={() => setScreenState('title')} icon={<Home className="h-5 w-5" />}>
+                Écran titre
+              </JellyButton>
             </div>
           </div>
         </div>
@@ -896,11 +882,11 @@ export default function App() {
 
       {/* INCOMING BILATERAL MULTIPLAYER CONSENT MODAL */}
       {incomingConsent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90">
-          <div className="w-full max-w-sm rounded-2xl bg-slate-900 border-2 border-rose-500 p-5 text-center space-y-3 shadow-2xl">
-            <ShieldCheck className="w-8 h-8 text-rose-400 mx-auto" />
-            <h3 className="font-display text-xl uppercase text-white">Consentement Mutuel Requis</h3>
-            <p className="text-xs text-slate-300">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink-900/60">
+          <div className="w-full max-w-sm rounded-2xl bg-cream-100 border-2 border-coral-400/60 p-5 text-center space-y-3 shadow-2xl">
+            <ShieldCheck className="w-8 h-8 text-coral-600 mx-auto" />
+            <h3 className="font-display text-xl uppercase text-ink-800">Consentement Mutuel Requis</h3>
+            <p className="text-xs text-ink-600">
               <strong>{incomingConsent.fromName}</strong> te propose{' '}
               {incomingConsent.type === 'marriage'
                 ? 'un Mariage Civil à la Mairie du Plateau'
@@ -914,7 +900,7 @@ export default function App() {
                   mpRef.current?.respondConsent(incomingConsent.requestId, true);
                   setIncomingConsent(null);
                 }}
-                className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-xs font-black uppercase cursor-pointer"
+                className="flex-1 py-2.5 rounded-xl bg-coral-600 hover:bg-coral-500 text-xs font-bold uppercase cursor-pointer"
               >
                 Accepter 💖
               </button>
@@ -924,7 +910,7 @@ export default function App() {
                   mpRef.current?.respondConsent(incomingConsent.requestId, false);
                   setIncomingConsent(null);
                 }}
-                className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold uppercase cursor-pointer"
+                className="flex-1 py-2.5 rounded-xl bg-cream-200 hover:bg-cream-200 text-xs font-bold uppercase cursor-pointer"
               >
                 Décliner
               </button>
@@ -935,11 +921,11 @@ export default function App() {
 
       {/* INCOMING HOUSE KNOCK MODAL */}
       {incomingKnock && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90">
-          <div className="w-full max-w-sm rounded-2xl bg-slate-900 border-2 border-indigo-500 p-5 text-center space-y-3 shadow-2xl">
-            <DoorOpen className="w-8 h-8 text-indigo-400 mx-auto" />
-            <h3 className="font-display text-xl uppercase text-white">On frappe à ta porte !</h3>
-            <p className="text-xs text-slate-300">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink-900/60">
+          <div className="w-full max-w-sm rounded-2xl bg-cream-100 border-2 border-plum-400/60 p-5 text-center space-y-3 shadow-2xl">
+            <DoorOpen className="w-8 h-8 text-plum-500 mx-auto" />
+            <h3 className="font-display text-xl uppercase text-ink-800">On frappe à ta porte !</h3>
+            <p className="text-xs text-ink-600">
               <strong>{incomingKnock.fromName}</strong> souhaite visiter ton logement à Abidjan.
             </p>
             <div className="flex gap-2 pt-2">
@@ -950,7 +936,7 @@ export default function App() {
                   setIncomingKnock(null);
                   showToast(`🏠 Tu as ouvert la porte à ${incomingKnock.fromName}.`);
                 }}
-                className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-black uppercase cursor-pointer"
+                className="flex-1 py-2.5 rounded-xl bg-plum-500 hover:bg-plum-500 text-xs font-bold uppercase cursor-pointer"
               >
                 Ouvrir 🏠
               </button>
@@ -960,7 +946,7 @@ export default function App() {
                   mpRef.current?.respondHouseKnock(incomingKnock.fromPlayerId, false);
                   setIncomingKnock(null);
                 }}
-                className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold uppercase cursor-pointer"
+                className="flex-1 py-2.5 rounded-xl bg-cream-200 hover:bg-cream-200 text-xs font-bold uppercase cursor-pointer"
               >
                 Refuser
               </button>
@@ -1073,7 +1059,7 @@ export default function App() {
 
       {/* TRANSIENT EVENT TOAST */}
       {toastNotification && (
-        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-[110] rounded-xl bg-slate-950/95 border border-amber-500 px-4 py-2 text-xs font-bold text-amber-300 shadow-2xl pointer-events-none">
+        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-[110] rounded-xl bg-ink-900/60 border border-sun-400/60 px-4 py-2 text-xs font-bold text-sun-600 shadow-2xl pointer-events-none">
           {toastNotification}
         </div>
       )}

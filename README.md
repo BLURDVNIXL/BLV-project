@@ -13,6 +13,7 @@ Simulation de vie urbaine 3D temps réel à Abidjan (Côte d’Ivoire), construi
   - Dôme de ciel (`sky.ts`) : dégradé zénith → horizon, brume chaude collée à l’horizon (même couleur que le brouillard, donc sans couture) et halo/disque solaire.
   - Lagune : reflet de Fresnel vers l’horizon et scintillement du soleil sur les vaguelettes ; arbres balancés par le vent (vertex shader, aucun coût CPU).
   - Qualité : tous ces effets sont désactivés sur rendu logiciel (le fond uni est alors utilisé). `?quality=high` force le chemin complet pour les tests ; `?blvdebug` expose `window.__blvScene`.
+- **Interface (`src/components/` et `src/components/ui/`)** : style convivial et chaleureux, clair et peu dense. Jetons de couleur et boutons « gélatine » dans `src/index.css` ; kit réutilisable (`Jelly`, `Gauge`, `Modal`, `icons`) ; variantes d’écran `short` et `touch-short` pour les téléphones en paysage. Les boutons n’ont jamais de texte incrusté dans une image (le jeu doit pouvoir passer en anglais).
 - **Gameplay & Identité BLV (`src/core/`)** :
   - Chronologie stricte : Écran Titre (`title`) → Roulette des 19 Destins (`roulette`, pondération 35% / 25% / 25% / 15% + 7 Easter Eggs) → Monde 3D d’Abidjan (`playing`), plus raccourci `?autostart=1` pour les tests.
   - Missions principales dédiées en 3 étapes pour chacun des 19 destins (`src/core/missions.ts`).
@@ -24,6 +25,10 @@ Simulation de vie urbaine 3D temps réel à Abidjan (Côte d’Ivoire), construi
   - Tontine multijoueur réelle entre joueurs connectés uniquement (minimum 2 joueurs réels, 0 faux PNJ).
   - Consentement bilatéral persistant et annulable (`consent_requests`), plus visites de maisons entre joueurs (`open` / `friends` / `closed`).
   - Espace Admin protégé par secret serveur (`ADMIN_SANDBOX_SECRET` ou code éphémère généré par CSPRNG au démarrage en dev), limitation par IP (5 essais / 10 min) et journal d’audit SQLite (`admin_audit_log`).
+
+## Documentation de reprise
+
+Trois fichiers à lire en premier et à mettre à jour à **chaque** livraison : `README.md` (ce fichier), `CONTEXT.md` (règles inviolables, décisions, feuille de route) et `Continue.md` (comment reprendre le projet dans une nouvelle discussion).
 
 ## Hébergement & Limites Connues
 

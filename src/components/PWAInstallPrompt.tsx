@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { JellyButton } from './ui/Jelly';
 import { Download, WifiOff } from 'lucide-react';
 
 interface BeforeInstallPromptEvent extends Event {
@@ -58,14 +59,9 @@ export function PWAInstallButton({ lang = 'fr' }: { lang?: 'fr' | 'en' }) {
   const { canInstall, promptInstall } = usePWAInstall();
   if (!canInstall) return null;
   return (
-    <button
-      type="button"
-      onClick={promptInstall}
-      className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-xs tracking-wide uppercase flex items-center gap-2 border border-emerald-400 shadow-lg cursor-pointer"
-    >
-      <Download className="w-4 h-4" />
+    <JellyButton tone="lagoon" size="sm" onClick={promptInstall} icon={<Download className="h-4 w-4" />}>
       {lang === 'en' ? 'Install BLV App' : 'Installer l’App BLV'}
-    </button>
+    </JellyButton>
   );
 }
 
@@ -73,8 +69,8 @@ export function OfflineIndicator({ lang = 'fr' }: { lang?: 'fr' | 'en' }) {
   const online = useOnlineStatus();
   if (online) return null;
   return (
-    <div className="fixed top-2 left-1/2 -translate-x-1/2 z-[120] bg-amber-950/95 border border-amber-500 text-amber-200 px-3 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1.5 shadow-lg pointer-events-none">
-      <WifiOff className="w-3.5 h-3.5 text-amber-400" />
+    <div className="panel pointer-events-none fixed left-1/2 top-2 z-[120] flex -translate-x-1/2 items-center gap-1.5 px-3 py-1.5 text-xs font-semibold">
+      <WifiOff className="h-4 w-4 text-sun-600" />
       {lang === 'en' ? 'Offline Mode — Local WASM & Cache Active' : 'Mode Hors-Ligne — Moteur WASM & Sauvegarde Locale Actifs'}
     </div>
   );
