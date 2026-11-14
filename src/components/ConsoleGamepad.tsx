@@ -1,12 +1,14 @@
 import React, { useRef, useState, useEffect } from 'react';
+import { Hand, DoorOpen, ChevronsUp, Bell, Smartphone, Pause } from 'lucide-react';
+import { RoundIconButton } from './ui/Jelly';
 
 interface ConsoleGamepadProps {
   forceVisible: boolean;
   onJoystickChange: (x: number, y: number) => void;
-  onCrossAction: () => void; // ✕ : Interagir / Entrer-Sortir véhicule
-  onSquareAction: () => void; // □ : Sauter / Klaxon
-  onTriangleAction: () => void; // △ : BabiOS Smartphone
-  onCircleAction: () => void; // ◯ : Pause
+  onCrossAction: () => void; // bas : Interagir / Entrer-Sortir véhicule
+  onSquareAction: () => void; // gauche : Sauter / Klaxon
+  onTriangleAction: () => void; // haut : BabiOS Smartphone
+  onCircleAction: () => void; // droite : Pause
   isDriving: boolean;
 }
 
@@ -90,66 +92,69 @@ export const ConsoleGamepad: React.FC<ConsoleGamepadProps> = ({
 
   return (
     <div className="pointer-events-none fixed inset-0 z-30 select-none overflow-hidden">
-      {/* LEFT: 360° ANALOG JOYSTICK */}
-      <div className="pointer-events-auto absolute bottom-5 left-5 touch-none">
+      {/* GAUCHE : joystick analogique 360° */}
+      <div className="pointer-events-auto absolute bottom-5 left-5 touch-none short:bottom-3 short:left-3">
         <div
           ref={joystickBaseRef}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
           onTouchCancel={handleTouchEnd}
-          className="relative flex h-32 w-32 md:h-36 md:w-36 items-center justify-center rounded-full bg-slate-900/80 border-2 border-slate-600 shadow-2xl"
+          className="relative flex h-32 w-32 items-center justify-center rounded-full border-[3px] border-white/90 bg-cream-50/70 shadow-[0_6px_18px_rgba(90,50,10,0.3),inset_0_-4px_0_rgba(201,154,82,0.35)] backdrop-blur-sm md:h-36 md:w-36 short:h-24 short:w-24"
         >
           <div
             style={{
               transform: `translate(${knobPos.x}px, ${knobPos.y}px)`,
               transition: isDragging ? 'none' : 'transform 0.12s ease-out',
             }}
-            className="flex h-14 w-14 items-center justify-center rounded-full bg-slate-800 border-2 border-amber-500 shadow-lg"
-          >
-            <div className="h-5 w-5 rounded-full bg-amber-500/40 border border-amber-400" />
-          </div>
+            className="jelly jelly-sun jelly-round h-14 w-14 short:h-10 short:w-10"
+            aria-hidden="true"
+          />
         </div>
       </div>
 
-      {/* RIGHT: PLAYSTATION BUTTONS (✕ □ △ ◯) */}
-      <div className="pointer-events-auto absolute bottom-5 right-5 touch-none">
-        <div className="relative h-40 w-40">
-          <button
-            type="button"
+      {/* DROITE : 4 grosses pastilles, une icône par action (plus de symboles de console) */}
+      <div className="pointer-events-auto absolute bottom-5 right-5 touch-none short:bottom-3 short:right-3">
+        <div className="relative h-44 w-44 short:h-32 short:w-32">
+          <RoundIconButton
+            tone="sun"
+            size="lg"
+            label="Ouvrir BabiOS"
             onClick={onTriangleAction}
-            aria-label="Ouvrir BabiOS (Triangle)"
-            className="absolute top-0 left-1/2 -translate-x-1/2 flex h-12 w-12 items-center justify-center rounded-full bg-slate-900/90 border-2 border-emerald-500 text-emerald-400 font-black text-lg cursor-pointer"
+            className="absolute left-1/2 top-0 -translate-x-1/2 short:h-11 short:w-11"
           >
-            △
-          </button>
+            <Smartphone className="h-6 w-6" />
+          </RoundIconButton>
 
-          <button
-            type="button"
+          <RoundIconButton
+            tone="palm"
+            size="lg"
+            label={isDriving ? 'Klaxonner' : 'Sauter'}
             onClick={onSquareAction}
-            aria-label={isDriving ? 'Klaxonner (Carré)' : 'Sauter (Carré)'}
-            className="absolute top-1/2 left-0 -translate-y-1/2 flex h-12 w-12 items-center justify-center rounded-full bg-slate-900/90 border-2 border-pink-500 text-pink-400 font-black text-lg cursor-pointer"
+            className="absolute left-0 top-1/2 -translate-y-1/2 short:h-11 short:w-11"
           >
-            □
-          </button>
+            {isDriving ? <Bell className="h-6 w-6" /> : <ChevronsUp className="h-6 w-6" />}
+          </RoundIconButton>
 
-          <button
-            type="button"
+          <RoundIconButton
+            tone="plum"
+            size="lg"
+            label="Pause"
             onClick={onCircleAction}
-            aria-label="Pause (Rond)"
-            className="absolute top-1/2 right-0 -translate-y-1/2 flex h-12 w-12 items-center justify-center rounded-full bg-slate-900/90 border-2 border-rose-500 text-rose-400 font-black text-lg cursor-pointer"
+            className="absolute right-0 top-1/2 -translate-y-1/2 short:h-11 short:w-11"
           >
-            ◯
-          </button>
+            <Pause className="h-6 w-6 fill-white" />
+          </RoundIconButton>
 
-          <button
-            type="button"
+          <RoundIconButton
+            tone="lagoon"
+            size="lg"
+            label={isDriving ? 'Sortir du véhicule' : 'Interagir'}
             onClick={onCrossAction}
-            aria-label={isDriving ? 'Sortir du véhicule (Croix)' : 'Interagir (Croix)'}
-            className="absolute bottom-0 left-1/2 -translate-x-1/2 flex h-12 w-12 items-center justify-center rounded-full bg-slate-900/90 border-2 border-cyan-400 text-cyan-400 font-black text-lg cursor-pointer"
+            className="absolute bottom-0 left-1/2 -translate-x-1/2 short:h-11 short:w-11"
           >
-            ✕
-          </button>
+            {isDriving ? <DoorOpen className="h-6 w-6" /> : <Hand className="h-6 w-6" />}
+          </RoundIconButton>
         </div>
       </div>
     </div>

@@ -1,5 +1,34 @@
 @import "tailwindcss";
 
+/* ───────── BLV — thème convivial et chaleureux (refonte du 14/11/2026) ─────────
+   Palette tropicale : soleil, lagune, palmier, corail, prune, sur fond crème.
+   Texte en brun chaud (jamais noir pur) pour une lecture douce. */
+@theme {
+  --color-sun-300: #ffd27a;
+  --color-sun-400: #ffb347;
+  --color-sun-500: #f98a1c;
+  --color-sun-600: #d96d08;
+  --color-lagoon-400: #4cc3f5;
+  --color-lagoon-500: #1d9be0;
+  --color-lagoon-600: #1479b8;
+  --color-palm-400: #55cf66;
+  --color-palm-500: #2fae48;
+  --color-palm-600: #1f8a38;
+  --color-coral-400: #ff7a8d;
+  --color-coral-500: #f0435f;
+  --color-coral-600: #c92d48;
+  --color-plum-400: #a878f0;
+  --color-plum-500: #8a4fe0;
+  --color-plum-600: #6a35c0;
+  --color-cream-50: #fffaf1;
+  --color-cream-100: #fff1d6;
+  --color-cream-200: #ffe2b0;
+  --color-ink-900: #2e2018;
+  --color-ink-800: #3b2a20;
+  --color-ink-600: #6b5444;
+  --color-ink-400: #9c8573;
+}
+
 @layer utilities {
   .touch-none {
     touch-action: none;
@@ -15,19 +44,76 @@
     scrollbar-width: none;
   }
   .font-display {
-    font-family: 'Bebas Neue', sans-serif;
+    font-family: 'Fredoka', 'Plus Jakarta Sans', sans-serif;
   }
   .font-mono-code {
     font-family: 'JetBrains Mono', monospace;
   }
 }
 
-/* Custom PlayStation button styling */
-.ps-btn {
-  transition: transform 0.08s ease, filter 0.08s ease;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+/* Variantes d'écran : `short` = écran peu haut (téléphone en paysage) ; `touch-short` = idem avec un doigt comme pointeur. */
+@custom-variant short (@media (max-height: 480px));
+@custom-variant touch-short (@media (pointer: coarse) and (max-height: 520px));
+
+/* ───────── Bouton « gélatine » (inspiré de la planche d'icônes) ───────── */
+.jelly {
+  --j-top: #ffb347;
+  --j-bottom: #f57c00;
+  --j-edge: #a8480a;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  border-radius: 9999px;
+  border: 3px solid var(--j-edge);
+  background: linear-gradient(180deg, var(--j-top) 0%, var(--j-bottom) 100%);
+  color: #fff;
+  font-family: 'Fredoka', 'Plus Jakarta Sans', sans-serif;
+  font-weight: 600;
+  line-height: 1.1;
+  text-shadow: 0 2px 0 rgba(60, 20, 0, 0.35);
+  box-shadow: 0 5px 0 var(--j-edge), 0 10px 18px rgba(80, 40, 0, 0.28);
+  transition: transform 0.08s ease, box-shadow 0.08s ease, filter 0.15s ease;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
-.ps-btn:active {
-  transform: scale(0.92);
-  filter: brightness(1.2);
+.jelly::before {
+  content: '';
+  position: absolute;
+  inset: 3px 12% auto 12%;
+  height: 40%;
+  border-radius: 9999px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0));
+  pointer-events: none;
+}
+.jelly:hover { filter: brightness(1.07); }
+.jelly:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--j-edge), 0 3px 8px rgba(80, 40, 0, 0.28); }
+.jelly:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+.jelly-sun    { --j-top: #ffb347; --j-bottom: #f57c00; --j-edge: #a8480a; }
+.jelly-lagoon { --j-top: #4cc3f5; --j-bottom: #1479b8; --j-edge: #0b4f7c; }
+.jelly-palm   { --j-top: #5fd66f; --j-bottom: #1f8a38; --j-edge: #125a24; }
+.jelly-coral  { --j-top: #ff7a8d; --j-bottom: #c92d48; --j-edge: #86182c; }
+.jelly-plum   { --j-top: #a878f0; --j-bottom: #6a35c0; --j-edge: #43207f; }
+.jelly-cream  { --j-top: #fffaf1; --j-bottom: #ffe2b0; --j-edge: #c99a52; color: #3b2a20; text-shadow: none; }
+.jelly-cream::before { background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0)); }
+
+/* Pastille ronde (icône seule) — même langage que les boutons */
+.jelly-round { padding: 0; aspect-ratio: 1 / 1; border-radius: 9999px; }
+.jelly-round::before { inset: 3px 16% auto 16%; height: 36%; }
+
+/* ───────── Panneau crème translucide ───────── */
+.panel {
+  background: rgba(255, 250, 241, 0.93);
+  border: 2px solid rgba(255, 255, 255, 0.95);
+  border-radius: 1.25rem;
+  box-shadow: 0 6px 18px rgba(90, 50, 10, 0.22), inset 0 -2px 0 rgba(201, 154, 82, 0.25);
+  color: var(--color-ink-800);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jelly { transition: none; }
 }

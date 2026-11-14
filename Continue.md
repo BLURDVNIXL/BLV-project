@@ -13,7 +13,7 @@ La question posée était : « ton travail respecte-t-il l'intégralité du READ
 |---|---|
 | Restauration de BLV (destins, Chance, Jauge d'Envie, smartphone, admin…) à la place de la version « GTA Abidjan : Babi Stories » de Gemini | ✅ (l'ancienne version est conservée sur la branche `gemini-gta-abidjan-backup`) |
 | Moteur physique **C++ → WebAssembly** (`physics/physics.cpp`) : voitures (dérapage, frein à main, transfert de masse), piéton, collisions, rayons, retrait de solides | ✅ ≈ 25 tests du cœur + 10 d'intégration |
-| Commandes du CONTEXT §4 : Shift/□ sprint, Espace/tap □ saut, Espace/◯ frein à main, E/F/✕ action | ✅ (« Frapper » non implémenté : pas de combat) |
+| Commandes du CONTEXT §4 (□ = bouton de gauche, ◯ = bouton de droite, ✕ = bouton du bas) : Shift/□ sprint, Espace/tap □ saut, Espace/◯ frein à main, E/F/✕ action | ✅ (« Frapper » non implémenté : pas de combat) |
 | Géographie réelle d'Abidjan à l'échelle 1:4 (lagune, 2 baies, île Boulay, **5 ponts**, 13 communes, repères) | ✅ schématique (±300 m), ≈ 40 invariants |
 | Ville générée par chunks (Web Worker), rues, bâtiments, arbres, repères, parcelles de maisons, forêt du Banco | ✅ ≈ 30 invariants (rien dans l'eau, sur une rue, sur un pont ; aucun chevauchement ; déterminisme) |
 | Maison du joueur posée sur sa parcelle, voiture garée dans la rue, trafic sur les grands axes, radar vectoriel, bandeau de quartier réel | ✅ + test navigateur de bout en bout (11 contrôles) |
@@ -84,3 +84,13 @@ npm run dev           # port 3000
 
 ## 7. Texte à coller au début de la nouvelle discussion
 > Je reprends le projet BLV (https://github.com/BLURDVNIXL/BLV-project, branche `main`). Lis d'abord `Continue.md`, `CONTEXT.md` et `README.md` du dépôt et respecte-les absolument (Règles 1, 2, 3 ; projet 100 % gratuit). Voici un NOUVEAU jeton GitHub limité à ce dépôt : `<à fournir>`. Ne code pas avant d'avoir résumé ce que tu as compris et posé tes questions. On commence par l'étape 1 de `Suite.md` §6 (multijoueur gratuit).
+
+
+---
+
+## État au 14/11/2026 (à lire en premier)
+
+* `main` = version fusion + shaders d'ambiance (PR #1) ; branches de travail : `docs/continue-et-direction` (docs), `feat/refonte-ui` (**lot 1 : refonte graphique**, voir `CONTEXT.md` §11 « Lot 1 »).
+* **Direction du créateur** : style convivial et chaleureux (fini le style GTA), voix d'accueil à **script différent par destin** (synthèse vocale d'abord, remplaçable par de vraies voix sans toucher au code), roulette subie, 19 maisons, plage, santé/hôpital/maladies, météo, monde vivant. Détail : `CONTEXT.md` §11.D.
+* **Ordre prévu** : lot 1 UI (fait, à relire sur téléphone) → lot 2 santé → lot 3 météo visible → lot 4 voix + roulette subie → lot 5 plage + maisons → lot 6 monde vivant. L'histoire V1 (autre agent) est indépendante : voir `story/` quand elle sera livrée.
+* Vérifications standard avant chaque livraison : `npm run lint`, `npm test`, `npm run build` ; captures Chromium possibles avec `?quality=high&blvdebug` (voir README).

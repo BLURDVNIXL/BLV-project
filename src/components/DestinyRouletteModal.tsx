@@ -46,19 +46,19 @@ export const DestinyRouletteModal: React.FC<DestinyRouletteModalProps> = ({
     activeFilter === 'all' ? ALL_DESTINIES : ALL_DESTINIES.filter((d) => d.rarity === activeFilter);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-6 bg-slate-950/92 text-white select-none">
-      <div className="relative flex flex-col max-h-[92vh] w-full max-w-4xl rounded-2xl bg-slate-900 border-2 border-slate-700 shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-6 bg-ink-900/60 text-ink-800 select-none">
+      <div className="relative flex flex-col max-h-[92vh] w-full max-w-4xl rounded-2xl bg-cream-100 border-2 border-cream-200 shadow-2xl overflow-hidden">
         {/* HEADER */}
-        <div className="flex items-center justify-between border-b border-slate-800 px-5 py-4 bg-slate-950">
+        <div className="flex items-center justify-between border-b border-cream-200 px-5 py-4 bg-cream-50">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-400">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sun-300/40 border border-sun-400/40 text-sun-600">
               <Dices className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="font-display text-2xl font-black uppercase tracking-wide text-white">
+              <h2 className="font-display text-2xl font-bold uppercase tracking-wide text-ink-800">
                 La Roulette du Destin d’Abidjan
               </h2>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-ink-600">
                 19 Classes & 7 Easter Eggs Légendaires • Tire ton destin ou choisis ta commune
               </p>
             </div>
@@ -69,7 +69,7 @@ export const DestinyRouletteModal: React.FC<DestinyRouletteModalProps> = ({
               type="button"
               onClick={handleSpin}
               disabled={isSpinning}
-              className={`flex items-center gap-2 rounded-xl bg-amber-500 hover:bg-amber-400 px-4 py-2 text-xs font-black uppercase tracking-wider text-slate-950 transition-colors cursor-pointer ${
+              className={`flex items-center gap-2 rounded-xl bg-sun-500 hover:bg-sun-400 px-4 py-2 text-xs font-bold uppercase tracking-wider text-white transition-colors cursor-pointer ${
                 isSpinning ? 'opacity-50 cursor-not-allowed' : ''
               }`}
             >
@@ -82,7 +82,7 @@ export const DestinyRouletteModal: React.FC<DestinyRouletteModalProps> = ({
                 type="button"
                 onClick={onClose}
                 aria-label="Fermer la Roulette"
-                className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 cursor-pointer"
+                className="flex h-9 w-9 items-center justify-center rounded-xl bg-cream-200 hover:bg-cream-200 text-ink-600 cursor-pointer"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -93,64 +93,64 @@ export const DestinyRouletteModal: React.FC<DestinyRouletteModalProps> = ({
         {/* BODY */}
         <div className="flex-1 overflow-y-auto p-4 md:p-6 grid grid-cols-1 md:grid-cols-12 gap-5 no-scrollbar">
           {/* LEFT: SELECTED DESTINY DETAILS */}
-          <div className="md:col-span-5 flex flex-col justify-between rounded-2xl bg-slate-950 p-5 border border-slate-800">
+          <div className="md:col-span-5 flex flex-col justify-between rounded-2xl bg-cream-50 p-5 border border-cream-200">
             <div>
               <div className="flex items-center justify-between mb-3">
                 <span
                   style={{ backgroundColor: `${selected.color}25`, borderColor: selected.color, color: selected.color }}
-                  className="rounded-lg px-2.5 py-1 text-[11px] font-black uppercase tracking-wider border"
+                  className="rounded-lg px-2.5 py-1 text-xs font-bold uppercase tracking-wider border"
                 >
                   {selected.rarity}
                 </span>
 
-                <div className="flex items-center gap-1 text-xs font-bold text-amber-400">
+                <div className="flex items-center gap-1 text-xs font-bold text-sun-600">
                   <Sparkles className="h-3.5 w-3.5" />
                   <span>Étoile : {selected.startingStar}/100</span>
                 </div>
               </div>
 
-              <h3 className="font-display text-2xl md:text-3xl font-black text-white leading-tight">
+              <h3 className="font-display text-2xl md:text-3xl font-bold text-ink-800 leading-tight">
                 {selected.name}
               </h3>
-              <p className="text-xs font-semibold text-amber-400 mt-0.5">{selected.subtitle}</p>
+              <p className="text-xs font-semibold text-sun-600 mt-0.5">{selected.subtitle}</p>
 
-              <blockquote className="my-3 rounded-xl bg-slate-900 p-3 text-xs italic text-slate-300 border-l-2 border-amber-500">
+              <blockquote className="my-3 rounded-xl bg-cream-100 p-3 text-xs italic text-ink-600 border-l-2 border-sun-400/60">
                 {selected.quote}
               </blockquote>
 
               <div className="flex flex-col gap-2 text-xs">
-                <div className="flex justify-between border-b border-slate-800 pb-1">
-                  <span className="text-slate-400">Commune de départ :</span>
-                  <span className="font-bold text-cyan-400 flex items-center gap-1">
+                <div className="flex justify-between border-b border-cream-200 pb-1">
+                  <span className="text-ink-600">Commune de départ :</span>
+                  <span className="font-bold text-lagoon-600 flex items-center gap-1">
                     <MapPin className="w-3 h-3" />
                     {selected.district}
                   </span>
                 </div>
 
-                <div className="flex justify-between border-b border-slate-800 pb-1">
-                  <span className="text-slate-400">Cash de départ :</span>
-                  <span className="font-mono font-bold text-emerald-400">
+                <div className="flex justify-between border-b border-cream-200 pb-1">
+                  <span className="text-ink-600">Cash de départ :</span>
+                  <span className="tabular-nums font-bold text-palm-600">
                     {selected.startingCash.toLocaleString('fr-FR')} FCFA
                   </span>
                 </div>
 
-                <div className="flex justify-between border-b border-slate-800 pb-1 gap-2">
-                  <span className="text-slate-400 shrink-0">Logement :</span>
-                  <span className="font-semibold text-white text-right truncate">{selected.housing}</span>
+                <div className="flex justify-between border-b border-cream-200 pb-1 gap-2">
+                  <span className="text-ink-600 shrink-0">Logement :</span>
+                  <span className="font-semibold text-ink-800 text-right truncate">{selected.housing}</span>
                 </div>
 
-                <div className="flex justify-between border-b border-slate-800 pb-1">
-                  <span className="text-slate-400">Véhicule(s) :</span>
-                  <span className="font-semibold text-white uppercase">
+                <div className="flex justify-between border-b border-cream-200 pb-1">
+                  <span className="text-ink-600">Véhicule(s) :</span>
+                  <span className="font-semibold text-ink-800 uppercase">
                     {selected.vehicle
                       ? `${selected.vehicle.replace(/_/g, ' ')}${selected.secondaryVehicle ? ` + ${selected.secondaryVehicle.replace(/_/g, ' ')}` : ''}`
                       : 'À pied / Gbaka'}
                   </span>
                 </div>
 
-                <div className="mt-2 rounded-xl bg-amber-950/60 p-2.5 border border-amber-500/30">
-                  <div className="text-[10px] font-bold uppercase text-amber-400 tracking-wider">Atout Spécial :</div>
-                  <div className="text-xs text-amber-200 mt-0.5">{selected.perk}</div>
+                <div className="mt-2 rounded-xl bg-sun-300/35 p-2.5 border border-sun-400/30">
+                  <div className="text-xs font-bold uppercase text-sun-600 tracking-wider">Atout Spécial :</div>
+                  <div className="text-xs text-sun-600 mt-0.5">{selected.perk}</div>
                 </div>
               </div>
             </div>
@@ -158,7 +158,7 @@ export const DestinyRouletteModal: React.FC<DestinyRouletteModalProps> = ({
             <button
               type="button"
               onClick={() => onSelectDestiny(selected)}
-              className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 py-3 text-xs font-black uppercase tracking-wider text-white cursor-pointer"
+              className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-palm-600 hover:bg-palm-500 py-3 text-xs font-bold uppercase tracking-wider text-white cursor-pointer"
             >
               <Check className="h-4 w-4" />
               <span>Entrer à Abidjan ({selected.district})</span>
@@ -173,8 +173,8 @@ export const DestinyRouletteModal: React.FC<DestinyRouletteModalProps> = ({
                   key={f}
                   type="button"
                   onClick={() => setActiveFilter(f)}
-                  className={`rounded-xl px-3 py-1 text-[11px] font-bold uppercase tracking-wider shrink-0 cursor-pointer ${
-                    activeFilter === f ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 text-slate-300 hover:text-white'
+                  className={`rounded-xl px-3 py-1 text-xs font-bold uppercase tracking-wider shrink-0 cursor-pointer ${
+                    activeFilter === f ? 'bg-sun-500 text-white' : 'bg-cream-200 text-ink-600 hover:text-white'
                   }`}
                 >
                   {f === 'all' ? 'Tous (19)' : f}
@@ -192,18 +192,18 @@ export const DestinyRouletteModal: React.FC<DestinyRouletteModalProps> = ({
                     onClick={() => setSelected(d)}
                     className={`flex flex-col text-left p-3 rounded-xl border transition-colors cursor-pointer ${
                       isCurrent
-                        ? 'bg-amber-950/60 border-amber-400 ring-1 ring-amber-400'
-                        : 'bg-slate-950 border-slate-800 hover:border-slate-600'
+                        ? 'bg-sun-300/35 border-sun-400/60 ring-1 ring-sun-400'
+                        : 'bg-cream-50 border-cream-200 hover:border-cream-200'
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-bold text-xs text-white truncate">{d.name}</span>
-                      <span style={{ color: d.color }} className="text-[9px] font-extrabold uppercase shrink-0">
+                      <span className="font-bold text-xs text-ink-800 truncate">{d.name}</span>
+                      <span style={{ color: d.color }} className="text-xs font-extrabold uppercase shrink-0">
                         {d.rarity}
                       </span>
                     </div>
-                    <span className="text-[10px] text-slate-400 truncate mt-0.5">{d.district} · {d.subtitle}</span>
-                    <span className="text-[10px] font-mono font-bold text-emerald-400 mt-1">
+                    <span className="text-xs text-ink-600 truncate mt-0.5">{d.district} · {d.subtitle}</span>
+                    <span className="text-xs tabular-nums font-bold text-palm-600 mt-1">
                       {d.startingCash.toLocaleString('fr-FR')} F
                     </span>
                   </button>
