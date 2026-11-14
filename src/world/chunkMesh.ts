@@ -355,14 +355,14 @@ function addBuilding(facade: Buf, plain: Buf, b: Building, seedIdx: number): voi
 
   if (b.kind === 'shack') {
     // Sloped corrugated zinc/terracotta roof instead of flat box
-    const zincColor = new THREE.Color(seedIdx % 2 === 0 ? 0x6b7280 : 0x7c4a32);
+    const zincColor = new THREE.Color(seedIdx % 2 === 0 ? 0x9a8f86 : 0xa5623f);
     addPrism(plain, b.x, b.z, b.w, b.d, 0, b.h, b.angle, color, zincColor, plain, false);
     addGableRoof(plain, b.x, b.z, b.w, b.d, b.h, 0.75, b.angle, zincColor);
     return;
   }
 
   if (b.kind === 'warehouse') {
-    const steelRoof = new THREE.Color(0x475569);
+    const steelRoof = new THREE.Color(0x5f8a96);
     addPrism(plain, b.x, b.z, b.w, b.d, 0, b.h, b.angle, color, steelRoof, plain, false);
     addGableRoof(plain, b.x, b.z, b.w, b.d, b.h, 2.2, b.angle, steelRoof);
     return;

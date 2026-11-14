@@ -451,7 +451,7 @@ export const DESTINY_MISSIONS: Record<string, DestinyMission> = {
     destinyId: 'eleve_inphb',
     title: 'Protocole Koidio',
     summary: 'Allie excellence scientifique, épargne rigoureuse et rayonnement national.',
-    finalTrophy: 'Ingénieur Major INP-HB',
+    finalTrophy: 'Ingénieur Major INPolytec',
     steps: mkSteps('eleve_inphb', [
       {
         title: 'Grand Concours Scientifique',

@@ -99,6 +99,10 @@
 .jelly-cream  { --j-top: #fffaf1; --j-bottom: #ffe2b0; --j-edge: #c99a52; color: #3b2a20; text-shadow: none; }
 .jelly-cream::before { background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0)); }
 
+/* Tuile carrée arrondie (icônes d'applications du téléphone) */
+.jelly-tile { border-radius: 1.1rem; }
+.jelly-tile::before { inset: 3px 10% auto 10%; height: 36%; border-radius: 0.8rem; }
+
 /* Pastille ronde (icône seule) — même langage que les boutons */
 .jelly-round { padding: 0; aspect-ratio: 1 / 1; border-radius: 9999px; }
 .jelly-round::before { inset: 3px 16% auto 16%; height: 36%; }

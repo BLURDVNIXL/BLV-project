@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  Sparkles,
   Smartphone,
   Radio,
   Settings,
@@ -12,7 +11,6 @@ import {
   Lock,
   Dices,
   Pause,
-  Users,
   Wrench,
   Utensils,
   Zap,
@@ -35,7 +33,7 @@ import { MinimapRadar } from './MinimapRadar';
 import { RadioPlayStatus } from '../audio/radioManager';
 import { JellyButton, RoundIconButton } from './ui/Jelly';
 import { BarGauge, RingGauge } from './ui/Gauge';
-import { FcfaCoin } from './ui/icons';
+import { FcfaCoin, GroupBadge, StarBadge } from './ui/icons';
 
 interface GameHUDProps {
   playerState: PlayerState;
@@ -231,7 +229,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({
           </div>
 
           <div className="panel flex items-center gap-2.5 px-3 py-2">
-            <Sparkles className="h-5 w-5 shrink-0 text-sun-500" />
+            <StarBadge className="h-8 w-8 shrink-0" />
             <div className="w-36">
               <div className="flex items-baseline justify-between gap-2 whitespace-nowrap text-xs font-bold">
                 <span className="text-ink-600">{s.starLabel}</span>
@@ -253,7 +251,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({
               </div>
             )}
             <div className="panel flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-palm-600" title="Joueurs en ligne">
-              <Users className="h-4 w-4" />
+              <GroupBadge className="h-6 w-6" />
               <span>{onlineCount}</span>
             </div>
           </div>

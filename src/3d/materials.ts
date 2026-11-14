@@ -85,7 +85,7 @@ export function getAsphaltTexture(maxAnisotropy = 4): THREE.CanvasTexture {
   if (textureCache.has(key)) return textureCache.get(key)!;
   const [canvas, ctx] = makeCanvas(256, 256);
 
-  ctx.fillStyle = '#262930';
+  ctx.fillStyle = '#3d3b3f';
   ctx.fillRect(0, 0, 256, 256);
 
   for (let i = 0; i < 1800; i++) {

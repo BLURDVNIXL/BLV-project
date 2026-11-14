@@ -219,17 +219,17 @@ export const BabiOSPhone: React.FC<BabiOSPhoneProps> = ({
               </button>
 
               <div className="grid grid-cols-4 gap-2.5">
-                <AppIcon label="Missions" icon={<Target className="h-5 w-5 text-sun-600" />} color="bg-sun-300/35 border-sun-400/40" onClick={() => setActiveApp('missions')} />
-                <AppIcon label={s.bank} icon={<CreditCard className="h-5 w-5 text-palm-600" />} color="bg-palm-400/15 border-palm-400/40" onClick={() => setActiveApp('bank')} />
-                <AppIcon label={s.eats} icon={<UtensilsCrossed className="h-5 w-5 text-sun-600" />} color="bg-sun-300/35 border-sun-400/40" onClick={() => setActiveApp('eats')} />
-                <AppIcon label={s.gps} icon={<MapPin className="h-5 w-5 text-lagoon-600" />} color="bg-lagoon-400/15 border-lagoon-400/40" onClick={() => setActiveApp('gps')} />
-                <AppIcon label={s.romance} icon={<Heart className="h-5 w-5 text-coral-600" />} color="bg-coral-400/15 border-coral-400/40" onClick={() => setActiveApp('romance')} />
-                <AppIcon label={s.sape} icon={<Shirt className="h-5 w-5 text-plum-500" />} color="bg-plum-500/10 border-plum-400/40" onClick={() => setActiveApp('sape')} />
-                <AppIcon label={s.schools} icon={<GraduationCap className="h-5 w-5 text-sun-600" />} color="bg-sun-300/35 border-sun-400/40" onClick={() => setActiveApp('schools')} />
-                <AppIcon label={s.radio} icon={<Radio className="h-5 w-5 text-lagoon-600" />} color="bg-lagoon-400/15 border-lagoon-400/40" onClick={() => setActiveApp('radio')} />
-                <AppIcon label={s.crib} icon={<Home className="h-5 w-5 text-plum-500" />} color="bg-plum-500/10 border-plum-400/40" onClick={() => setActiveApp('crib')} />
-                <AppIcon label={s.jobs} icon={<Briefcase className="h-5 w-5 text-sun-600" />} color="bg-sun-300/35 border-sun-400/40" onClick={() => setActiveApp('jobs')} />
-                <AppIcon label="Babi Chat" icon={<MessageSquare className="h-5 w-5 text-palm-600" />} color="bg-palm-400/15 border-palm-400/40" onClick={() => setActiveApp('social')} />
+                <AppIcon label="Missions" icon={<Target className="h-6 w-6" />} tone="sun" onClick={() => setActiveApp('missions')} />
+                <AppIcon label={s.bank} icon={<CreditCard className="h-6 w-6" />} tone="palm" onClick={() => setActiveApp('bank')} />
+                <AppIcon label={s.eats} icon={<UtensilsCrossed className="h-6 w-6" />} tone="sun" onClick={() => setActiveApp('eats')} />
+                <AppIcon label={s.gps} icon={<MapPin className="h-6 w-6" />} tone="lagoon" onClick={() => setActiveApp('gps')} />
+                <AppIcon label={s.romance} icon={<Heart className="h-6 w-6" />} tone="coral" onClick={() => setActiveApp('romance')} />
+                <AppIcon label={s.sape} icon={<Shirt className="h-6 w-6" />} tone="plum" onClick={() => setActiveApp('sape')} />
+                <AppIcon label={s.schools} icon={<GraduationCap className="h-6 w-6" />} tone="lagoon" onClick={() => setActiveApp('schools')} />
+                <AppIcon label={s.radio} icon={<Radio className="h-6 w-6" />} tone="palm" onClick={() => setActiveApp('radio')} />
+                <AppIcon label={s.crib} icon={<Home className="h-6 w-6" />} tone="sun" onClick={() => setActiveApp('crib')} />
+                <AppIcon label={s.jobs} icon={<Briefcase className="h-6 w-6" />} tone="lagoon" onClick={() => setActiveApp('jobs')} />
+                <AppIcon label="Babi Chat" icon={<MessageSquare className="h-6 w-6" />} tone="plum" onClick={() => setActiveApp('social')} />
               </div>
 
               {/* RECENT LOGS */}
@@ -865,12 +865,14 @@ export const BabiOSPhone: React.FC<BabiOSPhoneProps> = ({
 const AppIcon: React.FC<{
   label: string;
   icon: React.ReactNode;
-  color: string;
+  tone: 'sun' | 'lagoon' | 'palm' | 'coral' | 'plum';
   onClick: () => void;
-}> = ({ label, icon, color, onClick }) => (
-  <button type="button" onClick={onClick} className="flex flex-col items-center gap-1 cursor-pointer">
-    <div className={`flex h-12 w-12 items-center justify-center rounded-xl border ${color}`}>{icon}</div>
-    <span className="text-xs font-semibold text-ink-600 truncate max-w-full">{label}</span>
+}> = ({ label, icon, tone, onClick }) => (
+  <button type="button" onClick={onClick} className="flex cursor-pointer flex-col items-center gap-1.5">
+    <span className={`jelly jelly-tile jelly-${tone} h-12 w-12`}>
+      <span className="relative flex items-center justify-center">{icon}</span>
+    </span>
+    <span className="max-w-full truncate text-xs font-semibold text-ink-600">{label}</span>
   </button>
 );
 
