@@ -18,6 +18,10 @@ export interface UIStrings {
   hideDock: string;
   showDock: string;
   destinyBtn: string;
+  pauseLabel: string;
+  settingsLabel: string;
+  adminLabel: string;
+  menuLabel: string;
   exitVehicle: string;
   enterVehicle: string;
   bank: string;
@@ -53,6 +57,10 @@ const FR_STRINGS: UIStrings = {
   hideDock: 'Masquer Dock',
   showDock: 'Afficher Dock',
   destinyBtn: 'Destin',
+  pauseLabel: 'Pause',
+  settingsLabel: 'Réglages',
+  adminLabel: 'Admin Sandbox',
+  menuLabel: 'Menu',
   exitVehicle: 'Appuie sur E / ✕ pour sortir du véhicule',
   enterVehicle: 'Appuie sur E / ✕ pour monter dans',
   bank: 'Banque & Prêts',
@@ -88,6 +96,10 @@ const EN_STRINGS: UIStrings = {
   hideDock: 'Hide Dock',
   showDock: 'Show Dock',
   destinyBtn: 'Destiny',
+  pauseLabel: 'Pause',
+  settingsLabel: 'Settings',
+  adminLabel: 'Admin Sandbox',
+  menuLabel: 'Menu',
   exitVehicle: 'Press E / ✕ to exit vehicle',
   enterVehicle: 'Press E / ✕ to enter',
   bank: 'Bank & Loans',
