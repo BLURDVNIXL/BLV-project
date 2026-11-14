@@ -7,6 +7,7 @@ import {
   GameScreenState,
   HomeAccessMode,
   HouseKnockPrompt,
+  PlayerProfile,
   PlayerState,
   RemotePlayer,
   SapeOutfitId,
@@ -64,7 +65,8 @@ import { GameHUD } from './components/GameHUD';
 import { ConsoleGamepad } from './components/ConsoleGamepad';
 import { useTouchControls } from './components/useTouchControls';
 import { BabiOSPhone } from './components/BabiOSPhone';
-import { DestinyRouletteModal } from './components/DestinyRouletteModal';
+import { NewLifeScreen } from './components/NewLifeScreen';
+import { loadProfile, saveProfile } from './core/profile';
 import { AdminModal } from './components/AdminModal';
 import { SettingsModal } from './components/SettingsModal';
 import { GameOverModal } from './components/GameOverModal';
@@ -555,10 +557,10 @@ export default function App() {
     };
   }, [screenState, persistServerState]);
 
-  const enterAbidjanWithDestiny = (destiny: Destiny) => {
+  const enterAbidjanWithDestiny = (destiny: Destiny, profile?: PlayerProfile) => {
     (document.activeElement as HTMLElement | null)?.blur?.();
     const cur = playerStateRef.current;
-    const fresh = createInitialPlayerState(destiny, cur.playerId, cur.sessionToken);
+    const fresh = createInitialPlayerState(destiny, cur.playerId, cur.sessionToken, profile);
     const lot = sceneRef.current?.spawnPlayerAtDestiny(
       destiny.spawnX,
       destiny.spawnZ,
@@ -583,7 +585,7 @@ export default function App() {
     sceneRef.current?.syncCribUpgrades(fresh.cribUpgrades);
     sceneRef.current?.setCameraMode('follow');
     sceneRef.current?.setPaused(false);
-    showToast(`🇨🇮 Bienvenue à ${destiny.district} (${destiny.name}) !`);
+    showToast(`🇨🇮 Bienvenue${profile ? ` ${profile.name}` : ''} à ${destiny.district} (${destiny.name}) !`);
   };
 
   const handleContinueSavedGame = () => {
@@ -658,11 +660,14 @@ export default function App() {
 
       {/* STAGE 2: DESTINY ROULETTE */}
       {screenState === 'roulette' && (
-        <DestinyRouletteModal
-          currentDestiny={playerState.destiny}
+        <NewLifeScreen
+          initialProfile={playerState.playerName && playerState.gender ? { name: playerState.playerName, gender: playerState.gender } : loadProfile()}
           canClose={hasSavedGame}
           onClose={() => setScreenState('title')}
-          onSelectDestiny={enterAbidjanWithDestiny}
+          onEnter={(destiny, profile) => {
+            saveProfile(profile);
+            enterAbidjanWithDestiny(destiny, profile);
+          }}
         />
       )}
 

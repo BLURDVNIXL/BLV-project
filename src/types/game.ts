@@ -222,8 +222,20 @@ export interface HouseKnockPrompt {
   lotId: string;
 }
 
+/** Genre choisi à la création du personnage (réservé notamment au badge Alysma, réservé aux filles). */
+export type PlayerGender = 'homme' | 'femme';
+
+/** Pseudonyme et genre saisis avant la roulette. Aucune donnée d'état civil. */
+export interface PlayerProfile {
+  name: string;
+  gender: PlayerGender;
+}
+
 export interface PlayerState {
   playerId: string;
+  /** Pseudonyme choisi par le joueur (facultatif pour les anciennes sauvegardes). */
+  playerName?: string;
+  gender?: PlayerGender;
   sessionToken?: string;
   destiny: Destiny;
   cash: number;
