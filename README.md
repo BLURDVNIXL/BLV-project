@@ -8,6 +8,11 @@ Simulation de vie urbaine 3D temps réel à Abidjan (Côte d’Ivoire), construi
   - Moteur C++ compilé en WebAssembly (`public/physics.wasm`) gérant véhicules (suspension, dérapage, collisions), personnages, raycasts caméra et trafic routier autonome.
   - Géographie schématique d’Abidjan couvrant la Lagune Ébrié, l’Océan Atlantique, la Baie du Banco, la Baie de Cocody, l’Île Boulay, 5 ponts (FHB, De Gaulle, HKB, ADO, Yopougon) et 14 zones/communes dont Grand-Bassam.
   - Génération déterministe par chunks 64×64 m (`WorldStreamer`) avec parcelles résidentielles (`playerHouse.ts`), architecture différenciée par commune et monuments emblématiques (Stade FHB, Cathédrale Saint-Paul, Hôtel Ivoire, La Pyramide, Tour Postel, Mairie, Lycée d’Excellence de Bassam).
+- **Rendu & Ambiance (`src/3d/`)** :
+  - Ambiance tropicale continue (`ambiance.ts`) : palette chaude interpolée selon l’heure de jeu (aube rosée → matinée dorée → plein jour → heure dorée → coucher → crépuscule → nuit) et soleil qui voyage d’est en ouest, la lune prenant le relais la nuit.
+  - Dôme de ciel (`sky.ts`) : dégradé zénith → horizon, brume chaude collée à l’horizon (même couleur que le brouillard, donc sans couture) et halo/disque solaire.
+  - Lagune : reflet de Fresnel vers l’horizon et scintillement du soleil sur les vaguelettes ; arbres balancés par le vent (vertex shader, aucun coût CPU).
+  - Qualité : tous ces effets sont désactivés sur rendu logiciel (le fond uni est alors utilisé). `?quality=high` force le chemin complet pour les tests ; `?blvdebug` expose `window.__blvScene`.
 - **Gameplay & Identité BLV (`src/core/`)** :
   - Chronologie stricte : Écran Titre (`title`) → Roulette des 19 Destins (`roulette`, pondération 35% / 25% / 25% / 15% + 7 Easter Eggs) → Monde 3D d’Abidjan (`playing`), plus raccourci `?autostart=1` pour les tests.
   - Missions principales dédiées en 3 étapes pour chacun des 19 destins (`src/core/missions.ts`).
