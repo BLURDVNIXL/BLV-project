@@ -3,18 +3,21 @@
  * SPDX-License-Identifier: Apache-2.0
  *
  * BLV — Babi Life Vibes
- * Colliders de la maison du joueur (modèle « maison de poupée » de 12 × 9 m : murs arrière et gauche,
- * façade ouverte vers la rue) posée sur une parcelle, avec une rotation quelconque.
+ * Colliders de la maison du joueur (coque fermée de 12 × 9 m : 4 murs, une porte en façade) posée sur une parcelle, avec une rotation quelconque.
  */
 
 import { PhysicsCore, SolidFlag } from '../physics/PhysicsCore';
+import { HOUSE_SHELL_WALLS, HOUSE_WALL_H } from './houseShell';
 
 interface LocalBox { x: number; z: number; hx: number; hz: number; h: number; flags: number }
 
-/** Coordonnées locales (le +z local est la façade, voir city.ts → HouseLot.rotationY). */
+/**
+ * Coordonnées locales (le +z local est la façade, voir city.ts → HouseLot.rotationY).
+ * Les murs sont en PROP (et non BUILDING) : la caméra n'est donc pas « tirée » vers le joueur par un mur,
+ * ils s'effacent à la place (voir wallFader.ts).
+ */
 export const HOUSE_COLLIDERS: LocalBox[] = [
-  { x: 0, z: -4.5, hx: 6, hz: 0.15, h: 3.2, flags: SolidFlag.BUILDING },   // mur arrière
-  { x: -6, z: 0, hx: 0.15, hz: 4.5, h: 3.2, flags: SolidFlag.BUILDING },   // mur gauche
+  ...HOUSE_SHELL_WALLS.map((w): LocalBox => ({ x: w.x, z: w.z, hx: w.hx, hz: w.hz, h: HOUSE_WALL_H, flags: SolidFlag.PROP })),
   { x: -4, z: -3, hx: 1, hz: 0.75, h: 0.55, flags: SolidFlag.PROP },       // lit
   { x: 3, z: -3.5, hx: 0.5, hz: 0.45, h: 2, flags: SolidFlag.PROP },       // réfrigérateur
   { x: 4, z: 2, hx: 0.6, hz: 0.6, h: 2.2, flags: SolidFlag.PROP },         // douche

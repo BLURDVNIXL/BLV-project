@@ -70,6 +70,7 @@ import {
 import { project, WORLD_SCALE } from '../world/geo';
 import { bridgeAt } from '../world/roads';
 import { houseToWorld, registerPlayerHouse } from '../world/playerHouse';
+import { HOUSE_D, insideHouse, segmentCrossesRect, worldToHouse } from '../world/houseShell';
 import { RoadCar, updateRoadTraffic } from '../world/roadTraffic';
 import { strHash } from '../world/rng';
 
@@ -818,17 +819,18 @@ export class AbidjanSceneManager {
     this.ownHouseColliderIds = registerPlayerHouse(core, lot.x, lot.z, lot.rotationY);
     this.buildHomeHotspots(lot);
 
-    // 3. Spawn player on front porch facing street (+z local)
+    // 3. On apparaît sur le perron, face à sa porte ; la caméra est côté rue et voit la façade
     const porch = houseToWorld(lot.x, lot.z, lot.rotationY, 0, 5.2);
     this.playerX = porch.x;
     this.playerY = 0;
     this.playerZ = porch.z;
-    this.playerRotY = lot.rotationY;
+    const faceDoor = lot.rotationY + Math.PI;
+    this.playerRotY = faceDoor;
     this.playerCharId = core.createCharacter(porch.x, porch.z, 0.35);
-    core.faceCharacter(this.playerCharId, lot.rotationY, true);
+    core.faceCharacter(this.playerCharId, faceDoor, true);
     this.playerRig.group.visible = true;
     this.playerRig.group.position.set(porch.x, 0, porch.z);
-    this.playerRig.group.rotation.y = lot.rotationY;
+    this.playerRig.group.rotation.y = faceDoor;
 
     // 4. Spawn player vehicle(s) parked cleanly on the street outside lot
     const curb = carSpotForLot(lot);
@@ -853,8 +855,8 @@ export class AbidjanSceneManager {
       this.spawnedVehicles.push({ id: `player_v2_${secondaryVehicle}`, vehId, rig });
     }
 
-    // 5. Aim camera smoothly behind player looking down the street
-    this.camYaw = lot.rotationY + Math.PI;
+    // 5. Caméra derrière le joueur (côté rue), face à la façade
+    this.camYaw = lot.rotationY;
     this.camPitch = 0.32;
     this.camDist = 9.5;
     this.camPos.set(
@@ -1109,6 +1111,23 @@ export class AbidjanSceneManager {
         // On ne retente pas à chaque message réseau : le repli reste affiché jusqu'à la prochaine connexion.
         console.warn('[BLV] Avatar 3D distant indisponible, repli sur le personnage simple', err);
       });
+  }
+
+  /** Murs et toit des maisons : transparents côté caméra, toit masqué quand le joueur est dedans. */
+  private updateHouseShells(dt: number) {
+    const cam = this.camPos;
+    for (const h of [
+      { rig: this.ownHouseRig, lot: this.ownHouseLot },
+      { rig: this.visitedHouseRig, lot: this.visitedHouseLot },
+    ]) {
+      if (!h.rig || !h.lot) continue;
+      const pl = worldToHouse(h.lot.x, h.lot.z, h.lot.rotationY, this.playerX, this.playerZ);
+      const c = worldToHouse(h.lot.x, h.lot.z, h.lot.rotationY, cam.x, cam.z);
+      const inside = insideHouse(pl.x, pl.z);
+      // Joueur dehors mais maison entre lui et la caméra : tout devient transparent pour ne pas le cacher
+      const occluding = !inside && segmentCrossesRect(pl.x, pl.z, c.x, c.z, 6.2, HOUSE_D / 2 + 0.2);
+      h.rig.fader.update(c.x, c.z, inside, dt, occluding);
+    }
   }
 
   public teleportPlayer(x: number, z: number) {
@@ -1587,6 +1606,7 @@ export class AbidjanSceneManager {
     this.camLook.lerp(this.scratchTarget, k);
     this.camera.position.copy(this.camPos);
     this.camera.lookAt(this.camLook);
+    this.updateHouseShells(dt);
 
     this.dirLight.position.set(
       this.playerX + this.sunDir.x * 150,

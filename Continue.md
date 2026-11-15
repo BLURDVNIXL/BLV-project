@@ -90,6 +90,7 @@ npm run dev           # port 3000
 
 ## État au 14/11/2026 (à lire en premier)
 
+* **`feat/maison-fermee`** : étape 1 des intérieurs (maison fermée : 4 murs, porte, toit qui s'efface). Suite du plan : hôpitaux visibles → intérieur partagé → lot santé → carte plein écran (voir `CONTEXT.md` §11 « Intérieurs »).
 * **`feat/ecran-creation`** : écran de création (pseudo, genre, PLAY) + carrousel du destin imposé, qui remplacent l'ancienne roulette à choix (voir `CONTEXT.md` §11).
 * `main` = version fusion + shaders d'ambiance (PR #1) ; branches de travail : `docs/continue-et-direction` (docs), `feat/refonte-ui` (lot 1, fusionné par la PR #2), `feat/refonte-hud` (**HUD compact** : radar en haut à gauche, menu ⚙, manette à 5 boutons ; voir `CONTEXT.md` §11 « HUD compact »). La même branche contient aussi : icône PWA + écran titre à l'affiche BLV, HUD resserré sur téléphone en paysage, caméra tactile corrigée + réglage de sensibilité (voir `CONTEXT.md` §11). **Le lot 2 santé doit s'insérer dans cette mise en page** (barre de vie avec les besoins, haut gauche) : ne pas rétablir de barre en bas.
 * **Direction du créateur** : style convivial et chaleureux (fini le style GTA), voix d'accueil à **script différent par destin** (synthèse vocale d'abord, remplaçable par de vraies voix sans toucher au code), roulette subie, 19 maisons, plage, santé/hôpital/maladies, météo, monde vivant. Détail : `CONTEXT.md` §11.D.
