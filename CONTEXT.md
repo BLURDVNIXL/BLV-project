@@ -146,49 +146,25 @@ Chaque nouvelle partie débute par la **Roulette du Destin** qui détermine la c
 
 ---
 
-## 💖 8. LA JAUGE D'ENVIE, GASTRONOMIE & ROMANCE
+## 💖 8. LA JAUGE D'ENVIE & GASTRONOMIE
 
 * **La Jauge d'Envie** : Moteur psychologique du personnage. Si elle tombe à 0 ➔ dépression, lenteur, travail divisé par 2.
-* **Comblée par 6 voies** :
+* **Comblée par plusieurs voies** :
   1. 🍛 **Les Mets Savoureux d'Abidjan** : Garba croustillant au thon frit, Alloco & poisson braisé, Foutou sauce graine, Choukouya au kan-kan, Kédjénou ➔ procure le buff *"Extase Culinaire"*.
-  2. 💖 **L'Amour & les Rencards** : Rencards en bord de lagune, tendresse. Remplissage durable.
-  3. 🔥 **Le Sexe Consenti (façon Les Sims)** : Intimité pudique et humoristique (cœurs animés, couette qui bouge, étincelles, sans nudité). Buff *"Cœur comblé"*.
-  4. 💼 **Le Travail & l'Ambition** : Réussir de gros contrats.
-  5. 🎲 **Le Jeu & l'Adrénaline** : Loto Akwaba, dés au maquis.
-  6. 💊 **Les Substances** : Boost immédiat mais descente sévère et danger de santé.
-* **Romance & Consentement Mutuel Strict** : Confirmation bilatérale obligatoire entre joueurs réels. Refus unilatéral respecté immédiatement. Mariage civil officiel célébré à la mairie par le Maire.
+  2. 💼 **Le Travail & l'Ambition** : Réussir de gros contrats.
+  3. 🎲 **Le Jeu & l'Adrénaline** : Loto Akwaba, dés au maquis.
+  4. 💊 **Les Substances** : Boost immédiat mais descente sévère et danger de santé.
 
 ---
 
-## 📻 9. LE TUNER RADIO EN DIRECT LIVE DE CÔTE D'IVOIRE
-
-Tuner radio officiel diffusant de vrais flux audio streaming HTTPS en direct :
-1. **RTI Fréquence 2 (92.0 FM)** : Flux live officiel de la station jeunesse et culture de la RTI.
-2. **Skyrock Abidjan (107.9 FM)** : Flux direct Afrobeats, Rap Ivoire et musiques urbaines d'Abidjan.
-3. **WaveMaster Radio Lagune** : Ambiance continue Zouglou, Rumba et Coupé-Décalé des maquis.
-4. **Mode Silence** : Pour n'écouter que l'ambiance urbaine.
-
----
-
-## 🏛️ 10. CURSUS ACADÉMIQUE, FIN TRAGIQUE & LES 6 AMÉLIORATIONS
-
-* **Lycées d'Excellence & Badges Historiques** :
-  1. 🐊 **Lycée Classique d'Abidjan (Cocody)** ➔ Badge **« Devenir Caïman »** :
-     * *Histoire* : Fondé en 1945, temple mythique de l'intelligentsia ivoirienne. Berceau des illustres alumni : Laurent Gbagbo, Tidjane Thiam, Daniel Kablan Duncan.
-     * *Avantages* : Charisme intellectuel (+15%), Respect immédiat dans toutes les administrations du Plateau, boost d'embauche cadre supérieur.
-  2. 🌸 **Lycée Sainte-Marie de Cocody** ➔ Badge **« Devenir Alysma »** :
-     * *Histoire* : Fondé en 1962 par Félix Houphouët-Boigny et la Communauté Saint-François-Xavier (Madeleine Daniélou). Référence absolue d'excellence féminine avec 100% de réussite au Baccalauréat.
-     * *Avantages* : Étoile protégée contre le mauvais œil (+10 Baraka permanente), Hygiène et allure chic naturelles, aura diplomatique dans les hautes sphères.
-  3. ⚡ **Lycée d'Excellence Alassane Ouattara de Grand-Bassam** ➔ Badge **« Devenir Alex »** :
-     * *Histoire* : Inauguré en 2019 sur un campus ultra-moderne de 20 hectares, joyau scientifique de la Côte d'Ivoire préparant aux grandes écoles mondiales (Polytechnique, MIT, INPolytec).
-     * *Avantages* : Logique et calcul financier (+25% de gains aux investissements), accès prioritaire aux bourses internationales d'ingénieur.
+## 🏛️ 10. FIN TRAGIQUE & ESPACE ADMIN
 
 * **Fin Tragique / Bilan de Vie (Game Over)** :
   * Si le joueur tombe en faillite critique (dettes > 25 000 F) avec faim et énergie à zéro, ou sur déclenchement manuel, l'écran solennel *TragicEndingModal* (« Le Bitume t'a eu ») s'affiche avec la voix off du narrateur, le nombre de jours vécus, le bilan financier, et la possibilité de renaître dans une nouvelle vie.
 
 * **Espace Admin Sandbox Secret (Tests & Configurations Développeur)** :
   * En parallèle du jeu public, un espace d'administration complet est intégré, accessible via le code secret **`BLV2026`** (ou `ADMIN` / `BABI`) dans les réglages du menu principal.
-  * Permet de forcer n'importe lequel des 19 destins à chaud, d'ajouter des millions de FCFA, de basculer la météo, de manipuler les étoiles de recherche de la police, de réinitialiser les besoins et de débloquer tous les badges scolaires pour les tests.
+  * Permet de forcer n'importe lequel des 19 destins à chaud, d'ajouter des millions de FCFA, de basculer la météo, de manipuler les étoiles de recherche de la police, de réinitialiser les besoins pour les tests.
 
 ---
 
@@ -218,7 +194,7 @@ Tuner radio officiel diffusant de vrais flux audio streaming HTTPS en direct :
      - Radar circulaire noir mat incrusté en bas à gauche de l'écran.
      - Flèche du joueur rotative pointant dans la direction de marche/conduite.
      - Boussole avec lettre du Nord "N" rotative.
-     - Projection de la Lagune Ébrié, des ponts et blips colorés des lieux clés (Maison en vert, Lycée Classique en orange, Sainte-Marie en rose, Grand-Bassam en cyan, Plateau en bleu ciel, Port en jaune).
+     - Projection de la Lagune Ébrié, des ponts et blips colorés des lieux clés (Maison en vert, Plateau en bleu ciel, Port en jaune).
      - Anneau courbé d'énergie/santé GTA autour du radar.
      - Bannière de localisation GTA automatique affichant le quartier en temps réel (*Plateau, Cocody, Lagune, Treichville, Marcory, Grand-Bassam*).
   4. **Moteur Sonore Procédural GTA (`audioFxService.ts`)** :
@@ -226,7 +202,7 @@ Tuner radio officiel diffusant de vrais flux audio streaming HTTPS en direct :
      - Crissement de pneus en dérapage drift lors des virages serrés.
      - Klaxon typique d'Abidjan (*Tut-tuuut !*).
      - Bruits de pas synchronisés sur le bitume.
-     - Fanfare jingle triomphale GTA lors du déblocage des badges des Lycées d'Excellence.
+     - Fanfare jingle triomphale lors des grands moments (mission, loto, lavage d'Étoile).
 
 * **Moteur Physique WebAssembly & Branchement des commandes (Itération 6)** :
   1. **Cœur physique C++/WASM** (voir §3, point 2bis) : conduite réaliste (accélération limitée par la puissance, freinage, drift au frein à main, assiette/roulis), collisions solides (tours, lycées, port, maison, mobilier, lagune sauf ponts, limites de carte), piétons renversés, trafic simulé avec la même physique.
@@ -342,3 +318,4 @@ Tuner radio officiel diffusant de vrais flux audio streaming HTTPS en direct :
 * **Cinématique accélérée du trajet — étape B3 de l'idée B (branche `feat/taxi-cinematique`, 15/11/2026).** À la montée (fin de l'attente de B1), la course est payée une seule fois (500 F / 1 000 F), puis : **fondu au noir (0,75 s)** → le joueur est « monté » (son avatar est masqué) et la caméra de poursuite suit le woro-woro (celui de B2 est repris) sur l'itinéraire de `findRoute` (grands axes et ponts), **sans le dernier tronçon en ligne droite** : le taxi s'arrête sur la route la plus proche de la destination pour ne jamais traverser un bâtiment → fondu au noir → le joueur est déposé en `teleportPlayer(dest)` (devant l'entrée du lieu, comme avant) → retour à l'image (0,75 s) → fin (`onTaxiRideEnd`, la bannière de commune est mise à jour). **Durée** : 15 s jusqu'à 1 km de trajet réel, 30 s à partir de 10 km, linéaire entre les deux (`taxiRideSeconds`, `TAXI_RIDE_MIN_S`, `TAXI_RIDE_MAX_S`) ; démarrage et arrêt progressifs (`taxiRideProgress`). Code : `AbidjanSceneManager.startTaxiRide(dest)` / `isTaxiRideActive()` / `updateTaxiRide` (machine à états `board` → `ride` → `unfade`, comptée avec `dt` donc figée en pause) ; fondu : callbacks `onTaxiFade(dark)` et `onTaxiRideEnd` vers `App.tsx` (calque noir `data-testid=\"taxi-fade\"`). **Pendant la cinématique** : mouvement, saut, interaction et montée en voiture sont bloqués (`findNearestHotspot` / `findNearestVehicle` renvoient null), aucune position n'est envoyée au multijoueur (la boucle sort avant l'envoi), une nouvelle course est refusée, et la ville se charge autour du taxi. **Si aucun trajet n'existe** (`startTaxiRide` renvoie false) : le joueur est déposé directement comme en B1/B2. Si le joueur n'a plus l'argent à la montée, le taxi repart sans lui. Vérifié : `npm run lint` (0 erreur), `npm test` (67 : 3 nouveaux pour la durée, la progression et la longueur), `npm run build`. **Non vérifié** : jamais vu à l'écran ni sur téléphone (caméra, vitesse sur les longs trajets, chargement de la ville à grande vitesse, fondus), pas de test navigateur. **Limites connues** : les autres joueurs voient le joueur rester à l'arrêt puis réapparaître à l'arrivée (B5) ; pas encore de bouton « Passer » (B4) ; pas de temps de jeu ni de besoins pendant le trajet (B4) ; pas de cas particuliers (voisin, hôpital en intérieur partagé) testés (B5).
 
 * **Temps de jeu pendant le trajet — étape B4 de l'idée B (branche `feat/taxi-temps`, 15/11/2026).** Quand le joueur est déposé (écran noir de la fin de la cinématique, callback `onTaxiRideArrived`), le temps du trajet passe : **environ 3 min de jeu par km de trajet réel, au moins 5 min et au plus 90 min** (`taxiRideGameMinutes`, `TAXI_GAME_MIN_PER_KM`, `TAXI_GAME_MIN_MIN`, `TAXI_GAME_MIN_MAX` dans `simulation.ts`). `applyTaxiRideTime` s'appuie sur `advanceGameTime` (1 h réelle = 4 h de jeu, soit 900 s réelles par heure de jeu) : l'heure avance, minuit, loyer et intérêts de dette compris, et la faim, l'énergie, l'hygiène et la vessie baissent aux taux normaux (donc un effet léger : environ 1 point de faim pour 20 min de jeu) ; aucun coût de plus, une ligne de journal « 🚖 Trajet en taxi : N min de jeu » et un toast. Partie terminée : rien ne bouge. `startTaxiRide` renvoie maintenant `{ distanceM }` (ou null) pour que `App.tsx` connaisse la distance. **Décisions du créateur (15/11/2026)** : **pas de bouton « Passer »** (ni payant ni gratuit, abandonné) ; **le multijoueur du taxi (ancienne étape B5) est repoussé** : les autres joueurs voient toujours le joueur rester à l'arrêt pendant la cinématique puis réapparaître à l'arrivée ; les cas particuliers (voisin, intérieur partagé de l'hôpital) ne sont pas traités. **Serveur non modifié** : le temps du trajet est appliqué côté client seulement ; le serveur n'est pas prévenu, et l'action serveur `advance_time` (plafonnée à 60 s réelles, soit 4 min de jeu) n'est appelée nulle part dans le client. Comme pour le temps normal, `syncEconomy` garde l'heure la plus avancée si la journée est la même ; après un passage de minuit côté client seul, le serveur peut revenir en arrière sur le jour (comportement déjà présent pour le temps normal, non corrigé ici). Vérifié : `npm run lint` (0 erreur), `npm test` (69 : 2 nouveaux), `npm run build`. **Non vérifié** : jamais vu à l'écran (toast, bandeau d'heure après l'arrivée, ciel qui change de lumière), pas de test navigateur.
+* **Retrait des apps Romance, Lycées Élite, Radio FM et Métiers (15/11/2026, branche `chore/retrait-apps`, demandé par le créateur).** Supprimés : les 4 apps du téléphone, la radio (`radioManager.ts` devient `src/audio/soundEngine.ts`, effets sonores seulement), le mariage et l'intimité (fonctions, modals, messages WebSocket `consent:*`, table `consent_requests` supprimée au démarrage du serveur), les concours et badges des lycées (`SchoolExamModal`, bonus de badge : intérêts bancaires fixes à 2 %, hygiène au taux normal, emprunt max 500 000 F), la liste de contrats. Conservés : la journée de travail simple (PC de la maison, Marché d'Adjamé) car 15 étapes de mission utilisent `work_shifts` ; les boutons « Visiter » des voisins, déplacés dans Babi Chat ; les pouvoirs de destin (Académie Yannis, annuler les étoiles, fausses plaques), déplacés dans l'app Missions. Les 4 étapes de mission « badge » deviennent des étapes d'épargne de 50 000 F. Les 3 lycées restent des bâtiments de décor ; la Mairie du Plateau et la Suite de l'Hôtel Ivoire ne sont plus des lieux interactifs. Prochaine étape décidée : générer les intérieurs des lieux.

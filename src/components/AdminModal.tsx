@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Lock, Unlock, ShieldAlert, DollarSign, CloudRain, Star, X } from 'lucide-react';
-import { PlayerState, WeatherType, AcademicBadge } from '../types/game';
+import { PlayerState, WeatherType } from '../types/game';
 import { ALL_DESTINIES } from '../core/destinies';
 
 interface AdminModalProps {
@@ -11,7 +11,6 @@ interface AdminModalProps {
   onChangeWeather: (weather: WeatherType, serverState?: PlayerState) => void;
   onSetPoliceStars: (stars: number, serverState?: PlayerState) => void;
   onRefillNeeds: (serverState?: PlayerState) => void;
-  onUnlockBadge: (badge: AcademicBadge, serverState?: PlayerState) => void;
 }
 
 export const AdminModal: React.FC<AdminModalProps> = ({
@@ -22,7 +21,6 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   onChangeWeather,
   onSetPoliceStars,
   onRefillNeeds,
-  onUnlockBadge,
 }) => {
   const [passcode, setPasscode] = useState('');
   const [adminToken, setAdminToken] = useState<string | null>(null);
@@ -266,20 +264,6 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                   className="flex-1 rounded-xl bg-sun-600 hover:bg-sun-500 py-2.5 text-xs font-bold uppercase tracking-wider text-white cursor-pointer"
                 >
                   Régénérer Jauges (100%)
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() =>
-                    dispatchAdminAction('unlock_all_badges', {}, (st) => {
-                      onUnlockBadge('caiman', st);
-                      onUnlockBadge('alysma', st);
-                      onUnlockBadge('alex', st);
-                    })
-                  }
-                  className="rounded-xl bg-plum-500 hover:bg-plum-500 px-3 py-2.5 text-xs font-bold uppercase tracking-wider text-white cursor-pointer"
-                >
-                  Tous les Badges
                 </button>
               </div>
             </div>

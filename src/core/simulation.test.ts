@@ -4,7 +4,6 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {
   ALL_DESTINIES,
-  CAREERS,
   CRIB_UPGRADE_PRICES,
   IVORIAN_FOODS,
   SAPE_OUTFITS,
@@ -34,10 +33,8 @@ import {
   TAXI_WAIT_MAX_S,
   FARE_SAME_COMMUNE,
   FARE_BETWEEN_COMMUNES,
-  performCareerJob,
-  performCivilMarriage,
-  performConsensualWooHoo,
   performLavageEtoile,
+  performWorkShift,
   playLotoAkwaba,
   purgeLocalData,
   repayDebt,
@@ -46,7 +43,6 @@ import {
   sleepAtHome,
   takeBankLoan,
   takeShower,
-  unlockBadge,
   useToilet,
   withdrawFromBank,
 } from './simulation';
@@ -114,8 +110,7 @@ test('Story mission progression advances steps and grants completion trophy & re
   assert.equal(st.activeMission.stepIndex, 1);
 
   // Step 2: Work shift
-  const job = CAREERS[0];
-  st = performCareerJob(st, job);
+  st = performWorkShift(st);
   assert.equal(st.activeMission.stepIndex, 2);
 
   // Step 3: Reach Plateau & >= 20,000 F in bank
@@ -250,8 +245,7 @@ test('Envy = 0 triggers Depression and cuts WASM work payout by 50%', async () =
 
   let state = createInitialPlayerState(rollDestiny('cadre_plateau'));
   state = { ...state, needs: { ...state.needs, envy: 0 } };
-  const job = CAREERS.find((j) => j.id === 'audit_plateau')!;
-  const after = performCareerJob(state, job);
+  const after = performWorkShift(state);
   assert.ok(after.cash > state.cash);
   assert.ok(after.logs.some((l) => l.message.includes('50%')));
 });
@@ -301,9 +295,6 @@ test('Sape outfits purchase & equip, Yannis Academy, Politicien & Djassaman poli
   state = donateYannisAcademy(state);
   assert.equal(state.yannisAcademyLevel, 1);
 
-  state = unlockBadge(state, 'caiman');
-  assert.ok(state.activeBadges.includes('caiman'));
-
   state = useToilet({ ...state, needs: { ...state.needs, bladder: 20 } });
   assert.equal(state.needs.bladder, 100);
   state = takeShower({ ...state, needs: { ...state.needs, hygiene: 15 } });
@@ -322,9 +313,6 @@ test('Sape outfits purchase & equip, Yannis Academy, Politicien & Djassaman poli
   assert.equal(baron.policeWanted, 0);
 
   state = eatFood(state, IVORIAN_FOODS[0]);
-  state = performConsensualWooHoo(state, 'Affoué');
-  state = performCivilMarriage(state, 'Affoué');
-  assert.equal(state.loveState.isMarried, true);
   state = performLavageEtoile(state);
   state = playLotoAkwaba(state);
 });

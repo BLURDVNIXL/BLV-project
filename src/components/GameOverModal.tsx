@@ -1,5 +1,5 @@
 import React from 'react';
-import { RotateCcw, Calendar, Coins, Award, Heart } from 'lucide-react';
+import { RotateCcw, Calendar, Coins, Award } from 'lucide-react';
 import { PlayerState } from '../types/game';
 import { JellyButton } from './ui/Jelly';
 
@@ -43,11 +43,6 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({ playerState, onRes
             tone="text-coral-600"
           />
           <StatRow icon={<Award className="h-4 w-4 text-sun-500" />} label="Destin vécu" value={playerState.destiny.name} tone="text-sun-600" />
-          <StatRow
-            icon={<Heart className="h-4 w-4 text-coral-500" />}
-            label="Statut du cœur"
-            value={playerState.loveState.isMarried ? 'Marié(e)' : playerState.loveState.partnerName ? 'En couple' : 'Célibataire'}
-          />
         </div>
 
         <JellyButton tone="sun" size="md" data-start="true" onClick={onRestart} icon={<RotateCcw className="h-5 w-5" />} className="w-full">

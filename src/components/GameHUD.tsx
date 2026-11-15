@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   Smartphone,
-  Radio,
   Settings,
   SlidersHorizontal,
   Flame,
@@ -23,13 +22,11 @@ import {
   Trophy,
 } from 'lucide-react';
 import { PlayerState, WeatherType } from '../types/game';
-import { RADIO_STATIONS } from '../core/destinies';
 import { formatGameTime, hasUnlimitedPlatinum } from '../core/simulation';
 import { getMissionForDestiny } from '../core/missions';
 import { t } from '../core/i18n';
 import { CityHotspot, RadarSnapshot } from '../3d/sceneManager';
 import { MinimapRadar } from './MinimapRadar';
-import { RadioPlayStatus } from '../audio/radioManager';
 import { JellyButton, RoundIconButton } from './ui/Jelly';
 import { BarGauge, RingGauge } from './ui/Gauge';
 import { FcfaCoin, GroupBadge, StarBadge } from './ui/icons';
@@ -41,7 +38,6 @@ interface GameHUDProps {
   onlineCount: number;
   nearbyHotspot: CityHotspot | null;
   nearbyVehicle: { id: string; label: string } | null;
-  radioStatus: RadioPlayStatus;
   getRadarSnapshot: () => RadarSnapshot | null;
   /** Commandes tactiles affichées : le bouton « Interagir » de la manette remplace l'invitation du haut. */
   touchControls: boolean;
@@ -52,7 +48,6 @@ interface GameHUDProps {
   onOpenSettings: () => void;
   onOpenAdmin: () => void;
   onOpenRoulette: () => void;
-  onNextRadio: () => void;
   onToggleSound: () => void;
   onPauseClick: () => void;
   isMuted: boolean;
@@ -113,7 +108,6 @@ export const GameHUD: React.FC<GameHUDProps> = ({
   onlineCount,
   nearbyHotspot,
   nearbyVehicle,
-  radioStatus,
   getRadarSnapshot,
   touchControls,
   onInteractClick,
@@ -123,7 +117,6 @@ export const GameHUD: React.FC<GameHUDProps> = ({
   onOpenSettings,
   onOpenAdmin,
   onOpenRoulette,
-  onNextRadio,
   onToggleSound,
   onPauseClick,
   isMuted,
@@ -132,7 +125,6 @@ export const GameHUD: React.FC<GameHUDProps> = ({
   /** Téléphone en paysage : le HUD se resserre pour laisser voir le paysage. */
   const compact = useMediaQuery('(max-height: 480px)');
   const s = t(playerState.language);
-  const currentRadio = RADIO_STATIONS.find((r) => r.id === playerState.activeRadioId) || RADIO_STATIONS[0];
   const platinumActive = hasUnlimitedPlatinum(playerState);
   const mission = getMissionForDestiny(playerState.destiny.id);
   const missionIdx = Math.min(playerState.activeMission.stepIndex, mission.steps.length - 1);
@@ -335,12 +327,6 @@ export const GameHUD: React.FC<GameHUDProps> = ({
               <MenuItem icon={<Pause className="h-4 w-4 fill-current" />} label={s.pauseLabel} onClick={runAndClose(onPauseClick)} />
               <MenuItem icon={<SlidersHorizontal className="h-4 w-4" />} label={s.settingsLabel} onClick={runAndClose(onOpenSettings)} />
               <MenuItem icon={<Smartphone className="h-4 w-4" />} label="BabiOS" onClick={runAndClose(onOpenPhone)} />
-              <MenuItem
-                icon={<Radio className="h-4 w-4" />}
-                label={currentRadio.name}
-                detail={`${currentRadio.freq} · ${radioStatus === 'live' ? 'En direct' : radioStatus === 'synth-fallback' ? 'Synthé' : 'Coupée'}`}
-                onClick={onNextRadio}
-              />
               <MenuItem icon={<Dices className="h-4 w-4" />} label={s.destinyBtn} onClick={runAndClose(onOpenRoulette)} />
               <MenuItem icon={<Lock className="h-4 w-4" />} label={s.adminLabel} onClick={runAndClose(onOpenAdmin)} />
             </div>

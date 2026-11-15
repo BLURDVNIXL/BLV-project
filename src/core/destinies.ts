@@ -1,4 +1,4 @@
-import { Destiny, CareerJob, AcademicBadge, SapeOutfitId } from '../types/game';
+import { Destiny, SapeOutfitId } from '../types/game';
 import { project } from '../world/geo';
 import { DISTRICTS } from '../world/abidjanGeography';
 
@@ -399,7 +399,7 @@ export const ALL_DESTINIES: Destiny[] = [
 
 export const ABIDJAN_GPS_ZONES = [
   { id: 'plateau', name: 'Le Plateau (Skyline & Mairie)', desc: 'Tours ministérielles, Pyramide & Banque.', ...dPos('plateau') },
-  { id: 'cocody', name: 'Cocody (Deux-Plateaux & Lycées)', desc: 'Lycée Classique, Sainte-Marie & UFHB.', ...dPos('cocody') },
+  { id: 'cocody', name: 'Cocody (Deux-Plateaux)', desc: 'Deux-Plateaux, Riviera & UFHB.', ...dPos('cocody') },
   { id: 'riviera', name: 'Cocody · Riviera Golf', desc: 'Pont HKB, villas d’ambassades & luxe.', ...dPos('riviera') },
   { id: 'adjame', name: 'Adjamé (Grand Marché)', desc: 'Garbadrome Royal & Négoce.', ...dPos('adjame') },
   { id: 'abobo', name: 'Abobo (Gare & Loto)', desc: 'Ambiance populaire & Kiosque Loto.', ...dPos('abobo') },
@@ -409,88 +409,9 @@ export const ABIDJAN_GPS_ZONES = [
   { id: 'marcory', name: 'Marcory (Zone 4)', desc: 'Zone 4 Lounge, Stylisme & Commerces.', ...dPos('marcory') },
   { id: 'koumassi', name: 'Koumassi (Remblais)', desc: 'Carrefour 504 & Hébergements.', ...dPos('koumassi') },
   { id: 'port_bouet', name: 'Port-Bouët (Aéroport FHB)', desc: 'Aéroport International & Plage.', ...dPos('port_bouet') },
-  { id: 'grand_bassam', name: 'Grand-Bassam (Littoral & Lycée)', desc: 'Lycée d’Excellence Alassane Ouattara.', ...dPos('grand_bassam') },
+  { id: 'grand_bassam', name: 'Grand-Bassam (Littoral)', desc: 'Station balnéaire historique.', ...dPos('grand_bassam') },
   { id: 'vridi', name: 'Vridi (Zone Industrielle)', desc: 'Entrepôts portuaires & Canal de Vridi.', ...dPos('vridi') },
 ];
-
-export const ACADEMIC_BADGES: Array<{
-  id: AcademicBadge;
-  title: string;
-  school: string;
-  legend: string;
-  perks: string;
-  color: string;
-}> = [
-  {
-    id: 'caiman',
-    title: 'Devenir Caïman',
-    school: 'Lycée Classique d\'Abidjan (Cocody)',
-    legend: 'Fondé en 1945, berceau de l\'intelligentsia ivoirienne (Laurent Gbagbo, Tidjane Thiam, Daniel Kablan Duncan).',
-    perks: '+25% gains d\'affaires au Plateau, respect immédiat dans les ministères.',
-    color: '#16a34a',
-  },
-  {
-    id: 'alysma',
-    title: 'Devenir Alysma',
-    school: 'Lycée Sainte-Marie de Cocody',
-    legend: 'Fondé en 1962 par Félix Houphouët-Boigny et Madeleine Daniélou. Institution d\'élite féminine au taux historique de 100% au Bac.',
-    perks: '+10 Étoile permanente protégée du mauvais œil, prestance naturelle et hygiène préservée.',
-    color: '#ec4899',
-  },
-  {
-    id: 'alex',
-    title: 'Devenir Alex',
-    school: 'Lycée d\'Excellence Alassane Ouattara de Grand-Bassam',
-    legend: 'Inauguré en 2019 sur un campus futuriste de 20 hectares, pôle scientifique d\'élite alimentant les grandes écoles et l\'INPolytec.',
-    perks: '+25% de rendement sur les investissements bancaires, bourses et carrières tech.',
-    color: '#f59e0b',
-  },
-];
-
-export interface SchoolExamQuestion {
-  question: string;
-  options: string[];
-  correctIndex: number;
-}
-
-export const SCHOOL_EXAMS: Record<AcademicBadge, SchoolExamQuestion[]> = {
-  caiman: [
-    {
-      question: 'En quelle année le Lycée Classique d\'Abidjan a-t-il été fondé ?',
-      options: ['1945', '1960', '1978'],
-      correctIndex: 0,
-    },
-    {
-      question: 'Quel animal emblématique donne son surnom aux élèves du Lycée Classique ?',
-      options: ['L\'Éléphant', 'Le Caïman', 'Le Lion'],
-      correctIndex: 1,
-    },
-  ],
-  alysma: [
-    {
-      question: 'Qui a cofondé le Lycée Sainte-Marie de Cocody en 1962 avec Madeleine Daniélou ?',
-      options: ['Félix Houphouët-Boigny', 'Bernard Dadié', 'Ernest Boka'],
-      correctIndex: 0,
-    },
-    {
-      question: 'Dans quelle commune d\'Abidjan se trouve le Lycée Sainte-Marie ?',
-      options: ['Yopougon', 'Cocody', 'Adjamé'],
-      correctIndex: 1,
-    },
-  ],
-  alex: [
-    {
-      question: 'Dans quelle ville côtière historique est implanté le Lycée d\'Excellence Alassane Ouattara ?',
-      options: ['Grand-Bassam', 'San-Pédro', 'Yamoussoukro'],
-      correctIndex: 0,
-    },
-    {
-      question: 'Quelle grande école scientifique ivoirienne accueille prioritairement les diplômés de Grand-Bassam ?',
-      options: ['L\'INPolytec', 'L\'École de Pêche', 'Le Conservatoire'],
-      correctIndex: 0,
-    },
-  ],
-};
 
 export const IVORIAN_FOODS = [
   {
@@ -542,67 +463,6 @@ export const IVORIAN_FOODS = [
     buffName: 'Délice du Maquis',
     description: 'Ragoût traditionnel mijoté à l\'étouffée dans un canari de terre cuite avec aubergines et piments.',
     icon: '🍗',
-  },
-];
-
-export const CAREERS: CareerJob[] = [
-  {
-    id: 'course_gbaka',
-    title: 'Tournée Gbaka / Woro-Woro',
-    district: 'Adjamé / Abobo',
-    basePay: 22000,
-    energyCost: 20,
-    factionKey: 'syndicat',
-    description: 'Transporter les passagers entre Abobo, Adjamé et le Plateau (+Réputation Syndicat).',
-  },
-  {
-    id: 'vente_adjame',
-    title: 'Négociant Grand Marché',
-    district: 'Adjamé',
-    basePay: 28000,
-    energyCost: 22,
-    factionKey: 'syndicat',
-    description: 'Écouler les balles de fripes et négocier avec les grossistes.',
-  },
-  {
-    id: 'audit_plateau',
-    title: 'Contrat Audit & Finance',
-    district: 'Le Plateau',
-    basePay: 65000,
-    energyCost: 28,
-    factionKey: 'ordre',
-    minStar: 50,
-    description: 'Mission de conseil dans les tours ministérielles (+Réputation Ordre Républicain).',
-  },
-  {
-    id: 'gala_showbiz',
-    title: 'Événement VIP Zone 4 / Bassam',
-    district: 'Marcory / Bassam',
-    basePay: 85000,
-    energyCost: 25,
-    factionKey: 'jetset',
-    minStar: 60,
-    description: 'Stylisme, gestion de soirée et networking avec les stars (+Réputation Jet-Set).',
-  },
-  {
-    id: 'cyber_op',
-    title: '« Travail de Nuit » Cyber (PLCC Risk)',
-    district: 'Yopougon Maroc',
-    basePay: 140000,
-    energyCost: 30,
-    factionKey: 'jetset',
-    requiredFlag: 'plccTarget',
-    description: 'Opération clandestine lucrative — augmente fortement l\'alerte PLCC !',
-  },
-  {
-    id: 'blanchiment_maquis',
-    title: 'Blanchiment Maquis & Salons',
-    district: 'Yopougon / Treichville',
-    basePay: 250000,
-    energyCost: 25,
-    factionKey: 'syndicat',
-    requiredFlag: 'shadowBaron',
-    description: 'Convertir des fonds occultes en chiffre d\'affaires officiel.',
   },
 ];
 
@@ -674,38 +534,3 @@ export const CRIB_UPGRADE_PRICES: Record<'splitClim' | 'bafflesMaquis' | 'tv4k' 
   tv4k: { name: 'TV 4K 75" (Matchs de Diomandé)', cost: 350000, desc: 'Diffuse la Liga et les Éléphants en direct' },
   canapeCuir: { name: 'Canapé en Cuir Capitonné', cost: 150000, desc: 'Confort royal pour tes invités' },
 };
-
-export const RADIO_STATIONS = [
-  {
-    id: 'rti_freq2',
-    name: 'RTI Fréquence 2',
-    freq: '92.0 FM',
-    genre: 'Généraliste, Talk & Hits Ivoiriens',
-    streamUrl: 'https://streaming.rti.ci/freq2.mp3',
-    audioKey: 'rti' as const,
-  },
-  {
-    id: 'skyrock_abidjan',
-    name: 'Skyrock Abidjan',
-    freq: '107.9 FM',
-    genre: 'Rap Ivoire & Afrobeats Urbains',
-    streamUrl: 'https://icecast.skyrock.net/s/skyabidjan_aac_64k',
-    audioKey: 'skyrock' as const,
-  },
-  {
-    id: 'wavemaster_lagune',
-    name: 'WaveMaster Radio Lagune',
-    freq: '104.2 FM',
-    genre: 'Synthétiseur Zouglou & Coupé-Décalé (Hors-ligne garanti)',
-    streamUrl: '',
-    audioKey: 'wavemaster' as const,
-  },
-  {
-    id: 'silence',
-    name: 'Mode Silence (Sons de Babi)',
-    freq: 'OFF',
-    genre: 'Ambiance sonore urbaine & moteurs',
-    streamUrl: '',
-    audioKey: 'silence' as const,
-  },
-];

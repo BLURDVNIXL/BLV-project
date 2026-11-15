@@ -27,12 +27,8 @@ export interface UIStrings {
   bank: string;
   eats: string;
   gps: string;
-  romance: string;
   sape: string;
-  schools: string;
-  radio: string;
   crib: string;
-  jobs: string;
   blackMarket: string;
   cash: string;
   bankBalance: string;
@@ -66,12 +62,8 @@ const FR_STRINGS: UIStrings = {
   bank: 'Banque & Prêts',
   eats: 'Akwaba Eats',
   gps: 'GPS Abidjan',
-  romance: 'Romance',
   sape: 'Sape & Farot',
-  schools: 'Lycées Élite',
-  radio: 'Radio FM',
   crib: 'Babi Cribs',
-  jobs: 'Métiers & Contrats',
   blackMarket: 'Djassa Noir',
   cash: 'Liquide',
   bankBalance: 'Banque',
@@ -105,12 +97,8 @@ const EN_STRINGS: UIStrings = {
   bank: 'Bank & Loans',
   eats: 'Akwaba Eats',
   gps: 'Abidjan GPS',
-  romance: 'Romance',
   sape: 'Drip & Sape',
-  schools: 'Elite Schools',
-  radio: 'Live Radio',
   crib: 'Babi Cribs',
-  jobs: 'Jobs & Hustles',
   blackMarket: 'Black Market',
   cash: 'Cash',
   bankBalance: 'Bank',
