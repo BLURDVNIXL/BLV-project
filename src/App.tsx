@@ -69,6 +69,7 @@ import { NewLifeScreen } from './components/NewLifeScreen';
 import { loadProfile, saveProfile } from './core/profile';
 import { AdminModal } from './components/AdminModal';
 import { FullMapModal } from './components/FullMapModal';
+import type { Route } from './world/routing';
 import { SettingsModal } from './components/SettingsModal';
 import { GameOverModal } from './components/GameOverModal';
 import { OrientationGuard } from './components/OrientationGuard';
@@ -98,6 +99,9 @@ export default function App() {
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isMapOpen, setIsMapOpen] = useState(false);
+  const [route, setRoute] = useState<Route | null>(null);
+  const routeRef = useRef<Route | null>(null);
+  routeRef.current = route;
   const [activeExamBadge, setActiveExamBadge] = useState<AcademicBadge | null>(null);
   const [incomingConsent, setIncomingConsent] = useState<ConsentPrompt | null>(null);
   const [pendingOutgoingConsent, setPendingOutgoingConsent] = useState<{
@@ -402,6 +406,12 @@ export default function App() {
         }));
       },
       onPositionTick: (pos) => {
+        const rt = routeRef.current;
+        if (rt) {
+          const end = rt.points[rt.points.length - 1];
+          // Arrivé (≈ 15 m de jeu de la destination) : l'itinéraire s'efface
+          if (Math.hypot(pos.x - end.x, pos.z - end.z) < 15) setRoute(null);
+        }
         const cur = playerStateRef.current;
         mpRef.current?.sendPosition({
           ...pos,
@@ -415,6 +425,7 @@ export default function App() {
     });
 
     sceneRef.current = mgr;
+    mgr.setRoute(routeRef.current ? routeRef.current.points : null);
     mgr.setPlayerGender(playerStateRef.current.gender);
     // Aide au débogage et aux tests visuels : `?blvdebug` expose le gestionnaire de scène (window.__blvScene)
     if (new URLSearchParams(window.location.search).has('blvdebug')) {
@@ -685,6 +696,11 @@ export default function App() {
     );
   };
 
+  // L'itinéraire choisi sur la carte est aussi tracé dans le monde 3D
+  useEffect(() => {
+    sceneRef.current?.setRoute(route ? route.points : null);
+  }, [route]);
+
   const getRadarSnapshot = useCallback((): RadarSnapshot | null => {
     return sceneRef.current ? sceneRef.current.getRadarSnapshot() : null;
   }, []);
@@ -721,7 +737,7 @@ export default function App() {
       )}
 
       {/* Carte plein écran : toucher le radar (ou touche M) */}
-      {isMapOpen && screenState === 'playing' && <FullMapModal getSnapshot={getRadarSnapshot} onClose={() => setIsMapOpen(false)} />}
+      {isMapOpen && screenState === 'playing' && <FullMapModal getSnapshot={getRadarSnapshot} route={route} onRouteChange={setRoute} onClose={() => setIsMapOpen(false)} />}
 
       {/* Fondu au noir des entrées / sorties d'intérieurs */}
       <div

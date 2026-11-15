@@ -160,6 +160,7 @@ export class AbidjanSceneManager {
   private container: HTMLElement;
   private renderer!: THREE.WebGLRenderer;
   private scene!: THREE.Scene;
+  private routeGuide: THREE.Group | null = null;
   private camera!: THREE.PerspectiveCamera;
   private dirLight!: THREE.DirectionalLight;
   private hemiLight!: THREE.HemisphereLight;
@@ -1370,6 +1371,39 @@ export class AbidjanSceneManager {
   public repairStalledEngine() {
     this.engineStalled = false;
     this.callbacks.onEngineStallChange(false);
+  }
+
+  /** Ruban orange au sol qui montre l'itinéraire choisi sur la carte ; null l'efface. */
+  public setRoute(points: Array<{ x: number; z: number }> | null) {
+    if (this.routeGuide) {
+      this.scene.remove(this.routeGuide);
+      this.routeGuide.traverse((o) => {
+        const mesh = o as THREE.Mesh;
+        if (mesh.isMesh) {
+          mesh.geometry.dispose();
+          (mesh.material as THREE.Material).dispose();
+        }
+      });
+      this.routeGuide = null;
+    }
+    if (!points || points.length < 2) return;
+    const group = new THREE.Group();
+    const mat = new THREE.MeshBasicMaterial({ color: 0xf59e0b, transparent: true, opacity: 0.85, depthTest: false, side: THREE.DoubleSide });
+    const width = 3;
+    for (let i = 0; i < points.length - 1; i++) {
+      const a = points[i];
+      const b = points[i + 1];
+      const length = Math.hypot(b.x - a.x, b.z - a.z);
+      if (length < 0.5) continue;
+      const seg = new THREE.Mesh(new THREE.PlaneGeometry(width, length + width), mat);
+      seg.rotation.x = -Math.PI / 2;
+      seg.rotation.z = Math.atan2(b.x - a.x, b.z - a.z) + Math.PI;
+      seg.position.set((a.x + b.x) / 2, 0.6, (a.z + b.z) / 2);
+      seg.renderOrder = 999;
+      group.add(seg);
+    }
+    this.scene.add(group);
+    this.routeGuide = group;
   }
 
   public getRadarSnapshot(): RadarSnapshot {
