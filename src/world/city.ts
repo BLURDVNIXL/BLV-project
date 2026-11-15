@@ -114,6 +114,8 @@ export const SPECIALS: SpecialSpec[] = [
   { id: 'lycee_alex', name: "Lycée d'Excellence de Bassam", at: { lat: 5.250, lon: -3.904 }, w: 26, d: 16, h: 10, angleDeg: 0, color: 0x9ec8e8, snapToBlock: true },
   // Maquis Le Temple (Yopougon · Rue Princesse) : salle + avancée de paillote ouverte
   { id: 'maquis', name: 'Maquis Le Temple', at: { lat: 5.3375, lon: -4.072 }, w: 18, d: 12, h: 5.2, angleDeg: 0, color: 0xb45309, snapToBlock: true },
+  // Mairie du Plateau : hôtel de ville visitable (hall d'honneur hors carte)
+  { id: 'mairie', name: 'Mairie du Plateau', at: { lat: 5.3275, lon: -4.0188 }, w: 18, d: 12, h: 11, angleDeg: 0, color: 0xf8fafc, snapToBlock: true, clearRadius: 16, plazaW: 24, plazaD: 22 },
   // Hôpitaux : bâtiments à porte d'entrée (intérieur partagé, voir interiors.ts)
   ...HOSPITAL_SITES.map((h): SpecialSpec => ({ id: h.id, name: h.name, at: { lat: h.lat, lon: h.lon }, w: h.w, d: h.d, h: h.h, angleDeg: 0, color: 0xf2efe8, snapToBlock: true }))
 ];

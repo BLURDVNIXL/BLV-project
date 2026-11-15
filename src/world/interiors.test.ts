@@ -147,3 +147,26 @@ test('Marché d’Adjamé a une grande halle, une porte libre et un poste commer
     }
   }
 });
+
+test('Mairie du Plateau a une emprise sur la carte et une porte libre hors de l’eau et hors des autres bâtiments', () => {
+  const fp = SPECIAL_FOOTPRINTS.find((f) => f.spec.id === 'mairie');
+  assert.ok(fp, 'mairie : pas d’emprise dans SPECIAL_FOOTPRINTS');
+  assert.ok(fp.w >= 14 && fp.d >= 10, `mairie : emprise trop petite (${fp.w}×${fp.d})`);
+  assert.ok(!isWater({ x: fp.x, z: fp.z }), 'mairie : dans l’eau');
+  const vx = -Math.sin(fp.angle), vz = Math.cos(fp.angle);
+  const door = { x: fp.x + vx * (fp.d / 2 + 2.4), z: fp.z + vz * (fp.d / 2 + 2.4) };
+  const out = { x: fp.x + vx * (fp.d / 2 + 3.8), z: fp.z + vz * (fp.d / 2 + 3.8) };
+  for (const [name, p] of [['porte', door], ['sortie', out]] as const) {
+    assert.ok(!isWater(p), `mairie.${name} dans l’eau`);
+    const cx = chunkOf(p.x), cz = chunkOf(p.z);
+    for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) {
+      for (const b of generateChunk(cx + dx, cz + dz).buildings) {
+        if (!b.solid) continue;
+        const c = Math.cos(b.angle), s = Math.sin(b.angle);
+        const ox = p.x - b.x, oz = p.z - b.z;
+        const lx = ox * c + oz * s, lz = -ox * s + oz * c;
+        assert.ok(!(Math.abs(lx) < b.w / 2 + 0.6 && Math.abs(lz) < b.d / 2 + 0.6), `mairie.${name} bloqué par ${b.id}`);
+      }
+    }
+  }
+});

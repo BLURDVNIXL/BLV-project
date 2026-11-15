@@ -527,10 +527,10 @@ export class AbidjanSceneManager {
     postel.position.set(pPos.x, 0, pPos.z);
     this.scene.add(postel);
 
-    const mairie = createMairiePlateauLandmark();
-    const pMai = project(5.3266, -4.0205);
-    mairie.position.set(pMai.x, 0, pMai.z);
-    this.scene.add(mairie);
+    const mairieFp = SPECIAL_FOOTPRINTS.find((f) => f.spec.id === 'mairie');
+    if (mairieFp) {
+      placeSpecial('mairie', createMairiePlateauLandmark());
+    }
 
     const maquisFp = SPECIAL_FOOTPRINTS.find((f) => f.spec.id === 'maquis');
     if (maquisFp) {
@@ -630,6 +630,27 @@ export class AbidjanSceneManager {
         radius: 4.5,
         type: 'work',
         color: 0x10b981,
+      });
+    }
+
+    const pMairie = SPECIAL_FOOTPRINTS.find((f) => f.spec.id === 'mairie');
+    if (pMairie) {
+      const vx = -Math.sin(pMairie.angle);
+      const vz = Math.cos(pMairie.angle);
+      this.registerInteriorDoor({
+        id: 'door_mairie',
+        interiorId: 'mairie',
+        siteId: 'mairie',
+        name: pMairie.spec.name,
+        label: '🏛️ Entrer — Mairie du Plateau',
+        district: districtAt({ x: pMairie.x, z: pMairie.z }).name,
+        doorX: pMairie.x + vx * (pMairie.d / 2 + 2.4),
+        doorZ: pMairie.z + vz * (pMairie.d / 2 + 2.4),
+        outX: pMairie.x + vx * (pMairie.d / 2 + 3.8),
+        outZ: pMairie.z + vz * (pMairie.d / 2 + 3.8),
+        outRotY: -pMairie.angle,
+        radius: 3.4,
+        color: 0x0f766e,
       });
     }
 

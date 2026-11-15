@@ -813,15 +813,29 @@ export function createMairiePlateauLandmark(): THREE.Group {
   const g = new THREE.Group();
   const wallMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.68 });
   const roofMat = new THREE.MeshStandardMaterial({ color: 0x0f766e, roughness: 0.55 });
+  const trimMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.8 });
+  const glassMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, emissive: 0xfef08a, emissiveIntensity: 0.16, roughness: 0.25 });
 
-  const base = new THREE.Mesh(new THREE.BoxGeometry(18, 0.8, 12), new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.8 }));
+  const base = new THREE.Mesh(new THREE.BoxGeometry(18, 0.8, 12), trimMat);
   base.position.y = 0.4;
   g.add(base);
+
+  const steps = new THREE.Mesh(new THREE.BoxGeometry(4.6, 0.44, 1.3), trimMat);
+  steps.position.set(0, 0.22, 6.45);
+  g.add(steps);
 
   const hall = new THREE.Mesh(new THREE.BoxGeometry(16, 7, 10), wallMat);
   hall.position.y = 4.3;
   hall.castShadow = true;
   g.add(hall);
+
+  const doorFrame = new THREE.Mesh(new THREE.BoxGeometry(3.2, 3.6, 0.22), roofMat);
+  doorFrame.position.set(0, 2.6, 5.06);
+  g.add(doorFrame);
+
+  const doorGlass = new THREE.Mesh(new THREE.BoxGeometry(2.7, 3.2, 0.26), glassMat);
+  doorGlass.position.set(0, 2.45, 5.08);
+  g.add(doorGlass);
 
   const pediment = new THREE.Mesh(new THREE.ConeGeometry(11.5, 3.2, 4), roofMat);
   pediment.rotation.y = Math.PI / 4;
@@ -835,14 +849,14 @@ export function createMairiePlateauLandmark(): THREE.Group {
     g.add(col);
   });
 
-  // Côte d'Ivoire tricolor banner (Orange - White - Green)
+  // Côte d'Ivoire tricolor banner (Orange - White - Green), décalée à droite du perron
   const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 11, 6), chromeMaterialShared);
-  pole.position.set(0, 6, 6.4);
+  pole.position.set(7.2, 5.5, 6.2);
   g.add(pole);
 
   [0xf97316, 0xffffff, 0x16a34a].forEach((c, idx) => {
     const strip = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.6, 0.08), new THREE.MeshStandardMaterial({ color: c, roughness: 0.5 }));
-    strip.position.set(-0.9 + idx * 0.9, 10.6, 6.45);
+    strip.position.set(6.3 + idx * 0.9, 10.1, 6.25);
     g.add(strip);
   });
 

@@ -519,7 +519,7 @@ export function buildChunkObjects(
   disposables.push(gg, tex, gmat);
 
   // Bâtiments (on omet 'port_collider' et les repères gérés par des modèles héros 3D dédiés)
-  const HERO_LANDMARKS = new Set(['port_collider', 'stade', 'cathedrale', 'hotel_ivoire', 'lycee_alex', 'marche_adjame', 'port', 'maquis']);
+  const HERO_LANDMARKS = new Set(['port_collider', 'stade', 'cathedrale', 'hotel_ivoire', 'lycee_alex', 'marche_adjame', 'port', 'maquis', 'mairie']);
   const facade = new Buf();
   const plain = new Buf();
   data.buildings.forEach((b, i) => {

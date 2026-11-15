@@ -97,6 +97,7 @@ const FURNITURE_BUILDERS: Record<InteriorId, InteriorFurnitureBuilder> = {
   hopital: buildHospitalFurniture,
   maquis: buildMaquisFurniture,
   marche_adjame: buildMarcheFurniture,
+  mairie: buildMairieFurniture,
 };
 
 export interface InteriorRig {
@@ -396,5 +397,79 @@ function buildMarcheFurniture(g: THREE.Group, def: InteriorDef): (nowSec: number
       w.rig.group.rotation.y = dir;
       w.rig.animateGait(nowSec * 3.0 + w.phase, 0.72, dt);
     }
+  };
+}
+
+function buildMairieFurniture(g: THREE.Group, def: InteriorDef): (nowSec: number, dt: number) => void {
+  const marble = std(0xf1f5f9, { rough: 0.45 });
+  const mahogany = std(0x5c2c16, { rough: 0.65 });
+  const brass = std(0xfbbf24, { emissive: 0xd97706, glow: 0.22, rough: 0.35, metal: 0.3 });
+  const civicTeal = std(0x0f766e, { emissive: 0x0f766e, glow: 0.16 });
+  const metal = std(0xcbd5e1, { metal: 0.45, rough: 0.35 });
+
+  // Tribune / bureau d'honneur du maire au nord (0, -5.0)
+  g.add(box(6.6, 1.0, 1.6, mahogany, 0, 0.55, -5.0));
+  g.add(box(6.9, 0.12, 1.85, marble, 0, 1.11, -5.0));
+  g.add(box(1.1, 0.14, 0.7, brass, 0, 1.24, -5.0, false));
+  g.add(box(0.85, 0.3, 0.6, std(0xffffff, { rough: 0.7 }), -2.0, 1.32, -5.0, false));
+
+  // Colonnes d'apparat et étendards tricolores ivoiriens visibles au mur nord (entre MAIRIE et les colonnes)
+  for (const sx of [-4.8, 4.8]) {
+    g.add(box(0.9, 3.0, 0.9, marble, sx, 1.55, -5.4));
+    g.add(box(1.1, 0.25, 1.1, brass, sx, 3.05, -5.4));
+  }
+  for (const fx of [-3.1, 3.1]) {
+    [0xf97316, 0xffffff, 0x16a34a].forEach((c, idx) => {
+      g.add(box(0.32, 2.0, 0.08, std(c, { emissive: c, glow: 0.22 }), fx - 0.32 + idx * 0.32, 2.25, -def.halfD + 0.22, false));
+    });
+  }
+
+  // Enseignes courtes lisibles quel que soit le destin
+  const mairieBoard = sign('MAIRIE', '#0f766e', '#ffffff', 3.4, 0.72, 0.7);
+  mairieBoard.position.set(0, 2.75, -def.halfD + 0.22);
+  g.add(mairieBoard);
+
+  const tribuneBoard = sign('PLATEAU', '#451a03', '#fef08a', 2.2, 0.48, 0.65);
+  tribuneBoard.position.set(0, 0.62, -4.16);
+  g.add(tribuneBoard);
+
+  // Guichet état civil à l'ouest (-6.8, 2.2)
+  g.add(box(3.1, 1.0, 1.3, civicTeal, -6.8, 0.55, 2.2));
+  g.add(box(3.3, 0.12, 1.5, marble, -6.8, 1.11, 2.2));
+  g.add(box(0.68, 0.44, 0.08, std(0x0ea5e9, { emissive: 0x0284c7, glow: 0.5 }), -7.5, 1.39, 1.9, false));
+  const accueilSign = sign('ACCUEIL', '#0f766e', '#ffffff', 1.9, 0.46, 0.7);
+  accueilSign.position.set(-6.8, 0.62, 2.88);
+  g.add(accueilSign);
+
+  // Bancs d'attente à l'est (6.6, 1.4) et (6.6, 3.4)
+  for (const bz of [1.4, 3.4]) {
+    g.add(box(2.9, 0.12, 0.85, mahogany, 6.6, 0.48, bz));
+    g.add(box(2.9, 0.46, 0.12, mahogany, 6.6, 0.76, bz + 0.36));
+    for (const sx of [-1.2, 1.2]) g.add(box(0.12, 0.42, 0.75, metal, 6.6 + sx, 0.24, bz, false));
+  }
+
+  // Appliques dorées sur les murs est/ouest (sans couper la vue centrale vers MAIRIE)
+  for (const wx of [-def.halfW + 0.22, def.halfW - 0.22]) {
+    for (const lz of [-3.2, 0.8, 4.2]) {
+      g.add(box(0.12, 0.55, 0.22, brass, wx, 2.55, lz, false));
+    }
+  }
+
+  // Deux agents municipaux discrets (accueil et tribune nord)
+  const clerk = createCharacterModel(0x4a2c1d, 'costume_italien', true);
+  clerk.group.position.set(-6.8, 0.1, 0.9);
+  clerk.group.rotation.y = 0;
+  g.add(clerk.group);
+
+  const mayorStaff = createCharacterModel(0x6b422a, 'wax_bazin', false);
+  mayorStaff.group.position.set(0, 0.1, -6.3);
+  mayorStaff.group.rotation.y = 0;
+  g.add(mayorStaff.group);
+
+  return (nowSec: number, dt: number) => {
+    clerk.group.rotation.y = Math.sin(nowSec * 1.1) * 0.18;
+    clerk.animateGait(nowSec * 1.8, 0.06, dt);
+    mayorStaff.group.rotation.y = Math.sin(nowSec * 0.9 + 1.4) * 0.16;
+    mayorStaff.animateGait(nowSec * 1.8 + 1.4, 0.06, dt);
   };
 }

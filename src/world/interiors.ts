@@ -8,7 +8,7 @@
  * Axes locaux = axes monde (+x est, +z sud). La porte est sur le mur sud (z = +halfD), on entre en regardant le nord.
  */
 
-export type InteriorId = 'hopital' | 'maquis' | 'marche_adjame';
+export type InteriorId = 'hopital' | 'maquis' | 'marche_adjame' | 'mairie';
 
 export type InteriorBoxKind = 'wall' | 'partition' | 'prop';
 
@@ -218,10 +218,56 @@ export const MARCHE_INTERIOR: InteriorDef = {
   ],
 };
 
+/** Mairie du Plateau : hall d'apparat solennel visitable (guichet état civil, bancs d'attente et tribune). */
+export const MAIRIE_INTERIOR: InteriorDef = {
+  id: 'mairie',
+  label: 'Mairie du Plateau',
+  origin: { x: 2680, z: 2960 },
+  halfW: 10,
+  halfD: 7,
+  wallH: 4.2,
+  doorWidth: 2.6,
+  theme: {
+    floorColor: 0xe2e8f0,
+    floorGlow: 0.2,
+    runnerColor: 0x0f766e,
+    runnerGlow: 0.22,
+    wallColor: 0xf8fafc,
+    wallGlow: 0.3,
+    partitionColor: 0x0f766e,
+    ceilingColor: 0xffffff,
+    ceilingGlow: 0.28,
+  },
+  boxes: [
+    // Murs extérieurs (mur sud coupé par la porte de 2,6 m centrée en x = 0)
+    { x: 0, z: -7, hx: 10, hz: W, h: 4.2, kind: 'wall' },
+    { x: -10, z: 0, hx: W, hz: 7, h: 4.2, kind: 'wall' },
+    { x: 10, z: 0, hx: W, hz: 7, h: 4.2, kind: 'wall' },
+    { x: -5.65, z: 7, hx: 4.35, hz: W, h: 4.2, kind: 'wall' },
+    { x: 5.65, z: 7, hx: 4.35, hz: W, h: 4.2, kind: 'wall' },
+    // Cloisons basses solennelles séparant la salle d'honneur au nord (large allée centrale libre)
+    { x: -6.2, z: -1.6, hx: 2.6, hz: W, h: 1.05, kind: 'partition' },
+    { x: 6.2, z: -1.6, hx: 2.6, hz: W, h: 1.05, kind: 'partition' },
+    // Tribune / bureau d'honneur du maire au nord
+    { x: 0, z: -5.0, hx: 3.4, hz: 0.9, h: 1.1, kind: 'prop' },
+    // Guichet état civil à l'ouest
+    { x: -6.8, z: 2.2, hx: 1.6, hz: 0.7, h: 1.1, kind: 'prop' },
+    // Bancs d'attente à l'est
+    { x: 6.6, z: 1.4, hx: 1.5, hz: 0.5, h: 0.5, kind: 'prop' },
+    { x: 6.6, z: 3.4, hx: 1.5, hz: 0.5, h: 0.5, kind: 'prop' },
+    // Colonnes d'honneur encadrant la tribune nord
+    { x: -4.8, z: -5.4, hx: 0.5, hz: 0.5, h: 3.0, kind: 'prop' },
+    { x: 4.8, z: -5.4, hx: 0.5, hz: 0.5, h: 3.0, kind: 'prop' },
+  ],
+  entry: { x: 0, z: 3.2, rotY: Math.PI },
+  exit: { x: 0, z: 5.7, radius: 1.6 },
+};
+
 export const INTERIORS: Record<InteriorId, InteriorDef> = {
   hopital: HOSPITAL_INTERIOR,
   maquis: MAQUIS_INTERIOR,
   marche_adjame: MARCHE_INTERIOR,
+  mairie: MAIRIE_INTERIOR,
 };
 
 export const interiorToWorld = (def: InteriorDef, lx: number, lz: number): { x: number; z: number } =>
