@@ -25,7 +25,7 @@ export interface TaxiPath {
   stop: Vec2;
 }
 
-function pathLength(points: Vec2[]): number {
+export function pathLength(points: Vec2[]): number {
   let total = 0;
   for (let i = 1; i < points.length; i++) total += Math.hypot(points[i].x - points[i - 1].x, points[i].z - points[i - 1].z);
   return total;
@@ -84,4 +84,20 @@ export function taxiProgress(elapsedS: number, arriveInS: number): number {
   if (!(arriveInS > 0)) return 1;
   const p = Math.min(1, Math.max(0, elapsedS / arriveInS));
   return p * (2 - p);
+}
+
+/** Durée de la cinématique du trajet (étape B3) : 15 s jusqu'à 1 km, 30 s à partir de 10 km, linéaire entre les deux. */
+export const TAXI_RIDE_MIN_S = 15;
+export const TAXI_RIDE_MAX_S = 30;
+export function taxiRideSeconds(distanceM: number): number {
+  const d = Number.isFinite(distanceM) ? distanceM : 10000;
+  const k = Math.min(1, Math.max(0, (d - 1000) / 9000));
+  return Math.round((TAXI_RIDE_MIN_S + k * (TAXI_RIDE_MAX_S - TAXI_RIDE_MIN_S)) * 10) / 10;
+}
+
+/** Avance de la cinématique : démarrage et arrêt progressifs (0 → 1). */
+export function taxiRideProgress(elapsedS: number, totalS: number): number {
+  if (!(totalS > 0)) return 1;
+  const p = Math.min(1, Math.max(0, elapsedS / totalS));
+  return p * p * (3 - 2 * p);
 }

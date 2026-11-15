@@ -1,6 +1,16 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { planTaxiApproach, pointAlongPath, taxiProgress, taxiRouteTo, TAXI_MIN_PATH } from './taxiApproach';
+import {
+  planTaxiApproach,
+  pointAlongPath,
+  taxiProgress,
+  taxiRouteTo,
+  taxiRideSeconds,
+  taxiRideProgress,
+  pathLength,
+  TAXI_MIN_PATH,
+} from './taxiApproach';
+import { findRoute } from './routing';
 import { DISTRICTS } from './abidjanGeography';
 import { project } from './geo';
 import { nearestRoadPoint } from './routing';
@@ -59,4 +69,36 @@ test('Taxi B2 : avance de 0 à 1 en freinant', () => {
   assert.equal(taxiProgress(1, 0), 1);
   assert.ok(taxiProgress(4, 8) > 0.5, 'plus de la moitié du trajet à mi-temps (freinage)');
   assert.ok(taxiProgress(7, 8) < 1);
+});
+
+test('Taxi B3 : la cinématique dure de 15 à 30 s selon la distance du trajet', () => {
+  assert.equal(taxiRideSeconds(0), 15);
+  assert.equal(taxiRideSeconds(1000), 15);
+  assert.equal(taxiRideSeconds(5500), 22.5);
+  assert.equal(taxiRideSeconds(10000), 30);
+  assert.equal(taxiRideSeconds(80000), 30);
+  assert.equal(taxiRideSeconds(NaN), 30);
+  for (const [a, b] of [['plateau', 'treichville'], ['yopougon', 'cocody'], ['plateau', 'plateau']]) {
+    const r = findRoute(c(a), c(b));
+    if (!r) continue;
+    const t = taxiRideSeconds(r.distanceM);
+    assert.ok(t >= 15 && t <= 30, `${a}→${b} : ${t} s`);
+  }
+});
+
+test('Taxi B3 : démarrage et arrêt progressifs, de 0 à 1', () => {
+  assert.equal(taxiRideProgress(0, 20), 0);
+  assert.equal(taxiRideProgress(20, 20), 1);
+  assert.equal(taxiRideProgress(50, 20), 1);
+  assert.equal(taxiRideProgress(-1, 20), 0);
+  assert.equal(taxiRideProgress(5, 0), 1);
+  assert.equal(taxiRideProgress(10, 20), 0.5);
+  assert.ok(taxiRideProgress(2, 20) < 0.1, 'départ en douceur');
+  assert.ok(taxiRideProgress(18, 20) > 0.9, 'arrivée en douceur');
+});
+
+test('Taxi B3 : le trajet de la cinématique garde sa longueur', () => {
+  const r = findRoute(c('yopougon'), c('cocody'))!;
+  assert.ok(r);
+  assert.ok(pathLength(r.points) > 100);
 });
