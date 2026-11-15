@@ -23,6 +23,9 @@ import {
   eatFood,
   evaluateMissionProgress,
   payFastTravel,
+  fastTravelFare,
+  FARE_SAME_COMMUNE,
+  FARE_BETWEEN_COMMUNES,
   performCareerJob,
   performCivilMarriage,
   performConsensualWooHoo,
@@ -180,15 +183,35 @@ test('Babi Cribs upgrade strictly deducts FCFA and rejects broke players', () =>
   assert.equal(bought.cash, rich.cash - cost + step1Reward);
 });
 
-test('Fast Travel deducts 1,500 FCFA taxi fare and rejects if cash < 1500', () => {
-  const state = createInitialPlayerState(rollDestiny('poignon'));
+test('Fast Travel : 1 000 FCFA par défaut, 500 FCFA si on le précise, refusé si le joueur est trop pauvre', () => {
+  const state = createInitialPlayerState(rollDestiny('poignon')); // 2 000 F
   const okTrip = payFastTravel(state, 'Le Plateau');
   assert.equal(okTrip.ok, true);
-  assert.equal(okTrip.nextState.cash, 500);
+  assert.equal(okTrip.nextState.cash, 1000);
 
-  const brokeTrip = payFastTravel(okTrip.nextState, 'Cocody');
+  const cheap = payFastTravel(okTrip.nextState, 'Le Plateau', fastTravelFare('plateau', 'plateau'));
+  assert.equal(cheap.ok, true);
+  assert.equal(cheap.nextState.cash, 500);
+
+  const brokeTrip = payFastTravel(cheap.nextState, 'Cocody', fastTravelFare('plateau', 'cocody'));
   assert.equal(brokeTrip.ok, false);
   assert.equal(brokeTrip.nextState.cash, 500);
+});
+
+test('Tarif du taxi : 500 F dans la même commune, 1 000 F entre communes', () => {
+  assert.equal(FARE_SAME_COMMUNE, 500);
+  assert.equal(FARE_BETWEEN_COMMUNES, 1000);
+  assert.equal(fastTravelFare('plateau', 'plateau'), 500);
+  assert.equal(fastTravelFare('plateau', 'treichville'), 1000);
+  assert.equal(fastTravelFare('yopougon', 'cocody'), 1000);
+  // Deux zones d'une même commune (Cocody Deux-Plateaux et Riviera) : même commune
+  assert.equal(fastTravelFare('cocody', 'riviera'), 500);
+  assert.equal(fastTravelFare('riviera', 'cocody'), 500);
+  // Départ ou arrivée inconnus : jamais le tarif réduit
+  assert.equal(fastTravelFare(null, 'plateau'), 1000);
+  assert.equal(fastTravelFare(undefined, 'plateau'), 1000);
+  assert.equal(fastTravelFare('plateau', null), 1000);
+  assert.equal(fastTravelFare('nimporte_quoi', 'nimporte_quoi'), 1000);
 });
 
 test('Bank Deposit, Withdraw, Loan, and Repay Debt modify balances accurately', () => {

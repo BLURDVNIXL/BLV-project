@@ -22,6 +22,7 @@ const source: GpsSource = {
     { id: 'eat_maquis', label: '🍗 Maquis Le Temple · Rue Princesse', x: pPlateau.x, z: pPlateau.z + 30 },
   ],
   homePorch: { x: pPlateau.x + 50, z: pPlateau.z - 40 },
+  fromDistrictId: 'plateau',
 };
 
 test('splitPlaceLabel : icône, nom sans « Entrer — » ni précision entre parenthèses', () => {

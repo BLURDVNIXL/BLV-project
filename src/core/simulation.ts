@@ -9,6 +9,7 @@ import {
   HomeAccessMode,
   PlayerProfile,
 } from '../types/game';
+import { DISTRICTS } from '../world/abidjanGeography';
 import {
   ALL_DESTINIES,
   ACADEMIC_BADGES,
@@ -624,8 +625,31 @@ export function buyOrEquipOutfit(state: PlayerState, outfitId: SapeOutfitId): Pl
   );
 }
 
-export function payFastTravel(state: PlayerState, districtName: string): { ok: boolean; nextState: PlayerState } {
-  const fare = 1500;
+/** Tarif du taxi express : dans sa commune, ou d'une commune à une autre. */
+export const FARE_SAME_COMMUNE = 500;
+export const FARE_BETWEEN_COMMUNES = 1000;
+
+/** Nom de la commune d'une zone (« Cocody · Riviera » et « Cocody · Deux-Plateaux » → « Cocody »), null si inconnue. */
+function communeOfDistrict(districtId: string | null | undefined): string | null {
+  const d = DISTRICTS.find((x) => x.id === districtId);
+  return d ? d.name.replace(/\s*\(.*$/, '').replace(/\s*·.*$/, '').trim() : null;
+}
+
+/**
+ * Prix de la course : 500 FCFA si le départ et l'arrivée sont dans la même commune, 1 000 FCFA sinon.
+ * Départ inconnu ou zone inconnue : tarif entre communes (jamais le tarif réduit par défaut).
+ */
+export function fastTravelFare(fromDistrictId: string | null | undefined, toDistrictId: string | null | undefined): number {
+  const from = communeOfDistrict(fromDistrictId);
+  const to = communeOfDistrict(toDistrictId);
+  return from !== null && from === to ? FARE_SAME_COMMUNE : FARE_BETWEEN_COMMUNES;
+}
+
+export function payFastTravel(
+  state: PlayerState,
+  districtName: string,
+  fare: number = FARE_BETWEEN_COMMUNES
+): { ok: boolean; nextState: PlayerState } {
   const payment = spendCash(state, fare);
   if (!payment.ok) {
     return {
