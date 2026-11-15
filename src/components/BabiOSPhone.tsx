@@ -48,7 +48,7 @@ import {
   type GpsKind,
   type GpsSource,
 } from '../core/gpsDestinations';
-import { formatGameTime } from '../core/simulation';
+import { FARE_BETWEEN_COMMUNES, FARE_SAME_COMMUNE, fastTravelFare, formatGameTime } from '../core/simulation';
 import { t } from '../core/i18n';
 import { ChatMessage, ServerTontineSnapshot } from '../network/multiplayerClient';
 import { RadioPlayStatus } from '../audio/radioManager';
@@ -165,10 +165,13 @@ export const BabiOSPhone: React.FC<BabiOSPhoneProps> = ({
   const [, setMuteTick] = useState(0);
   // GPS : la liste est relevée à chaque ouverture de l'application (la maison peut avoir été posée entre-temps).
   const [gpsList, setGpsList] = useState<GpsDestination[]>([]);
+  const [gpsFrom, setGpsFrom] = useState<string | null>(null);
   const [gpsQuery, setGpsQuery] = useState('');
   useEffect(() => {
     if (activeApp !== 'gps') return;
-    setGpsList(buildGpsDestinations(getGpsSource()));
+    const src = getGpsSource();
+    setGpsList(buildGpsDestinations(src));
+    setGpsFrom(src.fromDistrictId);
     setGpsQuery('');
     // getGpsSource est volontairement hors des dépendances : on relève la liste à l'ouverture seulement.
   }, [activeApp]);
@@ -425,12 +428,15 @@ export const BabiOSPhone: React.FC<BabiOSPhoneProps> = ({
             </div>
           )}
 
-          {/* GPS ABIDJAN : Chez moi, lieux, repères, communes (taxi express 1 500 FCFA) */}
+          {/* GPS ABIDJAN : Chez moi, lieux, repères, communes (taxi express 500 F dans la commune, 1 000 F entre communes) */}
           {activeApp === 'gps' && (
             <div className="flex flex-col gap-2">
               <AppHeader title={s.gps} onBack={() => setActiveApp('home')} />
               <div className="text-xs text-ink-600">
-                Taxi Express : <strong className="text-sun-600">1 500 FCFA</strong>, déposé devant l'entrée du lieu.
+                Taxi Express :{' '}
+                <strong className="text-sun-600">{FARE_SAME_COMMUNE.toLocaleString('fr-FR')} F</strong> dans ta commune,{' '}
+                <strong className="text-sun-600">{FARE_BETWEEN_COMMUNES.toLocaleString('fr-FR')} F</strong> entre communes.
+                Déposé devant l'entrée du lieu.
               </div>
               <label className="flex items-center gap-2 rounded-xl bg-cream-100 border border-cream-200 px-2.5 py-2 focus-within:border-lagoon-400/60">
                 <Search className="h-3.5 w-3.5 shrink-0 text-ink-400" aria-hidden="true" />
@@ -480,7 +486,7 @@ export const BabiOSPhone: React.FC<BabiOSPhoneProps> = ({
                           </div>
                         </div>
                         <span className="shrink-0 rounded-lg bg-lagoon-400/20 px-2 py-1 text-xs font-bold text-lagoon-600">
-                          1 500 F
+                          {fastTravelFare(gpsFrom, loc.districtId).toLocaleString('fr-FR')} F
                         </span>
                       </button>
                     ))}

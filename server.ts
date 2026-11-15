@@ -30,6 +30,7 @@ import {
   eatFood,
   evaluateMissionProgress,
   payFastTravel,
+  fastTravelFare,
   performCareerJob,
   performCivilMarriage,
   performConsensualWooHoo,
@@ -582,7 +583,13 @@ async function startServer() {
         st = buyOrEquipOutfit(st, String(payload?.outfitId || 'standard') as SapeOutfitId);
         break;
       case 'fast_travel': {
-        const ft = payFastTravel(st, String(payload?.districtName || 'Abidjan'));
+        // Tarif calculé ici (jamais envoyé par le client) : 500 F dans la même commune, 1 000 F sinon.
+        // Le départ vient du client : un départ inconnu ou absent donne le tarif entre communes.
+        const fare = fastTravelFare(
+          typeof payload?.fromDistrictId === 'string' ? payload.fromDistrictId : null,
+          typeof payload?.districtId === 'string' ? payload.districtId : null
+        );
+        const ft = payFastTravel(st, String(payload?.districtName || 'Abidjan'), fare);
         st = ft.ok && payload?.districtId ? evaluateMissionProgress(ft.nextState, String(payload.districtId)) : ft.nextState;
         break;
       }

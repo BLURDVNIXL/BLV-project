@@ -30,6 +30,7 @@ import {
   eatFood,
   evaluateMissionProgress,
   payFastTravel,
+  fastTravelFare,
   performCareerJob,
   performCivilMarriage,
   performConsensualWooHoo,
@@ -713,6 +714,7 @@ export default function App() {
     return {
       places: snap ? snap.places : [],
       homePorch: snap ? snap.homePorch : null,
+      fromDistrictId: snap ? districtAt({ x: snap.playerX, z: snap.playerZ }).id : null,
     };
   }, []);
 
@@ -883,10 +885,13 @@ export default function App() {
           }}
           onFleeTontine={() => mpRef.current?.fleeTontine()}
           onFastTravel={(x, z, districtName, districtId) => {
-            const res = payFastTravel(playerState, districtName);
+            // Prix : 500 F dans la même commune, 1 000 F d'une commune à l'autre (le serveur recalcule le même tarif).
+            const snap = sceneRef.current?.getRadarSnapshot();
+            const fromDistrictId = snap ? districtAt({ x: snap.playerX, z: snap.playerZ }).id : null;
+            const res = payFastTravel(playerState, districtName, fastTravelFare(fromDistrictId, districtId));
             const nextSt = res.ok ? evaluateMissionProgress(res.nextState, districtId) : res.nextState;
             setPlayerState(nextSt);
-            syncEconomy('fast_travel', { districtName, districtId });
+            syncEconomy('fast_travel', { districtName, districtId, fromDistrictId });
             if (res.ok) {
               // Depuis un intérieur (hôpital), on en sort d'abord : sinon le joueur serait déposé dehors
               // alors que la salle partagée resterait active.

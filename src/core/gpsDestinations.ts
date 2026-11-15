@@ -38,6 +38,8 @@ export interface GpsDestination {
 export interface GpsSource {
   places: Array<{ id: string; label: string; x: number; z: number }>;
   homePorch: Vec2 | null;
+  /** Zone où se trouve le joueur : sert à calculer le prix de la course (même commune ou non). */
+  fromDistrictId: string | null;
 }
 
 const LANDMARK_ICON: Record<string, string> = {
