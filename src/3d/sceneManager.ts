@@ -69,8 +69,17 @@ import {
 } from '../world/abidjanGeography';
 import { project, WORLD_SCALE } from '../world/geo';
 import { bridgeAt } from '../world/roads';
-import { nearestRoadPoint } from '../world/routing';
-import { planTaxiApproach, pointAlongPath, taxiProgress, taxiRouteTo, TaxiPath } from '../world/taxiApproach';
+import { findRoute, nearestRoadPoint } from '../world/routing';
+import {
+  pathLength,
+  planTaxiApproach,
+  pointAlongPath,
+  taxiProgress,
+  taxiRideProgress,
+  taxiRideSeconds,
+  taxiRouteTo,
+  TaxiPath,
+} from '../world/taxiApproach';
 import { houseToWorld, registerPlayerHouse } from '../world/playerHouse';
 import { HOUSE_D, insideHouse, segmentCrossesRect, worldToHouse } from '../world/houseShell';
 import { HOSPITAL_SITES } from '../world/hospitals';
@@ -140,6 +149,10 @@ export interface SceneCallbacks {
   }) => void;
   onHorn?: () => void;
   onPauseKey?: () => void;
+  /** Cinématique du taxi (B3) : true = l'écran doit passer au noir, false = revenir à l'image. */
+  onTaxiFade?: (dark: boolean) => void;
+  /** Cinématique terminée : le joueur est arrivé et peut de nouveau jouer. */
+  onTaxiRideEnd?: () => void;
 }
 
 function vehicleTypeToPreset(type: VehicleModelType | null): VehiclePresetId {
@@ -165,6 +178,21 @@ export class AbidjanSceneManager {
   private renderer!: THREE.WebGLRenderer;
   private scene!: THREE.Scene;
   private routeGuide: THREE.Group | null = null;
+  /** Cinématique du trajet (étape B3) : le joueur monte, le taxi roule sur l'itinéraire, puis il est déposé. */
+  private taxiRide: {
+    phase: 'board' | 'ride' | 'unfade';
+    t: number;
+    totalS: number;
+    rig: VehicleRig;
+    points: Array<{ x: number; z: number }>;
+    length: number;
+    dest: { x: number; z: number };
+    heading: number;
+    lastS: number;
+    x: number;
+    z: number;
+    endFade: boolean;
+  } | null = null;
   /** Woro-woro appelé (étape B2) : visible seulement chez le joueur, jamais envoyé aux autres joueurs. */
   private taxiApproach: {
     rig: VehicleRig;
@@ -1377,6 +1405,151 @@ export class AbidjanSceneManager {
     t.lastS = s;
   }
 
+  /** Vrai pendant la cinématique du taxi : pas de déplacement, pas d'interaction, pas de position envoyée. */
+  public isTaxiRideActive(): boolean {
+    return this.taxiRide !== null;
+  }
+
+  /**
+   * Étape B3 : fondu au noir, le taxi roule sur l'itinéraire jusqu'à la route la plus proche de la destination
+   * (15 à 30 s selon la distance, caméra qui le suit), nouveau fondu au noir, puis le joueur est déposé en `dest`.
+   * Reprend le woro-woro de B2 s'il est là. Renvoie false si le trajet est impossible : l'appelant téléporte alors comme avant.
+   */
+  public startTaxiRide(dest: { x: number; z: number }): boolean {
+    if (this.taxiRide) return false;
+    const ap = this.taxiApproach;
+    const from = ap
+      ? { x: ap.rig.group.position.x, z: ap.rig.group.position.z }
+      : nearestRoadPoint(this.taxiPickupPoint()).at;
+    const route = findRoute(from, dest);
+    if (!route) return false;
+    // On s'arrête sur la route : pas de dernier tronçon en ligne droite à travers les bâtiments.
+    const points = route.points.length > 2 ? route.points.slice(0, -1) : route.points;
+    const length = pathLength(points);
+    if (length < 5) return false;
+    let rig: VehicleRig;
+    let heading: number;
+    if (ap) {
+      rig = ap.rig;
+      heading = ap.heading;
+      this.taxiApproach = null;
+    } else {
+      rig = createVehicleModel('woro_woro');
+      rig.group.rotation.order = 'YXZ';
+      rig.group.position.set(from.x, 0, from.z);
+      this.scene.add(rig.group);
+      heading = pointAlongPath(points, 0).heading;
+    }
+    this.taxiRide = {
+      phase: 'board',
+      t: 0,
+      totalS: taxiRideSeconds(route.distanceM),
+      rig,
+      points,
+      length,
+      dest: { x: dest.x, z: dest.z },
+      heading,
+      lastS: 0,
+      x: from.x,
+      z: from.z,
+      endFade: false,
+    };
+    this.callbacks.onTaxiFade?.(true);
+    return true;
+  }
+
+  private static readonly TAXI_FADE_S = 0.75;
+
+  private updateTaxiRide(dt: number) {
+    const r = this.taxiRide;
+    if (!r) return;
+    r.t += dt;
+    const FADE = AbidjanSceneManager.TAXI_FADE_S;
+    if (r.phase === 'board') {
+      // Écran noir : le joueur est « monté », la cinématique commence.
+      if (r.t < FADE) return;
+      r.phase = 'ride';
+      r.t = 0;
+      this.playerRig.group.visible = false;
+      const start = pointAlongPath(r.points, 0);
+      r.heading = start.heading;
+      r.x = start.x;
+      r.z = start.z;
+      r.rig.group.position.set(start.x, 0, start.z);
+      r.rig.group.rotation.set(0, start.heading, 0);
+      this.updateTaxiRideCamera(0, true);
+      this.callbacks.onTaxiFade?.(false);
+      return;
+    }
+    if (r.phase === 'ride') {
+      const s = r.length * taxiRideProgress(r.t, r.totalS);
+      const pos = pointAlongPath(r.points, s);
+      if (s > r.lastS + 1e-4) {
+        let d = pos.heading - r.heading;
+        d = Math.atan2(Math.sin(d), Math.cos(d));
+        r.heading += d * (1 - Math.exp(-8 * dt));
+      }
+      r.x = pos.x;
+      r.z = pos.z;
+      r.rig.group.position.set(pos.x, 0, pos.z);
+      r.rig.group.rotation.set(0, r.heading, 0);
+      r.rig.setWheelSpin(s - r.lastS);
+      r.lastS = s;
+      if (!r.endFade && r.t >= r.totalS - FADE) {
+        r.endFade = true;
+        this.callbacks.onTaxiFade?.(true);
+      }
+      if (r.t >= r.totalS) {
+        // Écran noir : le taxi disparaît, le joueur est déposé devant le lieu.
+        this.taxiRide = null;
+        this.scene.remove(r.rig.group);
+        r.rig.group.traverse((o) => {
+          const mesh = o as THREE.Mesh;
+          if (!mesh.isMesh) return;
+          mesh.geometry.dispose();
+          const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+          for (const m of mats) m.dispose();
+        });
+        this.playerRig.group.visible = true;
+        this.teleportPlayer(r.dest.x, r.dest.z);
+        this.taxiRide = {
+          ...r,
+          phase: 'unfade',
+          t: 0,
+        };
+        this.callbacks.onTaxiFade?.(false);
+      }
+      return;
+    }
+    // 'unfade' : retour à l'image, puis le joueur reprend la main.
+    if (r.t >= FADE) {
+      this.taxiRide = null;
+      this.callbacks.onTaxiRideEnd?.();
+    }
+  }
+
+  /** Caméra de poursuite derrière le taxi, avec un léger balancement ; `snap` la place d'un coup. */
+  private updateTaxiRideCamera(dt: number, snap = false) {
+    const r = this.taxiRide;
+    if (!r) return;
+    const sway = Math.sin(r.t * 0.35) * 0.4;
+    const yaw = r.heading + Math.PI + sway;
+    this.scratchVec.set(r.x + Math.sin(yaw) * 11, 5.4, r.z + Math.cos(yaw) * 11);
+    this.scratchTarget.set(r.x + Math.sin(r.heading) * 3, 1.5, r.z + Math.cos(r.heading) * 3);
+    if (snap) {
+      this.camPos.copy(this.scratchVec);
+      this.camLook.copy(this.scratchTarget);
+    } else {
+      const k = 1 - Math.exp(-6 * dt);
+      this.camPos.lerp(this.scratchVec, k);
+      this.camLook.lerp(this.scratchTarget, k);
+    }
+    this.camera.position.copy(this.camPos);
+    this.camera.lookAt(this.camLook);
+    this.dirLight.position.set(r.x + this.sunDir.x * 150, this.sunDir.y * 150, r.z + this.sunDir.z * 150);
+    this.dirLight.target.position.set(r.x, 0, r.z);
+  }
+
   public teleportPlayer(x: number, z: number) {
     if (this.drivingVehicle && this.physics) {
       this.physics.placeVehicle(this.drivingVehicle.vehId, x, z, this.playerRotY);
@@ -1415,6 +1588,7 @@ export class AbidjanSceneManager {
   }
 
   public triggerJump() {
+    if (this.taxiRide) return;
     if (this.drivingVehicle) {
       this.isHandbraking = true;
       window.setTimeout(() => {
@@ -1637,6 +1811,7 @@ export class AbidjanSceneManager {
   }
 
   private findNearestHotspot(): CityHotspot | null {
+    if (this.taxiRide) return null;
     let best: CityHotspot | null = null;
     let bestD = Infinity;
     const pool = this.activeInterior ? [this.activeInterior.hotspot] : [...this.homeHotspots, ...this.staticHotspots];
@@ -1651,6 +1826,7 @@ export class AbidjanSceneManager {
   }
 
   private findNearestVehicle(): { id: string; vehId: number; rig: VehicleRig } | null {
+    if (this.taxiRide) return null;
     let best: { id: string; vehId: number; rig: VehicleRig } | null = null;
     let bestD = 6.2;
     for (const v of this.spawnedVehicles) {
@@ -1740,9 +1916,14 @@ export class AbidjanSceneManager {
 
     if (this.isPaused) return;
 
+    // 4bis. Cinématique du taxi (B3)
+    this.updateTaxiRide(dt);
+
     // 5. Stream Abidjan chunks around player
     // (dans un intérieur, la ville reste chargée telle quelle : pas de rechargement à la sortie)
-    if (!this.activeInterior) {
+    if (this.taxiRide?.phase === 'ride') {
+      this.streamer?.update(this.taxiRide.x, this.taxiRide.z, this.isSoftwareGl ? 3 : 4);
+    } else if (!this.activeInterior) {
       this.streamer?.update(this.playerX, this.playerZ, this.streamer.loadedCount < 25 ? 8 : this.isSoftwareGl ? 3 : 4);
     }
 
@@ -1759,6 +1940,11 @@ export class AbidjanSceneManager {
 
     if (Math.abs(this.joystickVec.y) > 0.08) fwd = -this.joystickVec.y;
     if (Math.abs(this.joystickVec.x) > 0.08) turnRight = this.joystickVec.x;
+    // Pendant la cinématique du taxi, le joueur ne bouge pas.
+    if (this.taxiRide) {
+      fwd = 0;
+      turnRight = 0;
+    }
 
     const core = this.physics;
     if (core && this.playerCharId >= 0) {
@@ -1858,6 +2044,12 @@ export class AbidjanSceneManager {
           tc.rig.updateSiren(nowSec, this.policeWanted > 0);
         }
       }
+    }
+
+    // Cinématique du taxi (B3) : caméra de poursuite, aucune position envoyée aux autres joueurs.
+    if (this.taxiRide?.phase === 'ride') {
+      this.updateTaxiRideCamera(dt);
+      return;
     }
 
     // 8. 360° Orbital Third-Person Camera with Exponential Damping + Building Raycast Pull-in
@@ -1978,6 +2170,7 @@ export class AbidjanSceneManager {
     dom.removeEventListener('wheel', this.onWheel);
 
     this.stopTaxiApproach();
+    this.taxiRide = null;
     this.streamer?.dispose();
     this.skyDome?.dispose();
     this.chunkMats.dispose();

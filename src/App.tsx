@@ -402,6 +402,12 @@ export default function App() {
         setPlayerState((prev) => ({ ...prev, engineStalled: stalled }));
         if (stalled) showToast('🌊 Moteur noyé par l’inondation !');
       },
+      onTaxiFade: (dark) => setTaxiFadeDark(dark),
+      onTaxiRideEnd: () => {
+        const dest = taxiRideRef.current;
+        taxiRideRef.current = null;
+        if (dest) setCurrentDistrict(districtAt({ x: dest.x, z: dest.z }).name);
+      },
       onInteractionTriggered: (h) => handleHotspotAction(h),
       onVehicleToggle: (entering, vType) => {
         setPlayerState((prev) => ({
@@ -717,6 +723,16 @@ export default function App() {
   } | null>(null);
   const taxiCallRef = useRef(taxiCall);
   taxiCallRef.current = taxiCall;
+  // Cinématique du trajet (B3) : écran noir et destination de la course en cours.
+  const [taxiFadeDark, setTaxiFadeDark] = useState(false);
+  const taxiRideRef = useRef<{ x: number; z: number } | null>(null);
+  useEffect(() => {
+    // Hors du jeu (menu, fin de partie), plus de cinématique ni d'écran noir.
+    if (screenState !== 'playing') {
+      taxiRideRef.current = null;
+      setTaxiFadeDark(false);
+    }
+  }, [screenState]);
 
   const cancelTaxi = useCallback((message?: string) => {
     taxiCallRef.current = null;
@@ -728,7 +744,6 @@ export default function App() {
   /** Montée dans le taxi : paie la course (une seule fois), puis téléporte comme avant. */
   const arriveTaxiRef = useRef<(call: { x: number; z: number; districtName: string; districtId: string }) => void>(() => {});
   arriveTaxiRef.current = (call) => {
-    sceneRef.current?.stopTaxiApproach();
     const snap = sceneRef.current?.getRadarSnapshot();
     const fromDistrictId = snap ? districtAt({ x: snap.playerX, z: snap.playerZ }).id : null;
     const cur = playerStateRef.current;
@@ -736,16 +751,23 @@ export default function App() {
     const nextSt = res.ok ? evaluateMissionProgress(res.nextState, call.districtId) : res.nextState;
     setPlayerState(nextSt);
     syncEconomy('fast_travel', { districtName: call.districtName, districtId: call.districtId, fromDistrictId });
-    if (res.ok) {
-      // Depuis un intérieur (hôpital), on en sort d'abord : sinon le joueur serait déposé dehors
-      // alors que la salle partagée resterait active.
-      if (sceneRef.current?.isInsideInterior()) sceneRef.current.exitInterior();
-      sceneRef.current?.teleportPlayer(call.x, call.z);
-      setCurrentDistrict(districtAt({ x: call.x, z: call.z }).name);
-      setIsPhoneOpen(false);
-    } else {
+    if (!res.ok) {
+      sceneRef.current?.stopTaxiApproach();
       showToast('❌ Pas assez d\u2019argent : le taxi repart sans toi.');
+      return;
     }
+    // Depuis un intérieur (hôpital), on en sort d'abord : sinon le joueur serait déposé dehors
+    // alors que la salle partagée resterait active.
+    if (sceneRef.current?.isInsideInterior()) sceneRef.current.exitInterior();
+    setIsPhoneOpen(false);
+    // B3 : cinématique du trajet ; si aucun trajet n'existe, on dépose le joueur directement (comme en B1/B2).
+    if (sceneRef.current?.startTaxiRide({ x: call.x, z: call.z })) {
+      taxiRideRef.current = { x: call.x, z: call.z };
+      return;
+    }
+    sceneRef.current?.stopTaxiApproach();
+    sceneRef.current?.teleportPlayer(call.x, call.z);
+    setCurrentDistrict(districtAt({ x: call.x, z: call.z }).name);
   };
 
   useEffect(() => {
@@ -962,7 +984,7 @@ export default function App() {
             const refusal = taxiCallRefusal(
               playerState,
               fastTravelFare(fromDistrictId, districtId),
-              taxiCallRef.current !== null
+              taxiCallRef.current !== null || taxiRideRef.current !== null
             );
             if (refusal) {
               showToast(refusal);
@@ -1267,6 +1289,13 @@ export default function App() {
           }}
         />
       )}
+
+      {/* CINÉMATIQUE DU TAXI : fondu au noir au début et à la fin du trajet */}
+      <div
+        data-testid="taxi-fade"
+        aria-hidden="true"
+        className={`fixed inset-0 z-[120] bg-black pointer-events-none transition-opacity duration-700 ${taxiFadeDark ? 'opacity-100' : 'opacity-0'}`}
+      />
 
       {/* TAXI APPELÉ : compte à rebours + annulation */}
       {taxiCall && screenState === 'playing' && (
