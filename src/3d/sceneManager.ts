@@ -37,7 +37,7 @@ import {
   getLightingMood,
 } from './materials';
 import { NpcSystem } from './npcSystem';
-import { loadAvatar } from './avatars';
+import { AvatarController, loadAvatar } from './avatars';
 import { getWasmCore } from '../wasm/wasmBridge';
 import {
   CharacterState,
@@ -173,6 +173,8 @@ export class AbidjanSceneManager {
   /** Avatar GLB du joueur (genre choisi) ; l'ancien petit personnage sert de repli. */
   private playerAvatar: THREE.Object3D | null = null;
   private playerAvatarGender: PlayerGender | null = null;
+  private playerAvatarCtl: AvatarController | null = null;
+  private playerOutfit: SapeOutfitId = 'standard';
   private avatarRequestId = 0;
   private playerCharId = -1;
   private charState: CharacterState = createCharacterState();
@@ -739,7 +741,7 @@ export class AbidjanSceneManager {
     this.ownHomeType = homeType;
     this.isSuperstar = isSuperstar;
     this.mysticBaraka = mysticBaraka;
-    this.playerRig.applyOutfit(outfit);
+    this.applyPlayerOutfit(outfit);
 
     if (!this.physics) {
       this.pendingSpawnArgs = [
@@ -935,7 +937,14 @@ export class AbidjanSceneManager {
   }
 
   public setOutfit(outfit: SapeOutfitId) {
+    this.applyPlayerOutfit(outfit);
+  }
+
+  /** Tenue du joueur : petit personnage de repli et avatar 3D (si chargé). */
+  private applyPlayerOutfit(outfit: SapeOutfitId) {
+    this.playerOutfit = outfit;
     this.playerRig.applyOutfit(outfit);
+    this.playerAvatarCtl?.applyOutfit(outfit);
   }
 
   /**
@@ -947,12 +956,14 @@ export class AbidjanSceneManager {
     if (!gender || gender === this.playerAvatarGender) return;
     const requestId = ++this.avatarRequestId;
     loadAvatar(gender)
-      .then(({ root }) => {
+      .then(({ root, animations }) => {
         if (this.disposed || requestId !== this.avatarRequestId) return;
         if (this.playerAvatar) this.playerRig.group.remove(this.playerAvatar);
         this.playerAvatar = root;
         this.playerAvatarGender = gender;
         this.playerRig.group.add(root);
+        this.playerAvatarCtl = new AvatarController(root, animations);
+        this.playerAvatarCtl.applyOutfit(this.playerOutfit);
         this.playerRig.bodyPivot.visible = false;
       })
       .catch((err) => {
@@ -1481,6 +1492,7 @@ export class AbidjanSceneManager {
           1 / Math.sqrt(this.playerSquashY)
         );
         this.playerRig.animateGait(this.walkPhase, moving ? 1 : 0, dt);
+        this.playerAvatarCtl?.update(dt, ps.speed, ps.grounded, knocked);
       }
 
       // Sync AI road traffic cars

@@ -45,3 +45,31 @@ test('les deux squelettes sont identiques (même code d\'animation)', () => {
   };
   assert.deepEqual(bones('homme'), bones('femme'));
 });
+
+import { pickAvatarAnim, avatarTimeScale, avatarOutfitTint, AVATAR_RUN_SPEED } from './avatars';
+
+test('animation choisie selon la vitesse et l\'état du joueur', () => {
+  assert.equal(pickAvatarAnim(0, true, false), 'Idle');
+  assert.equal(pickAvatarAnim(0.2, true, false), 'Idle');
+  assert.equal(pickAvatarAnim(2, true, false), 'Walk');
+  assert.equal(pickAvatarAnim(6.2, true, false), 'Walk');
+  assert.equal(pickAvatarAnim(AVATAR_RUN_SPEED, true, false), 'Run');
+  assert.equal(pickAvatarAnim(9, true, false), 'Run');
+  assert.equal(pickAvatarAnim(5, false, false), 'Jump');
+  assert.equal(pickAvatarAnim(9, true, true), 'Idle', 'renversé : pas de course');
+});
+
+test('cadence de lecture bornée (pas de moonwalk ni de clip emballé)', () => {
+  assert.equal(avatarTimeScale('Idle', 0), 1);
+  assert.equal(avatarTimeScale('Jump', 5), 1);
+  assert.ok(avatarTimeScale('Walk', 0.4) >= 0.6);
+  assert.ok(avatarTimeScale('Walk', 30) <= 1.6);
+  assert.ok(avatarTimeScale('Run', 30) <= 1.5);
+  assert.ok(avatarTimeScale('Walk', 5) > avatarTimeScale('Walk', 2));
+});
+
+test('teinte des tenues : standard = modèle d\'origine, les autres colorent haut et bas', () => {
+  assert.equal(avatarOutfitTint('standard'), null);
+  const t = avatarOutfitTint('wax_bazin');
+  assert.ok(t && typeof t.shirt === 'number' && typeof t.pants === 'number');
+});
