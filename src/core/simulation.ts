@@ -645,6 +645,28 @@ export function fastTravelFare(fromDistrictId: string | null | undefined, toDist
   return from !== null && from === to ? FARE_SAME_COMMUNE : FARE_BETWEEN_COMMUNES;
 }
 
+/** Attente du taxi appelé : 10 s au minimum, 20 s au maximum, plus longue quand la destination est loin. */
+export const TAXI_WAIT_MIN_S = 10;
+export const TAXI_WAIT_MAX_S = 20;
+const TAXI_WAIT_FULL_DISTANCE_M = 6000;
+
+export function taxiWaitSeconds(distanceM: number): number {
+  const d = Number.isFinite(distanceM) ? Math.max(0, distanceM) : TAXI_WAIT_FULL_DISTANCE_M;
+  const ratio = Math.min(1, d / TAXI_WAIT_FULL_DISTANCE_M);
+  return Math.round(TAXI_WAIT_MIN_S + ratio * (TAXI_WAIT_MAX_S - TAXI_WAIT_MIN_S));
+}
+
+/**
+ * Motif de refus d'un appel de taxi (null si l'appel est accepté) :
+ * en conduisant, déjà une course en cours, ou pas assez d'argent (le paiement n'a lieu qu'à la montée).
+ */
+export function taxiCallRefusal(state: PlayerState, fare: number, alreadyCalled: boolean): string | null {
+  if (state.isDriving) return '🚖 Tu ne peux pas appeler un taxi en conduisant.';
+  if (alreadyCalled) return '🚖 Un taxi est déjà en route.';
+  if (state.cash < fare) return `❌ Il faut ${fare.toLocaleString('fr-FR')} FCFA pour appeler un taxi.`;
+  return null;
+}
+
 export function payFastTravel(
   state: PlayerState,
   districtName: string,

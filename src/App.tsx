@@ -31,6 +31,8 @@ import {
   evaluateMissionProgress,
   payFastTravel,
   fastTravelFare,
+  taxiWaitSeconds,
+  taxiCallRefusal,
   performCareerJob,
   performCivilMarriage,
   performConsensualWooHoo,
@@ -704,6 +706,72 @@ export default function App() {
     sceneRef.current?.setRoute(route ? route.points : null);
   }, [route]);
 
+  // Taxi appelé (étape B1) : compte à rebours, annulation libre, paiement seulement à la montée.
+  const [taxiCall, setTaxiCall] = useState<{
+    x: number;
+    z: number;
+    districtName: string;
+    districtId: string;
+    endsAt: number;
+    remainingS: number;
+  } | null>(null);
+  const taxiCallRef = useRef(taxiCall);
+  taxiCallRef.current = taxiCall;
+
+  const cancelTaxi = useCallback((message?: string) => {
+    taxiCallRef.current = null;
+    setTaxiCall(null);
+    if (message) showToast(message);
+  }, [showToast]);
+
+  /** Montée dans le taxi : paie la course (une seule fois), puis téléporte comme avant. */
+  const arriveTaxiRef = useRef<(call: { x: number; z: number; districtName: string; districtId: string }) => void>(() => {});
+  arriveTaxiRef.current = (call) => {
+    const snap = sceneRef.current?.getRadarSnapshot();
+    const fromDistrictId = snap ? districtAt({ x: snap.playerX, z: snap.playerZ }).id : null;
+    const cur = playerStateRef.current;
+    const res = payFastTravel(cur, call.districtName, fastTravelFare(fromDistrictId, call.districtId));
+    const nextSt = res.ok ? evaluateMissionProgress(res.nextState, call.districtId) : res.nextState;
+    setPlayerState(nextSt);
+    syncEconomy('fast_travel', { districtName: call.districtName, districtId: call.districtId, fromDistrictId });
+    if (res.ok) {
+      // Depuis un intérieur (hôpital), on en sort d'abord : sinon le joueur serait déposé dehors
+      // alors que la salle partagée resterait active.
+      if (sceneRef.current?.isInsideInterior()) sceneRef.current.exitInterior();
+      sceneRef.current?.teleportPlayer(call.x, call.z);
+      setCurrentDistrict(districtAt({ x: call.x, z: call.z }).name);
+      setIsPhoneOpen(false);
+    } else {
+      showToast('❌ Pas assez d\u2019argent : le taxi repart sans toi.');
+    }
+  };
+
+  useEffect(() => {
+    if (!taxiCall) return;
+    const id = window.setInterval(() => {
+      const call = taxiCallRef.current;
+      if (!call) return;
+      if (playerStateRef.current.isDriving) {
+        cancelTaxi('🚖 Course annulée : tu conduis.');
+        return;
+      }
+      if (screenStateRef.current !== 'playing') {
+        cancelTaxi();
+        return;
+      }
+      const left = call.endsAt - Date.now();
+      if (left <= 0) {
+        taxiCallRef.current = null;
+        setTaxiCall(null);
+        arriveTaxiRef.current(call);
+        return;
+      }
+      const remainingS = Math.ceil(left / 1000);
+      if (remainingS !== call.remainingS) setTaxiCall({ ...call, remainingS });
+    }, 250);
+    return () => window.clearInterval(id);
+  }, [taxiCall === null, cancelTaxi]);
+
   const getRadarSnapshot = useCallback((): RadarSnapshot | null => {
     return sceneRef.current ? sceneRef.current.getRadarSnapshot() : null;
   }, []);
@@ -885,21 +953,25 @@ export default function App() {
           }}
           onFleeTontine={() => mpRef.current?.fleeTontine()}
           onFastTravel={(x, z, districtName, districtId) => {
-            // Prix : 500 F dans la même commune, 1 000 F d'une commune à l'autre (le serveur recalcule le même tarif).
+            // Étape B1 : on appelle le taxi, il arrive après 10 à 20 s ; le prix (500 F dans la commune,
+            // 1 000 F entre communes, recalculé par le serveur) n'est débité qu'à la montée.
             const snap = sceneRef.current?.getRadarSnapshot();
             const fromDistrictId = snap ? districtAt({ x: snap.playerX, z: snap.playerZ }).id : null;
-            const res = payFastTravel(playerState, districtName, fastTravelFare(fromDistrictId, districtId));
-            const nextSt = res.ok ? evaluateMissionProgress(res.nextState, districtId) : res.nextState;
-            setPlayerState(nextSt);
-            syncEconomy('fast_travel', { districtName, districtId, fromDistrictId });
-            if (res.ok) {
-              // Depuis un intérieur (hôpital), on en sort d'abord : sinon le joueur serait déposé dehors
-              // alors que la salle partagée resterait active.
-              if (sceneRef.current?.isInsideInterior()) sceneRef.current.exitInterior();
-              sceneRef.current?.teleportPlayer(x, z);
-              setCurrentDistrict(districtAt({ x, z }).name);
-              setIsPhoneOpen(false);
+            const refusal = taxiCallRefusal(
+              playerState,
+              fastTravelFare(fromDistrictId, districtId),
+              taxiCallRef.current !== null
+            );
+            if (refusal) {
+              showToast(refusal);
+              return;
             }
+            const distanceM = snap ? Math.hypot(x - snap.playerX, z - snap.playerZ) : Infinity;
+            const waitS = taxiWaitSeconds(distanceM);
+            const call = { x, z, districtName, districtId, endsAt: Date.now() + waitS * 1000, remainingS: waitS };
+            taxiCallRef.current = call;
+            setTaxiCall(call);
+            setIsPhoneOpen(false);
           }}
           onWooHoo={(partner) => {
             soundEngine.playWooHooJingle();
@@ -1191,6 +1263,25 @@ export default function App() {
             setScreenState('roulette');
           }}
         />
+      )}
+
+      {/* TAXI APPELÉ : compte à rebours + annulation */}
+      {taxiCall && screenState === 'playing' && (
+        <div
+          data-testid="taxi-call-banner"
+          className="fixed top-28 left-1/2 -translate-x-1/2 z-[105] flex items-center gap-3 rounded-xl bg-ink-900/80 border border-sun-400/60 px-4 py-2 text-xs font-bold text-sun-600 shadow-2xl"
+        >
+          <span>
+            🚖 Taxi vers {taxiCall.districtName} dans {taxiCall.remainingS} s
+          </span>
+          <button
+            type="button"
+            onClick={() => cancelTaxi('🚖 Taxi annulé, rien n\u2019a été débité.')}
+            className="rounded-lg bg-white/15 hover:bg-white/25 px-2 py-1 text-white cursor-pointer"
+          >
+            Annuler
+          </button>
+        </div>
       )}
 
       {/* TRANSIENT EVENT TOAST */}
