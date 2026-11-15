@@ -14,8 +14,6 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { parseGender } from './src/core/profile';
 import {
   ALL_DESTINIES,
-  ACADEMIC_BADGES,
-  CAREERS,
   IVORIAN_FOODS,
   SAPE_OUTFITS,
 } from './src/core/destinies';
@@ -31,9 +29,6 @@ import {
   evaluateMissionProgress,
   payFastTravel,
   fastTravelFare,
-  performCareerJob,
-  performCivilMarriage,
-  performConsensualWooHoo,
   performLavageEtoile,
   performWorkShift,
   playLotoAkwaba,
@@ -42,7 +37,6 @@ import {
   sleepAtHome,
   takeBankLoan,
   takeShower,
-  unlockBadge,
   useToilet,
   withdrawFromBank,
 } from './src/core/simulation';
@@ -50,7 +44,6 @@ import { findHouseLot } from './src/world/city';
 import { HomeType } from './src/world/abidjanGeography';
 import { strHash } from './src/world/rng';
 import {
-  AcademicBadge,
   CribUpgrades,
   HomeAccessMode,
   PlayerState,
@@ -101,14 +94,6 @@ db.exec(`
     message TEXT NOT NULL,
     created_at INTEGER NOT NULL
   );
-  CREATE TABLE IF NOT EXISTS consent_requests (
-    request_id TEXT PRIMARY KEY,
-    from_id TEXT NOT NULL,
-    to_id TEXT NOT NULL,
-    kind TEXT NOT NULL,
-    status TEXT NOT NULL,
-    created_at INTEGER NOT NULL
-  );
   CREATE TABLE IF NOT EXISTS chat_reports (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     reporter_id TEXT NOT NULL,
@@ -126,6 +111,8 @@ db.exec(`
     created_at INTEGER NOT NULL
   );
 `);
+// Ancienne fonctionnalité de consentement/romance supprimée : on retire aussi les anciennes données.
+db.exec(`DROP TABLE IF EXISTS consent_requests;`);
 
 // Initialize tontine singleton with 0 fake NPCs
 db.prepare(`
@@ -440,10 +427,6 @@ async function startServer() {
         isDepressed: false,
         needs: { hunger: 100, energy: 100, hygiene: 100, bladder: 100, envy: 100 },
       };
-    } else if (action === 'unlock_all_badges') {
-      for (const b of ['caiman', 'alysma', 'alex'] as AcademicBadge[]) {
-        st = unlockBadge(st, b);
-      }
     }
 
     saveSessionState(targetPlayerId, st);
@@ -537,7 +520,6 @@ async function startServer() {
     const pid = req.params.playerId;
     db.prepare(`DELETE FROM sessions WHERE player_id = ?`).run(pid);
     db.prepare(`DELETE FROM tontine_members WHERE player_id = ?`).run(pid);
-    db.prepare(`DELETE FROM consent_requests WHERE from_id = ? OR to_id = ?`).run(pid, pid);
     players.delete(pid);
     res.json({ ok: true, purged: true });
   });
@@ -602,18 +584,12 @@ async function startServer() {
         break;
       }
       case 'work': {
-        const job = CAREERS.find((j) => j.id === String(payload?.jobId || ''));
-        st = job ? performCareerJob(st, job) : performWorkShift(st);
+        st = performWorkShift(st);
         break;
       }
       case 'loto':
         st = playLotoAkwaba(st);
         break;
-      case 'unlock_badge': {
-        const bId = String(payload?.badgeId || '') as AcademicBadge;
-        if (ACADEMIC_BADGES.some((b) => b.id === bId)) st = unlockBadge(st, bId);
-        break;
-      }
       case 'yannis_academy':
         st = donateYannisAcademy(st);
         break;
@@ -622,12 +598,6 @@ async function startServer() {
         break;
       case 'lavage_etoile':
         st = performLavageEtoile(st);
-        break;
-      case 'marriage':
-        st = performCivilMarriage(st, String(payload?.partnerName || 'Partenaire'));
-        break;
-      case 'woohoo':
-        st = performConsensualWooHoo(st, String(payload?.partnerName || 'Partenaire'));
         break;
       case 'sleep':
         st = sleepAtHome(st);
@@ -894,94 +864,6 @@ async function startServer() {
             ws.send(JSON.stringify({ type: 'tontine:flee_result', payload: { amount: stolen } }));
             broadcastAll({ type: 'tontine:update', payload: getTontineSnapshot() });
           }
-        }
-
-        // --- PERSISTENT & CANCELLABLE BILATERAL CONSENT ---
-        if (msg.type === 'consent:request' && myId && msg.payload) {
-          const targetId = String(msg.payload.targetPlayerId || '');
-          const kind = msg.payload.kind === 'marriage' ? 'marriage' : 'woohoo';
-          const target = players.get(targetId);
-          const sender = players.get(myId);
-          if (target && target.ws.readyState === WebSocket.OPEN) {
-            const requestId = `c_${crypto.randomUUID()}`;
-            db.prepare(
-              `INSERT INTO consent_requests (request_id, from_id, to_id, kind, status, created_at) VALUES (?, ?, ?, ?, 'pending', ?)`
-            ).run(requestId, myId, targetId, kind, Date.now());
-
-            target.ws.send(
-              JSON.stringify({
-                type: 'consent:incoming',
-                payload: {
-                  requestId,
-                  fromPlayerId: myId,
-                  fromName: sender?.name || 'Un citoyen',
-                  type: kind,
-                  status: 'pending',
-                },
-              })
-            );
-            ws.send(JSON.stringify({ type: 'consent:sent', payload: { requestId, toPlayerId: targetId, kind } }));
-          }
-        }
-
-        if (msg.type === 'consent:cancel' && myId && msg.payload) {
-          const requestId = String(msg.payload.requestId || '');
-          const row = db
-            .prepare(`SELECT from_id, to_id, status FROM consent_requests WHERE request_id = ?`)
-            .get(requestId) as { from_id: string; to_id: string; status: string } | undefined;
-          if (row && row.from_id === myId && row.status === 'pending') {
-            db.prepare(`UPDATE consent_requests SET status = 'cancelled' WHERE request_id = ?`).run(requestId);
-            const target = players.get(row.to_id);
-            target?.ws.send(JSON.stringify({ type: 'consent:cancelled', payload: { requestId } }));
-          }
-        }
-
-        if (msg.type === 'consent:respond' && myId && msg.payload) {
-          const requestId = String(msg.payload.requestId || '');
-          const accepted = Boolean(msg.payload.accepted);
-          const row = db
-            .prepare(`SELECT from_id, to_id, kind, status FROM consent_requests WHERE request_id = ?`)
-            .get(requestId) as { from_id: string; to_id: string; kind: 'woohoo' | 'marriage'; status: string } | undefined;
-          if (!row || row.to_id !== myId || row.status !== 'pending') return;
-
-          db.prepare(`UPDATE consent_requests SET status = ? WHERE request_id = ?`).run(
-            accepted ? 'accepted' : 'declined',
-            requestId
-          );
-
-          const sender = players.get(row.from_id);
-          const responder = players.get(myId);
-
-          if (accepted) {
-            const sRow = getSessionRow(row.from_id);
-            const rRow = getSessionRow(myId);
-            if (sRow) {
-              let st = JSON.parse(sRow.state_json) as PlayerState;
-              st = row.kind === 'marriage'
-                ? performCivilMarriage(st, responder?.name || 'Partenaire')
-                : performConsensualWooHoo(st, responder?.name || 'Partenaire');
-              saveSessionState(row.from_id, st);
-            }
-            if (rRow) {
-              let st = JSON.parse(rRow.state_json) as PlayerState;
-              st = row.kind === 'marriage'
-                ? performCivilMarriage(st, sender?.name || 'Partenaire')
-                : performConsensualWooHoo(st, sender?.name || 'Partenaire');
-              saveSessionState(myId, st);
-            }
-          }
-
-          sender?.ws.send(
-            JSON.stringify({
-              type: 'consent:resolved',
-              payload: {
-                requestId,
-                accepted,
-                partnerName: responder?.name || 'Partenaire',
-                kind: row.kind,
-              },
-            })
-          );
         }
 
         // --- HOUSE KNOCK & VISIT PERMISSIONS ---

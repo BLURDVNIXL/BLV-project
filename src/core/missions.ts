@@ -149,7 +149,7 @@ export const DESTINY_MISSIONS: Record<string, DestinyMission> = {
     id: 'mission_etudiant_ufhb',
     destinyId: 'etudiant_ufhb',
     title: 'Majors de Cocody',
-    summary: 'Décroche un badge d’excellence académique et fais décoller ta carrière.',
+    summary: 'Épargne, travaille et fais décoller ta carrière.',
     finalTrophy: 'Major de Promotion',
     steps: mkSteps('etudiant_ufhb', [
       {
@@ -164,12 +164,12 @@ export const DESTINY_MISSIONS: Record<string, DestinyMission> = {
         rewardEnvy: 15,
       },
       {
-        title: 'Concours d’Élite',
-        description: 'Réussis au moins 1 concours (Caïman, Alysma ou Alex).',
+        title: 'Première Épargne',
+        description: 'Mets 50 000 F de côté à la banque pour tes études.',
         targetDistrictId: 'cocody',
         targetDistrictName: 'Cocody · Deux-Plateaux',
-        conditionKind: 'school_badge',
-        conditionTarget: 1,
+        conditionKind: 'bank_balance',
+        conditionTarget: 50000,
         rewardCash: 40000,
         rewardStar: 8,
         rewardEnvy: 20,
@@ -379,12 +379,12 @@ export const DESTINY_MISSIONS: Record<string, DestinyMission> = {
         rewardEnvy: 15,
       },
       {
-        title: 'Réseau Anciens Élèves',
-        description: 'Obtiens 1 badge d’école d’élite (Caïman, Alysma ou Alex).',
+        title: 'Réseau & Épargne',
+        description: 'Garde 50 000 F à la banque pour cultiver ton réseau.',
         targetDistrictId: 'cocody',
         targetDistrictName: 'Cocody · Deux-Plateaux',
-        conditionKind: 'school_badge',
-        conditionTarget: 1,
+        conditionKind: 'bank_balance',
+        conditionTarget: 50000,
         rewardCash: 75000,
         rewardStar: 7,
         rewardEnvy: 20,
@@ -454,12 +454,12 @@ export const DESTINY_MISSIONS: Record<string, DestinyMission> = {
     finalTrophy: 'Ingénieur Major INPolytec',
     steps: mkSteps('eleve_inphb', [
       {
-        title: 'Grand Concours Scientifique',
-        description: 'Décroche 1 badge d’excellence (Alex, Caïman ou Alysma).',
+        title: 'Bourse de Recherche',
+        description: 'Épargne 50 000 F à la banque pour financer tes projets.',
         targetDistrictId: 'grand_bassam',
         targetDistrictName: 'Grand-Bassam · Littoral',
-        conditionKind: 'school_badge',
-        conditionTarget: 1,
+        conditionKind: 'bank_balance',
+        conditionTarget: 50000,
         rewardCash: 60000,
         rewardStar: 8,
         rewardEnvy: 20,
@@ -627,7 +627,7 @@ export const DESTINY_MISSIONS: Record<string, DestinyMission> = {
     steps: mkSteps('brouteur', [
       {
         title: 'Connexion Nocturne',
-        description: 'Réalise 1 opération dans Métiers & Contrats.',
+        description: 'Fais 1 journée de travail.',
         targetDistrictId: 'yopougon',
         targetDistrictName: 'Yopougon',
         conditionKind: 'work_shifts',
@@ -809,12 +809,12 @@ export const DESTINY_MISSIONS: Record<string, DestinyMission> = {
         rewardEnvy: 15,
       },
       {
-        title: 'Diplôme des Anciens',
-        description: 'Décroche 1 badge académique d’élite (Caïman, Alysma ou Alex).',
+        title: 'Fonds des Anciens',
+        description: 'Épargne 50 000 F à la banque pour renouer avec tes racines.',
         targetDistrictId: 'cocody',
         targetDistrictName: 'Cocody · Deux-Plateaux',
-        conditionKind: 'school_badge',
-        conditionTarget: 1,
+        conditionKind: 'bank_balance',
+        conditionTarget: 50000,
         rewardCash: 80000,
         rewardStar: 7,
         rewardEnvy: 20,
@@ -852,8 +852,6 @@ export function isMissionStepSatisfied(
       return state.activeMission.eatCount >= step.conditionTarget;
     case 'bank_balance':
       return state.bankCash >= step.conditionTarget;
-    case 'school_badge':
-      return state.activeBadges.length >= step.conditionTarget;
     case 'star_threshold':
       return state.star >= step.conditionTarget;
     case 'crib_upgrade': {

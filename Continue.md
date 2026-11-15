@@ -29,8 +29,8 @@ La question posée était : « ton travail respecte-t-il l'intégralité du READ
 6. **Rust** : le README dit « Rust / C++ » ; C++ retenu (pas de cible `wasm32` Rust dans l'environnement de l'agent).
 7. **Géographie** : rives schématiques, sol plat (le Plateau réel est en altitude), ponts plats sans pylônes ni haubans, eau non animée.
 8. **Performances** : mesurées uniquement en rendu logiciel (aucun GPU). **À tester sur un vrai téléphone** (rayon de ville 4 chunks, 3 sur mobile).
-9. **Sections héritées du README (§4 temps accéléré, §5 Chance, §6 destins, §7 Jauge, §8 romance, §9 améliorations, §10 radios, §11 badges des lycées, §12 admin, §13 fin tragique)** : ces fonctions viennent de la version d'origine ; elles n'ont **pas été retestées une à une** après mes modifications (seul le démarrage, la marche, la conduite et le bandeau de quartier l'ont été).
-10. Les 3 lycées sont des repères fictifs posés à Cocody/Marcory (positions provisoires).
+9. **Sections héritées du README (§4 temps accéléré, §5 Chance, §6 destins, §7 Jauge, §9 améliorations, §12 admin, §13 fin tragique)** : ces fonctions viennent de la version d'origine ; elles n'ont **pas été retestées une à une** après mes modifications (seul le démarrage, la marche, la conduite et le bandeau de quartier l'ont été).
+10. Les 3 lycées sont de simples bâtiments de décor (plus de concours) posés à Cocody/Marcory (positions provisoires). Les apps Romance, Lycées Élite, Radio FM et Métiers ont été supprimées (15/11/2026) : voir CONTEXT.md.
 
 ## 2. Reprendre le travail (procédure)
 

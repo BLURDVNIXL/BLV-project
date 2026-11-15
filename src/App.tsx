@@ -1,8 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import {
-  AcademicBadge,
-  CareerJob,
-  ConsentPrompt,
   Destiny,
   GameScreenState,
   HomeAccessMode,
@@ -16,7 +13,6 @@ import {
 import {
   ALL_DESTINIES,
   IVORIAN_FOODS,
-  RADIO_STATIONS,
 } from './core/destinies';
 import {
   addLog,
@@ -35,9 +31,6 @@ import {
   taxiRideGameMinutes,
   taxiWaitSeconds,
   taxiCallRefusal,
-  performCareerJob,
-  performCivilMarriage,
-  performConsensualWooHoo,
   performLavageEtoile,
   performWorkShift,
   playLotoAkwaba,
@@ -48,7 +41,6 @@ import {
   spendCash,
   takeBankLoan,
   takeShower,
-  unlockBadge,
   useToilet,
   withdrawFromBank,
 } from './core/simulation';
@@ -56,7 +48,7 @@ import { DISTRICTS } from './world/abidjanGeography';
 import { loadGameStateAsync, loadGameStateSync, saveGameStateAsync } from './core/storage';
 import { initWasmCore } from './wasm/wasmBridge';
 import { AbidjanSceneManager, CityHotspot, RadarSnapshot } from './3d/sceneManager';
-import { soundEngine, RadioPlayStatus } from './audio/radioManager';
+import { soundEngine } from './audio/soundEngine';
 import {
   ChatMessage,
   MultiplayerClient,
@@ -80,7 +72,6 @@ import type { Route } from './world/routing';
 import { SettingsModal } from './components/SettingsModal';
 import { GameOverModal } from './components/GameOverModal';
 import { OrientationGuard } from './components/OrientationGuard';
-import { SchoolExamModal } from './components/SchoolExamModal';
 import { OfflineIndicator } from './components/PWAInstallPrompt';
 import { Play, RotateCcw, Home, ShieldCheck, DoorOpen } from 'lucide-react';
 
@@ -109,21 +100,12 @@ export default function App() {
   const [route, setRoute] = useState<Route | null>(null);
   const routeRef = useRef<Route | null>(null);
   routeRef.current = route;
-  const [activeExamBadge, setActiveExamBadge] = useState<AcademicBadge | null>(null);
-  const [incomingConsent, setIncomingConsent] = useState<ConsentPrompt | null>(null);
-  const [pendingOutgoingConsent, setPendingOutgoingConsent] = useState<{
-    requestId: string;
-    toPlayerId: string;
-    partnerName: string;
-    kind: 'woohoo' | 'marriage';
-  } | null>(null);
   const [incomingKnock, setIncomingKnock] = useState<HouseKnockPrompt | null>(null);
   const [visitingNeighbor, setVisitingNeighbor] = useState<string | null>(null);
   const [toastNotification, setToastNotification] = useState<string | null>(null);
 
   // Audio & Settings
   const [isMuted, setIsMuted] = useState(false);
-  const [radioStatus, setRadioStatus] = useState<RadioPlayStatus>('idle');
   const [forceGamepad, setForceGamepad] = useState(false);
   const touchControls = useTouchControls(forceGamepad);
   const [cameraSensitivity, setCameraSensitivity] = useState<number>(() => {
@@ -210,9 +192,6 @@ export default function App() {
       sceneRef.current.setCameraMode(screenState === 'title' || screenState === 'roulette' ? 'flyover' : 'follow');
       sceneRef.current.setPaused(screenState !== 'playing');
     }
-    if (screenState === 'paused' || screenState === 'gameover') {
-      soundEngine.pauseForMenu();
-    }
   }, [screenState]);
 
   // Trigger Game Over state automatically when simulation flags isGameOver
@@ -225,7 +204,6 @@ export default function App() {
   // Initialize WASM Core + Async IndexedDB Save Load + Server Session + Audio Status Listener
   useEffect(() => {
     initWasmCore().catch(() => {});
-    soundEngine.setStatusListener((st) => setRadioStatus(st));
 
     let mounted = true;
     loadGameStateAsync().then(async (saved) => {
@@ -265,7 +243,6 @@ export default function App() {
 
     return () => {
       mounted = false;
-      soundEngine.setStatusListener(null);
     };
   }, [isAutostart]);
 
@@ -314,29 +291,13 @@ export default function App() {
       } else if (h.type === 'vieux_sage') {
         setPlayerState((prev) => performLavageEtoile(prev));
         syncEconomy('lavage_etoile');
-        soundEngine.playWooHooJingle();
+        soundEngine.playJingle();
       } else if (h.type === 'work') {
         setPlayerState((prev) => performWorkShift(prev));
         syncEconomy('work');
         soundEngine.playCashSound();
       } else if (h.type === 'bank') {
         setIsPhoneOpen(true);
-      } else if (h.type === 'marry') {
-        const partner = cur.loveState.partnerName || 'Awa (Marcory)';
-        setPlayerState((prev) => performCivilMarriage(prev, partner));
-        syncEconomy('marriage', { partnerName: partner });
-        soundEngine.playWooHooJingle();
-      } else if (h.type === 'woohoo') {
-        const partner = cur.loveState.partnerName || 'Affoué (Plateau)';
-        setPlayerState((prev) => performConsensualWooHoo(prev, partner));
-        syncEconomy('woohoo', { partnerName: partner });
-        soundEngine.playWooHooJingle();
-      } else if (h.type === 'school_caiman') {
-        setActiveExamBadge('caiman');
-      } else if (h.type === 'school_alysma') {
-        setActiveExamBadge('alysma');
-      } else if (h.type === 'school_alex') {
-        setActiveExamBadge('alex');
       } else if (h.type === 'sleep') {
         setPlayerState((prev) => sleepAtHome(prev));
         syncEconomy('sleep');
@@ -353,7 +314,7 @@ export default function App() {
       } else if (h.type === 'yannis_academy') {
         setPlayerState((prev) => donateYannisAcademy(prev));
         syncEconomy('yannis_academy');
-        soundEngine.playWooHooJingle();
+        soundEngine.playJingle();
       } else if (h.type === 'hospital_door') {
         if (cur.isDriving) {
           showToast('🚗 Descends de ton véhicule pour entrer.');
@@ -385,7 +346,7 @@ export default function App() {
           setPlayerState((prev) => {
             const next = evaluateMissionProgress(prev, match.id);
             if (next.activeMission.stepIndex !== prev.activeMission.stepIndex || next.activeMission.completed !== prev.activeMission.completed) {
-              soundEngine.playWooHooJingle();
+              soundEngine.playJingle();
               showToast(`🎯 Mission mise à jour à ${match.name} !`);
               syncEconomy('visit_district', { districtId: match.id });
             }
@@ -535,33 +496,6 @@ export default function App() {
           showToast(`⚠️ ${msg}`);
         },
         onChatMessage: (msg) => setChatMessages((prev) => [...prev.slice(-30), msg]),
-        onIncomingConsent: (req) => setIncomingConsent(req),
-        onConsentSent: (sent) => {
-          const target = remotePlayers.find((r) => r.id === sent.toPlayerId);
-          setPendingOutgoingConsent({
-            requestId: sent.requestId,
-            toPlayerId: sent.toPlayerId,
-            partnerName: target?.name || 'Citoyen',
-            kind: sent.kind,
-          });
-        },
-        onConsentCancelled: (requestId) => {
-          setIncomingConsent((curr) => (curr?.requestId === requestId ? null : curr));
-          showToast('💬 La demande de consentement a été annulée.');
-        },
-        onConsentResolved: (res) => {
-          setPendingOutgoingConsent((curr) => (curr?.requestId === res.requestId ? null : curr));
-          if (res.accepted) {
-            soundEngine.playWooHooJingle();
-            setPlayerState((prev) =>
-              res.kind === 'marriage'
-                ? performCivilMarriage(prev, res.partnerName)
-                : performConsensualWooHoo(prev, res.partnerName)
-            );
-          } else {
-            showToast(`💬 ${res.partnerName} a décliné la demande.`);
-          }
-        },
         onHouseKnockIncoming: (knock) => setIncomingKnock(knock),
         onHouseVisitResolved: (res) => {
           if (res.approved && res.homeType && res.seedKey) {
@@ -694,13 +628,6 @@ export default function App() {
   const handleToggleSound = () => {
     const m = soundEngine.toggleMute();
     setIsMuted(m);
-  };
-
-  const handleNextRadio = () => {
-    const idx = RADIO_STATIONS.findIndex((r) => r.id === playerState.activeRadioId);
-    const next = RADIO_STATIONS[(idx + 1) % RADIO_STATIONS.length];
-    setPlayerState((prev) => ({ ...prev, activeRadioId: next.id }));
-    soundEngine.setRadio(next.audioKey, next.streamUrl);
   };
 
   const handleRepairStalledEngine = () => {
@@ -869,7 +796,6 @@ export default function App() {
             onlineCount={onlineCount}
             nearbyHotspot={nearbyHotspot}
             nearbyVehicle={nearbyVehicle}
-            radioStatus={radioStatus}
             getRadarSnapshot={getRadarSnapshot}
             touchControls={touchControls}
             onInteractClick={() => sceneRef.current?.triggerInteract()}
@@ -879,7 +805,6 @@ export default function App() {
             onOpenSettings={() => setIsSettingsOpen(true)}
             onOpenAdmin={() => setIsAdminOpen(true)}
             onOpenRoulette={() => setScreenState('roulette')}
-            onNextRadio={handleNextRadio}
             onToggleSound={handleToggleSound}
             onPauseClick={() => setScreenState('paused')}
             isMuted={isMuted}
@@ -940,8 +865,6 @@ export default function App() {
           tontineSnapshot={tontineSnapshot}
           tontineError={tontineError}
           chatMessages={chatMessages}
-          radioStatus={radioStatus}
-          pendingOutgoingConsent={pendingOutgoingConsent}
           visitingNeighbor={visitingNeighbor}
           isSenderMuted={(id) => mpRef.current?.isSenderMuted(id) ?? false}
           getGpsSource={getGpsSource}
@@ -1008,25 +931,6 @@ export default function App() {
             sceneRef.current?.startTaxiApproach(waitS);
             setIsPhoneOpen(false);
           }}
-          onWooHoo={(partner) => {
-            soundEngine.playWooHooJingle();
-            setPlayerState((prev) => performConsensualWooHoo(prev, partner));
-            syncEconomy('woohoo', { partnerName: partner });
-          }}
-          onMarry={(partner) => {
-            soundEngine.playWooHooJingle();
-            setPlayerState((prev) => performCivilMarriage(prev, partner));
-            syncEconomy('marriage', { partnerName: partner });
-          }}
-          onRequestRemoteConsent={(targetId, partnerName, kind) => {
-            mpRef.current?.requestConsent(targetId, kind);
-            showToast(`💌 Demande envoyée à ${partnerName} !`);
-          }}
-          onCancelConsent={(requestId) => {
-            mpRef.current?.cancelConsent(requestId);
-            setPendingOutgoingConsent(null);
-            showToast('Demande de consentement annulée.');
-          }}
           onVisitNeighbor={(ownerId) => {
             mpRef.current?.requestHouseVisit(ownerId);
             showToast('🚪 Tu frappes / entres chez ton voisin...');
@@ -1041,10 +945,6 @@ export default function App() {
             setPlayerState((prev) => setHomeAccessMode(prev, mode));
             syncEconomy('set_home_access', { mode });
           }}
-          onStartSchoolExam={(badge) => {
-            setIsPhoneOpen(false);
-            setActiveExamBadge(badge);
-          }}
           onBuyOrEquipOutfit={(outfit: SapeOutfitId) => {
             setPlayerState((prev) => {
               const next = buyOrEquipOutfit(prev, outfit);
@@ -1052,13 +952,6 @@ export default function App() {
               return next;
             });
             syncEconomy('buy_outfit', { outfitId: outfit });
-          }}
-          onChangeRadio={(radioId) => {
-            const r = RADIO_STATIONS.find((x) => x.id === radioId);
-            if (r) {
-              setPlayerState((prev) => ({ ...prev, activeRadioId: r.id }));
-              soundEngine.setRadio(r.audioKey, r.streamUrl);
-            }
           }}
           onUpgradeCrib={(key) => {
             setPlayerState((prev) => {
@@ -1080,11 +973,6 @@ export default function App() {
             setPlayerState((prev) => useToilet(prev));
             syncEconomy('toilet');
           }}
-          onDoJob={(job: CareerJob) => {
-            soundEngine.playCashSound();
-            setPlayerState((prev) => performCareerJob(prev, job));
-            syncEconomy('work', { jobId: job.id });
-          }}
           onSendChat={(txt) => mpRef.current?.sendChat(txt)}
           onReportChat={(messageId, senderId) => {
             mpRef.current?.reportChat(messageId, senderId);
@@ -1095,7 +983,7 @@ export default function App() {
             showToast(nowMuted ? '🔇 Joueur masqué dans le chat.' : '🔊 Joueur réactivé.');
           }}
           onDonateYannis={() => {
-            soundEngine.playWooHooJingle();
+            soundEngine.playJingle();
             setPlayerState((prev) => donateYannisAcademy(prev));
             syncEconomy('yannis_academy');
           }}
@@ -1104,60 +992,6 @@ export default function App() {
             syncEconomy('clear_police', { isBlackMarket });
           }}
         />
-      )}
-
-      {/* SCHOOL ENTRANCE EXAM (CONCOURS) */}
-      {activeExamBadge && (
-        <SchoolExamModal
-          badgeId={activeExamBadge}
-          onClose={() => setActiveExamBadge(null)}
-          onPass={(badge) => {
-            soundEngine.playWooHooJingle();
-            setPlayerState((prev) => unlockBadge(prev, badge));
-            syncEconomy('unlock_badge', { badgeId: badge });
-            setActiveExamBadge(null);
-            showToast(`🎓 Badge ${badge.toUpperCase()} obtenu !`);
-          }}
-        />
-      )}
-
-      {/* INCOMING BILATERAL MULTIPLAYER CONSENT MODAL */}
-      {incomingConsent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink-900/60">
-          <div className="w-full max-w-sm rounded-2xl bg-cream-100 border-2 border-coral-400/60 p-5 text-center space-y-3 shadow-2xl">
-            <ShieldCheck className="w-8 h-8 text-coral-600 mx-auto" />
-            <h3 className="font-display text-xl uppercase text-ink-800">Consentement Mutuel Requis</h3>
-            <p className="text-xs text-ink-600">
-              <strong>{incomingConsent.fromName}</strong> te propose{' '}
-              {incomingConsent.type === 'marriage'
-                ? 'un Mariage Civil à la Mairie du Plateau'
-                : 'une intimité pudique (style Les Sims)'}
-              .
-            </p>
-            <div className="flex gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => {
-                  mpRef.current?.respondConsent(incomingConsent.requestId, true);
-                  setIncomingConsent(null);
-                }}
-                className="flex-1 py-2.5 rounded-xl bg-coral-600 hover:bg-coral-500 text-xs font-bold uppercase cursor-pointer"
-              >
-                Accepter 💖
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  mpRef.current?.respondConsent(incomingConsent.requestId, false);
-                  setIncomingConsent(null);
-                }}
-                className="flex-1 py-2.5 rounded-xl bg-cream-200 hover:bg-cream-200 text-xs font-bold uppercase cursor-pointer"
-              >
-                Décliner
-              </button>
-            </div>
-          </div>
-        </div>
       )}
 
       {/* INCOMING HOUSE KNOCK MODAL */}
@@ -1280,11 +1114,6 @@ export default function App() {
                     isDepressed: false,
                     needs: { hunger: 100, energy: 100, hygiene: 100, bladder: 100, envy: 100 },
                   }
-            )
-          }
-          onUnlockBadge={(badge, serverState) =>
-            setPlayerState((prev) =>
-              serverState ? { ...serverState, sessionToken: prev.sessionToken } : unlockBadge(prev, badge)
             )
           }
         />

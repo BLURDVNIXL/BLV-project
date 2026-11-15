@@ -1,9 +1,7 @@
 import {
   Destiny,
   PlayerState,
-  AcademicBadge,
   FoodItem,
-  CareerJob,
   SapeOutfitId,
   FactionReputation,
   HomeAccessMode,
@@ -12,7 +10,6 @@ import {
 import { DISTRICTS } from '../world/abidjanGeography';
 import {
   ALL_DESTINIES,
-  ACADEMIC_BADGES,
   CRIB_UPGRADE_PRICES,
   SAPE_OUTFITS,
 } from './destinies';
@@ -97,7 +94,6 @@ export function createInitialPlayerState(
     yannisAcademyLevel: 0,
     engineStalled: false,
     weather: 'soleil',
-    activeBadges: [],
     factions: {
       syndicat: destiny.id.includes('woro') || destiny.id.includes('abobo') ? 65 : 50,
       ordre: destiny.id === 'cadre_plateau' || destiny.id === 'eleve_inphb' ? 65 : 50,
@@ -132,14 +128,8 @@ export function createInitialPlayerState(
       completed: false,
     },
     completedMissions: [],
-    loveState: {
-      partnerName: null,
-      loveLevel: 0,
-      isMarried: false,
-    },
     isDriving: false,
     currentVehicleId: destiny.vehicle,
-    activeRadioId: 'rti_freq2',
     isGameOver: false,
     gameOverReason: '',
     logs: [
@@ -301,9 +291,8 @@ export function advanceGameTime(
         });
       }
 
-      // Alex badge: +25% investment interest on bankCash
       if (newBankCash > 0) {
-        const rate = hasBadge(state, 'alex') ? 0.05 : 0.02;
+        const rate = 0.02;
         const interest = Math.round(newBankCash * rate);
         newBankCash += interest;
         newLogs.unshift({
@@ -357,7 +346,7 @@ export function advanceGameTime(
     gameHoursAdded *
     (state.destiny.perk.includes('Résistance à la fatigue') ? 1.8 : 2.5) *
     climFactor;
-  const hygieneDecay = gameHoursAdded * (hasBadge(state, 'alysma') ? 1.1 : 2.2);
+  const hygieneDecay = gameHoursAdded * 2.2;
   const bladderDecay = gameHoursAdded * 2.0;
   const bafflesBonus = state.cribUpgrades.bafflesMaquis ? 1.0 : 2.5;
   const envyDecay = gameHoursAdded * (state.destiny.id === 'gerant_maquis' ? 1.0 : bafflesBonus);
@@ -405,32 +394,6 @@ export function advanceGameTime(
     gameOverReason,
     logs: newLogs.slice(0, 25),
   });
-}
-
-export function hasBadge(state: PlayerState, badge: AcademicBadge): boolean {
-  return state.activeBadges.includes(badge);
-}
-
-export function unlockBadge(state: PlayerState, badge: AcademicBadge): PlayerState {
-  if (state.activeBadges.includes(badge)) return state;
-  const badgeObj = ACADEMIC_BADGES.find((b) => b.id === badge);
-  const newBadges = [...state.activeBadges, badge];
-  const starBonus = badge === 'alysma' ? 10 : 5;
-
-  const updated = addLog(
-    {
-      ...state,
-      activeBadges: newBadges,
-      star: Math.min(100, state.star + starBonus),
-      factions: {
-        ...state.factions,
-        ordre: Math.min(100, state.factions.ordre + 10),
-      },
-    },
-    `🏛️ Concours réussi ! Badge « ${badgeObj?.title} » (${badgeObj?.school}) débloqué ! ${badgeObj?.perks}`,
-    'star'
-  );
-  return evaluateMissionProgress(updated);
 }
 
 export function spendCash(state: PlayerState, amount: number): { ok: boolean; nextCash: number } {
@@ -515,7 +478,7 @@ export function withdrawFromBank(state: PlayerState, amount: number): PlayerStat
 }
 
 export function takeBankLoan(state: PlayerState, amount: number): PlayerState {
-  const maxLoan = hasBadge(state, 'caiman') ? 1000000 : 500000;
+  const maxLoan = 500000;
   if (amount <= 0 || state.debt + amount > maxLoan) {
     return addLog(state, `Plafond d'emprunt atteint (${maxLoan.toLocaleString('fr-FR')} FCFA max).`, 'danger');
   }
@@ -754,75 +717,44 @@ export function sleepAtHome(state: PlayerState): PlayerState {
   );
 }
 
-export function performCareerJob(state: PlayerState, job: CareerJob): PlayerState {
-  if (state.needs.energy < job.energyCost) {
+export function performWorkShift(state: PlayerState): PlayerState {
+  const basePay = state.destiny.id === 'yannis_diomande' ? 500000 : state.destiny.rarity === 'epique' ? 55000 : 30000;
+  const energyCost = 22;
+  if (state.needs.energy < energyCost) {
     return addLog(state, '⚡ Trop fatigué pour travailler ! Va dormir ou bois un café.', 'danger');
-  }
-  if (job.minStar && state.star < job.minStar) {
-    return addLog(state, `⭐ Ce contrat requiert au moins ${job.minStar}/100 d'Étoile.`, 'danger');
   }
 
   let bonusPct = 0;
-  if (state.destiny.id === 'etudiant_ufhb' || hasBadge(state, 'caiman')) bonusPct += 25;
-  if (hasBadge(state, 'alex')) bonusPct += 25;
-  if (state.sapeOutfit === 'costume_italien' && job.id === 'audit_plateau') bonusPct += 25;
-  if (state.destiny.id === 'commercant_adjame' && job.id === 'vente_adjame') bonusPct += 15;
+  if (state.destiny.id === 'etudiant_ufhb') bonusPct += 25;
+  if (state.sapeOutfit === 'costume_italien') bonusPct += 25;
+  if (state.destiny.id === 'commercant_adjame') bonusPct += 15;
 
   const wasm = getWasmCore();
   const roll = Math.floor(Math.random() * 100);
-  const payout = wasm.compute_work_payout(
-    job.basePay,
-    Math.round(state.star),
-    roll,
-    Math.round(state.needs.envy),
-    bonusPct
-  );
-
-  let newPolice = state.policeWanted;
-  if (job.id === 'cyber_op') {
-    newPolice = Math.min(5, state.policeWanted + 2);
-  }
-
-  const newFactions: FactionReputation = { ...state.factions };
-  newFactions[job.factionKey] = Math.min(100, newFactions[job.factionKey] + 6);
+  const payout = wasm.compute_work_payout(basePay, Math.round(state.star), roll, Math.round(state.needs.envy), bonusPct);
 
   const depressionNote = state.needs.envy <= 0 ? ' (⚠️ Réduit de 50% par ta Dépression !)' : '';
-  const plccNote = job.id === 'cyber_op' ? ' 🚨 Alerte PLCC (+2 ★ Police) !' : '';
 
   const updated = addLog(
     {
       ...state,
       cash: state.cash + payout,
-      policeWanted: newPolice,
-      factions: newFactions,
+      factions: { ...state.factions, ordre: Math.min(100, state.factions.ordre + 6) },
       activeMission: {
         ...state.activeMission,
         workCount: state.activeMission.workCount + 1,
       },
       needs: {
         ...state.needs,
-        energy: Math.max(0, state.needs.energy - job.energyCost),
+        energy: Math.max(0, state.needs.energy - energyCost),
         hunger: Math.max(0, state.needs.hunger - 15),
         envy: Math.min(100, state.needs.envy + 15),
       },
     },
-    `💼 ${job.title} terminé : +${payout.toLocaleString('fr-FR')} FCFA${depressionNote}.${plccNote}`,
-    job.id === 'cyber_op' ? 'danger' : 'work'
+    `💼 Journée de travail terminée : +${payout.toLocaleString('fr-FR')} FCFA${depressionNote}.`,
+    'work'
   );
   return evaluateMissionProgress(updated);
-}
-
-export function performWorkShift(state: PlayerState): PlayerState {
-  const defaultJob: CareerJob = {
-    id: 'audit_plateau',
-    title: 'Contrat d\'Affaires au Plateau',
-    district: 'Le Plateau',
-    basePay: state.destiny.id === 'yannis_diomande' ? 500000 : state.destiny.rarity === 'epique' ? 55000 : 30000,
-    energyCost: 22,
-    factionKey: 'ordre',
-    description: 'Journée de travail au Plateau.',
-  };
-  return performCareerJob(state, defaultJob);
 }
 
 export function playLotoAkwaba(state: PlayerState): PlayerState {
@@ -900,59 +832,6 @@ export function clearPoliceViaNetwork(state: PlayerState, isBlackMarket: boolean
     'star'
   );
   return evaluateMissionProgress(updated);
-}
-
-export function performConsensualWooHoo(state: PlayerState, partnerName: string): PlayerState {
-  const newEnvy = Math.min(100, state.needs.envy + 60);
-  const newEnergy = Math.max(10, state.needs.energy - 15);
-  const newHygiene = Math.max(10, state.needs.hygiene - 15);
-  const newLove = Math.min(100, (state.loveState.loveLevel || 40) + 20);
-
-  return addLog(
-    {
-      ...state,
-      needs: {
-        ...state.needs,
-        envy: newEnvy,
-        energy: newEnergy,
-        hygiene: newHygiene,
-      },
-      isDepressed: false,
-      loveState: {
-        partnerName,
-        loveLevel: newLove,
-        isMarried: state.loveState.isMarried,
-      },
-      star: Math.min(100, state.star + 3),
-    },
-    `💖 Intimité consentie avec ${partnerName} sous la couette (style Les Sims) ! Buff « Cœur Comblé », Envie +60% !`,
-    'love'
-  );
-}
-
-export function performCivilMarriage(state: PlayerState, partnerName: string): PlayerState {
-  const ringCost = 150000;
-  const payment = spendCash(state, ringCost);
-  if (!payment.ok) {
-    return addLog(state, `Fonds insuffisants pour l'alliance en bijouterie du Plateau (${ringCost.toLocaleString('fr-FR')} FCFA).`, 'danger');
-  }
-
-  return addLog(
-    {
-      ...state,
-      cash: payment.nextCash,
-      loveState: {
-        partnerName,
-        loveLevel: 100,
-        isMarried: true,
-      },
-      star: Math.min(100, state.star + 15),
-      needs: { ...state.needs, envy: 100 },
-      isDepressed: false,
-    },
-    `💍 Mariage civil officiel célébré à la Mairie du Plateau avec ${partnerName} !`,
-    'love'
-  );
 }
 
 export function performLavageEtoile(state: PlayerState): PlayerState {

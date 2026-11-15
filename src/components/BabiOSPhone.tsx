@@ -5,14 +5,9 @@ import {
   CreditCard,
   UtensilsCrossed,
   MapPin,
-  Heart,
   Shirt,
-  GraduationCap,
-  Radio,
   Home,
-  Briefcase,
   MessageSquare,
-  ShieldCheck,
   CheckCircle,
   Send,
   Wifi,
@@ -26,17 +21,12 @@ import {
 } from 'lucide-react';
 import {
   PlayerState,
-  AcademicBadge,
-  CareerJob,
   RemotePlayer,
   SapeOutfitId,
   HomeAccessMode,
 } from '../types/game';
 import {
   IVORIAN_FOODS,
-  RADIO_STATIONS,
-  ACADEMIC_BADGES,
-  CAREERS,
   SAPE_OUTFITS,
   CRIB_UPGRADE_PRICES,
 } from '../core/destinies';
@@ -51,7 +41,6 @@ import {
 import { FARE_BETWEEN_COMMUNES, FARE_SAME_COMMUNE, fastTravelFare, formatGameTime } from '../core/simulation';
 import { t } from '../core/i18n';
 import { ChatMessage, ServerTontineSnapshot } from '../network/multiplayerClient';
-import { RadioPlayStatus } from '../audio/radioManager';
 
 interface BabiOSPhoneProps {
   playerState: PlayerState;
@@ -59,13 +48,6 @@ interface BabiOSPhoneProps {
   tontineSnapshot: ServerTontineSnapshot | null;
   tontineError: string | null;
   chatMessages: ChatMessage[];
-  radioStatus: RadioPlayStatus;
-  pendingOutgoingConsent: {
-    requestId: string;
-    toPlayerId: string;
-    partnerName: string;
-    kind: 'woohoo' | 'marriage';
-  } | null;
   visitingNeighbor: string | null;
   isSenderMuted: (senderId: string) => boolean;
   /** Lieux et perron de la maison, relevés à l'ouverture de l'application GPS. */
@@ -80,21 +62,14 @@ interface BabiOSPhoneProps {
   onContributeTontine: () => void;
   onFleeTontine: () => void;
   onFastTravel: (x: number, z: number, districtName: string, districtId: string) => void;
-  onWooHoo: (partnerName: string) => void;
-  onMarry: (partnerName: string) => void;
-  onRequestRemoteConsent: (targetId: string, partnerName: string, kind: 'woohoo' | 'marriage') => void;
-  onCancelConsent: (requestId: string) => void;
   onVisitNeighbor: (ownerId: string) => void;
   onReturnHome: () => void;
   onChangeHomeAccess: (mode: HomeAccessMode) => void;
-  onStartSchoolExam: (badge: AcademicBadge) => void;
   onBuyOrEquipOutfit: (outfit: SapeOutfitId) => void;
-  onChangeRadio: (radioId: string) => void;
   onUpgradeCrib: (upgradeKey: 'splitClim' | 'bafflesMaquis' | 'tv4k' | 'canapeCuir') => void;
   onSleepHome: () => void;
   onShowerHome: () => void;
   onToiletHome: () => void;
-  onDoJob: (job: CareerJob) => void;
   onSendChat: (text: string) => void;
   onReportChat: (messageId: string, senderId: string) => void;
   onToggleMuteSender: (senderId: string) => void;
@@ -108,12 +83,8 @@ type PhoneApp =
   | 'bank'
   | 'eats'
   | 'gps'
-  | 'romance'
   | 'sape'
-  | 'schools'
-  | 'radio'
   | 'crib'
-  | 'jobs'
   | 'social';
 
 export const BabiOSPhone: React.FC<BabiOSPhoneProps> = ({
@@ -122,8 +93,6 @@ export const BabiOSPhone: React.FC<BabiOSPhoneProps> = ({
   tontineSnapshot,
   tontineError,
   chatMessages,
-  radioStatus,
-  pendingOutgoingConsent,
   visitingNeighbor,
   isSenderMuted,
   getGpsSource,
@@ -137,21 +106,14 @@ export const BabiOSPhone: React.FC<BabiOSPhoneProps> = ({
   onContributeTontine,
   onFleeTontine,
   onFastTravel,
-  onWooHoo,
-  onMarry,
-  onRequestRemoteConsent,
-  onCancelConsent,
   onVisitNeighbor,
   onReturnHome,
   onChangeHomeAccess,
-  onStartSchoolExam,
   onBuyOrEquipOutfit,
-  onChangeRadio,
   onUpgradeCrib,
   onSleepHome,
   onShowerHome,
   onToiletHome,
-  onDoJob,
   onSendChat,
   onReportChat,
   onToggleMuteSender,
@@ -159,7 +121,6 @@ export const BabiOSPhone: React.FC<BabiOSPhoneProps> = ({
   onClearPoliceNetwork,
 }) => {
   const [activeApp, setActiveApp] = useState<PhoneApp>('home');
-  const [consentRequest, setConsentRequest] = useState<string | null>(null);
   const [chatInput, setChatInput] = useState('');
   const [reportedIds, setReportedIds] = useState<Record<string, boolean>>({});
   const [, setMuteTick] = useState(0);
@@ -246,12 +207,8 @@ export const BabiOSPhone: React.FC<BabiOSPhoneProps> = ({
                 <AppIcon label={s.bank} icon={<CreditCard className="h-6 w-6" />} tone="palm" onClick={() => setActiveApp('bank')} />
                 <AppIcon label={s.eats} icon={<UtensilsCrossed className="h-6 w-6" />} tone="sun" onClick={() => setActiveApp('eats')} />
                 <AppIcon label={s.gps} icon={<MapPin className="h-6 w-6" />} tone="lagoon" onClick={() => setActiveApp('gps')} />
-                <AppIcon label={s.romance} icon={<Heart className="h-6 w-6" />} tone="coral" onClick={() => setActiveApp('romance')} />
                 <AppIcon label={s.sape} icon={<Shirt className="h-6 w-6" />} tone="plum" onClick={() => setActiveApp('sape')} />
-                <AppIcon label={s.schools} icon={<GraduationCap className="h-6 w-6" />} tone="lagoon" onClick={() => setActiveApp('schools')} />
-                <AppIcon label={s.radio} icon={<Radio className="h-6 w-6" />} tone="palm" onClick={() => setActiveApp('radio')} />
                 <AppIcon label={s.crib} icon={<Home className="h-6 w-6" />} tone="sun" onClick={() => setActiveApp('crib')} />
-                <AppIcon label={s.jobs} icon={<Briefcase className="h-6 w-6" />} tone="lagoon" onClick={() => setActiveApp('jobs')} />
                 <AppIcon label="Babi Chat" icon={<MessageSquare className="h-6 w-6" />} tone="plum" onClick={() => setActiveApp('social')} />
               </div>
 
@@ -325,6 +282,22 @@ export const BabiOSPhone: React.FC<BabiOSPhoneProps> = ({
                   </div>
                 );
               })}
+
+              {playerState.destiny.realMadridSuperstar && (
+                <button type="button" onClick={onDonateYannis} className="rounded-xl bg-lagoon-600 hover:bg-lagoon-600 py-2 text-xs font-bold cursor-pointer">
+                  ⚽ Financer Académie Yannis Diomandé (500 000 F)
+                </button>
+              )}
+              {playerState.destiny.secretAddressBook && playerState.policeWanted > 0 && (
+                <button type="button" onClick={() => onClearPoliceNetwork(false)} className="rounded-xl bg-sun-600 py-2 text-xs font-bold text-white cursor-pointer">
+                  📞 Carnet d’Adresses : Annuler ★ Police
+                </button>
+              )}
+              {playerState.destiny.blackMarketAccess && (
+                <button type="button" onClick={() => onClearPoliceNetwork(true)} className="rounded-xl bg-palm-600 py-2 text-xs font-bold cursor-pointer">
+                  🕶️ Marché Noir : Fausses Plaques (35 000 F)
+                </button>
+              )}
             </div>
           )}
 
@@ -496,121 +469,6 @@ export const BabiOSPhone: React.FC<BabiOSPhoneProps> = ({
             </div>
           )}
 
-          {/* ROMANCE, CONSENTEMENT BILATÉRAL & VISITES VOISINS */}
-          {activeApp === 'romance' && (
-            <div className="flex flex-col gap-2.5">
-              <AppHeader title={s.romance} onBack={() => setActiveApp('home')} />
-
-              {pendingOutgoingConsent && (
-                <div className="rounded-xl bg-sun-300/35 p-3 border border-sun-400/50 space-y-2">
-                  <div className="text-xs font-bold text-sun-600">
-                    ⏳ Demande en attente auprès de {pendingOutgoingConsent.partnerName} (
-                    {pendingOutgoingConsent.kind === 'marriage' ? 'Mariage Civil' : 'Intimité Sims'})
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => onCancelConsent(pendingOutgoingConsent.requestId)}
-                    className="w-full rounded-lg bg-cream-200 hover:bg-cream-200 py-1.5 text-xs font-bold text-coral-600 cursor-pointer"
-                  >
-                    Annuler la demande
-                  </button>
-                </div>
-              )}
-
-              {consentRequest && (
-                <div className="rounded-xl bg-coral-400/15 p-3 border-2 border-coral-400/60">
-                  <div className="flex items-center gap-1.5 text-xs font-bold uppercase text-coral-600">
-                    <ShieldCheck className="h-4 w-4" />
-                    Consentement Mutuel Strict
-                  </div>
-                  <p className="text-xs text-ink-800 mt-1">
-                    Confirmer l’accord mutuel avec {consentRequest} pour une intimité pudique (style Les Sims) ?
-                  </p>
-                  <div className="mt-2.5 flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onWooHoo(consentRequest);
-                        setConsentRequest(null);
-                      }}
-                      className="flex-1 rounded-lg bg-coral-600 hover:bg-coral-500 py-1.5 text-xs font-bold cursor-pointer"
-                    >
-                      Consentir 💖
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setConsentRequest(null)}
-                      className="rounded-lg bg-cream-200 px-3 py-1.5 text-xs cursor-pointer"
-                    >
-                      Annuler
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {remotePlayers.length > 0 && (
-                <div className="rounded-xl bg-cream-100 p-2.5 border border-palm-400/40 space-y-2">
-                  <div className="text-xs font-bold uppercase text-palm-600">
-                    Joueurs en ligne (Handshake WS)
-                  </div>
-                  {remotePlayers.map((rp) => (
-                    <div key={rp.id} className="flex flex-col gap-1.5 border-b border-cream-200 pb-2 last:border-0 last:pb-0">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="font-bold text-ink-800 truncate">{rp.name}</span>
-                        <span className="text-xs text-ink-600">{rp.destinyName}</span>
-                      </div>
-                      <div className="flex gap-1">
-                        <button
-                          type="button"
-                          onClick={() => onVisitNeighbor(rp.id)}
-                          className="flex-1 px-2 py-1 rounded bg-plum-500 hover:bg-plum-500 text-xs font-bold cursor-pointer"
-                        >
-                          🏠 Visiter
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => onRequestRemoteConsent(rp.id, rp.name, 'woohoo')}
-                          className="px-2 py-1 rounded bg-coral-600 hover:bg-coral-500 text-xs font-bold cursor-pointer"
-                        >
-                          Sims
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => onRequestRemoteConsent(rp.id, rp.name, 'marriage')}
-                          className="px-2 py-1 rounded bg-sun-600 hover:bg-sun-500 text-xs font-bold cursor-pointer"
-                        >
-                          Marier
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {['Awa (Marcory)', 'Affoué (Plateau)', 'Kouadio (Adjamé)', 'Franck (Yopougon)'].map((name) => (
-                <div key={name} className="flex items-center justify-between rounded-xl bg-cream-100 p-2.5 border border-cream-200">
-                  <div className="text-xs font-bold text-ink-800">{name}</div>
-                  <div className="flex gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => setConsentRequest(name)}
-                      className="rounded-lg bg-coral-400/25 border border-coral-400/50 px-2 py-1 text-xs font-bold text-coral-600 cursor-pointer"
-                    >
-                      Intimité
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => onMarry(name)}
-                      className="rounded-lg bg-sun-300/40 border border-sun-400/50 px-2 py-1 text-xs font-bold text-sun-600 cursor-pointer"
-                    >
-                      Marier (150k)
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
           {/* SAPE & FAROT */}
           {activeApp === 'sape' && (
             <div className="flex flex-col gap-2">
@@ -641,69 +499,6 @@ export const BabiOSPhone: React.FC<BabiOSPhoneProps> = ({
                         {owned ? 'Porter' : `${outfit.price.toLocaleString('fr-FR')} F`}
                       </span>
                     )}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
-          {/* LYCÉES ÉLITE */}
-          {activeApp === 'schools' && (
-            <div className="flex flex-col gap-2.5">
-              <AppHeader title={s.schools} onBack={() => setActiveApp('home')} />
-              {ACADEMIC_BADGES.map((badge) => {
-                const isUnlocked = playerState.activeBadges.includes(badge.id);
-                return (
-                  <div
-                    key={badge.id}
-                    className={`rounded-xl p-3 border ${isUnlocked ? 'bg-cream-100 border-palm-400/60' : 'bg-cream-100 border-cream-200'}`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-xs text-ink-800">{badge.title}</span>
-                      {isUnlocked ? (
-                        <span className="rounded bg-palm-400/20 px-2 py-0.5 text-xs font-bold text-palm-600">Obtenu</span>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => onStartSchoolExam(badge.id)}
-                          className="rounded-lg bg-sun-500 hover:bg-sun-400 px-2.5 py-1 text-xs font-bold text-white cursor-pointer"
-                        >
-                          Passer le Concours
-                        </button>
-                      )}
-                    </div>
-                    <div className="text-xs font-semibold text-sun-600 mt-0.5">{badge.school}</div>
-                    <div className="text-xs text-palm-600 mt-1">{badge.perks}</div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {/* RADIO FM */}
-          {activeApp === 'radio' && (
-            <div className="flex flex-col gap-2">
-              <AppHeader title={s.radio} onBack={() => setActiveApp('home')} />
-              <div className="text-xs text-ink-600">
-                Statut audio : <strong className="text-palm-600 uppercase">{radioStatus}</strong>
-              </div>
-              {RADIO_STATIONS.map((station) => {
-                const isActive = playerState.activeRadioId === station.id;
-                return (
-                  <button
-                    key={station.id}
-                    type="button"
-                    onClick={() => onChangeRadio(station.id)}
-                    className={`flex items-center justify-between rounded-xl p-3 border text-left cursor-pointer ${
-                      isActive ? 'bg-lagoon-400/15 border-lagoon-400/60 text-ink-800' : 'bg-cream-100 border-cream-200 text-ink-600'
-                    }`}
-                  >
-                    <div>
-                      <div className="text-xs font-bold text-ink-800">{station.name}</div>
-                      <div className="text-xs text-lagoon-600 tabular-nums">{station.freq}</div>
-                      <div className="text-xs text-ink-600">{station.genre}</div>
-                    </div>
-                    {isActive && <span className="text-xs font-bold text-palm-600">ON AIR</span>}
                   </button>
                 );
               })}
@@ -792,60 +587,31 @@ export const BabiOSPhone: React.FC<BabiOSPhoneProps> = ({
             </div>
           )}
 
-          {/* MÉTIERS, FACTIONS & POUVOIRS DE DESTIN */}
-          {activeApp === 'jobs' && (
-            <div className="flex flex-col gap-2.5">
-              <AppHeader title={s.jobs} onBack={() => setActiveApp('home')} />
-
-              <div className="rounded-xl bg-cream-100 p-2.5 border border-cream-200 space-y-1 text-xs">
-                <div className="font-bold text-sun-600 uppercase">Réputation Factions</div>
-                <div className="flex justify-between"><span>🚌 Syndicat Transporteurs</span><span className="tabular-nums">{playerState.factions.syndicat}/100</span></div>
-                <div className="flex justify-between"><span>🏛️ Ordre Républicain</span><span className="tabular-nums">{playerState.factions.ordre}/100</span></div>
-                <div className="flex justify-between"><span>✨ Jet-Set Showbiz</span><span className="tabular-nums">{playerState.factions.jetset}/100</span></div>
-              </div>
-
-              {CAREERS.filter((j) => {
-                if (j.requiredFlag === 'plccTarget' && !playerState.destiny.plccTarget) return false;
-                if (j.requiredFlag === 'shadowBaron' && !playerState.destiny.shadowBaron) return false;
-                return true;
-              }).map((job) => (
-                <div key={job.id} className="flex items-center justify-between rounded-xl bg-cream-100 p-2.5 border border-cream-200">
-                  <div className="min-w-0 pr-2">
-                    <div className="text-xs font-bold text-ink-800 truncate">{job.title}</div>
-                    <div className="text-xs text-ink-600">{job.district} · -{job.energyCost}% ⚡</div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => onDoJob(job)}
-                    className="shrink-0 rounded-lg bg-palm-600 hover:bg-palm-500 px-2.5 py-1.5 text-xs font-bold cursor-pointer"
-                  >
-                    +{job.basePay.toLocaleString('fr-FR')} F
-                  </button>
-                </div>
-              ))}
-
-              {playerState.destiny.realMadridSuperstar && (
-                <button type="button" onClick={onDonateYannis} className="rounded-xl bg-lagoon-600 hover:bg-lagoon-600 py-2 text-xs font-bold cursor-pointer">
-                  ⚽ Financer Académie Yannis Diomandé (500 000 F)
-                </button>
-              )}
-              {playerState.destiny.secretAddressBook && playerState.policeWanted > 0 && (
-                <button type="button" onClick={() => onClearPoliceNetwork(false)} className="rounded-xl bg-sun-600 py-2 text-xs font-bold text-white cursor-pointer">
-                  📞 Carnet d’Adresses : Annuler ★ Police
-                </button>
-              )}
-              {playerState.destiny.blackMarketAccess && (
-                <button type="button" onClick={() => onClearPoliceNetwork(true)} className="rounded-xl bg-palm-600 py-2 text-xs font-bold cursor-pointer">
-                  🕶️ Marché Noir : Fausses Plaques (35 000 F)
-                </button>
-              )}
-            </div>
-          )}
-
           {/* BABI CHAT MULTIJOUEUR + MUTE / SIGNALER */}
           {activeApp === 'social' && (
             <div className="flex flex-col gap-2.5 h-full">
               <AppHeader title="Babi Chat Multijoueur" onBack={() => setActiveApp('home')} />
+
+              {remotePlayers.length > 0 && (
+                <div className="rounded-xl bg-cream-100 p-2.5 border border-palm-400/40 space-y-2">
+                  <div className="text-xs font-bold uppercase text-palm-600">Joueurs en ligne</div>
+                  {remotePlayers.map((rp) => (
+                    <div key={rp.id} className="flex items-center justify-between gap-2 text-xs">
+                      <div className="min-w-0">
+                        <div className="font-bold text-ink-800 truncate">{rp.name}</div>
+                        <div className="text-xs text-ink-600 truncate">{rp.destinyName}</div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => onVisitNeighbor(rp.id)}
+                        className="shrink-0 px-2 py-1 rounded bg-plum-500 hover:bg-plum-500 text-xs font-bold cursor-pointer"
+                      >
+                        🏠 Visiter
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
               <div className="flex-1 rounded-xl bg-cream-100 border border-cream-200 p-2.5 space-y-2 max-h-72 overflow-y-auto no-scrollbar">
                 {chatMessages.length === 0 && (
                   <div className="text-xs text-ink-400 text-center py-6">

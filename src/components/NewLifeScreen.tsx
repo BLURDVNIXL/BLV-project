@@ -4,7 +4,7 @@ import { Destiny, DestinyRarity, PlayerGender, PlayerProfile } from '../types/ga
 import { ALL_DESTINIES } from '../core/destinies';
 import { rollDestiny } from '../core/simulation';
 import { NAME_MAX, NAME_MIN, sanitizeName } from '../core/profile';
-import { soundEngine } from '../audio/radioManager';
+import { soundEngine } from '../audio/soundEngine';
 import characterArt from '../assets/character.webp';
 import './newLife.css';
 
@@ -296,7 +296,7 @@ export function NewLifeScreen({ initialProfile, canClose, onClose, onEnter }: Ne
   };
 
   const handleSettled = () => {
-    soundEngine.playWooHooJingle();
+    soundEngine.playJingle();
     setPhase('landed');
   };
 

@@ -74,16 +74,6 @@ export interface Needs {
 
 export type WeatherType = 'soleil' | 'pluie' | 'inondation' | 'harmattan';
 
-export type AcademicBadge = 'caiman' | 'alysma' | 'alex';
-
-export interface BadgeInfo {
-  id: AcademicBadge;
-  title: string;
-  school: string;
-  legend: string;
-  perks: string;
-  color: string;
-}
 
 export interface FactionReputation {
   syndicat: number; // Syndicat des Transporteurs (0-100)
@@ -96,7 +86,6 @@ export type MissionConditionKind =
   | 'work_shifts'
   | 'eat_meals'
   | 'bank_balance'
-  | 'school_badge'
   | 'star_threshold'
   | 'crib_upgrade'
   | 'clear_police'
@@ -150,15 +139,6 @@ export interface TontineState {
   history: string[];
 }
 
-export interface RadioStation {
-  id: string;
-  name: string;
-  freq: string;
-  genre: string;
-  streamUrl?: string;
-  audioKey: 'rti' | 'skyrock' | 'wavemaster' | 'silence';
-}
-
 export interface FoodItem {
   id: string;
   name: string;
@@ -168,19 +148,6 @@ export interface FoodItem {
   buffName: string;
   description: string;
   icon: string;
-}
-
-export interface CareerJob {
-  id: string;
-  title: string;
-  district: string;
-  basePay: number;
-  energyCost: number;
-  factionKey: keyof FactionReputation;
-  minStar?: number;
-  requiredBadge?: AcademicBadge;
-  requiredFlag?: 'plccTarget' | 'shadowBaron' | 'blackMarketAccess' | 'realMadridSuperstar';
-  description: string;
 }
 
 export interface GameEventLog {
@@ -209,14 +176,6 @@ export interface RemotePlayer {
   homeType?: HomeType;
 }
 
-export interface ConsentPrompt {
-  requestId: string;
-  fromPlayerId: string;
-  fromName: string;
-  type: 'woohoo' | 'marriage';
-  status: 'pending' | 'accepted' | 'declined' | 'cancelled';
-}
-
 export interface HouseKnockPrompt {
   requestId: string;
   fromPlayerId: string;
@@ -224,7 +183,7 @@ export interface HouseKnockPrompt {
   lotId: string;
 }
 
-/** Genre choisi à la création du personnage (réservé notamment au badge Alysma, réservé aux filles). */
+/** Genre choisi à la création du personnage. */
 export type PlayerGender = 'homme' | 'femme';
 
 /** Pseudonyme et genre saisis avant la roulette. Aucune donnée d'état civil. */
@@ -255,7 +214,6 @@ export interface PlayerState {
   yannisAcademyLevel: number; // 0 - 3
   engineStalled: boolean; // Caused by flood water on low cars
   weather: WeatherType;
-  activeBadges: AcademicBadge[];
   factions: FactionReputation;
   tontine: TontineState;
   sapeOutfit: SapeOutfitId;
@@ -266,14 +224,8 @@ export interface PlayerState {
   friendsIds: string[];
   activeMission: MissionProgress;
   completedMissions: string[];
-  loveState: {
-    partnerName: string | null;
-    loveLevel: number; // 0-100
-    isMarried: boolean;
-  };
   isDriving: boolean;
   currentVehicleId: string | null;
-  activeRadioId: string;
   isGameOver: boolean;
   gameOverReason: string;
   logs: GameEventLog[];

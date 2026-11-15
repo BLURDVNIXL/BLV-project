@@ -53,7 +53,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   return (
     <Modal title="Réglages" icon={<Settings className="h-5 w-5" />} onClose={onClose} closeLabel="Fermer les réglages">
-      <SettingRow title="Audio & radios d’Abidjan" description="Radios FM et ambiance sonore">
+      <SettingRow title="Son" description="Effets sonores et ambiance">
         <JellyButton
           tone={isMuted ? 'coral' : 'palm'}
           size="sm"

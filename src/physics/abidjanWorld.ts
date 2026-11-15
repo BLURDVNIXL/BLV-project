@@ -61,7 +61,7 @@ export function registerAbidjanWorld(physics: PhysicsCore, opts: { homeType: str
 
   // Lycées d'Excellence
   physics.addBox(30, -50, 8, 5, 0, 7, building);   // Lycée Classique (Caïman)
-  physics.addBox(55, -52, 7, 4, 0, 6, building);   // Sainte-Marie (Alysma)
+  physics.addBox(55, -52, 7, 4, 0, 6, building);   // Lycée Sainte-Marie
   physics.addBox(75, 60, 9, 6, 0, 8, building);    // Lycée d'Excellence (Alex)
 
   // Port de Treichville : bloc de conteneurs 4 × 3 empilés sur 3 niveaux

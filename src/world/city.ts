@@ -104,9 +104,9 @@ export const SPECIALS: SpecialSpec[] = [
   { id: 'aeroport', name: 'Aéroport Félix Houphouët-Boigny', at: landmark('airport'), w: 130, d: 44, h: 18, angleDeg: 12, color: 0xc9d1d8, snapToBlock: false },
   { id: 'port', name: "Port Autonome d'Abidjan", at: landmark('port'), w: 70, d: 40, h: 8, angleDeg: 0, color: 0x7a8a99, snapToBlock: false, containers: { cols: 10, rows: 5, levels: 3 } },
   // Lycées d'Excellence (emplacements corrigés Cocody & Grand-Bassam)
-  { id: 'lycee_caiman', name: 'Lycée Classique (Caïman)', at: { lat: 5.344, lon: -4.000 }, w: 22, d: 14, h: 8, angleDeg: 0, color: 0xe8c07a, snapToBlock: true },
-  { id: 'lycee_alysma', name: 'Sainte-Marie (Alysma)', at: { lat: 5.354, lon: -3.984 }, w: 20, d: 12, h: 8, angleDeg: 0, color: 0xf0a8a0, snapToBlock: true },
-  { id: 'lycee_alex', name: "Lycée d'Excellence (Alex · Bassam)", at: { lat: 5.250, lon: -3.904 }, w: 26, d: 16, h: 10, angleDeg: 0, color: 0x9ec8e8, snapToBlock: true },
+  { id: 'lycee_caiman', name: 'Lycée Classique', at: { lat: 5.344, lon: -4.000 }, w: 22, d: 14, h: 8, angleDeg: 0, color: 0xe8c07a, snapToBlock: true },
+  { id: 'lycee_alysma', name: 'Lycée Sainte-Marie', at: { lat: 5.354, lon: -3.984 }, w: 20, d: 12, h: 8, angleDeg: 0, color: 0xf0a8a0, snapToBlock: true },
+  { id: 'lycee_alex', name: "Lycée d'Excellence de Bassam", at: { lat: 5.250, lon: -3.904 }, w: 26, d: 16, h: 10, angleDeg: 0, color: 0x9ec8e8, snapToBlock: true },
   // Hôpitaux : bâtiments à porte d'entrée (intérieur partagé, voir interiors.ts)
   ...HOSPITAL_SITES.map((h): SpecialSpec => ({ id: h.id, name: h.name, at: { lat: h.lat, lon: h.lon }, w: h.w, d: h.d, h: h.h, angleDeg: 0, color: 0xf2efe8, snapToBlock: true }))
 ];

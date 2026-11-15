@@ -100,11 +100,6 @@ export interface CityHotspot {
     | 'loto'
     | 'vieux_sage'
     | 'work'
-    | 'marry'
-    | 'woohoo'
-    | 'school_caiman'
-    | 'school_alysma'
-    | 'school_alex'
     | 'bank'
     | 'toilet'
     | 'shower'
@@ -549,27 +544,6 @@ export class AbidjanSceneManager {
     this.staticHotspots = [];
     this.beaconRings = [];
 
-    // 1. 3 Lycées d'Excellence (positions réelles SPECIAL_FOOTPRINTS devant l'entrée)
-    const addSchool = (specId: string, type: CityHotspot['type'], label: string, color: number) => {
-      const fp = SPECIAL_FOOTPRINTS.find((f) => f.spec.id === specId);
-      if (!fp) return;
-      const vx = -Math.sin(fp.angle);
-      const vz = Math.cos(fp.angle);
-      this.addBeaconHotspot({
-        id: specId,
-        label,
-        district: districtAt({ x: fp.x, z: fp.z }).name,
-        x: fp.x + vx * (fp.d / 2 + 3.5),
-        z: fp.z + vz * (fp.d / 2 + 3.5),
-        radius: 5,
-        type,
-        color,
-      });
-    };
-    addSchool('lycee_caiman', 'school_caiman', '🐊 Lycée Classique (Concours Caïman)', 0x16a34a);
-    addSchool('lycee_alysma', 'school_alysma', '🌸 Lycée Sainte-Marie (Concours Alysma)', 0xec4899);
-    addSchool('lycee_alex', 'school_alex', '⚡ Lycée d’Excellence Bassam (Concours Alex)', 0xf59e0b);
-
     // Portes des hôpitaux : zone d'action devant l'entrée (la façade est du côté +z local de l'emprise)
     this.hospitalDoors.clear();
     for (const site of HOSPITAL_SITES) {
@@ -594,18 +568,6 @@ export class AbidjanSceneManager {
     }
 
     // 2. Grands lieux interactifs d'Abidjan
-    const pMairie = project(5.3266, -4.0205);
-    this.addBeaconHotspot({
-      id: 'mairie_plateau',
-      label: '💍 Mairie du Plateau (Mariage Civil)',
-      district: 'Le Plateau',
-      x: pMairie.x,
-      z: pMairie.z + 9,
-      radius: 5,
-      type: 'marry',
-      color: 0xf43f5e,
-    });
-
     const pMaquis = project(5.3375, -4.072);
     this.addBeaconHotspot({
       id: 'eat_maquis',
@@ -629,20 +591,6 @@ export class AbidjanSceneManager {
         radius: 6,
         type: 'work',
         color: 0x10b981,
-      });
-    }
-
-    const pIvoire = SPECIAL_FOOTPRINTS.find((f) => f.spec.id === 'hotel_ivoire');
-    if (pIvoire) {
-      this.addBeaconHotspot({
-        id: 'hotel_ivoire_suite',
-        label: '💕 Suite Hôtel Ivoire (Crac-Crac Consentant)',
-        district: 'Cocody · Deux-Plateaux',
-        x: pIvoire.x,
-        z: pIvoire.z + 20,
-        radius: 6,
-        type: 'woohoo',
-        color: 0xec4899,
       });
     }
 

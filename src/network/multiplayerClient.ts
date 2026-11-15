@@ -1,13 +1,12 @@
 /**
  * BLV — WebSocket Multiplayer & Authoritative REST Client
  * Connects to /ws on the same host (Port 3000) for delta-throttled player positions,
- * moderated live chat, non-NPC server-authoritative Tontine, persistent bilateral consent,
+ * moderated live chat, non-NPC server-authoritative Tontine
  * and neighbor house knock/visit workflows.
  */
 
 import {
   RemotePlayer,
-  ConsentPrompt,
   HouseKnockPrompt,
   CribUpgrades,
   PlayerGender,
@@ -51,10 +50,6 @@ export interface MultiplayerCallbacks {
   onTontineFleeResult: (amount: number) => void;
   onTontineError?: (message: string) => void;
   onChatMessage: (msg: ChatMessage) => void;
-  onIncomingConsent: (req: ConsentPrompt) => void;
-  onConsentSent?: (req: { requestId: string; toPlayerId: string; kind: 'woohoo' | 'marriage' }) => void;
-  onConsentCancelled?: (requestId: string) => void;
-  onConsentResolved: (res: { requestId?: string; accepted: boolean; partnerName: string; kind: 'woohoo' | 'marriage' }) => void;
   onHouseKnockIncoming?: (knock: HouseKnockPrompt) => void;
   onHouseVisitResolved?: (res: HouseVisitResolvedPayload) => void;
   onConnectionChange: (connected: boolean) => void;
@@ -206,14 +201,6 @@ export class MultiplayerClient {
             this.callbacks.onTontineFleeResult(Number(msg.payload.amount || 0));
           } else if (msg.type === 'tontine:error' && msg.payload) {
             this.callbacks.onTontineError?.(String(msg.payload.message || 'Erreur Tontine'));
-          } else if (msg.type === 'consent:incoming' && msg.payload) {
-            this.callbacks.onIncomingConsent(msg.payload);
-          } else if (msg.type === 'consent:sent' && msg.payload) {
-            this.callbacks.onConsentSent?.(msg.payload);
-          } else if (msg.type === 'consent:cancelled' && msg.payload) {
-            this.callbacks.onConsentCancelled?.(String(msg.payload.requestId || ''));
-          } else if (msg.type === 'consent:resolved' && msg.payload) {
-            this.callbacks.onConsentResolved(msg.payload);
           } else if (msg.type === 'house:knock_incoming' && msg.payload) {
             this.callbacks.onHouseKnockIncoming?.(msg.payload);
           } else if (msg.type === 'house:visit_resolved' && msg.payload) {
@@ -275,18 +262,6 @@ export class MultiplayerClient {
 
   public fleeTontine() {
     this.send('tontine:flee', {});
-  }
-
-  public requestConsent(targetPlayerId: string, kind: 'woohoo' | 'marriage') {
-    this.send('consent:request', { targetPlayerId, kind });
-  }
-
-  public cancelConsent(requestId: string) {
-    this.send('consent:cancel', { requestId });
-  }
-
-  public respondConsent(requestId: string, accepted: boolean) {
-    this.send('consent:respond', { requestId, accepted });
   }
 
   public requestHouseVisit(ownerId: string) {
