@@ -1,0 +1,635 @@
+destin: brouteur
+titre: "Le Gayman et la PLCC"
+rarete: legendaire
+genre: libre
+resume: "Bachelier à Yopougon, tu vis de la confiance que tu inspires à des inconnus à l'autre bout du monde. Mimi t'aime sans savoir d'où vient l'argent, Jo prépare un gros coup, et une retraitée de Lyon croit encore à ton amitié. La PLCC remonte tes adresses une par une."
+themes: [cyber, mensonge, victime_nommee, reparation]
+fonction_dramatique: >-
+  Le Brouteur est le seul protagoniste dont la victime lui écrit encore. Il ne rencontre pas la
+  Cité Lagune-Nord par la rue ou le marché, mais par l'argent : des comptes, des virements, des
+  sociétés prête-noms. Son arc est de comprendre que ce qu'il sait faire disparaître sur un écran
+  a un visage, et qu'il est le seul à pouvoir le retrouver.
+
+depart:
+  camp: ombre
+  compromission: 6
+  argent_fcfa: 350000
+  etoile: 45
+  sante: 75
+  energie: 70
+  metier: brouteur_cyber
+  echelon: operateur
+  ecole: aucune
+  diplomes: [bac]
+  charges_mensuelles: 200000      # loyer climatisé, forfaits, sorties au maquis
+  logement_descriptif: "Studio climatisé, Yopougon"
+  competences: {cyber: 5, negoce: 2, etudes: 2}
+  relations:
+    mimi: {trust: 2}
+    jo: {trust: 1}
+    madeleine: {trust: 3}
+  factions:
+    ombre: {reputation: 1}
+    ordre: {exposition: 1}
+
+cercle:
+  - {id: mimi, nom: "Mimi, ta compagne", rel: proche}
+  - {id: jo, nom: "Jo, ton complice", rel: faction}
+  - {id: madeleine, nom: "Madeleine, retraitée de Lyon", rel: neutre}
+  - {id: aya, nom: "Lieutenante Aya Coulibaly (PLCC)", rel: rival}
+  - {id: fatou, nom: "Fatou Bamba", rel: allie}
+  - {id: baron, nom: "Le Baron", rel: rival}
+
+flags: [vu_madeleine, mimi_sait, gros_coup, rembourse_madeleine, verite_madeleine, cyber_comptable, indic,
+        aveu_public, cyber_formation, ordre_jo, fonds_deplaces, detourne_secours, comptes_copies,
+        temoin, trahi_baron, sans_protection, protection_aya, loyal_baron, silence, jo_vend, trace_effacee]
+faits: [avoue, prevenue]
+preuves: [comptes_baron]
+actifs: []
+
+# --------------------------------------------------------------------------- événements
+evenements:
+  - id: br_ev_madeleine
+    jour: 55
+    si: "flags.gros_coup"
+    txt: "La fille de Madeleine, à Lyon, a écrit à la plateforme de signalement : sa mère a vendu la montre de son mari pour t'aider. Le dossier arrive à la PLCC."
+    eff: {factions: {ordre: {exposition: 1}}, relations: {madeleine: {trust: -1}}}
+    sinon_txt: "Madeleine t'écrit : elle a gardé tes photos sur sa table de chevet, et te remercie de ton « amitié ». Tu n'oses pas répondre."
+    sinon_eff: {relations: {madeleine: {trust: 1}}}
+  - id: br_ev_mimi
+    jour: 100
+    si: "not flags.mimi_sait"
+    txt: "Mimi ouvre ton ordinateur pendant que tu dors. Elle ne dit rien, mais ses yeux ne te lâchent plus."
+    eff: {relations: {mimi: {trust: -1}}}
+    sinon_txt: "Mimi commence des cours d'informatique avec son cousin : « Si je dois te comprendre, autant apprendre. »"
+    sinon_eff: {relations: {mimi: {trust: 1}}}
+  - id: br_ev_jo
+    jour: 150
+    si: "relations.jo.trust <= 0"
+    txt: "Jo, vexé, vend ton pseudonyme à un homme du Baron. Ton nom circule dans un groupe fermé où tu n'as jamais été invité."
+    eff: {flags: [jo_vend], factions: {ombre: {exposition: 1}}}
+    sinon_txt: "Jo te prévient discrètement : l'homme du Baron cherche des « cyber-comptables ». « Je ne te dis pas de dire oui. »"
+    sinon_eff: {relations: {jo: {trust: 1}}}
+  - id: br_ev_aya
+    jour: 230
+    si: "flags.indic"
+    txt: "Aya t'envoie un message chiffré : « Les virements du Baron passent par trois sociétés. Si tu peux les relier, je peux te protéger plus longtemps. »"
+    eff: {relations: {aya: {trust: 1}}}
+    sinon_txt: "Un agent de la PLCC passe trois fois devant ton immeuble en une semaine. Il ne s'arrête pas, mais Mimi l'a remarqué."
+    sinon_eff: {factions: {ordre: {exposition: 1}}}
+  - id: br_ev_comptes
+    jour: 283
+    si: "flags.comptes_copies"
+    txt: "À l'aube, un message de Jo : « Le Baron a découvert qu'on a copié ses comptes. Ils cherchent qui. Cache-toi. »"
+    eff: {relations: {jo: {trust: 1}}, factions: {ombre: {exposition: 1}}}
+
+# --------------------------------------------------------------------------- nœuds
+noeuds:
+  - id: br_0_studio
+    jalon: 0
+    jour: 1
+    lieu: "Yopougon, studio climatisé"
+    moment: "Soir"
+    objectif: "Ton monde : un écran, une compagne, un complice, et quelqu'un qui t'écrit encore à l'autre bout de la terre."
+    present: [mimi, jo]
+    savoir: "Tu as de l'argent, un deuxième téléphone, et une amie de Lyon qui croit à ton histoire."
+    dialogue:
+      - {narr: "Climatisation, iPhone dernier cri, champagne au maquis d'à côté. Sur l'écran, un message de Madeleine : « Bonne nuit, mon ami. »"}
+      - {qui: radio, dit: "… la Cité Lagune-Nord offrira des milliers d'emplois aux jeunes de la ville …"}
+      - {qui: jo, dit: "Mon frère, on prépare un gros coup. Un seul, et on respire jusqu'à la fin de l'année. Tu en es ?"}
+      - {qui: mimi, dit: "Tu manges quoi ce soir ? Tu es encore sur ton écran, toi."}
+    choix:
+      - id: inviter_mimi
+        l: "Fermer l'écran et inviter Mimi à dîner"
+        intention: "Reprendre pied dans ta vraie vie"
+        cout: "Jo attendra, et il n'aime pas ça."
+        eff: {relations: {mimi: {trust: 2}, jo: {trust: -1}}}
+        vers: br_0_telephone
+      - id: preparer
+        l: "Préparer le coup avec Jo"
+        intention: "L'argent, et la tranquillité qui va avec"
+        cout: "Mimi te voit de moins en moins."
+        eff: {compromission: 1, relations: {jo: {trust: 1}, mimi: {trust: -1}}}
+        vers: br_0_telephone
+      - id: lire_madeleine
+        l: "Relire les messages de Madeleine en entier"
+        intention: "Savoir qui elle est vraiment"
+        cout: "Tu ne pourras plus faire semblant de ne pas savoir."
+        eff: {flags: [vu_madeleine], competences: {enquete: 1}}
+        vers: br_0_telephone
+
+  - id: br_0_telephone
+    jalon: 0
+    jour: 14
+    lieu: "Yopougon, studio"
+    moment: "Matin"
+    objectif: "Mimi a trouvé ton deuxième téléphone : il faut lui répondre."
+    present: [mimi]
+    savoir: "Mimi n'a pas vu l'écran, mais elle a vu le téléphone, et les messages de Lyon."
+    dialogue:
+      - {narr: "Le téléphone est posé sur la table, face contre le bois. Mimi n'a pas touché au café."}
+      - {qui: mimi, dit: "Qui est Madeleine ? Pourquoi elle t'appelle « mon ami » ?"}
+    choix:
+      - id: avouer
+        l: "Tout lui avouer : le travail, l'argent, Madeleine"
+        intention: "Ne plus mentir à la seule personne qui reste"
+        cout: "Mimi peut partir, et te dénoncer."
+        eff: {compromission: -1, flags: [mimi_sait], relations: {mimi: {trust: 2, fait: avoue}}}
+        vers: br_1_coup
+      - id: nier
+        l: "Nier : « C'est un contact pour mon travail »"
+        intention: "Protéger ton secret"
+        cout: "Mimi ne te croira plus la prochaine fois."
+        eff: {compromission: 1, relations: {mimi: {trust: -2}}}
+        vers: br_1_coup
+      - id: expliquer
+        l: "Lui expliquer à moitié : « Du conseil en ligne, rien de grave »"
+        intention: "Gagner du temps"
+        cout: "Une demi-vérité se vérifie."
+        tirage:
+          difficulte: 4
+          issues:
+            miracle: {vers: br_1_coup, eff: {relations: {mimi: {trust: 1}}}, txt: "Mimi hoche la tête, rassurée. Elle ne demande rien de plus, pour l'instant."}
+            normal: {vers: br_1_coup, eff: {relations: {mimi: {trust: -1}}}, txt: "Mimi te regarde longtemps : « D'accord. Mais je vais vérifier. »"}
+            mauvaise: {vers: br_1_coup, eff: {flags: [mimi_sait], relations: {mimi: {trust: -2}}}, txt: "Elle ouvre le téléphone, lit trois messages, le repose. « Tu m'as menti. »"}
+
+  - id: br_1_coup
+    jalon: 1
+    jour: 40
+    lieu: "Yopougon, maquis"
+    moment: "Nuit"
+    objectif: "Le gros coup de Jo : une cible qui a déjà donné, et qui donnera encore."
+    present: [jo]
+    savoir: "La cible, c'est Madeleine : elle a confiance en toi, et de l'argent de côté."
+    dialogue:
+      - {narr: "Jo a posé son téléphone sur la table du maquis, écran vers toi. Une photo de Madeleine, souriante, devant une fenêtre ouverte sur Lyon."}
+      - {qui: jo, dit: "C'est la plus douce de toute notre liste. Elle donnera deux fois plus, et sans poser de question. C'est un cadeau, mon frère."}
+    choix:
+      - id: faire_coup
+        l: "Faire le coup : 150 000 F, sans te poser de question"
+        intention: "Un dernier gros gain"
+        cout: "Madeleine perd ses économies, et tu le sais."
+        vu_par: [ombre]
+        eff: {compromission: 3, argent: 150000, flags: [gros_coup], factions: {ombre: {reputation: 2}}, relations: {jo: {trust: 2}, madeleine: {trust: -3}}}
+        vers: br_1_plcc
+      - id: refuser_coup
+        l: "Refuser : pas elle"
+        intention: "Protéger la seule qui t'écrit sans calcul"
+        cout: "Jo ne te le pardonnera pas."
+        eff: {compromission: -1, relations: {jo: {trust: -1}, madeleine: {trust: 1}}}
+        vers: br_1_plcc
+      - id: un_dernier
+        l: "Un dernier coup, puis tu arrêtes pour de bon"
+        intention: "Tourner la page proprement"
+        cout: "On n'arrête jamais après un dernier coup."
+        vu_par: [ombre]
+        eff: {compromission: 1, argent: 150000}
+        tirage:
+          difficulte: 4
+          issues:
+            miracle: {vers: br_1_plcc, eff: {compromission: -1}, txt: "Le coup passe sans toucher Madeleine : une autre cible, loin d'ici. Tu respires."}
+            normal: {vers: br_1_plcc, eff: {flags: [gros_coup], factions: {ombre: {reputation: 1}}, relations: {madeleine: {trust: -2}}}, txt: "Jo choisit la cible. Tu ne protestes pas assez fort."}
+            mauvaise: {vers: br_1_plcc, eff: {flags: [gros_coup], compromission: 1, relations: {madeleine: {trust: -3}, jo: {trust: 1}}}, txt: "Le coup tourne mal : Madeleine perd plus que prévu, et Jo te félicite."}
+
+  - id: br_1_plcc
+    jalon: 1
+    jour: 75
+    lieu: "Yopougon, cyber-café"
+    moment: "Après-midi"
+    objectif: "Un contact te prévient : la PLCC remonte tes adresses. Que fais-tu de ce que tu sais ?"
+    present: [jo, mimi]
+    savoir: "Aya Coulibaly a visité deux cyber-cafés de ton quartier. Elle cherche un pseudonyme."
+    dialogue:
+      - {narr: "Le gérant du cyber-café baisse la voix : « Une dame de la PLCC est passée. Elle posait des questions sur des virements vers Lyon. »"}
+      - {qui: jo, dit: "On efface tout, on change de téléphone, et on continue. C'est comme ça qu'on survit.", si: "relations.jo.trust >= 1"}
+    choix:
+      - id: effacer
+        l: "Effacer tes traces et changer d'adresses"
+        intention: "Gagner du temps"
+        cout: "Les mêmes réflexes, la même vie."
+        eff: {compromission: 1, flags: [trace_effacee], competences: {cyber: 1}}
+        vers: br_2_princesse_baron
+      - id: rembourser
+        l: "Rembourser Madeleine en secret (150 000 F)"
+        intention: "Réparer, avant qu'on ne te le demande"
+        cout: "Tout ton gain, et Jo le saura."
+        si: "argent >= 150000"
+        eff: {argent: -150000, compromission: -2, flags: [rembourse_madeleine], relations: {madeleine: {trust: 2, fait: prevenue}, jo: {trust: -1}}}
+        vers: br_2_princesse_baron
+      - id: ne_rien_faire
+        l: "Ne rien faire et voir venir"
+        intention: "Garder ta liberté de mouvement"
+        cout: "Mimi te trouvera absent."
+        eff: {relations: {mimi: {trust: -1}}}
+        vers: br_2_princesse_baron
+
+  - id: br_2_princesse_baron
+    jalon: 2
+    jour: 110
+    carrefour: A
+    si: "flags.gros_coup"
+    sinon: br_2_princesse_aya
+    lieu: "Yopougon, Rue Princesse"
+    moment: "Nuit de fin d'année"
+    objectif: "Le Baron veut un homme qui fait disparaître l'argent sur les écrans : ton gros coup l'a mis sur ton chemin."
+    present: [baron, jo]
+    savoir: "Tu sais que le Baron existe. Il sait ce que tu sais faire."
+    dialogue:
+      - {narr: "Champagne, sono, poisson braisé. Jo te suit, ravi d'être vu à ton côté. Le Baron te serre la main sans te regarder."}
+      - {qui: baron, dit: "Un petit qui sait faire circuler l'argent sans qu'on le voie, voilà un homme précieux. Dans mon quartier, personne n'a faim, petit."}
+    choix:
+      - id: cyber_comptable
+        l: "Devenir son cyber-comptable"
+        intention: "Une protection, une paie, un nom"
+        cout: "Tu feras disparaître l'argent de gens qui ne te connaissent pas."
+        vu_par: [ombre]
+        eff: {compromission: 3, flags: [cyber_comptable], factions: {ombre: {reputation: 2, alliance: true}}, relations: {baron: {trust: 2}, mimi: {trust: -1}}}
+        vers: br_2_reseau
+      - id: refuser_baron
+        l: "Refuser : tu veux garder ta liberté"
+        intention: "Ne pas t'attacher"
+        cout: "Le Baron te laissera le temps de changer d'avis, pas plus."
+        vu_par: [ombre]
+        eff: {compromission: -1, factions: {ombre: {exposition: 1}}, relations: {baron: {peur: 2}}}
+        vers: br_2_reseau
+      - id: prudent
+        l: "Dire que tu y penses, sans promettre"
+        intention: "Gagner du temps"
+        cout: "Le Baron note les hésitations."
+        vu_par: [ombre]
+        tirage:
+          difficulte: 4
+          issues:
+            miracle: {vers: br_2_reseau, eff: {relations: {baron: {trust: 1}}}, txt: "Le Baron hoche la tête : « Un homme prudent. Reviens quand tu veux. »"}
+            normal: {vers: br_2_reseau, eff: {compromission: 1}, txt: "Le Baron remplit ton verre : « Tu viendras. Pas ce soir. »"}
+            mauvaise: {vers: br_2_reseau, eff: {compromission: 2, flags: [ordre_jo], relations: {jo: {trust: -1}}}, txt: "Jo te reprochera ton hésitation : il a promis ton nom au Baron."}
+
+  - id: br_2_princesse_aya
+    jalon: 2
+    jour: 110
+    carrefour: A
+    si: "compromission <= 5"
+    sinon: br_2_princesse_fatou
+    lieu: "Yopougon, Rue Princesse"
+    moment: "Nuit de fin d'année"
+    objectif: "Aya t'attend à la sortie du maquis : un coup de main contre le Baron, et on oublie ton dossier."
+    present: [aya]
+    savoir: "Aya n'a pas de mandat. Elle te propose un marché, pas une protection."
+    dialogue:
+      - {narr: "Sous un lampadaire, Aya, en simple chemise, te tend un gobelet de jus de bissap."}
+      - {qui: aya, dit: "Lieutenante Coulibaly. J'ai tes adresses, une par une. Je ne les ai pas encore montrées. Un coup de main contre le Baron, et on oublie ton dossier."}
+      - {qui: aya, dit: "Des gens comme toi, on en a besoin pour reconstruire. Pas pour enfermer."}
+    choix:
+      - id: indic
+        l: "Devenir son indicateur"
+        intention: "Une porte de sortie"
+        cout: "Si le Baron l'apprend, tu es mort."
+        vu_par: [ordre, ombre]
+        eff: {compromission: -2, flags: [indic], relations: {aya: {trust: 2}}, factions: {ordre: {reputation: 1}, ombre: {exposition: 1}}}
+        vers: br_2_reseau
+      - id: refuser_aya
+        l: "Refuser : tu ne parles pas à la police"
+        intention: "Rester libre"
+        cout: "Aya n'oublie pas ce qu'elle sait."
+        vu_par: [ordre]
+        eff: {factions: {ordre: {exposition: 1}}, relations: {aya: {trust: -1}}}
+        vers: br_2_reseau
+      - id: immunite
+        l: "Demander une immunité écrite avant de parler"
+        intention: "Ne pas te faire piéger"
+        cout: "Aya n'a pas le pouvoir de la donner."
+        vu_par: [ordre]
+        tirage:
+          difficulte: 5
+          issues:
+            miracle: {vers: br_2_reseau, eff: {flags: [indic], relations: {aya: {trust: 2}}}, txt: "Aya sourit : « Je te la donnerai quand tu m'auras donné quelque chose. » Elle note un nom."}
+            normal: {vers: br_2_reseau, eff: {relations: {aya: {trust: -1}}}, txt: "Aya secoue la tête : « Je n'ai pas ce pouvoir. Pas encore. »"}
+            mauvaise: {vers: br_2_reseau, eff: {factions: {ordre: {exposition: 1}}, relations: {aya: {trust: -2}}}, txt: "Aya se lève : « Alors on se verra au tribunal. » Elle part sans te regarder."}
+
+  - id: br_2_princesse_fatou
+    jalon: 2
+    jour: 110
+    carrefour: A
+    lieu: "Yopougon, Rue Princesse"
+    moment: "Nuit de fin d'année"
+    objectif: "Fatou Bamba te propose d'avouer, à voix haute, ce que tu fais, avant que d'autres ne le fassent à ta place."
+    present: [fatou, mimi]
+    savoir: "Fatou ne cherche pas ta chute. Elle cherche quelqu'un qui connaisse le côté technique des virements."
+    dialogue:
+      - {narr: "Au comptoir, Fatou tourne un micro dans ses doigts, sans l'allumer. Mimi, quelques mètres plus loin, fait semblant de ne pas écouter."}
+      - {qui: fatou, dit: "Je sais ce que tu fais. Je ne suis pas la police. Mais si un jour tu veux le dire à voix haute, mon micro est ouvert."}
+    choix:
+      - id: aveu_public
+        l: "Avouer tes torts à la radio de Fatou, sous un autre nom"
+        intention: "Ne plus te cacher"
+        cout: "Madeleine pourrait l'entendre."
+        eff: {compromission: -2, flags: [aveu_public], relations: {fatou: {trust: 2}, mimi: {trust: 1}}}
+        vers: br_2_reseau
+      - id: off
+        l: "Parler à Fatou en privé, sans micro"
+        intention: "Tester la confiance"
+        cout: "Fatou ne pourra rien en faire."
+        eff: {relations: {fatou: {trust: 1}}}
+        vers: br_2_reseau
+      - id: decliner
+        l: "Décliner et quitter la soirée"
+        intention: "Rester discret"
+        cout: "Mimi te regarde partir."
+        eff: {relations: {mimi: {trust: -1}}}
+        vers: br_2_reseau
+
+  - id: br_2_reseau
+    jalon: 2
+    jour: 190
+    lieu: "Yopougon, studio"
+    moment: "Saison sèche, nuit"
+    objectif: "Ce que tu sais faire peut servir d'autre chose : une formation, un aveu à Madeleine, ou la même route."
+    present: [mimi, jo]
+    savoir: "Tu es bachelier et cyber. Tu pourrais enseigner. Madeleine t'a écrit un dernier message."
+    dialogue:
+      - {narr: "Sur ton bureau, deux écrans : celui du travail, et celui de Madeleine, ouvert sur un message resté sans réponse."}
+      - {qui: mimi, dit: "Si tu savais enseigner ce que tu sais faire, tu aurais dix élèves demain. Je ne te demande pas de choisir. Je te dis que tu peux."}
+      - {qui: jo, dit: "Mon frère, tu perds ton temps. Le vrai argent est ailleurs.", si: "relations.jo.trust >= 1"}
+    choix:
+      - id: formation
+        l: "Monter une petite formation en sécurité informatique à Yopougon (100 000 F)"
+        intention: "Un métier légal, avec ce que tu sais"
+        cout: "Cent mille francs, et des heures sans gain."
+        si: "argent >= 100000"
+        eff: {argent: -100000, compromission: -1, flags: [cyber_formation], relations: {mimi: {trust: 2}, jo: {trust: -1}}}
+        vers: br_3_crue_baron
+      - id: verite_madeleine
+        l: "Écrire la vérité à Madeleine, sans te cacher"
+        intention: "Lui rendre ce que tu peux : la vérité"
+        cout: "Elle peut te dénoncer."
+        eff: {compromission: -2, flags: [verite_madeleine], relations: {madeleine: {trust: 1, fait: avoue}}}
+        vers: br_3_crue_baron
+      - id: continuer
+        l: "Continuer avec Jo"
+        intention: "L'argent d'abord"
+        cout: "Mimi finira par partir."
+        eff: {compromission: 2, relations: {jo: {trust: 1}, mimi: {trust: -2}}}
+        vers: br_3_crue_baron
+      - id: attendre
+        l: "Fermer les deux écrans et attendre"
+        intention: "Ne rien décider"
+        cout: "Le temps ne t'attend pas."
+        eff: {relations: {mimi: {trust: -1}}}
+        vers: br_3_crue_baron
+
+  - id: br_3_crue_baron
+    jalon: 3
+    jour: 281
+    carrefour: B
+    si: "flags.cyber_comptable or flags.gros_coup"
+    sinon: br_3_crue_quartier
+    lieu: "Yopougon inondé"
+    moment: "Nuit de la crue"
+    objectif: "Le Baron te demande de déplacer ses fonds immédiatement, avant que la crue ne révèle tout."
+    present: [jo, baron]
+    savoir: "Les comptes du Baron sont à ta portée : tu peux les déplacer, les détourner, ou les copier."
+    dialogue:
+      - {narr: "L'eau monte dans la rue, et dans le couloir de ton immeuble. Sur l'écran, le tableau de bord du Baron : trois sociétés, dix-sept comptes."}
+      - {qui: jo, dit: "Mon frère, il veut que ce soit fait avant l'aube. Sinon on est tous dedans."}
+    choix:
+      - id: deplacer
+        l: "Déplacer les fonds du Baron avant l'aube"
+        intention: "Obéir et survivre"
+        cout: "Tu aides le Baron à fuir ses propres comptes."
+        vu_par: [ombre]
+        eff: {compromission: 3, flags: [fonds_deplaces], factions: {ombre: {reputation: 1}}, relations: {baron: {trust: 1}, mimi: {trust: -1}}}
+        vers: br_4_descente_ombre
+      - id: rediriger
+        l: "Rediriger les fonds vers les secours aux sinistrés"
+        intention: "Retourner l'argent vers ceux qui en ont besoin"
+        cout: "Le Baron te cherchera, et le virement laissera une trace."
+        vu_par: [ombre]
+        eff: {compromission: -3, flags: [detourne_secours], factions: {ombre: {exposition: 2}}}
+        tirage:
+          difficulte: 5
+          issues:
+            miracle: {vers: br_4_descente_ombre, eff: {etoile_mod: {valeur: 5, jours: 30}, relations: {fatou: {trust: 1}}}, txt: "Le virement passe : trois quartiers reçoivent des fonds avant l'aube. Personne ne remonte jusqu'à toi, pour l'instant."}
+            normal: {vers: br_4_descente_ombre, eff: {relations: {jo: {trust: -2}}}, txt: "Le virement passe, mais Jo comprend ce que tu as fait. Il ne te regarde plus."}
+            mauvaise: {vers: br_4_descente_ombre, eff: {sante: -10, relations: {jo: {peur: 1}}, flags: [ordre_jo]}, txt: "Le virement est repéré. Jo, pris de panique, prévient un homme du Baron."}
+      - id: copier
+        l: "Copier discrètement les comptes du Baron avant de les déplacer"
+        intention: "Garder une preuve"
+        cout: "Si on te voit, tu es mort."
+        vu_par: [ombre]
+        eff: {flags: [comptes_copies], preuves: {comptes_baron: {action: obtenir}}, competences: {enquete: 1}}
+        tirage:
+          difficulte: 5
+          issues:
+            miracle: {vers: br_4_descente_ombre, eff: {compromission: -1}, txt: "La copie est complète. Personne ne t'a vu."}
+            normal: {vers: br_4_descente_ombre, eff: {compromission: 1}, txt: "La copie est partielle, mais exploitable. Tu déplaces les fonds ensuite, pour ne rien laisser voir."}
+            mauvaise: {vers: br_4_descente_ombre, eff: {sante: -10, factions: {ombre: {exposition: 1}}, relations: {jo: {trust: -1}}}, txt: "Un voyant s'allume : Jo a vu ton écran. Il ne dit rien, mais il a vu."}
+
+  - id: br_3_crue_quartier
+    jalon: 3
+    jour: 281
+    carrefour: B
+    lieu: "Yopougon inondé"
+    moment: "Nuit de la crue"
+    objectif: "Les réseaux sont coupés. Tu sais comment rouvrir des canaux : c'est ta seule arme."
+    present: [mimi, fatou]
+    savoir: "Fatou ne peut plus émettre. Mimi est coincée au deuxième étage avec des voisins."
+    dialogue:
+      - {narr: "L'électricité saute. L'eau marron monte jusqu'à la deuxième marche. Les téléphones n'ont plus de réseau."}
+      - {qui: fatou, dit: "Je ne peux plus émettre. Les gens ne savent pas où aller. Toi, tu sais rouvrir un canal ?"}
+      - {qui: mimi, dit: "Il y a des voisins coincés au deuxième. Dis-moi que tu peux faire quelque chose."}
+    choix:
+      - id: rouvrir
+        l: "Rétablir les communications d'urgence pour le quartier"
+        intention: "Utiliser ton talent pour aider"
+        cout: "Tu t'exposes : ceux qui te cherchent verront ton signal."
+        vu_par: [ordre]
+        eff: {compromission: -2, flags: [detourne_secours], energie: -15, relations: {fatou: {trust: 1}}}
+        tirage:
+          difficulte: 4
+          issues:
+            miracle: {vers: br_4_descente_temoin, eff: {etoile_mod: {valeur: 5, jours: 30}, relations: {mimi: {trust: 1}}}, txt: "Le canal s'ouvre : Fatou diffuse, trois cents personnes sont guidées vers les hauteurs."}
+            normal: {vers: br_4_descente_temoin, eff: {sante: -5}, txt: "Le canal tient une heure : assez pour évacuer l'immeuble."}
+            mauvaise: {vers: br_4_descente_temoin, eff: {sante: -15, factions: {ordre: {exposition: 1}}}, txt: "Le canal saute au premier orage. Tu as laissé une trace que la PLCC suivra."}
+      - id: mimi_voisins
+        l: "Aider Mimi à sortir les voisins du deuxième étage"
+        intention: "Protéger les tiens"
+        cout: "Fatou restera sans voix."
+        eff: {compromission: -1, energie: -15, relations: {mimi: {trust: 2}}}
+        vers: br_4_descente_temoin
+      - id: effacer_crue
+        l: "Effacer tes traces pendant que tout est coupé"
+        intention: "Te protéger"
+        cout: "Mimi te regardera autrement."
+        eff: {compromission: 1, flags: [trace_effacee], relations: {mimi: {trust: -1}}}
+        vers: br_4_descente_temoin
+
+  - id: br_4_descente_ombre
+    jalon: 4
+    jour: 283
+    carrefour: C
+    si: "compromission >= 4"
+    sinon: br_4_descente_temoin
+    lieu: "Yopougon, ton studio"
+    moment: "Descente de police, à l'aube"
+    objectif: "Aya a tes adresses, une par une : tu peux livrer, fuir ou te taire."
+    present: [aya, jo]
+    savoir: "Aya n'a pas de mandat pour te protéger. Le Baron sait déjà qui tu es."
+    dialogue:
+      - {narr: "Les gyrophares bleus balaient la rue inondée. Une voiture s'arrête devant ton immeuble. Aya descend, sans uniforme, un classeur sous le bras."}
+      - {qui: aya, dit: "Lieutenante Coulibaly. J'ai tes adresses, ton pseudonyme, ta victime de Lyon. Je n'ai pas de mandat pour te protéger. Mais si tu parles, tu seras entendu."}
+    choix:
+      - id: trahir
+        l: "Tout dire à Aya sur les comptes du Baron (elle n'a pas de mandat : sans protection, le Baron saura que c'est toi)"
+        intention: "Briser ta dette"
+        cout: "Le Baron ne pardonne pas, et Jo non plus."
+        vu_par: [ordre, ombre]
+        eff:
+          compromission: -4
+          flags: [temoin, trahi_baron]
+          relations: {aya: {trust: 3}, baron: {trust: -5, peur: 3}, jo: {trust: -2}}
+          factions: {ordre: {reputation: 2}, ombre: {reputation: -3}}
+        tirage:
+          difficulte: 6
+          issues:
+            miracle: {vers: br_5_ceremonie, eff: {flags: [protection_aya]}, txt: "Aya intercède : un magistrat, qu'elle avait prévenu en secret, accepte de te placer sous protection."}
+            normal: {vers: br_5_ceremonie, eff: {flags: [sans_protection]}, txt: "Aya note ton témoignage. Elle n'a pas de mandat pour te protéger, et le dit avec honnêteté."}
+            mauvaise: {vers: br_5_ceremonie, eff: {flags: [sans_protection], sante: -10, relations: {baron: {peur: 2}}}, txt: "Un policier prévient discrètement un homme du Baron avant même que tu sois sorti."}
+      - id: comptes
+        l: "Remettre la copie des comptes du Baron à Aya (une preuve écrite, mais le Baron saura qui l'a donnée)"
+        intention: "Une preuve que les avocats ne contesteront pas"
+        cout: "Tu romps définitivement avec le Baron."
+        si: "preuves.comptes_baron == 'detenue'"
+        vu_par: [ordre, ombre]
+        eff:
+          compromission: -4
+          flags: [temoin, trahi_baron, protection_aya]
+          relations: {aya: {trust: 2}, baron: {trust: -5, peur: 2}}
+          factions: {ordre: {reputation: 2}, ombre: {reputation: -3}}
+          preuves: {comptes_baron: {action: transmettre, a: aya}}
+        vers: br_5_ceremonie
+      - id: loyal
+        l: "Rester muet et loyal au Baron"
+        intention: "Garder ta place"
+        cout: "Mimi ne te regardera plus jamais pareil."
+        vu_par: [ombre]
+        eff: {compromission: 2, flags: [loyal_baron], relations: {baron: {trust: 2}, mimi: {trust: -2}}, factions: {ombre: {reputation: 1}}}
+        vers: br_5_ceremonie
+      - id: fuir
+        l: "Fuir avec ton ordinateur par l'escalier de service"
+        intention: "Ne choisir aucun camp"
+        cout: "Tu perds ton studio, Mimi et ta place."
+        eff: {compromission: 1, argent: -100000, relations: {mimi: {trust: -2}}}
+        vers: br_5_ceremonie
+
+  - id: br_4_descente_temoin
+    jalon: 4
+    jour: 283
+    carrefour: C
+    lieu: "Yopougon, tribunal et quartier"
+    moment: "Aube, après la crue"
+    objectif: "Un tribunal veut ton témoignage sur les comptes du Baron : on te regarde, toi qui sais."
+    present: [aya, fatou, mimi]
+    savoir: "Aya a besoin d'un témoin technique. Mimi sait ce que tu as fait."
+    dialogue:
+      - {narr: "Le jour se lève sur les rues boueuses. À la porte de ton immeuble, Aya, Fatou et Mimi t'attendent, chacune avec une raison différente."}
+      - {qui: aya, dit: "Lieutenante Coulibaly. Je cherche quelqu'un qui sache lire les virements. Je ne te promets pas de protection. Je te promets que tu seras entendu."}
+    choix:
+      - id: temoigner
+        l: "Témoigner : les virements, les sociétés, ce que tu as fait toi-même"
+        intention: "Dire ce que tu sais, y compris sur toi"
+        cout: "Tu t'accuses aussi."
+        vu_par: [ordre]
+        eff: {compromission: -3, flags: [temoin], relations: {aya: {trust: 3}}, factions: {ordre: {reputation: 2}}}
+        vers: br_5_ceremonie
+      - id: comptes_temoin
+        l: "Remettre la copie des comptes du Baron à Aya"
+        intention: "Une preuve que personne ne pourra nier"
+        cout: "Le Baron saura qui l'a donnée."
+        si: "preuves.comptes_baron == 'detenue'"
+        vu_par: [ordre]
+        eff:
+          compromission: -3
+          flags: [temoin, protection_aya]
+          relations: {aya: {trust: 2}}
+          factions: {ordre: {reputation: 2}}
+          preuves: {comptes_baron: {action: transmettre, a: aya}}
+        vers: br_5_ceremonie
+      - id: disparaitre
+        l: "Disparaître : partir chez un cousin à Bouaké"
+        intention: "Échapper à tout"
+        cout: "Mimi ne pourra pas te suivre, et Madeleine ne saura jamais."
+        eff: {flags: [silence], relations: {mimi: {trust: -1}, aya: {trust: -1}}}
+        vers: br_5_ceremonie
+
+  - id: br_5_ceremonie
+    jalon: 5
+    jour: 304
+    denouement: true
+    lieu: "Bord de la lagune, première pierre"
+    moment: "Cérémonie d'inauguration"
+    objectif: "Dire ce que ton pseudonyme est devenu."
+    present: [mimi, jo, aya, fatou, baron]
+    savoir: "Tu sais ce que tu as pris et ce que tu as rendu. Chacun sait ce qu'il a vu."
+    dialogue:
+      - {narr: "Le Maire coupe le ruban d'un quartier à moitié vrai. Ton pseudonyme est dans toutes les conversations, et ton visage dans aucune."}
+      - {qui: mimi, dit: "Alors ? Qu'est-ce qu'on dira de toi, maintenant ?", si: "relations.mimi.trust >= 1"}
+      - {qui: fatou, dit: "On m'a dit que tu avais ouvert un canal pendant la crue. Le quartier s'en souvient.", si: "flags.detourne_secours"}
+
+fins:
+  - id: br_f_lum
+    type: lumiere
+    priorite: 2
+    si: "flags.temoin and compromission <= 0 and (flags.rembourse_madeleine or flags.verite_madeleine) and preuves.comptes_baron == 'transmise'"
+    titre: "Le Repenti du Net"
+    resume: "Tu travailles pour la sécurité, avec un casier à purger et un nom à refaire."
+    epilogue:
+      - {txt: "La copie des comptes du Baron ouvre trois enquêtes : les sociétés, les virements, les noms. Ton pseudonyme figure dans le dossier, comme témoin et comme prévenu."}
+      - {si: "flags.rembourse_madeleine", txt: "Madeleine a reçu une enveloppe sans nom, puis une lettre. Elle a répondu, sans colère, d'une main qui tremble."}
+      - {si: "flags.verite_madeleine", txt: "Madeleine a lu ta lettre, l'a relue, puis a répondu : « Merci de m'avoir dit la vérité. »"}
+      - {si: "flags.cyber_formation", txt: "Ta petite formation compte douze élèves, dont trois filles de Yopougon. Tu leur enseignes ce que tu sais, et ce que tu ne feras plus."}
+      - {txt: "Ce n'est pas gratuit : Jo ne te parle plus, et le Baron n'a pas fini de te chercher."}
+  - id: br_f_ombre
+    type: ombre
+    priorite: 3
+    si: "flags.cyber_comptable and compromission >= 8"
+    titre: "Le Cyber-Comptable"
+    resume: "Riche, intouchable, seul."
+    epilogue:
+      - {txt: "Tu fais circuler l'argent du Baron sans qu'on le voie. Tu es riche, introuvable, et plus personne ne t'appelle par ton vrai prénom."}
+      - {si: "relations.mimi.trust <= 0", txt: "Mimi est partie un matin, sans bruit. Tu as fait semblant de ne pas t'en apercevoir."}
+      - {si: "not flags.rembourse_madeleine", txt: "Madeleine ne t'écrit plus. Tu ne sais pas si elle a compris, ou si elle a renoncé."}
+      - {txt: "Ton écran est plus grand, ton studio plus vide."}
+  - id: br_f_entre
+    type: entre_deux
+    priorite: 5
+    si: "true"
+    titre: "Le Gayman Rangé"
+    resume: "Tu ranges tes ordinateurs. Mimi te regarde toujours avec des questions."
+    epilogue:
+      - {txt: "Tu ranges tes ordinateurs dans une valise, au fond d'un placard. Tu vis plus petit, plus discret."}
+      - {si: "flags.mimi_sait", txt: "Mimi est restée. Elle sait, et ne le dit pas, et chaque jour elle décide de rester."}
+      - {si: "flags.silence", txt: "Tu es parti à Bouaké. Madeleine ne saura jamais."}
+      - {si: "flags.trace_effacee", txt: "Tu as effacé tes traces. Aya n'a pas de quoi t'accuser, mais elle sait où tu habites."}
+      - {si: "flags.jo_vend", txt: "Jo a vendu ton nom. Il y a des soirs où tu regardes par la fenêtre avant d'ouvrir la porte."}
+  - id: br_f_trag
+    type: tragique
+    priorite: 1
+    imposee: true
+    si: "flags.trahi_baron and flags.jo_vend and flags.sans_protection"
+    titre: "Le Dernier Virement"
+    resume: "Tu as parlé, et ton complice t'avait déjà vendu."
+    epilogue:
+      - {txt: "Jo avait vendu ton pseudonyme. Tu as parlé à Aya sans mandat, sans protection, devant des hommes qui savaient déjà qui tu étais."}
+      - {txt: "Le jour de la cérémonie, ton studio de Yopougon est vide. Le Baron n'a plus besoin de toi et te sait plus dangereux vivant."}
+      - {txt: "Aya t'avait prévenu : sans mandat, personne ne pouvait te protéger. Fin définitive."}
+  - id: br_f_secret
+    type: secrete
+    priorite: 0
+    si: "(flags.indic or flags.detourne_secours) and flags.cyber_formation and flags.temoin and relations.mimi.trust >= 3 and compromission <= 1"
+    titre: "Le White Hat d'Abidjan"
+    resume: "Tu formes les jeunes à la sécurité informatique et tu aides la PLCC à reconstruire."
+    epilogue:
+      - {txt: "Ta formation de Yopougon est devenue une petite école : vingt élèves, une salle prêtée par l'association du quartier, et Mimi au secrétariat."}
+      - {txt: "Aya t'appelle quand un dossier lui échappe. Fatou diffuse tes conseils de sécurité à la radio, un jeudi sur deux."}
+      - {si: "flags.rembourse_madeleine or flags.verite_madeleine", txt: "Madeleine vient à Abidjan en mars. Elle ne dit pas qu'elle te pardonne. Elle visite ta salle de cours, et reste longtemps devant le tableau."}
+      - {txt: "Ce que tu savais faire disparaître sur un écran, tu apprends aux autres à le retrouver."}

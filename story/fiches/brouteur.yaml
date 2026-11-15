@@ -1,0 +1,39 @@
+# Fiches des personnages propres au destin « Le Gayman et la PLCC » (sans fiche maître dans personnages.yaml).
+mimi:
+  nom: "Mimi"
+  age: 26
+  role: "Ta compagne ; infirmière auxiliaire à la clinique de Yopougon."
+  objectif: "Comprendre d'où vient l'argent, et décider si elle reste."
+  methode: "Observe plus qu'elle ne parle ; pose une question à la fois, et attend la vraie réponse."
+  tics: ["« Tu manges quoi ce soir ? »", "« Dis-moi la vérité »"]
+  limites: ["Aucun pouvoir sur la police", "Ne peut pas te protéger si tu continues"]
+  savoir: ["Que tu as un deuxième téléphone", "Que tu rentres tard depuis des mois"]
+  secret: "Elle a déjà préparé un sac, au cas où il faudrait partir."
+  offre: ["Un foyer", "Un regard honnête sur toi", "Un contact à la clinique (secours pendant la crue)"]
+  evolution: "Informée et soutenue → elle reste et t'aide à reconstruire. Trompée → elle part, sans bruit."
+
+jo:
+  nom: "Jo"
+  age: 31
+  role: "Ton complice et ancien camarade de lycée ; il choisit les cibles."
+  objectif: "Un gros gain avant la fin de l'année, puis passer chez le Baron."
+  methode: "Charmeur, rapide, jamais en dehors de ses habitudes ; promet plus qu'il ne tient."
+  tics: ["« Mon frère »", "« C'est un cadeau »"]
+  limites: ["Peur du Baron", "Pas de compétences techniques sans toi"]
+  savoir: ["La liste des cibles", "Les contacts de ton réseau", "Qu'un homme du Baron cherche des cyber-comptables"]
+  secret: "Il a déjà promis ton nom au Baron sans te le dire."
+  offre: ["Des cibles", "Un accès au Baron", "Des alertes quand la police approche"]
+  evolution: "Respecté et associé → il t'alerte et reste fidèle. Humilié ou refusé → il vend ton pseudonyme."
+
+madeleine:
+  nom: "Madeleine"
+  age: 67
+  role: "Retraitée de Lyon, veuve, ta correspondante depuis des mois : elle croit en ton amitié."
+  objectif: "Ne plus se sentir seule, et aider quelqu'un qu'elle croit en difficulté."
+  methode: "Écrit chaque soir, répond avec patience, ne pose jamais de question dure."
+  tics: ["« Bonne nuit, mon ami »"]
+  limites: ["Aucun pouvoir sur toi", "Sa fille surveille ses comptes"]
+  savoir: ["Ce que tu lui as raconté de toi", "Qu'elle a vendu la montre de son mari pour t'aider"]
+  secret: "Elle a gardé tes photos sur sa table de chevet, et n'a rien dit à sa fille."
+  offre: ["Une lettre de pardon (si tu dis la vérité)", "Un témoignage de victime à la barre"]
+  evolution: "Remboursée ou informée → elle répond, sans colère. Abusée jusqu'au bout → sa fille dépose plainte, et elle témoigne contre toi."

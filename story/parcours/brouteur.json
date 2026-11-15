@@ -1,0 +1,436 @@
+{
+ "destin": "brouteur",
+ "formule": "etoile-v1",
+ "fins": {
+  "br_f_entre": {
+   "chemin": [
+    {
+     "noeud": "br_0_studio",
+     "choix": "inviter_mimi",
+     "issue": null
+    },
+    {
+     "noeud": "br_0_telephone",
+     "choix": "avouer",
+     "issue": null
+    },
+    {
+     "noeud": "br_1_coup",
+     "choix": "faire_coup",
+     "issue": null
+    },
+    {
+     "noeud": "br_1_plcc",
+     "choix": "effacer",
+     "issue": null
+    },
+    {
+     "noeud": "br_2_princesse_baron",
+     "choix": "cyber_comptable",
+     "issue": null
+    },
+    {
+     "noeud": "br_2_reseau",
+     "choix": "formation",
+     "issue": null
+    },
+    {
+     "noeud": "br_3_crue_baron",
+     "choix": "deplacer",
+     "issue": null
+    },
+    {
+     "noeud": "br_4_descente_ombre",
+     "choix": "trahir",
+     "issue": "miracle"
+    }
+   ],
+   "fin": "br_f_entre"
+  },
+  "br_f_ombre": {
+   "chemin": [
+    {
+     "noeud": "br_0_studio",
+     "choix": "inviter_mimi",
+     "issue": null
+    },
+    {
+     "noeud": "br_0_telephone",
+     "choix": "avouer",
+     "issue": null
+    },
+    {
+     "noeud": "br_1_coup",
+     "choix": "faire_coup",
+     "issue": null
+    },
+    {
+     "noeud": "br_1_plcc",
+     "choix": "effacer",
+     "issue": null
+    },
+    {
+     "noeud": "br_2_princesse_baron",
+     "choix": "cyber_comptable",
+     "issue": null
+    },
+    {
+     "noeud": "br_2_reseau",
+     "choix": "formation",
+     "issue": null
+    },
+    {
+     "noeud": "br_3_crue_baron",
+     "choix": "deplacer",
+     "issue": null
+    },
+    {
+     "noeud": "br_4_descente_ombre",
+     "choix": "loyal",
+     "issue": null
+    }
+   ],
+   "fin": "br_f_ombre"
+  },
+  "br_f_secret": {
+   "chemin": [
+    {
+     "noeud": "br_0_studio",
+     "choix": "inviter_mimi",
+     "issue": null
+    },
+    {
+     "noeud": "br_0_telephone",
+     "choix": "avouer",
+     "issue": null
+    },
+    {
+     "noeud": "br_1_coup",
+     "choix": "faire_coup",
+     "issue": null
+    },
+    {
+     "noeud": "br_1_plcc",
+     "choix": "effacer",
+     "issue": null
+    },
+    {
+     "noeud": "br_2_princesse_baron",
+     "choix": "refuser_baron",
+     "issue": null
+    },
+    {
+     "noeud": "br_2_reseau",
+     "choix": "formation",
+     "issue": null
+    },
+    {
+     "noeud": "br_3_crue_baron",
+     "choix": "rediriger",
+     "issue": "miracle"
+    },
+    {
+     "noeud": "br_4_descente_ombre",
+     "choix": "trahir",
+     "issue": "miracle"
+    }
+   ],
+   "fin": "br_f_secret"
+  },
+  "br_f_lum": {
+   "chemin": [
+    {
+     "noeud": "br_0_studio",
+     "choix": "inviter_mimi",
+     "issue": null
+    },
+    {
+     "noeud": "br_0_telephone",
+     "choix": "avouer",
+     "issue": null
+    },
+    {
+     "noeud": "br_1_coup",
+     "choix": "faire_coup",
+     "issue": null
+    },
+    {
+     "noeud": "br_1_plcc",
+     "choix": "rembourser",
+     "issue": null
+    },
+    {
+     "noeud": "br_2_princesse_baron",
+     "choix": "refuser_baron",
+     "issue": null
+    },
+    {
+     "noeud": "br_2_reseau",
+     "choix": "formation",
+     "issue": null
+    },
+    {
+     "noeud": "br_3_crue_baron",
+     "choix": "copier",
+     "issue": "miracle"
+    },
+    {
+     "noeud": "br_4_descente_temoin",
+     "choix": "comptes_temoin",
+     "issue": null
+    }
+   ],
+   "fin": "br_f_lum"
+  },
+  "br_f_trag": {
+   "chemin": [
+    {
+     "noeud": "br_0_studio",
+     "choix": "inviter_mimi",
+     "issue": null
+    },
+    {
+     "noeud": "br_0_telephone",
+     "choix": "avouer",
+     "issue": null
+    },
+    {
+     "noeud": "br_1_coup",
+     "choix": "faire_coup",
+     "issue": null
+    },
+    {
+     "noeud": "br_1_plcc",
+     "choix": "rembourser",
+     "issue": null
+    },
+    {
+     "noeud": "br_2_princesse_baron",
+     "choix": "prudent",
+     "issue": "mauvaise"
+    },
+    {
+     "noeud": "br_2_reseau",
+     "choix": "formation",
+     "issue": null
+    },
+    {
+     "noeud": "br_3_crue_baron",
+     "choix": "deplacer",
+     "issue": null
+    },
+    {
+     "noeud": "br_4_descente_ombre",
+     "choix": "trahir",
+     "issue": "mauvaise"
+    }
+   ],
+   "fin": "br_f_trag"
+  }
+ },
+ "extremes": {
+  "compromission_max": {
+   "valeur": 10,
+   "chemin": [
+    {
+     "noeud": "br_0_studio",
+     "choix": "inviter_mimi",
+     "issue": null
+    },
+    {
+     "noeud": "br_0_telephone",
+     "choix": "avouer",
+     "issue": null
+    },
+    {
+     "noeud": "br_1_coup",
+     "choix": "faire_coup",
+     "issue": null
+    },
+    {
+     "noeud": "br_1_plcc",
+     "choix": "effacer",
+     "issue": null
+    },
+    {
+     "noeud": "br_2_princesse_baron",
+     "choix": "cyber_comptable",
+     "issue": null
+    },
+    {
+     "noeud": "br_2_reseau",
+     "choix": "formation",
+     "issue": null
+    },
+    {
+     "noeud": "br_3_crue_baron",
+     "choix": "deplacer",
+     "issue": null
+    },
+    {
+     "noeud": "br_4_descente_ombre",
+     "choix": "loyal",
+     "issue": null
+    }
+   ]
+  },
+  "compromission_min": {
+   "valeur": -7,
+   "chemin": [
+    {
+     "noeud": "br_0_studio",
+     "choix": "inviter_mimi",
+     "issue": null
+    },
+    {
+     "noeud": "br_0_telephone",
+     "choix": "avouer",
+     "issue": null
+    },
+    {
+     "noeud": "br_1_coup",
+     "choix": "refuser_coup",
+     "issue": null
+    },
+    {
+     "noeud": "br_1_plcc",
+     "choix": "rembourser",
+     "issue": null
+    },
+    {
+     "noeud": "br_2_princesse_aya",
+     "choix": "indic",
+     "issue": null
+    },
+    {
+     "noeud": "br_2_reseau",
+     "choix": "verite_madeleine",
+     "issue": null
+    },
+    {
+     "noeud": "br_3_crue_quartier",
+     "choix": "rouvrir",
+     "issue": "miracle"
+    },
+    {
+     "noeud": "br_4_descente_temoin",
+     "choix": "temoigner",
+     "issue": null
+    }
+   ]
+  },
+  "sante_min": {
+   "valeur": 55,
+   "chemin": [
+    {
+     "noeud": "br_0_studio",
+     "choix": "inviter_mimi",
+     "issue": null
+    },
+    {
+     "noeud": "br_0_telephone",
+     "choix": "avouer",
+     "issue": null
+    },
+    {
+     "noeud": "br_1_coup",
+     "choix": "faire_coup",
+     "issue": null
+    },
+    {
+     "noeud": "br_1_plcc",
+     "choix": "effacer",
+     "issue": null
+    },
+    {
+     "noeud": "br_2_princesse_baron",
+     "choix": "cyber_comptable",
+     "issue": null
+    },
+    {
+     "noeud": "br_2_reseau",
+     "choix": "formation",
+     "issue": null
+    },
+    {
+     "noeud": "br_3_crue_baron",
+     "choix": "rediriger",
+     "issue": "mauvaise"
+    },
+    {
+     "noeud": "br_4_descente_ombre",
+     "choix": "trahir",
+     "issue": "mauvaise"
+    }
+   ]
+  },
+  "argent_max": {
+   "valeur": 1500000,
+   "chemin": [
+    {
+     "noeud": "br_0_studio",
+     "choix": "inviter_mimi",
+     "issue": null
+    },
+    {
+     "noeud": "br_0_telephone",
+     "choix": "avouer",
+     "issue": null
+    },
+    {
+     "noeud": "br_1_coup",
+     "choix": "faire_coup",
+     "issue": null
+    },
+    {
+     "noeud": "br_1_plcc",
+     "choix": "effacer",
+     "issue": null
+    },
+    {
+     "noeud": "br_2_princesse_baron",
+     "choix": "cyber_comptable",
+     "issue": null
+    },
+    {
+     "noeud": "br_2_reseau",
+     "choix": "verite_madeleine",
+     "issue": null
+    },
+    {
+     "noeud": "br_3_crue_baron",
+     "choix": "deplacer",
+     "issue": null
+    },
+    {
+     "noeud": "br_4_descente_ombre",
+     "choix": "trahir",
+     "issue": "miracle"
+    }
+   ]
+  }
+ },
+ "distribution_pct": {
+  "0": {
+   "br_f_entre": 90.2,
+   "br_f_ombre": 5.7,
+   "br_f_secret": 1.0,
+   "br_f_lum": 0.1,
+   "br_f_trag": 3.1
+  },
+  "50": {
+   "br_f_entre": 90.7,
+   "br_f_ombre": 5.4,
+   "br_f_secret": 1.0,
+   "br_f_lum": 0.1,
+   "br_f_trag": 2.7
+  },
+  "100": {
+   "br_f_entre": 91.6,
+   "br_f_ombre": 5.0,
+   "br_f_secret": 1.2,
+   "br_f_lum": 0.1,
+   "br_f_trag": 2.1
+  }
+ }
+}
