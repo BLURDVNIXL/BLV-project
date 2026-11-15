@@ -98,6 +98,12 @@ function nearestOnNetwork(p: Vec2): { seg: number; t: number; dist: number; at: 
   return best;
 }
 
+/** Point du réseau des grands axes (et ponts) le plus proche de p ; sert à déposer un joueur sur la route. */
+export function nearestRoadPoint(p: Vec2): { at: Vec2; dist: number } {
+  const q = nearestOnNetwork(p);
+  return { at: { x: q.at.x, z: q.at.z }, dist: q.dist };
+}
+
 /** Itinéraire de `from` à `to` ; null si les deux points sont identiques ou si aucun chemin n'existe. */
 export function findRoute(from: Vec2, to: Vec2): Route | null {
   if (len(from, to) < 2) return null;
