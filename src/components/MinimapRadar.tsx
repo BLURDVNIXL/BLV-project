@@ -1,17 +1,20 @@
 import { useEffect, useRef } from 'react';
+import { Maximize2 } from 'lucide-react';
 import { RadarSnapshot } from '../3d/sceneManager';
 import { projected } from '../world/abidjanGeography';
 
 interface MinimapRadarProps {
   getSnapshot: () => RadarSnapshot | null;
   district: string;
+  /** Toucher le radar ouvre la grande carte. */
+  onOpen?: () => void;
 }
 
 /**
  * 2D Canvas Minimap Radar using the exact projected Abidjan geography
  * (North/South shores, Cocody & Banco bays, Île Boulay, Océan Atlantique, and all 5 bridges).
  */
-export function MinimapRadar({ getSnapshot, district }: MinimapRadarProps) {
+export function MinimapRadar({ getSnapshot, district, onOpen }: MinimapRadarProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
@@ -145,11 +148,18 @@ export function MinimapRadar({ getSnapshot, district }: MinimapRadarProps) {
   }, [getSnapshot]);
 
   return (
-    <div className="panel pointer-events-auto w-40 shrink-0 overflow-hidden p-1.5 md:w-52 short:w-28 short:p-1">
+    <div
+      className={`panel pointer-events-auto w-40 shrink-0 overflow-hidden p-1.5 md:w-52 short:w-28 short:p-1 ${onOpen ? 'cursor-pointer' : ''}`}
+      role={onOpen ? 'button' : undefined}
+      tabIndex={onOpen ? 0 : undefined}
+      aria-label={onOpen ? 'Ouvrir la carte' : undefined}
+      onClick={onOpen}
+      onKeyDown={onOpen ? (e) => { if (e.key === 'Enter' || e.key === ' ') onOpen(); } : undefined}
+    >
       <canvas ref={canvasRef} width={208} height={156} className="block aspect-[4/3] w-full rounded-xl object-cover short:aspect-[16/10]" />
       <div className="flex items-center justify-between px-1.5 pt-1 text-xs short:px-1 short:pt-0.5">
         <span className="truncate font-display text-sm font-semibold text-ink-800 short:text-xs">{district}</span>
-        <span className="font-semibold text-ink-400">GPS</span>
+        <span className="flex items-center gap-0.5 font-semibold text-ink-400">Carte<Maximize2 className="h-3 w-3" /></span>
       </div>
     </div>
   );

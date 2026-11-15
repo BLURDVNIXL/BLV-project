@@ -68,6 +68,7 @@ import { BabiOSPhone } from './components/BabiOSPhone';
 import { NewLifeScreen } from './components/NewLifeScreen';
 import { loadProfile, saveProfile } from './core/profile';
 import { AdminModal } from './components/AdminModal';
+import { FullMapModal } from './components/FullMapModal';
 import { SettingsModal } from './components/SettingsModal';
 import { GameOverModal } from './components/GameOverModal';
 import { OrientationGuard } from './components/OrientationGuard';
@@ -96,6 +97,7 @@ export default function App() {
   const [isPhoneOpen, setIsPhoneOpen] = useState(false);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isMapOpen, setIsMapOpen] = useState(false);
   const [activeExamBadge, setActiveExamBadge] = useState<AcademicBadge | null>(null);
   const [incomingConsent, setIncomingConsent] = useState<ConsentPrompt | null>(null);
   const [pendingOutgoingConsent, setPendingOutgoingConsent] = useState<{
@@ -255,6 +257,18 @@ export default function App() {
       soundEngine.setStatusListener(null);
     };
   }, [isAutostart]);
+
+  // Touche M : ouvre / ferme la carte (ordinateur)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.code !== 'KeyM' || e.repeat || screenState !== 'playing') return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return;
+      setIsMapOpen((o) => !o);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [screenState]);
 
   // Fondu au noir pour entrer / sortir d'un intérieur (la scène bascule pendant que l'écran est noir)
   const [fadeBlack, setFadeBlack] = useState(false);
@@ -706,6 +720,9 @@ export default function App() {
         />
       )}
 
+      {/* Carte plein écran : toucher le radar (ou touche M) */}
+      {isMapOpen && screenState === 'playing' && <FullMapModal getSnapshot={getRadarSnapshot} onClose={() => setIsMapOpen(false)} />}
+
       {/* Fondu au noir des entrées / sorties d'intérieurs */}
       <div
         aria-hidden="true"
@@ -727,6 +744,7 @@ export default function App() {
             onInteractClick={() => sceneRef.current?.triggerInteract()}
             onRepairEngine={handleRepairStalledEngine}
             onOpenPhone={() => setIsPhoneOpen(true)}
+            onOpenMap={() => setIsMapOpen(true)}
             onOpenSettings={() => setIsSettingsOpen(true)}
             onOpenAdmin={() => setIsAdminOpen(true)}
             onOpenRoulette={() => setScreenState('roulette')}

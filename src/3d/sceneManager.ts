@@ -111,6 +111,10 @@ export interface RadarSnapshot {
   playerRotY: number;
   district: string;
   hotspots: Array<{ id: string; label: string; x: number; z: number; color: number }>;
+  /** Lieux fixes de la ville (sans les zones d'action de la maison) pour la grande carte. */
+  places: Array<{ id: string; label: string; x: number; z: number; color: number }>;
+  /** Position de ta maison (parcelle), null tant qu'elle n'est pas posée. */
+  home: { x: number; z: number } | null;
   remotes: Array<{ name: string; x: number; z: number; color: string }>;
 }
 
@@ -1376,6 +1380,8 @@ export class AbidjanSceneManager {
       playerRotY: this.activeInterior ? this.activeInterior.returnRotY : this.playerRotY,
       district: this.lastDistrict,
       hotspots: allHotspots.map((h) => ({ id: h.id, label: h.label, x: h.x, z: h.z, color: h.color })),
+      places: this.staticHotspots.map((h) => ({ id: h.id, label: h.label, x: h.x, z: h.z, color: h.color })),
+      home: this.ownHouseLot ? { x: this.ownHouseLot.x, z: this.ownHouseLot.z } : null,
       remotes: Array.from(this.remoteRigs.values()).map((r) => ({
         name: r.name,
         x: r.rig.group.position.x,
