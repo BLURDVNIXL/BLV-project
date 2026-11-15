@@ -106,7 +106,7 @@ export interface CityHotspot {
     | 'sleep'
     | 'black_market'
     | 'yannis_academy'
-    | 'hospital_door'
+    | 'interior_door'
     | 'interior_exit';
   color: number;
 }
@@ -282,15 +282,22 @@ export class AbidjanSceneManager {
 
   private staticHotspots: CityHotspot[] = [];
   private homeHotspots: CityHotspot[] = [];
-  /** Portes d'hôpitaux (id de zone d'action → site et point de retour devant la porte). */
-  private hospitalDoors = new Map<string, { siteId: string; name: string; outX: number; outZ: number; outRotY: number }>();
+  /** Portes des intérieurs (id de zone d'action → type d'intérieur, nom et point de retour devant la porte). */
+  private interiorDoors = new Map<string, {
+    interiorId: InteriorId;
+    siteId: string;
+    name: string;
+    outX: number;
+    outZ: number;
+    outRotY: number;
+  }>();
   /** Intérieur actuellement occupé par le joueur (téléportation dans une salle fermée hors carte). */
   private activeInterior: {
     id: InteriorId;
     def: InteriorDef;
     rig: InteriorRig;
     colliderIds: number[];
-    hotspot: CityHotspot;
+    hotspots: CityHotspot[];
     label: string;
     returnX: number;
     returnZ: number;
@@ -544,8 +551,8 @@ export class AbidjanSceneManager {
     this.staticHotspots = [];
     this.beaconRings = [];
 
-    // Portes des hôpitaux : zone d'action devant l'entrée (la façade est du côté +z local de l'emprise)
-    this.hospitalDoors.clear();
+    // Portes d'intérieurs : zone d'action devant l'entrée (la façade est du côté +z local de l'emprise)
+    this.interiorDoors.clear();
     for (const site of HOSPITAL_SITES) {
       const fp = SPECIAL_FOOTPRINTS.find((f) => f.spec.id === site.id);
       if (!fp) continue;
@@ -553,16 +560,19 @@ export class AbidjanSceneManager {
       const vz = Math.cos(fp.angle);
       const hx = fp.x + vx * (fp.d / 2 + 2.2);
       const hz = fp.z + vz * (fp.d / 2 + 2.2);
-      const id = `door_${site.id}`;
-      this.hospitalDoors.set(id, { siteId: site.id, name: site.name, outX: fp.x + vx * (fp.d / 2 + 3.6), outZ: fp.z + vz * (fp.d / 2 + 3.6), outRotY: -fp.angle });
-      this.addBeaconHotspot({
-        id,
+      this.registerInteriorDoor({
+        id: `door_${site.id}`,
+        interiorId: 'hopital',
+        siteId: site.id,
+        name: site.name,
         label: `🏥 Entrer — ${site.name}`,
         district: districtAt({ x: fp.x, z: fp.z }).name,
-        x: hx,
-        z: hz,
+        doorX: hx,
+        doorZ: hz,
+        outX: fp.x + vx * (fp.d / 2 + 3.6),
+        outZ: fp.z + vz * (fp.d / 2 + 3.6),
+        outRotY: -fp.angle,
         radius: 3.4,
-        type: 'hospital_door',
         color: 0xef4444,
       });
     }
@@ -1187,18 +1197,53 @@ export class AbidjanSceneManager {
     return this.activeInterior !== null;
   }
 
+  private registerInteriorDoor(opts: {
+    id: string;
+    interiorId: InteriorId;
+    siteId: string;
+    name: string;
+    label: string;
+    district: string;
+    doorX: number;
+    doorZ: number;
+    outX: number;
+    outZ: number;
+    outRotY: number;
+    radius: number;
+    color: number;
+  }) {
+    this.interiorDoors.set(opts.id, {
+      interiorId: opts.interiorId,
+      siteId: opts.siteId,
+      name: opts.name,
+      outX: opts.outX,
+      outZ: opts.outZ,
+      outRotY: opts.outRotY,
+    });
+    this.addBeaconHotspot({
+      id: opts.id,
+      label: opts.label,
+      district: opts.district,
+      x: opts.doorX,
+      z: opts.doorZ,
+      radius: opts.radius,
+      type: 'interior_door',
+      color: opts.color,
+    });
+  }
+
   /**
-   * Entre dans l'hôpital par la porte `doorId` : fondu géré par l'interface ; ici on construit la salle,
+   * Entre dans un intérieur par la porte `doorId` : fondu géré par l'interface ; ici on construit la salle,
    * on enregistre ses collisions, on téléporte le joueur et on fige la ville (elle reste chargée).
    */
   public enterInterior(doorId: string, spawn: 'door' | 'bed' = 'door'): { ok: boolean; reason?: 'driving' | 'unknown' } {
-    const door = this.hospitalDoors.get(doorId);
+    const door = this.interiorDoors.get(doorId);
     const core = this.physics;
-    if (!door || !core || this.playerCharId < 0) return { ok: false, reason: 'unknown' };
+    const def = door ? INTERIORS[door.interiorId] : undefined;
+    if (!door || !def || !core || this.playerCharId < 0) return { ok: false, reason: 'unknown' };
     if (this.activeInterior) return { ok: false };
     if (this.drivingVehicle) return { ok: false, reason: 'driving' };
 
-    const def = INTERIORS.hopital;
     const rig = createInteriorRig(def);
     this.scene.add(rig.group);
     const colliderIds: number[] = [];
@@ -1208,7 +1253,7 @@ export class AbidjanSceneManager {
       if (id >= 0) colliderIds.push(id);
     }
     const ex = interiorToWorld(def, def.exit.x, def.exit.z);
-    const hotspot: CityHotspot = {
+    const exitHotspot: CityHotspot = {
       id: `exit_${def.id}`,
       label: `🚪 Sortir — ${door.name}`,
       district: def.label,
@@ -1218,13 +1263,26 @@ export class AbidjanSceneManager {
       type: 'interior_exit',
       color: 0xef4444,
     };
+    const actionHotspots: CityHotspot[] = (def.actions ?? []).map((act) => {
+      const p = interiorToWorld(def, act.x, act.z);
+      return {
+        id: act.id,
+        label: act.label,
+        district: def.label,
+        x: p.x,
+        z: p.z,
+        radius: act.radius,
+        type: act.type,
+        color: act.color,
+      };
+    });
     this.activeInterior = {
-      id: def.id, def, rig, colliderIds, hotspot, label: door.name,
+      id: def.id, def, rig, colliderIds, hotspots: [exitHotspot, ...actionHotspots], label: door.name,
       returnX: door.outX, returnZ: door.outZ, returnRotY: door.outRotY,
       prevPitch: this.camPitch, prevDist: this.camDist,
     };
 
-    const at = spawn === 'bed' ? def.bed : def.entry;
+    const at = spawn === 'bed' && def.bed ? def.bed : def.entry;
     const w = interiorToWorld(def, at.x, at.z);
     core.placeCharacter(this.playerCharId, w.x, w.z);
     core.faceCharacter(this.playerCharId, at.rotY, true);
@@ -1264,12 +1322,14 @@ export class AbidjanSceneManager {
     return true;
   }
 
-  /** Murs de l'intérieur occupé : transparents côté caméra ; l'anneau « Sortir » pulse. */
+  /** Murs de l'intérieur occupé : transparents côté caméra ; les anneaux d'action pulsent. */
   private updateInteriorShell(dt: number, nowSec: number) {
     const a = this.activeInterior;
     if (!a) return;
     a.rig.fader.update(this.camPos.x - a.def.origin.x, this.camPos.z - a.def.origin.z, true, dt);
-    (a.rig.exitRing.material as THREE.MeshBasicMaterial).opacity = 0.6 + 0.25 * Math.sin(nowSec * 4);
+    const pulse = 0.6 + 0.25 * Math.sin(nowSec * 4);
+    (a.rig.exitRing.material as THREE.MeshBasicMaterial).opacity = pulse;
+    for (const r of a.rig.actionRings) (r.material as THREE.MeshBasicMaterial).opacity = pulse;
   }
 
   /** Position du joueur à pied ou, depuis un intérieur, devant l'entrée (là où le taxi le prendrait). */
@@ -1765,7 +1825,7 @@ export class AbidjanSceneManager {
     if (this.taxiRide) return null;
     let best: CityHotspot | null = null;
     let bestD = Infinity;
-    const pool = this.activeInterior ? [this.activeInterior.hotspot] : [...this.homeHotspots, ...this.staticHotspots];
+    const pool = this.activeInterior ? this.activeInterior.hotspots : [...this.homeHotspots, ...this.staticHotspots];
     for (const h of pool) {
       const d = Math.hypot(this.playerX - h.x, this.playerZ - h.z);
       if (d <= h.radius && d < bestD) {

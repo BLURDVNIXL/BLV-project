@@ -10,10 +10,36 @@
 
 export type InteriorId = 'hopital';
 
+export type InteriorBoxKind = 'wall' | 'partition' | 'prop';
+
 export interface InteriorBox {
-  /** Centre local, demi-largeurs, hauteur. `wall` : mur (fondu côté caméra) ; `prop` : meuble. */
+  /** Centre local, demi-largeurs, hauteur. `wall` : mur (fondu côté caméra) ; `partition` : cloison basse ; `prop` : meuble. */
   x: number; z: number; hx: number; hz: number; h: number;
-  kind: 'wall' | 'prop';
+  kind: InteriorBoxKind;
+}
+
+export interface InteriorTheme {
+  floorColor: number;
+  floorGlow?: number;
+  runnerColor?: number;
+  runnerGlow?: number;
+  wallColor: number;
+  wallGlow?: number;
+  partitionColor?: number;
+  ceilingColor?: number;
+  ceilingGlow?: number;
+}
+
+export type InteriorActionKind = 'eat' | 'work' | 'yannis_academy';
+
+export interface InteriorActionSpot {
+  id: string;
+  label: string;
+  x: number;
+  z: number;
+  radius: number;
+  type: InteriorActionKind;
+  color: number;
 }
 
 export interface InteriorDef {
@@ -27,12 +53,16 @@ export interface InteriorDef {
   /** Largeur de la porte (m), centrée en x = 0 sur le mur sud. */
   doorWidth: number;
   boxes: InteriorBox[];
+  /** Palette du sol, des murs et du plafond (aucune couleur codée en dur dans le rig 3D). */
+  theme: InteriorTheme;
   /** Où le joueur apparaît en entrant (local) et cap (rotY : le joueur regarde (sin, cos)). */
   entry: { x: number; z: number; rotY: number };
   /** Zone d'action « Sortir » (local). */
   exit: { x: number; z: number; radius: number };
-  /** Point de réveil à côté du lit n°1 (local) — utilisé par le lot santé. */
-  bed: { x: number; z: number; rotY: number };
+  /** Point de réveil à côté du lit n°1 (local) — propre à l'hôpital pour le lot santé. */
+  bed?: { x: number; z: number; rotY: number };
+  /** Zones d'action internes éventuelles (manger, travailler…). */
+  actions?: InteriorActionSpot[];
 }
 
 const W = 0.15; // demi-épaisseur des murs
@@ -46,6 +76,17 @@ export const HOSPITAL_INTERIOR: InteriorDef = {
   halfD: 5.5,
   wallH: 3.4,
   doorWidth: 2.4,
+  theme: {
+    floorColor: 0xe8edf0,
+    floorGlow: 0.18,
+    runnerColor: 0x4cc9a8,
+    runnerGlow: 0.25,
+    wallColor: 0xf4f7f6,
+    wallGlow: 0.3,
+    partitionColor: 0xe0f2f1,
+    ceilingColor: 0xffffff,
+    ceilingGlow: 0.25,
+  },
   boxes: [
     // Murs extérieurs (le mur sud est coupé par la porte)
     { x: 0, z: -5.5, hx: 9, hz: W, h: 3.4, kind: 'wall' },
@@ -54,7 +95,7 @@ export const HOSPITAL_INTERIOR: InteriorDef = {
     { x: -5.1, z: 5.5, hx: 3.9, hz: W, h: 3.4, kind: 'wall' },
     { x: 5.1, z: 5.5, hx: 3.9, hz: W, h: 3.4, kind: 'wall' },
     // Cloison basse accueil / chambres (1,2 m, passage de 6 m à l'est)
-    { x: -3, z: -1, hx: 6, hz: W, h: 1.2, kind: 'prop' },
+    { x: -3, z: -1, hx: 6, hz: W, h: 1.2, kind: 'partition' },
     // Meubles
     { x: -4, z: 2.8, hx: 1.6, hz: 0.5, h: 1.1, kind: 'prop' },   // comptoir d'accueil
     { x: 5, z: 3.7, hx: 1.5, hz: 0.4, h: 0.5, kind: 'prop' },    // banc de la salle d'attente

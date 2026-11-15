@@ -7,37 +7,10 @@ import { isOutsideMap, isWater } from './abidjanGeography';
 
 const PHYS_HALF = 3072; // WORLD_HALF du moteur physique (physics.cpp)
 
-test('les intérieurs sont hors de la carte mais dans la grille physique', () => {
-  for (const def of Object.values(INTERIORS)) {
-    const corners = [[-1, -1], [1, -1], [-1, 1], [1, 1]].map(([sx, sz]) => interiorToWorld(def, sx * def.halfW, sz * def.halfD));
-    for (const c of corners) {
-      assert.ok(isOutsideMap(c), `${def.id} : coin dans la carte`);
-      assert.ok(Math.abs(c.x) < PHYS_HALF && Math.abs(c.z) < PHYS_HALF, `${def.id} : hors de la grille physique`);
-    }
-  }
-});
-
-test('hôpital : entrée, sortie et lit sont dans la salle et libres de meubles', () => {
-  const d = INTERIORS.hopital;
-  for (const [name, p] of [['entrée', d.entry], ['sortie', d.exit], ['lit', d.bed]] as const) {
-    assert.ok(insideInterior(d, p.x, p.z), `${name} hors de la salle`);
-    assert.ok(!hitsInteriorBox(d, p.x, p.z), `${name} dans un meuble ou un mur`);
-  }
-  // La zone « Sortir » ne doit pas se déclencher dès l'apparition
-  assert.ok(Math.hypot(d.entry.x - d.exit.x, d.entry.z - d.exit.z) > d.exit.radius + 0.3);
-  // La porte est assez large pour passer (≥ 1,8 m) : les deux pans du mur sud laissent un jour de doorWidth
-  const south = d.boxes.filter((b) => b.kind === 'wall' && b.z === d.halfD);
-  const gap = Math.min(...south.map((b) => Math.abs(b.x) - b.hx)) * 2;
-  assert.ok(Math.abs(gap - d.doorWidth) < 1e-6 && gap >= 1.8, `porte de ${gap} m`);
-});
-
-test('hôpital : on peut aller de l’entrée au lit 1 (passage à l’est de la cloison)', () => {
-  const d = INTERIORS.hopital;
-  // grille de 0,25 m, rayon 0,35 : remplissage 4-voisins
+function reachableFromEntry(d: (typeof INTERIORS)[keyof typeof INTERIORS]): Set<string> {
   const step = 0.25;
   const key = (i: number, j: number) => `${i},${j}`;
   const start = [Math.round(d.entry.x / step), Math.round(d.entry.z / step)];
-  const goal = [Math.round(d.bed.x / step), Math.round(d.bed.z / step)];
   const seen = new Set([key(start[0], start[1])]);
   const queue = [start];
   while (queue.length) {
@@ -46,10 +19,66 @@ test('hôpital : on peut aller de l’entrée au lit 1 (passage à l’est de la
       const ni = i + di, nj = j + dj;
       const x = ni * step, z = nj * step;
       if (seen.has(key(ni, nj)) || !insideInterior(d, x, z) || hitsInteriorBox(d, x, z)) continue;
-      seen.add(key(ni, nj)); queue.push([ni, nj]);
+      seen.add(key(ni, nj));
+      queue.push([ni, nj]);
     }
   }
-  assert.ok(seen.has(key(goal[0], goal[1])), 'le lit 1 est inaccessible depuis l’entrée');
+  return seen;
+}
+
+test('les intérieurs sont hors de la carte, dans la grille physique et sans chevauchement (marge ≥ 10 m)', () => {
+  const defs = Object.values(INTERIORS);
+  for (const def of defs) {
+    const corners = [[-1, -1], [1, -1], [-1, 1], [1, 1]].map(([sx, sz]) => interiorToWorld(def, sx * def.halfW, sz * def.halfD));
+    for (const c of corners) {
+      assert.ok(isOutsideMap(c), `${def.id} : coin dans la carte`);
+      assert.ok(Math.abs(c.x) < PHYS_HALF - 10 && Math.abs(c.z) < PHYS_HALF - 10, `${def.id} : hors de la grille physique`);
+    }
+  }
+  for (let i = 0; i < defs.length; i++) {
+    for (let j = i + 1; j < defs.length; j++) {
+      const a = defs[i], b = defs[j];
+      const dx = Math.abs(a.origin.x - b.origin.x) - (a.halfW + b.halfW);
+      const dz = Math.abs(a.origin.z - b.origin.z) - (a.halfD + b.halfD);
+      assert.ok(dx >= 10 || dz >= 10, `${a.id} et ${b.id} trop proches`);
+    }
+  }
+});
+
+function interiorTargetPoints(d: (typeof INTERIORS)[keyof typeof INTERIORS]): Array<[string, { x: number; z: number }]> {
+  return [
+    ['entrée', d.entry],
+    ['sortie', d.exit],
+    ...(d.bed ? [['lit', d.bed] as [string, { x: number; z: number }]] : []),
+    ...(d.actions ?? []).map((a) => [a.id, a] as [string, { x: number; z: number }]),
+  ];
+}
+
+test('tous les intérieurs : porte ≥ 1,8 m, entrée, sortie et points utiles sont dans la salle et libres', () => {
+  for (const d of Object.values(INTERIORS)) {
+    for (const [name, p] of interiorTargetPoints(d)) {
+      assert.ok(insideInterior(d, p.x, p.z), `${d.id}.${name} hors de la salle`);
+      assert.ok(!hitsInteriorBox(d, p.x, p.z), `${d.id}.${name} dans un meuble ou un mur`);
+    }
+    // La zone « Sortir » ne doit pas se déclencher dès l'apparition
+    assert.ok(Math.hypot(d.entry.x - d.exit.x, d.entry.z - d.exit.z) > d.exit.radius + 0.3, `${d.id} : sortie trop proche de l’entrée`);
+    // La porte est assez large pour passer (≥ 1,8 m) : les deux pans du mur sud laissent un jour de doorWidth
+    const south = d.boxes.filter((b) => b.kind === 'wall' && b.z === d.halfD);
+    const gap = Math.min(...south.map((b) => Math.abs(b.x) - b.hx)) * 2;
+    assert.ok(Math.abs(gap - d.doorWidth) < 1e-6 && gap >= 1.8, `${d.id} : porte de ${gap} m`);
+  }
+});
+
+test('tous les intérieurs : tous les points utiles sont atteignables à pied depuis l’entrée', () => {
+  const step = 0.25;
+  const key = (x: number, z: number) => `${Math.round(x / step)},${Math.round(z / step)}`;
+  for (const d of Object.values(INTERIORS)) {
+    const seen = reachableFromEntry(d);
+    for (const [name, p] of interiorTargetPoints(d)) {
+      if (name === 'entrée') continue;
+      assert.ok(seen.has(key(p.x, p.z)), `${d.id}.${name} inaccessible depuis l’entrée`);
+    }
+  }
 });
 
 test('chaque hôpital a une emprise sur la carte, une porte accessible hors de l’eau et hors des autres bâtiments', () => {

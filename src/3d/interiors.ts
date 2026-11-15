@@ -7,7 +7,7 @@
  * Les murs sont de simples boîtes ; seul un nombre fixe de matériaux est utilisé (pas de coût par bâtiment).
  */
 import * as THREE from 'three';
-import { InteriorDef } from '../world/interiors';
+import { InteriorDef, InteriorId } from '../world/interiors';
 import { FadeWall, WallFader } from './wallFader';
 
 // ───────────── Aides de construction ─────────────
@@ -89,29 +89,40 @@ export function createHospitalExterior(w: number, d: number, h: number, name: st
 
 // ───────────── Intérieurs ─────────────
 
+export type InteriorFurnitureBuilder = (g: THREE.Group, def: InteriorDef) => void;
+
+const FURNITURE_BUILDERS: Record<InteriorId, InteriorFurnitureBuilder> = {
+  hopital: buildHospitalFurniture,
+};
+
 export interface InteriorRig {
   group: THREE.Group;
   fader: WallFader;
   exitRing: THREE.Mesh;
+  actionRings: THREE.Mesh[];
   dispose: () => void;
 }
 
 export function createInteriorRig(def: InteriorDef): InteriorRig {
   const g = new THREE.Group();
   g.position.set(def.origin.x, 0, def.origin.z);
-  const glow = 0.3;
-  const floorMat = std(0xe8edf0, { rough: 0.35, emissive: 0xe8edf0, glow: 0.18 });
-  const wallColor = 0xf4f7f6;
+  const { theme } = def;
+  const glow = theme.wallGlow ?? 0.3;
+  const floorMat = std(theme.floorColor, { rough: 0.35, emissive: theme.floorColor, glow: theme.floorGlow ?? 0.18 });
+  const wallColor = theme.wallColor;
   const mkWall = () => new THREE.MeshStandardMaterial({ color: wallColor, roughness: 0.75, emissive: wallColor, emissiveIntensity: glow, transparent: false });
-  const mats = { n: mkWall(), w: mkWall(), e: mkWall(), s: mkWall(), div: new THREE.MeshStandardMaterial({ color: 0xe0f2f1, roughness: 0.75, emissive: 0xe0f2f1, emissiveIntensity: glow }) };
+  const divColor = theme.partitionColor ?? wallColor;
+  const mats = { n: mkWall(), w: mkWall(), e: mkWall(), s: mkWall(), div: new THREE.MeshStandardMaterial({ color: divColor, roughness: 0.75, emissive: divColor, emissiveIntensity: glow }) };
 
   const W = def.halfW * 2, D = def.halfD * 2;
   g.add(box(W + 4, 0.1, D + 4, floorMat, 0, 0.05, 0, false)); // sol (déborde un peu sous les murs)
-  // plinthe colorée au sol (couloir d'accueil)
-  g.add(box(2.6, 0.02, D - 1, std(0x4cc9a8, { emissive: 0x4cc9a8, glow: 0.25 }), 0, 0.11, 0, false));
+  if (theme.runnerColor !== undefined) {
+    g.add(box(2.6, 0.02, D - 1, std(theme.runnerColor, { emissive: theme.runnerColor, glow: theme.runnerGlow ?? 0.25 }), 0, 0.11, 0, false));
+  }
 
   // Plafond : face tournée vers le bas → visible de l'intérieur, transparent vu d'en haut
-  const ceilMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9, emissive: 0xffffff, emissiveIntensity: 0.25 });
+  const ceilColor = theme.ceilingColor ?? 0xffffff;
+  const ceilMat = new THREE.MeshStandardMaterial({ color: ceilColor, roughness: 0.9, emissive: ceilColor, emissiveIntensity: theme.ceilingGlow ?? 0.25 });
   const ceil = new THREE.Mesh(new THREE.PlaneGeometry(W, D), ceilMat);
   ceil.rotation.x = Math.PI / 2;
   ceil.position.y = def.wallH;
@@ -127,10 +138,10 @@ export function createInteriorRig(def: InteriorDef): InteriorRig {
     walls.push({ mats: [m], lx: b.x, lz: b.z, nx, nz, mode: 'shell' });
   };
   def.boxes.filter((b) => b.kind === 'wall').forEach(reg);
-  // Cloison basse (1,2 m) entre l'accueil et les chambres : ne cache jamais la caméra, pas de fondu
-  def.boxes.filter((b) => b.kind === 'prop' && b.h === 1.2).forEach((b) => g.add(box(b.hx * 2, b.h, b.hz * 2, mats.div, b.x, b.h / 2, b.z)));
+  // Cloisons basses : ne cachent jamais la caméra, pas de fondu
+  def.boxes.filter((b) => b.kind === 'partition').forEach((b) => g.add(box(b.hx * 2, b.h, b.hz * 2, mats.div, b.x, b.h / 2, b.z)));
 
-  if (def.id === 'hopital') buildHospitalFurniture(g, def);
+  FURNITURE_BUILDERS[def.id]?.(g, def);
 
   // Linteau et enseigne « SORTIE » au-dessus de la porte
   const doorTop = 2.5;
@@ -149,16 +160,35 @@ export function createInteriorRig(def: InteriorDef): InteriorRig {
   ring.position.set(def.exit.x, 0.14, def.exit.z);
   g.add(ring);
 
+  // Anneaux des éventuelles zones d'action internes
+  const actionRings: THREE.Mesh[] = [];
+  for (const act of def.actions ?? []) {
+    const ar = new THREE.Mesh(
+      new THREE.RingGeometry(0.9, 1.3, 24),
+      new THREE.MeshBasicMaterial({ color: act.color, side: THREE.DoubleSide, transparent: true, opacity: 0.78 })
+    );
+    ar.rotation.x = -Math.PI / 2;
+    ar.position.set(act.x, 0.14, act.z);
+    g.add(ar);
+    actionRings.push(ar);
+  }
+
   const fader = new WallFader(walls);
+  const disposeMat = (mat: THREE.Material) => {
+    const stdMat = mat as THREE.MeshStandardMaterial;
+    stdMat.map?.dispose();
+    if (stdMat.emissiveMap && stdMat.emissiveMap !== stdMat.map) stdMat.emissiveMap.dispose();
+    mat.dispose();
+  };
   const dispose = () => {
     g.traverse((o) => {
       const m = o as THREE.Mesh;
       if (m.geometry) m.geometry.dispose();
       const mm = m.material as THREE.Material | THREE.Material[] | undefined;
-      if (Array.isArray(mm)) mm.forEach((x) => x.dispose()); else mm?.dispose();
+      if (Array.isArray(mm)) mm.forEach(disposeMat); else if (mm) disposeMat(mm);
     });
   };
-  return { group: g, fader, exitRing: ring, dispose };
+  return { group: g, fader, exitRing: ring, actionRings, dispose };
 }
 
 function buildHospitalFurniture(g: THREE.Group, def: InteriorDef): void {
