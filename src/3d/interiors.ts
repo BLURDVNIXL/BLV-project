@@ -7,7 +7,9 @@
  * Les murs sont de simples boîtes ; seul un nombre fixe de matériaux est utilisé (pas de coût par bâtiment).
  */
 import * as THREE from 'three';
+import { SapeOutfitId } from '../types/game';
 import { InteriorDef, InteriorId } from '../world/interiors';
+import { createCharacterModel } from './models';
 import { FadeWall, WallFader } from './wallFader';
 
 // ───────────── Aides de construction ─────────────
@@ -89,11 +91,12 @@ export function createHospitalExterior(w: number, d: number, h: number, name: st
 
 // ───────────── Intérieurs ─────────────
 
-export type InteriorFurnitureBuilder = (g: THREE.Group, def: InteriorDef) => void;
+export type InteriorFurnitureBuilder = (g: THREE.Group, def: InteriorDef) => ((nowSec: number, dt: number) => void) | void;
 
 const FURNITURE_BUILDERS: Record<InteriorId, InteriorFurnitureBuilder> = {
   hopital: buildHospitalFurniture,
   maquis: buildMaquisFurniture,
+  marche_adjame: buildMarcheFurniture,
 };
 
 export interface InteriorRig {
@@ -101,6 +104,7 @@ export interface InteriorRig {
   fader: WallFader;
   exitRing: THREE.Mesh;
   actionRings: THREE.Mesh[];
+  animate?: (nowSec: number, dt: number) => void;
   dispose: () => void;
 }
 
@@ -142,7 +146,7 @@ export function createInteriorRig(def: InteriorDef): InteriorRig {
   // Cloisons basses : ne cachent jamais la caméra, pas de fondu
   def.boxes.filter((b) => b.kind === 'partition').forEach((b) => g.add(box(b.hx * 2, b.h, b.hz * 2, mats.div, b.x, b.h / 2, b.z)));
 
-  FURNITURE_BUILDERS[def.id]?.(g, def);
+  const animate = FURNITURE_BUILDERS[def.id]?.(g, def) || undefined;
 
   // Linteau et enseigne « SORTIE » au-dessus de la porte
   const doorTop = 2.5;
@@ -189,7 +193,7 @@ export function createInteriorRig(def: InteriorDef): InteriorRig {
       if (Array.isArray(mm)) mm.forEach(disposeMat); else if (mm) disposeMat(mm);
     });
   };
-  return { group: g, fader, exitRing: ring, actionRings, dispose };
+  return { group: g, fader, exitRing: ring, actionRings, animate, dispose };
 }
 
 function buildHospitalFurniture(g: THREE.Group, def: InteriorDef): void {
@@ -296,4 +300,101 @@ function buildMaquisFurniture(g: THREE.Group, def: InteriorDef): void {
   for (const gx of [-4.5, -1.5, 1.5, 4.5]) {
     g.add(box(0.18, 0.18, 0.18, bulbMat, gx, def.wallH - 0.28, -0.4, false));
   }
+}
+
+function buildMarcheFurniture(g: THREE.Group, def: InteriorDef): (nowSec: number, dt: number) => void {
+  const wood = std(0x92400e, { rough: 0.82 });
+  const darkWood = std(0x451a03, { rough: 0.78 });
+  const ochre = std(0xf59e0b, { emissive: 0xd97706, glow: 0.18, rough: 0.55 });
+  const cream = std(0xfef3c7, { rough: 0.75 });
+  const emerald = std(0x10b981, { emissive: 0x059669, glow: 0.2 });
+  const canopyPalette = [0xf97316, 0x16a34a, 0x2563eb, 0xeab308, 0xdc2626, 0x9333ea].map((c) => std(c, { rough: 0.7 }));
+  const goodsPalette = [0xef4444, 0xfacc15, 0x22c55e, 0xec4899, 0x3b82f6].map((c) => std(c, { rough: 0.6 }));
+
+  // Comptoir des grossistes (Commerce) au nord (0, -6.4)
+  g.add(box(7.0, 1.05, 1.4, darkWood, 0, 0.57, -6.4));
+  g.add(box(7.3, 0.12, 1.6, ochre, 0, 1.15, -6.4));
+  g.add(box(0.8, 0.55, 0.45, emerald, -1.8, 1.48, -6.4));
+  g.add(box(1.1, 0.35, 0.7, cream, 1.6, 1.38, -6.4));
+
+  const commerceSign = sign('COMMERCE', '#065f46', '#ffffff', 2.4, 0.52, 0.75);
+  commerceSign.position.set(0, 0.65, -5.68);
+  g.add(commerceSign);
+
+  const hallSign = sign('ADJAMÉ', '#9a3412', '#fef08a', 4.2, 0.82, 0.75);
+  hallSign.position.set(0, 3.2, -def.halfD + 0.22);
+  g.add(hallSign);
+
+  // 6 îlots d'étals intérieurs (alignés sur MARCHE_INTERIOR.boxes)
+  const stalls: Array<[number, number]> = [
+    [-8.6, 3.0],
+    [-8.6, -1.4],
+    [-8.6, -5.6],
+    [8.6, 3.0],
+    [8.6, -1.4],
+    [8.6, -5.6],
+  ];
+  stalls.forEach(([sx, sz], i) => {
+    const inward = sx < 0 ? 1 : -1;
+    g.add(box(3.5, 0.88, 1.9, wood, sx, 0.46, sz));
+    g.add(box(3.7, 0.14, 2.2, canopyPalette[i % canopyPalette.length], sx, 2.65, sz));
+    for (const pz of [-0.8, 0.8]) {
+      g.add(box(0.12, 2.5, 0.12, darkWood, sx - inward * 1.5, 1.35, sz + pz, false));
+    }
+    // Marchandises colorées (pagnes, fruits, épices) sur la table et caisses devant
+    for (let k = -1; k <= 1; k++) {
+      g.add(box(0.85, 0.34, 0.65, goodsPalette[(i + k + 5) % goodsPalette.length], sx + k * 0.95, 1.08, sz + 0.15, false));
+    }
+    g.add(box(0.75, 0.42, 0.65, cream, sx + inward * 0.9, 0.25, sz + 1.2, false));
+  });
+
+  // Beaucoup de PNJ à l'intérieur : 7 marchands + 4 clients animés dans les allées libres
+  const skins = [0x4a2c1d, 0x6b422a, 0x3b2316, 0x7c4f33, 0x5c3824];
+  const outfits: SapeOutfitId[] = ['wax_bazin', 'standard', 'wax_bazin', 'costume_italien', 'madrid_25'];
+
+  const vendors: Array<{ rig: ReturnType<typeof createCharacterModel>; baseRot: number; phase: number }> = [];
+  stalls.forEach(([sx, sz], i) => {
+    const side = sx < 0 ? -1 : 1;
+    const rig = createCharacterModel(skins[i % skins.length], outfits[i % outfits.length], i % 3 === 0);
+    rig.group.position.set(sx + side * 2.4, 0.1, sz);
+    const baseRot = sx < 0 ? Math.PI / 2 : -Math.PI / 2;
+    rig.group.rotation.y = baseRot;
+    g.add(rig.group);
+    vendors.push({ rig, baseRot, phase: i * 1.1 });
+  });
+  // Grossiste derrière le comptoir nord
+  const boss = createCharacterModel(skins[2], 'costume_italien', true);
+  boss.group.position.set(0, 0.1, -7.8);
+  boss.group.rotation.y = 0;
+  g.add(boss.group);
+  vendors.push({ rig: boss, baseRot: 0, phase: 2.4 });
+
+  // 4 clients flânant le long des allées libres (x = ±3.1 et ±6.2)
+  const walkers: Array<{ rig: ReturnType<typeof createCharacterModel>; x: number; zMin: number; zMax: number; speed: number; phase: number }> = [
+    { rig: createCharacterModel(skins[0], 'wax_bazin', false), x: -3.0, zMin: -3.2, zMax: 4.5, speed: 0.45, phase: 0.2 },
+    { rig: createCharacterModel(skins[3], 'standard', true), x: 3.0, zMin: -3.2, zMax: 4.5, speed: 0.42, phase: 1.9 },
+    { rig: createCharacterModel(skins[1], 'madrid_25', false), x: -6.1, zMin: -4.2, zMax: 3.6, speed: 0.38, phase: 3.1 },
+    { rig: createCharacterModel(skins[4], 'wax_bazin', false), x: 6.1, zMin: -4.2, zMax: 3.6, speed: 0.4, phase: 4.4 },
+  ];
+  for (const w of walkers) {
+    w.rig.group.position.set(w.x, 0.1, (w.zMin + w.zMax) / 2);
+    g.add(w.rig.group);
+  }
+
+  return (nowSec: number, dt: number) => {
+    for (const v of vendors) {
+      v.rig.group.rotation.y = v.baseRot + Math.sin(nowSec * 1.4 + v.phase) * 0.24;
+      v.rig.animateGait(nowSec * 2.1 + v.phase, 0.08, dt);
+    }
+    for (const w of walkers) {
+      const mid = (w.zMin + w.zMax) / 2;
+      const amp = (w.zMax - w.zMin) / 2;
+      const t = nowSec * w.speed + w.phase;
+      const z = mid + Math.sin(t) * amp;
+      const dir = Math.cos(t) >= 0 ? 0 : Math.PI;
+      w.rig.group.position.set(w.x, 0.1, z);
+      w.rig.group.rotation.y = dir;
+      w.rig.animateGait(nowSec * 3.0 + w.phase, 0.72, dt);
+    }
+  };
 }

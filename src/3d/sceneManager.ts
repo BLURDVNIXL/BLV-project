@@ -496,7 +496,10 @@ export class AbidjanSceneManager {
     placeSpecial('cathedrale', createCathedralLandmark());
     placeSpecial('hotel_ivoire', createHotelIvoireLandmark());
     placeSpecial('lycee_alex', createBassamFuturisticSchool());
-    placeSpecial('marche_adjame', createMarketStallCluster());
+    const marcheFp = SPECIAL_FOOTPRINTS.find((f) => f.spec.id === 'marche_adjame');
+    if (marcheFp) {
+      placeSpecial('marche_adjame', createMarketStallCluster(marcheFp.w, marcheFp.d, marcheFp.spec.h));
+    }
 
     // Hôpitaux : bâtiments héros à porte d'entrée (intérieur partagé)
     for (const site of HOSPITAL_SITES) {
@@ -601,13 +604,30 @@ export class AbidjanSceneManager {
 
     const pMarche = SPECIAL_FOOTPRINTS.find((f) => f.spec.id === 'marche_adjame');
     if (pMarche) {
+      const vx = -Math.sin(pMarche.angle);
+      const vz = Math.cos(pMarche.angle);
+      this.registerInteriorDoor({
+        id: 'door_adjame',
+        interiorId: 'marche_adjame',
+        siteId: 'marche_adjame',
+        name: pMarche.spec.name,
+        label: "🛒 Entrer — Marché d'Adjamé",
+        district: districtAt({ x: pMarche.x, z: pMarche.z }).name,
+        doorX: pMarche.x + vx * (pMarche.d / 2 + 2.4),
+        doorZ: pMarche.z + vz * (pMarche.d / 2 + 2.4),
+        outX: pMarche.x + vx * (pMarche.d / 2 + 3.8),
+        outZ: pMarche.z + vz * (pMarche.d / 2 + 3.8),
+        outRotY: -pMarche.angle,
+        radius: 3.4,
+        color: 0xf97316,
+      });
       this.addBeaconHotspot({
         id: 'work_adjame',
         label: '💼 Grand Marché d’Adjamé (Commerce)',
         district: 'Adjamé',
-        x: pMarche.x,
-        z: pMarche.z + 18,
-        radius: 6,
+        x: pMarche.x + vx * (pMarche.d / 2 + 10.5),
+        z: pMarche.z + vz * (pMarche.d / 2 + 10.5),
+        radius: 4.5,
         type: 'work',
         color: 0x10b981,
       });
@@ -1339,6 +1359,7 @@ export class AbidjanSceneManager {
     const pulse = 0.6 + 0.25 * Math.sin(nowSec * 4);
     (a.rig.exitRing.material as THREE.MeshBasicMaterial).opacity = pulse;
     for (const r of a.rig.actionRings) (r.material as THREE.MeshBasicMaterial).opacity = pulse;
+    a.rig.animate?.(nowSec, dt);
   }
 
   /** Position du joueur à pied ou, depuis un intérieur, devant l'entrée (là où le taxi le prendrait). */

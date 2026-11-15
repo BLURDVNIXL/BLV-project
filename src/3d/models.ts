@@ -1231,27 +1231,106 @@ export function createCashPickupMesh(): THREE.Group {
   return g;
 }
 
-export function createMarketStallCluster(): THREE.Group {
+export function createMarketStallCluster(w = 36, d = 18, h = 9.5): THREE.Group {
   const g = new THREE.Group();
-  const colors = [0xf97316, 0x16a34a, 0x2563eb, 0xeab308];
+  const wallMat = new THREE.MeshStandardMaterial({ color: 0xb85c38, roughness: 0.8 });
+  const trimMat = new THREE.MeshStandardMaterial({ color: 0xfef3c7, roughness: 0.72 });
+  const plinthMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.85 });
+  const roofMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.68 });
+  const skyGlass = new THREE.MeshStandardMaterial({ color: 0xfef08a, emissive: 0xf59e0b, emissiveIntensity: 0.5, roughness: 0.25 });
+  const woodMat = new THREE.MeshStandardMaterial({ color: 0x92400e, roughness: 0.85 });
   const poleMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.85 });
-  for (let i = 0; i < 3; i++) {
-    const ox = (i - 1) * 4.2;
-    const table = new THREE.Mesh(
-      new THREE.BoxGeometry(2.8, 0.9, 1.8),
-      new THREE.MeshStandardMaterial({ color: 0x92400e, roughness: 0.85 })
-    );
-    table.position.set(ox, 0.45, 0);
-    const canopy = new THREE.Mesh(
-      new THREE.ConeGeometry(2.1, 0.8, 4),
-      new THREE.MeshStandardMaterial({ color: colors[i % colors.length], roughness: 0.72 })
-    );
+  const crateMat = new THREE.MeshStandardMaterial({ color: 0xb45309, roughness: 0.85 });
+  const canopyMats = [0xf97316, 0x16a34a, 0x2563eb, 0xeab308, 0xdc2626, 0x9333ea].map(
+    (c) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.72 })
+  );
+  const goodsMats = [0xef4444, 0xfacc15, 0x22c55e, 0x3b82f6, 0xec4899].map(
+    (c) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.65 })
+  );
+
+  // 1. Grande Halle couverte centrale (alignée sur l'emprise solide w × d)
+  const hall = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), wallMat);
+  hall.position.y = h / 2;
+  hall.castShadow = true;
+  hall.receiveShadow = true;
+  g.add(hall);
+
+  const plinth = new THREE.Mesh(new THREE.BoxGeometry(w + 0.5, 0.5, d + 0.5), plinthMat);
+  plinth.position.y = 0.25;
+  g.add(plinth);
+
+  const roofBase = new THREE.Mesh(new THREE.BoxGeometry(w + 1.4, 0.55, d + 1.4), roofMat);
+  roofBase.position.y = h + 0.25;
+  roofBase.castShadow = true;
+  const roofMonitor = new THREE.Mesh(new THREE.BoxGeometry(w * 0.72, 1.4, d * 0.48), trimMat);
+  roofMonitor.position.y = h + 1.1;
+  const roofCap = new THREE.Mesh(new THREE.BoxGeometry(w * 0.76, 0.35, d * 0.54), roofMat);
+  roofCap.position.y = h + 1.95;
+  g.add(roofBase, roofMonitor, roofCap);
+
+  // Bandeaux vitrés en hauteur sur les 4 faces
+  const clereFront = new THREE.Mesh(new THREE.BoxGeometry(w * 0.84, 1.3, 0.1), skyGlass);
+  clereFront.position.set(0, h * 0.68, d / 2 + 0.05);
+  const clereBack = new THREE.Mesh(new THREE.BoxGeometry(w * 0.84, 1.3, 0.1), skyGlass);
+  clereBack.position.set(0, h * 0.68, -d / 2 - 0.05);
+  g.add(clereFront, clereBack);
+
+  // Portique et double porte vitrée sur la façade sud (+z = d/2)
+  const portal = new THREE.Mesh(new THREE.BoxGeometry(5.6, 3.8, 0.4), trimMat);
+  portal.position.set(0, 1.9, d / 2 + 0.12);
+  const doorGlass = new THREE.Mesh(new THREE.BoxGeometry(3.4, 2.8, 0.45), skyGlass);
+  doorGlass.position.set(0, 1.4, d / 2 + 0.15);
+  const awning = new THREE.Mesh(new THREE.BoxGeometry(7.2, 0.3, 2.2), roofMat);
+  awning.position.set(0, 3.7, d / 2 + 1.1);
+  g.add(portal, doorGlass, awning);
+
+  // Enseigne courte frontale
+  const marquee = new THREE.Mesh(
+    new THREE.BoxGeometry(6.8, 1.0, 0.22),
+    new THREE.MeshStandardMaterial({ color: 0x7c2d12, emissive: 0xd97706, emissiveIntensity: 0.7 })
+  );
+  marquee.position.set(0, 4.9, d / 2 + 0.15);
+  g.add(marquee);
+
+  // 2. Grand marché ouvert autour de la Halle : 16 étals colorés avec allée centrale dégagée (|x| >= 8.5)
+  const addStall = (sx: number, sz: number, idx: number, rotY = 0) => {
+    const s = new THREE.Group();
+    s.position.set(sx, 0, sz);
+    s.rotation.y = rotY;
+    const table = new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.88, 1.7), woodMat);
+    table.position.set(0, 0.44, 0);
+    table.castShadow = true;
+    const canopy = new THREE.Mesh(new THREE.ConeGeometry(2.5, 0.9, 4), canopyMats[idx % canopyMats.length]);
     canopy.rotation.y = Math.PI / 4;
-    canopy.position.set(ox, 2.7, 0);
-    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 2.5, 6), poleMat);
-    pole.position.set(ox, 1.35, 0);
-    g.add(table, canopy, pole);
+    canopy.position.set(0, 2.85, 0);
+    canopy.castShadow = true;
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.09, 2.6, 6), poleMat);
+    pole.position.set(0, 1.3, 0);
+    // Paniers & rouleaux de pagne colorés sur l'étal
+    const g1 = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.28, 0.65), goodsMats[idx % goodsMats.length]);
+    g1.position.set(-0.9, 1.02, 0.1);
+    const g2 = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.34, 0.65), goodsMats[(idx + 2) % goodsMats.length]);
+    g2.position.set(0.85, 1.05, -0.05);
+    const crate = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.45, 0.55), crateMat);
+    crate.position.set(1.15, 0.22, 1.05);
+    s.add(table, canopy, pole, g1, g2, crate);
+    g.add(s);
+  };
+
+  let idx = 0;
+  // Parvis sud (2 rangées de part et d'autre de l'allée centrale et du point commerce)
+  for (const sz of [d / 2 + 6.8, d / 2 + 12.8]) {
+    for (const sx of [-26, -18, -10.5, 10.5, 18, 26]) {
+      addStall(sx, sz, idx++);
+    }
   }
+  // Ailes ouest et est de la halle (étals perpendiculaires)
+  for (const sx of [-(w / 2 + 5.8), w / 2 + 5.8]) {
+    for (const sz of [-4.2, 3.8]) {
+      addStall(sx, sz, idx++, Math.PI / 2);
+    }
+  }
+
   return g;
 }
 

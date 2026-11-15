@@ -8,7 +8,7 @@
  * Axes locaux = axes monde (+x est, +z sud). La porte est sur le mur sud (z = +halfD), on entre en regardant le nord.
  */
 
-export type InteriorId = 'hopital' | 'maquis';
+export type InteriorId = 'hopital' | 'maquis' | 'marche_adjame';
 
 export type InteriorBoxKind = 'wall' | 'partition' | 'prop';
 
@@ -163,9 +163,65 @@ export const MAQUIS_INTERIOR: InteriorDef = {
   ],
 };
 
+/** Grande Halle du Marché d'Adjamé : allées spacieuses, 6 îlots d'étals colorés et comptoir de commerce au nord. */
+export const MARCHE_INTERIOR: InteriorDef = {
+  id: 'marche_adjame',
+  label: "Marché d'Adjamé",
+  origin: { x: 2740, z: 2960 },
+  halfW: 13,
+  halfD: 9,
+  wallH: 4.4,
+  doorWidth: 2.8,
+  theme: {
+    floorColor: 0xd6d3d1,
+    floorGlow: 0.2,
+    runnerColor: 0xea580c,
+    runnerGlow: 0.22,
+    wallColor: 0xfef3c7,
+    wallGlow: 0.28,
+    partitionColor: 0xb45309,
+    ceilingColor: 0xfffbeb,
+    ceilingGlow: 0.28,
+  },
+  boxes: [
+    // Murs extérieurs (mur sud coupé par la porte de 2,8 m centrée en x = 0)
+    { x: 0, z: -9, hx: 13, hz: W, h: 4.4, kind: 'wall' },
+    { x: -13, z: 0, hx: W, hz: 9, h: 4.4, kind: 'wall' },
+    { x: 13, z: 0, hx: W, hz: 9, h: 4.4, kind: 'wall' },
+    { x: -7.2, z: 9, hx: 5.8, hz: W, h: 4.4, kind: 'wall' },
+    { x: 7.2, z: 9, hx: 5.8, hz: W, h: 4.4, kind: 'wall' },
+    // Garde-corps bois encadrant l'allée centrale
+    { x: -5.2, z: -1.4, hx: W, hz: 2.4, h: 1.05, kind: 'partition' },
+    { x: 5.2, z: -1.4, hx: W, hz: 2.4, h: 1.05, kind: 'partition' },
+    // Comptoir central des grossistes (commerce) au nord
+    { x: 0, z: -6.4, hx: 3.6, hz: 0.8, h: 1.15, kind: 'prop' },
+    // 6 rangées d'étals (ailes ouest et est, larges allées tout autour)
+    { x: -8.6, z: 3.0, hx: 1.8, hz: 1.0, h: 0.9, kind: 'prop' },
+    { x: -8.6, z: -1.4, hx: 1.8, hz: 1.0, h: 0.9, kind: 'prop' },
+    { x: -8.6, z: -5.6, hx: 1.8, hz: 1.0, h: 0.9, kind: 'prop' },
+    { x: 8.6, z: 3.0, hx: 1.8, hz: 1.0, h: 0.9, kind: 'prop' },
+    { x: 8.6, z: -1.4, hx: 1.8, hz: 1.0, h: 0.9, kind: 'prop' },
+    { x: 8.6, z: -5.6, hx: 1.8, hz: 1.0, h: 0.9, kind: 'prop' },
+  ],
+  entry: { x: 0, z: 5.2, rotY: Math.PI },
+  exit: { x: 0, z: 7.5, radius: 1.7 },
+  actions: [
+    {
+      id: 'work_adjame_hall',
+      label: '💼 Travailler — Halle d’Adjamé (Commerce)',
+      x: 0,
+      z: -4.4,
+      radius: 2.2,
+      type: 'work',
+      color: 0x10b981,
+    },
+  ],
+};
+
 export const INTERIORS: Record<InteriorId, InteriorDef> = {
   hopital: HOSPITAL_INTERIOR,
   maquis: MAQUIS_INTERIOR,
+  marche_adjame: MARCHE_INTERIOR,
 };
 
 export const interiorToWorld = (def: InteriorDef, lx: number, lz: number): { x: number; z: number } =>
