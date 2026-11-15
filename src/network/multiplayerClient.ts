@@ -10,6 +10,7 @@ import {
   ConsentPrompt,
   HouseKnockPrompt,
   CribUpgrades,
+  PlayerGender,
   PlayerState,
   SapeOutfitId,
   VehicleModelType,
@@ -151,6 +152,7 @@ export class MultiplayerClient {
     vehicleType: VehicleModelType | null;
     sapeOutfit: SapeOutfitId;
     homeType?: HomeType;
+    gender?: PlayerGender;
   }) {
     this.playerId = initPayload.id;
     if (typeof window === 'undefined' || !initPayload.authToken) return;

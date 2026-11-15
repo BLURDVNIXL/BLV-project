@@ -18,6 +18,11 @@ function isGender(v: unknown): v is PlayerGender {
   return v === 'homme' || v === 'femme';
 }
 
+/** Genre valide ou `undefined` (valeur inconnue, ancienne sauvegarde, message réseau mal formé). */
+export function parseGender(v: unknown): PlayerGender | undefined {
+  return isGender(v) ? v : undefined;
+}
+
 export function loadProfile(): PlayerProfile | null {
   try {
     const raw = localStorage.getItem(PROFILE_KEY);

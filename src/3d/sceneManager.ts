@@ -6,6 +6,7 @@ import {
   SapeOutfitId,
   RemotePlayer,
   CribUpgrades,
+  PlayerGender,
 } from '../types/game';
 import {
   CharacterRig,
@@ -36,6 +37,7 @@ import {
   getLightingMood,
 } from './materials';
 import { NpcSystem } from './npcSystem';
+import { AvatarController, loadAvatar } from './avatars';
 import { getWasmCore } from '../wasm/wasmBridge';
 import {
   CharacterState,
@@ -68,6 +70,7 @@ import {
 import { project, WORLD_SCALE } from '../world/geo';
 import { bridgeAt } from '../world/roads';
 import { houseToWorld, registerPlayerHouse } from '../world/playerHouse';
+import { HOUSE_D, insideHouse, segmentCrossesRect, worldToHouse } from '../world/houseShell';
 import { RoadCar, updateRoadTraffic } from '../world/roadTraffic';
 import { strHash } from '../world/rng';
 
@@ -168,6 +171,12 @@ export class AbidjanSceneManager {
   private cashPickups: Array<{ mesh: THREE.Group; active: boolean; x: number; z: number }> = [];
 
   private playerRig!: CharacterRig;
+  /** Avatar GLB du joueur (genre choisi) ; l'ancien petit personnage sert de repli. */
+  private playerAvatar: THREE.Object3D | null = null;
+  private playerAvatarGender: PlayerGender | null = null;
+  private playerAvatarCtl: AvatarController | null = null;
+  private playerOutfit: SapeOutfitId = 'standard';
+  private avatarRequestId = 0;
   private playerCharId = -1;
   private charState: CharacterState = createCharacterState();
   private carState: VehicleState = createVehicleState();
@@ -199,6 +208,12 @@ export class AbidjanSceneManager {
       prevZ: number;
       lastNetTime: number;
       rotY: number;
+      /** Avatar 3D du joueur distant (genre reçu à la connexion) ; sinon petit personnage de repli. */
+      gender: PlayerGender | null;
+      avatar: THREE.Object3D | null;
+      avatarCtl: AvatarController | null;
+      outfit: SapeOutfitId;
+      speed: number;
     }
   > = new Map();
 
@@ -733,7 +748,7 @@ export class AbidjanSceneManager {
     this.ownHomeType = homeType;
     this.isSuperstar = isSuperstar;
     this.mysticBaraka = mysticBaraka;
-    this.playerRig.applyOutfit(outfit);
+    this.applyPlayerOutfit(outfit);
 
     if (!this.physics) {
       this.pendingSpawnArgs = [
@@ -804,17 +819,18 @@ export class AbidjanSceneManager {
     this.ownHouseColliderIds = registerPlayerHouse(core, lot.x, lot.z, lot.rotationY);
     this.buildHomeHotspots(lot);
 
-    // 3. Spawn player on front porch facing street (+z local)
+    // 3. On apparaît sur le perron, face à sa porte ; la caméra est côté rue et voit la façade
     const porch = houseToWorld(lot.x, lot.z, lot.rotationY, 0, 5.2);
     this.playerX = porch.x;
     this.playerY = 0;
     this.playerZ = porch.z;
-    this.playerRotY = lot.rotationY;
+    const faceDoor = lot.rotationY + Math.PI;
+    this.playerRotY = faceDoor;
     this.playerCharId = core.createCharacter(porch.x, porch.z, 0.35);
-    core.faceCharacter(this.playerCharId, lot.rotationY, true);
+    core.faceCharacter(this.playerCharId, faceDoor, true);
     this.playerRig.group.visible = true;
     this.playerRig.group.position.set(porch.x, 0, porch.z);
-    this.playerRig.group.rotation.y = lot.rotationY;
+    this.playerRig.group.rotation.y = faceDoor;
 
     // 4. Spawn player vehicle(s) parked cleanly on the street outside lot
     const curb = carSpotForLot(lot);
@@ -839,8 +855,8 @@ export class AbidjanSceneManager {
       this.spawnedVehicles.push({ id: `player_v2_${secondaryVehicle}`, vehId, rig });
     }
 
-    // 5. Aim camera smoothly behind player looking down the street
-    this.camYaw = lot.rotationY + Math.PI;
+    // 5. Caméra derrière le joueur (côté rue), face à la façade
+    this.camYaw = lot.rotationY;
     this.camPitch = 0.32;
     this.camDist = 9.5;
     this.camPos.set(
@@ -929,7 +945,38 @@ export class AbidjanSceneManager {
   }
 
   public setOutfit(outfit: SapeOutfitId) {
+    this.applyPlayerOutfit(outfit);
+  }
+
+  /** Tenue du joueur : petit personnage de repli et avatar 3D (si chargé). */
+  private applyPlayerOutfit(outfit: SapeOutfitId) {
+    this.playerOutfit = outfit;
     this.playerRig.applyOutfit(outfit);
+    this.playerAvatarCtl?.applyOutfit(outfit);
+  }
+
+  /**
+   * Affiche l'avatar 3D du genre choisi (Homme → garçon, Femme → fille).
+   * Sans genre (ancienne sauvegarde) ou si le chargement échoue, le petit
+   * personnage procédural reste affiché.
+   */
+  public setPlayerGender(gender?: PlayerGender) {
+    if (!gender || gender === this.playerAvatarGender) return;
+    const requestId = ++this.avatarRequestId;
+    loadAvatar(gender)
+      .then(({ root, animations }) => {
+        if (this.disposed || requestId !== this.avatarRequestId) return;
+        if (this.playerAvatar) this.playerRig.group.remove(this.playerAvatar);
+        this.playerAvatar = root;
+        this.playerAvatarGender = gender;
+        this.playerRig.group.add(root);
+        this.playerAvatarCtl = new AvatarController(root, animations);
+        this.playerAvatarCtl.applyOutfit(this.playerOutfit);
+        this.playerRig.bodyPivot.visible = false;
+      })
+      .catch((err) => {
+        console.warn('[BLV] Avatar 3D indisponible, repli sur le personnage simple', err);
+      });
   }
 
   public syncCribUpgrades(u: CribUpgrades) {
@@ -1022,8 +1069,14 @@ export class AbidjanSceneManager {
           prevZ: p.z,
           lastNetTime: nowMs,
           rotY: p.rotY,
+          gender: null,
+          avatar: null,
+          avatarCtl: null,
+          outfit: p.sapeOutfit || 'standard',
+          speed: 0,
         };
         this.remoteRigs.set(p.id, entry);
+        this.attachRemoteAvatar(p.id, entry, p.gender);
       } else {
         entry.prevX = entry.rig.group.position.x;
         entry.prevZ = entry.rig.group.position.z;
@@ -1031,8 +1084,49 @@ export class AbidjanSceneManager {
         entry.targetZ = p.z;
         entry.lastNetTime = nowMs;
         entry.rotY = p.rotY;
-        entry.rig.applyOutfit(p.sapeOutfit || 'standard');
+        entry.outfit = p.sapeOutfit || 'standard';
+        entry.rig.applyOutfit(entry.outfit);
+        entry.avatarCtl?.applyOutfit(entry.outfit);
+        this.attachRemoteAvatar(p.id, entry, p.gender);
       }
+    }
+  }
+
+  /** Remplace le petit personnage d'un joueur distant par l'avatar de son genre (sans effet si absent ou déjà fait). */
+  private attachRemoteAvatar(id: string, entry: { rig: CharacterRig; gender: PlayerGender | null; avatar: THREE.Object3D | null; avatarCtl: AvatarController | null; outfit: SapeOutfitId }, gender?: PlayerGender) {
+    if (!gender || gender === entry.gender) return;
+    entry.gender = gender; // évite de relancer le chargement à chaque message réseau
+    loadAvatar(gender)
+      .then(({ root, animations }) => {
+        // Le joueur a pu partir (ou la scène être détruite) pendant le chargement.
+        if (this.disposed || this.remoteRigs.get(id) !== entry || entry.gender !== gender) return;
+        if (entry.avatar) entry.rig.group.remove(entry.avatar);
+        entry.avatar = root;
+        entry.rig.group.add(root);
+        entry.avatarCtl = new AvatarController(root, animations);
+        entry.avatarCtl.applyOutfit(entry.outfit);
+        entry.rig.bodyPivot.visible = false;
+      })
+      .catch((err) => {
+        // On ne retente pas à chaque message réseau : le repli reste affiché jusqu'à la prochaine connexion.
+        console.warn('[BLV] Avatar 3D distant indisponible, repli sur le personnage simple', err);
+      });
+  }
+
+  /** Murs et toit des maisons : transparents côté caméra, toit masqué quand le joueur est dedans. */
+  private updateHouseShells(dt: number) {
+    const cam = this.camPos;
+    for (const h of [
+      { rig: this.ownHouseRig, lot: this.ownHouseLot },
+      { rig: this.visitedHouseRig, lot: this.visitedHouseLot },
+    ]) {
+      if (!h.rig || !h.lot) continue;
+      const pl = worldToHouse(h.lot.x, h.lot.z, h.lot.rotationY, this.playerX, this.playerZ);
+      const c = worldToHouse(h.lot.x, h.lot.z, h.lot.rotationY, cam.x, cam.z);
+      const inside = insideHouse(pl.x, pl.z);
+      // Joueur dehors mais maison entre lui et la caméra : tout devient transparent pour ne pas le cacher
+      const occluding = !inside && segmentCrossesRect(pl.x, pl.z, c.x, c.z, 6.2, HOUSE_D / 2 + 0.2);
+      h.rig.fader.update(c.x, c.z, inside, dt, occluding);
     }
   }
 
@@ -1327,6 +1421,11 @@ export class AbidjanSceneManager {
       entry.rig.group.position.set(nx, 0, nz);
       entry.rig.group.rotation.y = entry.rotY;
       entry.rig.animateGait(nowSec * 6, moved > 0.015 ? 1 : 0, dt);
+      if (entry.avatarCtl) {
+        // Vitesse lissée : les positions réseau arrivent par à-coups (≥ 100 ms).
+        entry.speed += (moved / Math.max(dt, 1e-3) - entry.speed) * Math.min(1, dt * 8);
+        entry.avatarCtl.update(dt, entry.speed, true, false);
+      }
     }
 
     // 4. Title / Roulette Flyover Mode over Le Plateau & Lagune Ébrié
@@ -1453,6 +1552,7 @@ export class AbidjanSceneManager {
           1 / Math.sqrt(this.playerSquashY)
         );
         this.playerRig.animateGait(this.walkPhase, moving ? 1 : 0, dt);
+        this.playerAvatarCtl?.update(dt, ps.speed, ps.grounded, knocked);
       }
 
       // Sync AI road traffic cars
@@ -1506,6 +1606,7 @@ export class AbidjanSceneManager {
     this.camLook.lerp(this.scratchTarget, k);
     this.camera.position.copy(this.camPos);
     this.camera.lookAt(this.camLook);
+    this.updateHouseShells(dt);
 
     this.dirLight.position.set(
       this.playerX + this.sunDir.x * 150,

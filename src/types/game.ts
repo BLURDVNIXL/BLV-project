@@ -202,6 +202,8 @@ export interface RemotePlayer {
   isDriving: boolean;
   vehicleType?: VehicleModelType | null;
   sapeOutfit: SapeOutfitId;
+  /** Genre choisi (avatar 3D) ; absent pour les anciennes sauvegardes. Envoyé une seule fois, à la connexion. */
+  gender?: PlayerGender;
   homeLotId?: string | null;
   homeAccess?: HomeAccessMode;
   homeType?: HomeType;

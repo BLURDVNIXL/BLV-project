@@ -373,6 +373,7 @@ export default function App() {
     });
 
     sceneRef.current = mgr;
+    mgr.setPlayerGender(playerStateRef.current.gender);
     // Aide au débogage et aux tests visuels : `?blvdebug` expose le gestionnaire de scène (window.__blvScene)
     if (new URLSearchParams(window.location.search).has('blvdebug')) {
       (window as unknown as { __blvScene?: unknown }).__blvScene = mgr;
@@ -406,6 +407,11 @@ export default function App() {
       sceneRef.current = null;
     };
   }, [handleHotspotAction, isAutostart, showToast, syncEconomy]);
+
+  // Avatar 3D selon le genre choisi (Homme → garçon, Femme → fille)
+  useEffect(() => {
+    sceneRef.current?.setPlayerGender(playerState.gender);
+  }, [playerState.gender]);
 
   // Title Screen Enter/Space keyboard start handshake
   useEffect(() => {
@@ -512,6 +518,7 @@ export default function App() {
         vehicleType: p.destiny.vehicle,
         sapeOutfit: p.sapeOutfit,
         homeType: p.destiny.homeType,
+        gender: p.gender,
       });
     }
   }, [screenState, playerState.sessionToken, remotePlayers, showToast]);

@@ -11,6 +11,7 @@ import fs from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import express from 'express';
 import { WebSocketServer, WebSocket } from 'ws';
+import { parseGender } from './src/core/profile';
 import {
   ALL_DESTINIES,
   ACADEMIC_BADGES,
@@ -298,6 +299,8 @@ interface ConnectedPlayer {
   isDriving: boolean;
   vehicleType: string | null;
   sapeOutfit: string;
+  /** Genre (avatar 3D) : lu une seule fois à la connexion, jamais dans les messages de position. */
+  gender?: 'homme' | 'femme';
   homeType: HomeType;
   homeLotId?: string;
   homeAccess: HomeAccessMode;
@@ -701,6 +704,7 @@ async function startServer() {
             isDriving: Boolean(p.isDriving),
             vehicleType: p.vehicleType ? String(p.vehicleType) : null,
             sapeOutfit: String(p.sapeOutfit || 'standard'),
+            gender: parseGender(dbState?.gender) ?? parseGender(p.gender),
             homeType: (dbState?.destiny.homeType || p.homeType || 'studio') as HomeType,
             homeLotId: row?.home_lot_id ?? undefined,
             homeAccess: dbState?.homeAccess ?? 'open',
