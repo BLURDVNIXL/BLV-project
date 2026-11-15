@@ -2,8 +2,8 @@
 
 ## RÈGLES D'ÉCONOMIE (priorité absolue : l'auteur a déjà épuisé sa limite d'usage plusieurs fois)
 - Un seul destin à la fois. Aucun agent parallèle. Demander à l'auteur quel destin traiter.
-- Ne pas relire tout le projet : `docs/guide_ecriture.md` + `story/destins/chauffeur_woro.yaml` (modèle récent, 13 nœuds) + le V0 du destin en cours.
-- `tools/validate.py` est rapide. `tools/simulate.py` dure ~6 à 8 min (chauffeur_woro : 292 144 états) : lancer en arrière-plan avec `timeout`, une seule fois par destin, après validation. Garder peu de montants d'argent différents.
+- Ne pas relire tout le projet : `docs/guide_ecriture.md` + `story/destins/chauffeur_woro.yaml` ou `djassaman.yaml` pour un destin camp illégal (modèles récents, 13 nœuds) + le V0 du destin en cours.
+- `tools/validate.py` est rapide. `tools/simulate.py` dure ~6 à 10 min (chauffeur_woro : 292 144 états, djassaman : 163 207) : lancer en arrière-plan avec `timeout`, une seule fois par destin, après validation. Garder peu de montants d'argent différents.
 - Narration minimale entre les outils. Si l'auteur dit « stop », s'arrêter.
 - **Ne rien pousser sur le dépôt BLURDVNIXL/BLV-project** (l'auteur y travaille). Cette branche est locale à ce projet.
 
@@ -15,7 +15,8 @@ Un lycée au choix (Caïman, Alysma filles seulement, Alex) : concours, 3 trimes
 |---|---|
 | poignon, baron_ombre, styliste_marcory | V1 terminés (validés, simulés) |
 | chauffeur_woro | **V1 terminé** (validé ; simulation : 0 impasse, 5 fins ; fiches Mariam/Lassina/Kader dans `story/fiches/`) |
-| djassaman, brouteur, rescape_bas_fonds | V0 à migrer (camp illégal ; Rescapé : réduction des risques, charte) |
+| djassaman | **V1 terminé** (validé ; simulation : 163 207 états, 0 impasse, 5 fins ; fiche d'Ange). Équilibrage : fin lumière très rare (~0,1 %), à revoir |
+| brouteur, rescape_bas_fonds | V0 à migrer (camp illégal ; Rescapé : réduction des risques, charte) |
 | debrouillard_abobo | V0 à migrer ; brouillon de fiches dans `story/fiches_brouillons/` |
 | cadre_plateau, classe_moyenne_angre, commercant_adjame, eleve_inpolytec, etudiant_ufhb, gerant_maquis, golden_boy, late_cocody, mecanicien_treichville, politicien_decheu, yannis_diomande | V0 à migrer |
 

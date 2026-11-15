@@ -1,0 +1,667 @@
+destin: djassaman
+titre: "Le Roi du Quai"
+rarete: legendaire
+genre: libre
+resume: "Maître du marché noir de Treichville, tu vends des plaques, des téléphones débloqués et, sans toujours le savoir, de faux médicaments. Le Baron veut ton quai, Tantie Zéphyrine veut ta conscience, Ange veut ta place : la crue décidera de ce que ton royaume a vraiment coûté."
+themes: [contrefacon, quai, protection, reparation]
+fonction_dramatique: >-
+  Le Djassaman est le seul à tenir un point de passage : tout ce qui entre au port par la petite porte
+  passe par son quai. Il voit la Cité Lagune-Nord comme un flux de marchandises, et découvre que ce
+  flux contient des victimes. Son arc est la sortie d'un royaume qu'il a lui-même bâti.
+
+depart:
+  camp: ombre
+  compromission: 7
+  argent_fcfa: 400000
+  etoile: 45
+  sante: 75
+  energie: 70
+  metier: djassa_contrefacon
+  echelon: chef_reseau
+  ecole: aucune
+  diplomes: []
+  charges_mensuelles: 450000      # hommes de quai, loyers, arrangements courants
+  logement_descriptif: "Arrière-boutique de Treichville, au-dessus du quai"
+  competences: {negoce: 5, terrain: 4, gestion: 2}
+  relations:
+    ange: {trust: 3}
+    zephyrine: {trust: 1}
+    yao: {trust: -1}
+  factions:
+    ombre: {reputation: 2}
+    ordre: {exposition: 2}
+
+cercle:
+  - {id: ange, nom: "Ange, ton second", rel: faction}
+  - {id: zephyrine, nom: "Tantie Zéphyrine", rel: allie}
+  - {id: sanogo, nom: "Docteur Sanogo", rel: neutre}
+  - {id: sekou, nom: "Sékou, bras droit du Baron", rel: rival}
+  - {id: baron, nom: "Le Baron", rel: rival}
+  - {id: yao, nom: "Commissaire Yao", rel: rival}
+  - {id: aya, nom: "Lieutenante Aya Coulibaly", rel: neutre}
+
+flags: [exemple_fait, protegee, camions_baron, camions_refuses, medicaments_gardes, stock_retire, douanier,
+        quai_libre, marche_legal, arrangement_yao, ange_renvoye, ange_associe, marche_ouvert, caisses_sorties,
+        abri, partage, temoin, trahi_baron, sans_protection, protection_aya, loyal_baron, silence, ange_double,
+        marchandes_unies, rapport_sanogo, ange_vendeur]
+faits: [prevenue, sauvee]
+preuves: [carnet_ange, echantillons_sanogo]
+actifs: [licence_negoce]
+
+# --------------------------------------------------------------------------- événements
+evenements:
+  - id: dj_ev_ange
+    jour: 60
+    si: "relations.ange.trust <= 1"
+    txt: "Ange négocie sa propre filière de plaques à ton insu, avec deux hommes de Sékou. Il ne t'en dit rien, mais ses comptes ne tombent plus juste."
+    eff: {flags: [ange_double], relations: {ange: {trust: -1}}, compromission: 1}
+    sinon_txt: "Ange pose le carnet des convoyages sur ton comptoir : « Pour que tu saches ce qui passe chez nous. Un chef doit savoir. »"
+    sinon_eff: {relations: {ange: {trust: 1}}}
+  - id: dj_ev_zephyrine
+    jour: 95
+    si: "flags.exemple_fait"
+    txt: "Tantie Zéphyrine ferme son étal pendant trois semaines. Elle est partie chez sa fille à Bouaké. Le marché de Treichville sent la peur."
+    eff: {relations: {zephyrine: {trust: -1}}}
+    sinon_txt: "Tantie Zéphyrine réunit douze marchandes de Treichville à l'étal du fond. Elles ont décidé de ne plus payer personne, sauf toi, et seulement ce que tu mérites."
+    sinon_eff: {flags: [marchandes_unies], relations: {zephyrine: {trust: 1}}}
+  - id: dj_ev_sanogo
+    jour: 140
+    si: "flags.medicaments_gardes"
+    txt: "Le docteur Sanogo envoie un rapport au commissariat : trois enfants de Treichville ont reçu de faux antipaludiques. Il ne cite pas ton nom, mais il a ton adresse."
+    eff: {flags: [rapport_sanogo], factions: {ordre: {exposition: 1}}}
+    sinon_txt: "Le docteur Sanogo passe au quai, sans un mot, te serre la main, et repart avec une boîte de vrais médicaments qu'il a payée de sa poche."
+    sinon_eff: {relations: {sanogo: {trust: 1}}}
+  - id: dj_ev_yao
+    jour: 230
+    si: "flags.arrangement_yao"
+    txt: "Le commissaire Yao augmente sa part : « Les temps sont durs, mon frère. » Il sait que tu ne peux pas refuser."
+    eff: {compromission: 1, relations: {yao: {trust: 1}}}
+    sinon_txt: "Yao ouvre un dossier sur ton quai. Un planton passe tous les soirs, note les plaques, repart sans rien dire."
+    sinon_eff: {factions: {ordre: {exposition: 1}}}
+  - id: dj_ev_carnet
+    jour: 283
+    si: "relations.ange.trust >= 3 and not flags.ange_renvoye"
+    txt: "À l'aube, Ange te tend le carnet des convoyages : « Les plaques, les dates, les noms. Je l'ai gardé pour le jour où ça tournerait mal. Fais-en ce que tu veux. »"
+    eff: {preuves: {carnet_ange: {action: obtenir}}, relations: {ange: {trust: 1}}}
+    sinon_txt: "Ange a vendu le carnet des convoyages à Sékou. Les hommes du Baron savent désormais tout ce que tu leur as caché."
+    sinon_eff: {flags: [ange_vendeur], relations: {sekou: {trust: 1}}}
+  - id: dj_ev_contestation
+    jour: 292
+    si: "preuves.echantillons_sanogo == 'transmise'"
+    txt: "Un avocat fait remarquer que les échantillons n'ont pas été scellés devant témoin. La chaîne de conservation est contestée."
+    eff: {preuves: {echantillons_sanogo: {action: contester}}}
+
+# --------------------------------------------------------------------------- nœuds
+noeuds:
+  - id: dj_0_quai
+    jalon: 0
+    jour: 1
+    lieu: "Treichville, le quai"
+    moment: "Matin, arrivage du mois"
+    objectif: "Installer ton royaume : plaques, téléphones, Ange à ta droite, Tantie Zéphyrine de l'autre côté du marché."
+    present: [ange, zephyrine]
+    savoir: "Tu as de l'argent et une étoile de police sur le dos. Ange tient les caisses ; tu ne vérifies jamais tout."
+    dialogue:
+      - {narr: "Les conteneurs sentent le sel et le plastique neuf. Ange ouvre une caisse de téléphones débloqués, une autre de plaques déjà frappées."}
+      - {qui: ange, dit: "Chef, le mois est bon. Les caisses du fond, je n'ai pas eu le temps de les compter, mais le fournisseur est sérieux."}
+      - {qui: zephyrine, dit: "Mon fils, tu as bien grandi. Un jour il faudra que ce quai serve à autre chose qu'à ce que tu y caches. Un marché ouvert, pour tout le monde : voilà un quai qui vaudrait quelque chose."}
+    choix:
+      - id: compter
+        l: "Compter la recette et les caisses avec Ange"
+        intention: "Garder ton second dans ta main"
+        cout: "Une matinée sans voir personne d'autre."
+        eff: {relations: {ange: {trust: 1}}, compromission: 1}
+        vers: dj_0_protection
+      - id: zephyrine
+        l: "Passer saluer Tantie Zéphyrine et l'écouter"
+        intention: "Garder un pied dans le marché honnête"
+        cout: "Ange trouve que tu perds du temps."
+        eff: {relations: {zephyrine: {trust: 1}, ange: {trust: -1}}}
+        vers: dj_0_protection
+      - id: caisses_fond
+        l: "Ouvrir toi-même les caisses du fond, sans prévenir Ange"
+        intention: "Savoir ce qu'il y a vraiment dans ton quai"
+        cout: "Ange le prendra comme un manque de confiance."
+        eff: {flags: [medicaments_gardes], competences: {enquete: 1}, relations: {ange: {trust: -1}}}
+        vers: dj_0_protection
+
+  - id: dj_0_protection
+    jalon: 0
+    jour: 14
+    lieu: "Treichville, marché"
+    moment: "Midi"
+    objectif: "Tantie Zéphyrine refuse de payer la « protection » : Ange veut faire un exemple."
+    present: [ange, zephyrine]
+    savoir: "Les marchandes paient pour ne pas être dérangées. Zéphyrine est la première à dire non."
+    dialogue:
+      - {narr: "Ange a posé sa main sur l'étal de Zéphyrine, au milieu des bananes. Deux hommes du quai attendent derrière lui."}
+      - {qui: ange, dit: "Chef, si elle ne paie pas, demain elles ne paieront plus toutes. Il faut qu'on voie qui commande."}
+      - {qui: zephyrine, dit: "Je vends des bananes, mon fils. Je ne te vends pas ma tranquillité."}
+    choix:
+      - id: exemple
+        l: "Laisser Ange faire un exemple"
+        intention: "Garder l'autorité du quai"
+        cout: "Zéphyrine est la victime : elle ne te le pardonnera pas."
+        vu_par: [ombre]
+        eff: {compromission: 2, flags: [exemple_fait], relations: {zephyrine: {trust: -2}, ange: {trust: 1}}, factions: {ombre: {reputation: 1}}}
+        vers: dj_1_camions
+      - id: proteger
+        l: "L'épargner et la protéger devant tes hommes"
+        intention: "Dire non à ta propre machine"
+        cout: "Ange perd la face devant eux."
+        eff: {compromission: -2, flags: [protegee], relations: {zephyrine: {trust: 2, fait: prevenue}, ange: {trust: -2}}}
+        vers: dj_1_camions
+      - id: moitie
+        l: "Lui faire payer la moitié, devant tout le monde"
+        intention: "Sauver la face de tous"
+        cout: "Personne n'est vraiment content."
+        eff: {compromission: 1}
+        tirage:
+          difficulte: 4
+          issues:
+            miracle: {vers: dj_1_camions, eff: {flags: [protegee], relations: {zephyrine: {trust: 1}}}, txt: "Zéphyrine paie, t'adresse un clin d'œil. Ange hausse les épaules : l'affaire est close."}
+            normal: {vers: dj_1_camions, txt: "Zéphyrine paie, la mâchoire serrée. Elle ne te regarde pas."}
+            mauvaise: {vers: dj_1_camions, eff: {flags: [exemple_fait], relations: {zephyrine: {trust: -1}}}, txt: "Un homme d'Ange renverse l'étal. Tu arrives trop tard pour l'arrêter."}
+
+  - id: dj_1_camions
+    jalon: 1
+    jour: 40
+    lieu: "Treichville, portail du quai"
+    moment: "Nuit, premiers camions du chantier"
+    objectif: "Sékou veut faire passer ses camions par ton quai : ta marchandise n'est plus la seule à circuler."
+    present: [sekou]
+    savoir: "Les camions n'ont pas de phares. Tu ne sais pas ce qu'ils portent, et on ne te le dira pas."
+    dialogue:
+      - {narr: "Un camion de chantier s'arrête au portail, moteur tournant. Un homme descend, costume sombre, regard doux."}
+      - {qui: sekou, dit: "Le Roi du Quai. Je travaille pour quelqu'un qui aimerait que tes conteneurs ferment les yeux pendant deux heures par semaine. Quarante mille francs la nuit, plus une protection."}
+      - {qui: sekou, dit: "On n'est pas obligé d'être amis pour être utiles, mon frère."}
+    choix:
+      - id: accepter
+        l: "Accepter les camions : 40 000 F par nuit, sans regarder dedans"
+        intention: "Une rente et un protecteur"
+        cout: "Ton quai devient un maillon d'un réseau que tu ne contrôles pas."
+        vu_par: [ombre]
+        eff: {compromission: 3, flags: [camions_baron], factions: {ombre: {reputation: 2}}, relations: {sekou: {trust: 2}}}
+        vers: dj_1_medicaments
+      - id: refuser
+        l: "Refuser : ton quai reste le tien"
+        intention: "Garder ton indépendance"
+        cout: "Sékou n'oublie pas, et le Baron non plus."
+        vu_par: [ombre]
+        eff: {compromission: -1, flags: [camions_refuses], factions: {ombre: {reputation: -1}}, relations: {sekou: {peur: 2}}}
+        vers: dj_1_medicaments
+      - id: negocier
+        l: "Négocier : une nuit sur deux, et une part sur la cargaison"
+        intention: "Prendre sans te laisser prendre"
+        cout: "Sékou négocie aussi bien que toi."
+        vu_par: [ombre]
+        tirage:
+          difficulte: 4
+          modificateurs: [{si: "relations.ange.trust >= 3", valeur: 1}]
+          issues:
+            miracle: {vers: dj_1_medicaments, eff: {compromission: 2, flags: [camions_baron], factions: {ombre: {reputation: 2}}, relations: {sekou: {trust: 1}}}, txt: "Sékou sourit : « Tu sais compter. » Il accepte ta part. Le marché est tien, pour l'instant."}
+            normal: {vers: dj_1_medicaments, eff: {compromission: 3, flags: [camions_baron], factions: {ombre: {reputation: 1}}}, txt: "Sékou cède sur le prix, pas sur le principe. Tu laisses passer les camions."}
+            mauvaise: {vers: dj_1_medicaments, eff: {compromission: 1, factions: {ombre: {reputation: -1}}, relations: {sekou: {peur: 1}}}, txt: "Sékou se lève : « On reparlera, quand tu auras compris. » Il ne dit pas ce que tu devras comprendre."}
+
+  - id: dj_1_medicaments
+    jalon: 1
+    jour: 75
+    lieu: "Treichville, quai"
+    moment: "Fin d'après-midi"
+    objectif: "Le docteur Sanogo apporte une boîte de faux antipaludiques : elle porte ton emballage."
+    present: [sanogo, ange]
+    savoir: "Ces boîtes viennent de la caisse du fond. Trois enfants du quartier ont été soignés avec."
+    dialogue:
+      - {narr: "Le docteur Sanogo pose une boîte plastifiée sur ton comptoir. L'emballage est parfait. Le contenu, de la craie."}
+      - {qui: sanogo, dit: "Un petit de six ans à l'hôpital de Treichville, son frère aussi. Leur mère l'a acheté au marché. Je ne te demande pas pourquoi. Je te montre ce que ça fait."}
+      - {qui: ange, dit: "Chef, c'est le fournisseur. Je n'y suis pour rien. Les caisses du fond, on n'a jamais regardé.", si: "not flags.medicaments_gardes"}
+    choix:
+      - id: retirer
+        l: "Retirer tout le stock de médicaments du quai et le détruire (100 000 F de perte)"
+        intention: "Arrêter la contrefaçon qui tue"
+        cout: "Cent mille francs, et Ange perd son fournisseur."
+        si: "argent >= 100000"
+        eff: {argent: -100000, compromission: -2, flags: [stock_retire], relations: {sanogo: {trust: 2}, ange: {trust: -1}}}
+        vers: dj_2_princesse_baron
+      - id: echantillons
+        l: "Garder trois boîtes comme échantillons et remettre le reste à Sanogo"
+        intention: "Une preuve, au cas où"
+        cout: "Si Ange l'apprend, il saura que tu prépares quelque chose."
+        eff: {compromission: -1, flags: [stock_retire], preuves: {echantillons_sanogo: {action: obtenir}}, relations: {sanogo: {trust: 2}}}
+        vers: dj_2_princesse_baron
+      - id: nier
+        l: "Nier : « Ce n'est pas mon emballage »"
+        intention: "Protéger ton commerce"
+        cout: "Sanogo saura que tu mens, et les enfants aussi."
+        eff: {compromission: 2, flags: [medicaments_gardes], relations: {sanogo: {trust: -2}, ange: {trust: 1}}}
+        vers: dj_2_princesse_baron
+
+  - id: dj_2_princesse_baron
+    jalon: 2
+    jour: 110
+    carrefour: A
+    si: "factions.ombre.reputation >= 3"
+    sinon: dj_2_princesse_licence
+    lieu: "Yopougon, Rue Princesse"
+    moment: "Nuit de fin d'année"
+    objectif: "Le Baron te veut comme douanier : ton quai est le dernier point de passage qu'il ne contrôle pas."
+    present: [baron, sekou, ange]
+    savoir: "Tu sais que le Baron existe : jusqu'ici, tu ne l'avais jamais vu."
+    dialogue:
+      - {narr: "Champagne, sono, poisson braisé. Ange te suit à deux pas, fier d'être vu à ta droite. Le Baron te toise sans sourire."}
+      - {qui: baron, dit: "Ton quai m'intéresse. Tu seras mon douanier. Dans mon quartier, personne n'a faim, petit."}
+      - {qui: sekou, dit: "Il ne le propose pas deux fois."}
+    choix:
+      - id: douanier
+        l: "Accepter d'être le douanier du Baron"
+        intention: "Une protection totale, un quai qui rapporte"
+        cout: "Tu ne seras plus roi : tu seras employé."
+        vu_par: [ombre]
+        eff: {compromission: 3, flags: [douanier], factions: {ombre: {reputation: 2, alliance: true}}, relations: {baron: {trust: 2}, zephyrine: {trust: -1}}}
+        vers: dj_2_quai
+      - id: garder_quai
+        l: "Refuser et garder ton quai"
+        intention: "Rester ton propre maître"
+        cout: "Le Baron note ton refus."
+        vu_par: [ombre]
+        eff: {compromission: -1, flags: [quai_libre], factions: {ombre: {exposition: 1}}, relations: {baron: {peur: 2}}}
+        vers: dj_2_quai
+      - id: un_pied
+        l: "Promettre sans signer, pour gagner du temps"
+        intention: "Ne pas te fâcher"
+        cout: "Sékou compte les hésitations."
+        vu_par: [ombre]
+        tirage:
+          difficulte: 4
+          issues:
+            miracle: {vers: dj_2_quai, eff: {compromission: 1, relations: {baron: {trust: 1}}}, txt: "Le Baron sourit : « Un homme prudent. J'aime ça. » Il te laisse partir, pour l'instant."}
+            normal: {vers: dj_2_quai, eff: {compromission: 2}, txt: "Le Baron remplit ton verre : « Tu signeras. Pas ce soir. »"}
+            mauvaise: {vers: dj_2_quai, eff: {compromission: 2, relations: {sekou: {peur: 1}}}, txt: "Sékou t'attrape la manche : « On n'hésite pas deux fois devant lui. » Tu repars avec un regard sur la nuque."}
+
+  - id: dj_2_princesse_licence
+    jalon: 2
+    jour: 110
+    carrefour: A
+    si: "relations.zephyrine.trust >= 2"
+    sinon: dj_2_princesse_yao
+    lieu: "Yopougon, Rue Princesse"
+    moment: "Nuit de fin d'année"
+    objectif: "Tantie Zéphyrine te présente des commerçants : un marché légal, avec licence, serait possible."
+    present: [zephyrine, aya]
+    savoir: "Une licence de négoce coûte 100 000 F. Aya Coulibaly est dans la salle, et elle regarde Zéphyrine."
+    dialogue:
+      - {narr: "Entre deux haut-parleurs, Zéphyrine te tire vers une table où des commerçants en chemise propre parlent de contrats et de licences."}
+      - {qui: zephyrine, dit: "Mon fils, ces gens-là cherchent quelqu'un qui connaît le quai. Un marché ouvert, à ciel ouvert, avec une licence. Plus de plaques de nuit."}
+      - {qui: aya, dit: "Lieutenante Coulibaly. Je ne suis pas là pour vous. Mais si un jour vous cherchez une porte de sortie, des gens savent où elle est."}
+    choix:
+      - id: licence
+        l: "Demander une licence de négoce (100 000 F)"
+        intention: "Une façade légale, puis une vraie sortie"
+        cout: "Cent mille francs, et Ange verra que tu changes."
+        si: "argent >= 100000"
+        eff: {argent: -100000, compromission: -2, flags: [marche_legal], actifs: {licence_negoce: obtenue}, relations: {zephyrine: {trust: 1}, aya: {trust: 1}}}
+        vers: dj_2_quai
+      - id: deux
+        l: "Garder les deux activités : le quai de nuit, le commerce de jour"
+        intention: "Ne rien perdre"
+        cout: "Tu ne peux pas tromper tout le monde longtemps."
+        eff: {compromission: 1, relations: {zephyrine: {trust: -1}}}
+        vers: dj_2_quai
+      - id: decliner
+        l: "Remercier Zéphyrine, mais décliner"
+        intention: "Rester qui tu es"
+        cout: "Zéphyrine te le reprochera."
+        eff: {relations: {zephyrine: {trust: -1}, aya: {trust: -1}}}
+        vers: dj_2_quai
+
+  - id: dj_2_princesse_yao
+    jalon: 2
+    jour: 110
+    carrefour: A
+    lieu: "Yopougon, Rue Princesse"
+    moment: "Nuit de fin d'année"
+    objectif: "Le commissaire Yao te propose de « s'arranger » : un paiement régulier contre sa tranquillité."
+    present: [yao]
+    savoir: "Yao sait ce que tu vends. Il ne dit pas combien il touche déjà d'ailleurs."
+    dialogue:
+      - {narr: "Le commissaire Yao, en civil, boit un jus de bissap à une table d'angle. Il te fait signe de la main, très poli."}
+      - {qui: yao, dit: "Le Roi du Quai. Je n'aime pas les histoires. Quarante mille francs par semaine, et mon planton regarde ailleurs. On est ensemble."}
+      - {qui: yao, dit: "Sinon, je suis obligé de faire mon travail. Vous comprenez."}
+    choix:
+      - id: payer
+        l: "Payer Yao : 100 000 F, et la paix"
+        intention: "Acheter la tranquillité"
+        cout: "Tu entres dans son carnet de paiements."
+        si: "argent >= 100000"
+        vu_par: [ordre]
+        eff: {argent: -100000, compromission: 1, flags: [arrangement_yao], relations: {yao: {trust: 2}}, factions: {ordre: {reputation: 1}}}
+        vers: dj_2_quai
+      - id: refuser_yao
+        l: "Refuser : tu ne paies pas un policier"
+        intention: "Ne pas t'attacher à lui"
+        cout: "Le planton restera sur ton quai."
+        vu_par: [ordre]
+        eff: {compromission: -1, relations: {yao: {peur: 1}}, factions: {ordre: {exposition: 1}}}
+        vers: dj_2_quai
+      - id: marchander
+        l: "Marchander : une moitié maintenant, une moitié à la crue"
+        intention: "Gagner du temps"
+        cout: "Yao n'aime pas les promesses."
+        vu_par: [ordre]
+        tirage:
+          difficulte: 4
+          issues:
+            miracle: {vers: dj_2_quai, eff: {flags: [arrangement_yao], relations: {yao: {trust: 1}}}, txt: "Yao rit : « Un homme d'affaires. » Il accepte, et te donne un conseil gratuit sur Sékou."}
+            normal: {vers: dj_2_quai, eff: {flags: [arrangement_yao], compromission: 1}, txt: "Yao soupire et note quelque chose dans son carnet. Le marché est conclu."}
+            mauvaise: {vers: dj_2_quai, eff: {factions: {ordre: {exposition: 1}}, relations: {yao: {trust: -1}}}, txt: "Yao se lève, vexé : « Alors à la prochaine descente, ne comptez pas sur moi. »"}
+
+  - id: dj_2_quai
+    jalon: 2
+    jour: 190
+    lieu: "Treichville, le quai"
+    moment: "Saison sèche, soir"
+    objectif: "Ange réclame une plus grande part, Zéphyrine regarde ton quai autrement : qui y entre, qui en sort ?"
+    present: [ange, zephyrine]
+    savoir: "Ange sait tout de tes comptes. Il peut partir, ou te servir."
+    dialogue:
+      - {qui: ange, dit: "Chef, je fais tourner le quai depuis des mois. Un tiers de la recette, ou je cherche ailleurs."}
+      - {qui: zephyrine, dit: "Mon fils, le quai est grand. Pas besoin qu'il serve à une seule chose. Des étals, des gens, un marché. Ça rapporterait moins, mais tu dormirais."}
+    choix:
+      - id: ouvrir_marche
+        l: "Ouvrir une partie du quai à de petits marchands pour 100 000 F de travaux"
+        intention: "Transformer le quai"
+        cout: "Cent mille francs, et Ange perd de la place."
+        si: "argent >= 100000"
+        eff: {argent: -100000, compromission: -1, flags: [marche_ouvert], relations: {zephyrine: {trust: 2}, ange: {trust: -1}}}
+        vers: dj_3_crue_baron
+      - id: associer_ange
+        l: "Donner à Ange un tiers de la recette"
+        intention: "Garder ton second"
+        cout: "Tu partages, et tu t'enracines un peu plus."
+        eff: {compromission: 1, flags: [ange_associe], relations: {ange: {trust: 2}}}
+        vers: dj_3_crue_baron
+      - id: renvoyer_ange
+        l: "Écarter Ange de la caisse et reprendre les comptes toi-même"
+        intention: "Ne plus dépendre de personne"
+        cout: "Ange sait tout, et il a un carnet."
+        eff: {flags: [ange_renvoye], relations: {ange: {trust: -3}}}
+        vers: dj_3_crue_baron
+      - id: laisser
+        l: "Faire attendre Ange et Zéphyrine"
+        intention: "Gagner du temps"
+        cout: "Chacun verra que tu hésites."
+        eff: {relations: {ange: {trust: -1}, zephyrine: {trust: -1}}}
+        vers: dj_3_crue_baron
+
+  - id: dj_3_crue_baron
+    jalon: 3
+    jour: 281
+    carrefour: B
+    si: "flags.douanier or flags.camions_baron"
+    sinon: dj_3_crue_quartier
+    lieu: "Treichville, le quai inondé"
+    moment: "Nuit de la crue"
+    objectif: "Le Baron veut que tu sortes ses caisses avant les secours : ton quai est son dernier point de passage."
+    present: [sekou, ange]
+    savoir: "Les caisses sont marquées d'une croix rouge. Sékou ne te dira pas ce qu'elles contiennent."
+    dialogue:
+      - {narr: "L'eau monte par les caniveaux du quai. Tes conteneurs se couchent comme des animaux fatigués. Dans la rue, des gens appellent à l'aide."}
+      - {qui: sekou, dit: "Les caisses d'abord. Les gens après. Le Baron l'a dit, et je ne le répéterai pas."}
+      - {qui: ange, dit: "Chef, on n'a pas le choix. Si on perd ces caisses, on perd tout.", si: "relations.ange.trust >= 2"}
+    choix:
+      - id: sortir_caisses
+        l: "Sortir les caisses du Baron avant les secours"
+        intention: "Obéir pour survivre"
+        cout: "Tu laisses des gens dans l'eau."
+        vu_par: [ombre]
+        eff: {compromission: 3, flags: [caisses_sorties], factions: {ombre: {reputation: 1}}, relations: {baron: {trust: 1}, zephyrine: {trust: -2}}}
+        vers: dj_4_descente_ombre
+      - id: abri
+        l: "Ouvrir ton quai en abri pour les sinistrés, et laisser les caisses"
+        intention: "Sauver des vies plutôt que de la marchandise"
+        cout: "Le Baron te le fera payer."
+        vu_par: [ombre]
+        eff: {compromission: -3, flags: [abri], energie: -15, factions: {ombre: {exposition: 1}}, relations: {zephyrine: {trust: 2}}}
+        tirage:
+          difficulte: 4
+          issues:
+            miracle: {vers: dj_4_descente_ombre, eff: {etoile_mod: {valeur: 5, jours: 30}, relations: {zephyrine: {fait: sauvee, trust: 1}}}, txt: "Quarante personnes tiennent sous ton toit, Zéphyrine en tête. Personne n'est emporté."}
+            normal: {vers: dj_4_descente_ombre, eff: {sante: -10, relations: {zephyrine: {fait: sauvee}}}, txt: "Tu les fais entrer un à un. Zéphyrine est sauvée, et tu as les bras en sang."}
+            mauvaise: {vers: dj_4_descente_ombre, eff: {sante: -20, relations: {sekou: {peur: 1}}}, txt: "Un mur du quai cède. Des gens sont blessés, et Sékou, de loin, note tout."}
+      - id: ouvrir_caisse
+        l: "Ouvrir une caisse avant de décider"
+        intention: "Savoir ce que tu laisses passer"
+        cout: "Sékou te regarde."
+        eff: {compromission: -1, competences: {enquete: 1}}
+        tirage:
+          difficulte: 5
+          issues:
+            miracle: {vers: dj_4_descente_ombre, eff: {relations: {ange: {trust: 1}}}, txt: "Tu vois le métal, tu refermes sans qu'on te voie. Désormais tu sais."}
+            normal: {vers: dj_4_descente_ombre, eff: {relations: {sekou: {peur: 1}}}, txt: "Sékou t'a vu. Il ne dit rien, mais il note."}
+            mauvaise: {vers: dj_4_descente_ombre, eff: {sante: -10, compromission: 1}, txt: "Sékou te saisit par le col : « Qui t'a dit de regarder ? » Tu paies cette seconde cher."}
+
+  - id: dj_3_crue_quartier
+    jalon: 3
+    jour: 281
+    carrefour: B
+    lieu: "Treichville, le quai inondé"
+    moment: "Nuit de la crue"
+    objectif: "Ton stock peut nourrir le quartier, ton quai peut abriter ses habitants."
+    present: [zephyrine, ange]
+    savoir: "Le stock, c'est ce qui te reste. Zéphyrine et douze marchandes sont coincées derrière le marché."
+    dialogue:
+      - {narr: "L'eau marron monte à mi-jambe. Zéphyrine, trempée, serre un sac de riz contre sa poitrine. Derrière elle, les marchandes forment une chaîne."}
+      - {qui: zephyrine, dit: "Mon fils, ton quai est le plus haut. Ouvre-le."}
+      - {qui: ange, dit: "Chef, si on le fait, on ne retrouvera plus nos caisses.", si: "relations.ange.trust >= 2"}
+    choix:
+      - id: abri_quai
+        l: "Ouvrir ton quai en abri pour tous les sinistrés"
+        intention: "Protéger ceux que tu as longtemps rackettés"
+        cout: "Tu perds des marchandises, et ta réputation de dur."
+        eff: {compromission: -3, flags: [abri], energie: -15, relations: {zephyrine: {trust: 2, fait: sauvee}}}
+        tirage:
+          difficulte: 4
+          issues:
+            miracle: {vers: dj_4_descente_temoin, eff: {etoile_mod: {valeur: 5, jours: 30}, relations: {ange: {trust: 1}}}, txt: "Cinquante personnes tiennent sous ton toit. Ange, malgré lui, distribue les couvertures."}
+            normal: {vers: dj_4_descente_temoin, eff: {sante: -10}, txt: "Tu les fais entrer un à un. Tu as perdu la moitié du stock, et gagné des regards neufs."}
+            mauvaise: {vers: dj_4_descente_temoin, eff: {sante: -20}, txt: "Un mur du quai cède. Des gens sont blessés, mais personne n'est emporté."}
+      - id: distribuer
+        l: "Distribuer ton stock de riz et d'eau aux sinistrés"
+        intention: "Nourrir le quartier"
+        cout: "Tu vides ta réserve du mois."
+        eff: {compromission: -2, flags: [partage], relations: {zephyrine: {trust: 1}}}
+        vers: dj_4_descente_temoin
+      - id: proteger_stock
+        l: "Mettre ton stock à l'abri et attendre que l'eau baisse"
+        intention: "Garder ton capital"
+        cout: "Zéphyrine te regardera sans plus te parler."
+        eff: {compromission: 1, relations: {zephyrine: {trust: -2}}}
+        vers: dj_4_descente_temoin
+
+  - id: dj_4_descente_ombre
+    jalon: 4
+    jour: 283
+    carrefour: C
+    si: "compromission >= 4"
+    sinon: dj_4_descente_temoin
+    lieu: "Treichville, le port"
+    moment: "Descente de police, à l'aube"
+    objectif: "Yao te chuchote qu'on peut s'arranger ; Aya attend que tu parles."
+    present: [yao, aya, sekou]
+    savoir: "Aya n'a pas de mandat. Si tu parles, personne ne te garantit rien."
+    dialogue:
+      - {narr: "Les gyrophares balaient les conteneurs. Les hommes du quai, mains levées, se taisent. Yao s'approche de toi, très poli."}
+      - {qui: yao, dit: "Mon frère, on peut s'arranger. Un nom, un conteneur, et on oublie le reste."}
+      - {qui: aya, dit: "Lieutenante Coulibaly. Je n'ai pas de mandat, donc pas de protection garantie. Si vous parlez, vous serez entendu."}
+    choix:
+      - id: trahir
+        l: "Tout dire à Aya sur le quai et sur les camions (elle n'a pas de mandat : sans protection, Sékou saura que c'est toi)"
+        intention: "Briser ta dette"
+        cout: "Le Baron ne pardonne pas, et tu risques ta vie."
+        vu_par: [ordre, ombre]
+        eff:
+          compromission: -4
+          flags: [temoin, trahi_baron]
+          relations: {aya: {trust: 3}, baron: {trust: -5, peur: 3}, sekou: {trust: -3}}
+          factions: {ordre: {reputation: 2}, ombre: {reputation: -3}}
+        tirage:
+          difficulte: 6
+          issues:
+            miracle: {vers: dj_5_ceremonie, eff: {flags: [protection_aya]}, txt: "Aya intercède : un magistrat, qu'elle avait prévenu en secret, accepte de te placer sous protection."}
+            normal: {vers: dj_5_ceremonie, eff: {flags: [sans_protection]}, txt: "Aya note ton témoignage. Elle n'a pas de mandat pour te protéger, et le dit avec honnêteté."}
+            mauvaise: {vers: dj_5_ceremonie, eff: {flags: [sans_protection], sante: -10, relations: {baron: {peur: 2}}}, txt: "Un policier de Yao prévient discrètement Sékou avant même que tu sois sorti."}
+      - id: carnet
+        l: "Remettre le carnet d'Ange à Aya (une preuve écrite, mais le Baron saura qui l'a donné)"
+        intention: "Une preuve que les avocats ne contesteront pas"
+        cout: "Tu rompras définitivement avec le Baron, et tu trahis Ange."
+        si: "preuves.carnet_ange == 'detenue'"
+        vu_par: [ordre, ombre]
+        eff:
+          compromission: -4
+          flags: [temoin, trahi_baron, protection_aya]
+          relations: {aya: {trust: 2}, ange: {trust: -1}, baron: {trust: -5, peur: 2}}
+          factions: {ordre: {reputation: 2}, ombre: {reputation: -3}}
+          preuves: {carnet_ange: {action: transmettre, a: aya}}
+        vers: dj_5_ceremonie
+      - id: arranger
+        l: "Accepter l'arrangement de Yao : un nom contre ta liberté"
+        intention: "Sauver ton quai"
+        cout: "Tu livres quelqu'un d'autre pour te sauver."
+        vu_par: [ordre]
+        eff: {compromission: 2, flags: [arrangement_yao], relations: {yao: {trust: 2}}, factions: {ordre: {reputation: 1}}}
+        vers: dj_5_ceremonie
+      - id: loyal
+        l: "Rester muet et loyal au Baron"
+        intention: "Garder ta place"
+        cout: "Zéphyrine ne te parlera plus."
+        vu_par: [ombre]
+        eff: {compromission: 2, flags: [loyal_baron], relations: {baron: {trust: 2}, zephyrine: {trust: -2}}, factions: {ombre: {reputation: 1}}}
+        vers: dj_5_ceremonie
+
+  - id: dj_4_descente_temoin
+    jalon: 4
+    jour: 283
+    carrefour: C
+    lieu: "Treichville, le port"
+    moment: "Descente de police, à l'aube"
+    objectif: "Aya a besoin d'un témoin qui connaît le port de l'intérieur."
+    present: [aya, yao, sanogo]
+    savoir: "Aya ne peut pas te protéger sans mandat. Yao t'a déjà proposé un arrangement."
+    dialogue:
+      - {narr: "Les gyrophares éclairent l'eau sale. Sanogo, en blouse, lève une boîte de médicaments devant Aya : le même emballage que le tien."}
+      - {qui: aya, dit: "Lieutenante Coulibaly. Je cherche quelqu'un qui connaît ce quai. Je ne te promets pas de protection. Je te promets que tu seras entendu."}
+      - {qui: yao, dit: "Mon frère, tu n'as rien à gagner à parler. Un petit paiement, et ça passe."}
+    choix:
+      - id: temoigner
+        l: "Témoigner devant Aya : le quai, les plaques, les camions de nuit"
+        intention: "Dire ce que tu sais"
+        cout: "Aya ne peut pas te protéger sans mandat, et Yao s'en souviendra."
+        vu_par: [ordre]
+        eff: {compromission: -3, flags: [temoin], relations: {aya: {trust: 3}, yao: {trust: -1}}, factions: {ordre: {reputation: 2}}}
+        vers: dj_5_ceremonie
+      - id: echantillons
+        l: "Remettre les échantillons de Sanogo à Aya"
+        intention: "Une preuve, même fragile"
+        cout: "Une chaîne de conservation se conteste."
+        si: "preuves.echantillons_sanogo == 'detenue'"
+        vu_par: [ordre]
+        eff: {compromission: -1, relations: {aya: {trust: 1}, sanogo: {trust: 1}}, factions: {ordre: {reputation: 1}}, preuves: {echantillons_sanogo: {action: transmettre, a: aya}}}
+        vers: dj_5_ceremonie
+      - id: carnet_temoin
+        l: "Remettre le carnet d'Ange à Aya"
+        intention: "Une preuve que personne ne pourra nier"
+        cout: "Ange sera exposé comme source."
+        si: "preuves.carnet_ange == 'detenue'"
+        vu_par: [ordre]
+        eff:
+          compromission: -3
+          flags: [temoin, protection_aya]
+          relations: {aya: {trust: 2}, ange: {trust: -1}}
+          factions: {ordre: {reputation: 2}}
+          preuves: {carnet_ange: {action: transmettre, a: aya}}
+        vers: dj_5_ceremonie
+      - id: acheter_yao
+        l: "Acheter le silence de Yao (100 000 F)"
+        intention: "Éviter l'enquête"
+        cout: "Tu paies quelqu'un que tu ne respectes pas."
+        si: "argent >= 100000"
+        vu_par: [ordre]
+        eff: {argent: -100000, compromission: 1, flags: [arrangement_yao], relations: {yao: {trust: 2}}}
+        vers: dj_5_ceremonie
+      - id: se_taire
+        l: "Te taire par peur"
+        intention: "Survivre"
+        cout: "Tu porteras ce silence longtemps."
+        eff: {flags: [silence], relations: {aya: {trust: -1}}}
+        vers: dj_5_ceremonie
+
+  - id: dj_5_ceremonie
+    jalon: 5
+    jour: 304
+    denouement: true
+    lieu: "Bord de la lagune, première pierre"
+    moment: "Cérémonie d'inauguration"
+    objectif: "Dire ce que ton quai est devenu."
+    present: [zephyrine, ange, sanogo, baron, aya]
+    savoir: "Tu sais ce que tu as vendu et ce que tu as protégé. Chacun sait ce qu'il a vu."
+    dialogue:
+      - {narr: "Le Maire coupe le ruban d'un quartier à moitié vrai. Au loin, les conteneurs du port sont alignés comme toujours."}
+      - {qui: zephyrine, dit: "Alors, mon fils ? Qu'est-ce qu'on dira de ton quai ?", si: "relations.zephyrine.trust >= 2"}
+      - {qui: sanogo, dit: "Trois enfants de Treichville sont sortis de l'hôpital. Je n'oublie pas d'où venait la boîte.", si: "relations.sanogo.trust >= 1"}
+
+fins:
+  - id: dj_f_lum
+    type: lumiere
+    priorite: 2
+    si: "flags.temoin and compromission <= 0 and flags.marche_legal and preuves.carnet_ange == 'transmise'"
+    titre: "Roi du Marché Légal"
+    resume: "Ton talent de débrouille sert enfin un commerce en règle."
+    epilogue:
+      - {txt: "Le carnet d'Ange ouvre trois enquêtes : les plaques, les dates et les noms sont devant le juge. Le quai n'est plus un secret."}
+      - {si: "flags.stock_retire", txt: "Le docteur Sanogo dit à la radio que les faux médicaments ont disparu des marchés de Treichville. Il ne dit pas à qui ils doivent leur disparition."}
+      - {si: "actifs.licence_negoce", txt: "Ta licence de négoce est affichée sur la porte de l'ancien quai. Zéphyrine tient la caisse."}
+      - {txt: "Ce n'est pas gratuit : Ange ne te parle plus, et le Baron n'a pas fini de te chercher."}
+  - id: dj_f_ombre
+    type: ombre
+    priorite: 3
+    si: "flags.douanier and compromission >= 8"
+    titre: "Le Douanier du Baron"
+    resume: "Tu tiens le port pour lui. Le Baron te regarde toujours."
+    epilogue:
+      - {txt: "Tu tiens le port pour le Baron. Les camions passent, les caisses aussi, et tu ne regardes plus dedans."}
+      - {si: "flags.medicaments_gardes", txt: "Les boîtes de la caisse du fond circulent toujours. Sanogo a cessé de te parler."}
+      - {si: "relations.zephyrine.trust <= 0", txt: "Zéphyrine a quitté le marché de Treichville. Tu fais semblant de ne pas l'avoir vue partir."}
+      - {txt: "Le Baron te regarde toujours. Ton royaume est un poste de garde."}
+  - id: dj_f_entre
+    type: entre_deux
+    priorite: 5
+    si: "true"
+    titre: "Le Robin des Quais"
+    resume: "Tu voles les gros, tu protèges les petits, la police ne te lâche pas."
+    epilogue:
+      - {txt: "Tu tiens ton quai tant bien que mal : des plaques pour les uns, des couvertures pour les autres, et la police dans les parages."}
+      - {si: "flags.arrangement_yao", txt: "Yao continue de passer chaque semaine. Tu as appris à ne plus regarder son carnet."}
+      - {si: "flags.silence", txt: "Tu n'as rien dit à Aya. Chaque matin, tu te demandes combien de temps ça tiendra."}
+      - {si: "flags.ange_vendeur", txt: "Ange a vendu ton carnet. Les hommes de Sékou savent maintenant ce que tu as caché."}
+  - id: dj_f_trag
+    type: tragique
+    priorite: 1
+    imposee: true
+    si: "flags.trahi_baron and flags.ange_renvoye and flags.sans_protection"
+    titre: "La Dernière Cargaison"
+    resume: "Tu as défié le Baron sur son propre quai, sans protection."
+    epilogue:
+      - {txt: "Tu avais écarté Ange de ta caisse. Tu as parlé à Aya, sans mandat, sans protection, devant des hommes qui te connaissaient."}
+      - {txt: "Ange, qui avait gardé le carnet, l'a vendu à Sékou. Le jour de la cérémonie, ton quai reste vide : le Baron n'a plus besoin de toi et te sait plus dangereux vivant."}
+      - {txt: "Aya t'avait prévenu : sans mandat, personne ne pouvait te protéger. Fin définitive."}
+  - id: dj_f_secret
+    type: secrete
+    priorite: 0
+    si: "(flags.abri or flags.partage) and flags.marche_ouvert and relations.zephyrine.trust >= 3 and compromission <= 2"
+    titre: "Le Grand Marché Réconcilié"
+    resume: "Le quai devient un marché ouvert à tous, avec Tantie Zéphyrine à sa tête."
+    epilogue:
+      - {txt: "Le quai de Treichville est un marché à ciel ouvert : étals, couvertures, riz et médicaments véritables, sous la responsabilité d'une marchande qui ne s'est jamais laissé faire."}
+      - {txt: "Zéphyrine en est la présidente. Sanogo y tient une permanence le jeudi."}
+      - {si: "flags.marchandes_unies", txt: "Les douze marchandes qui avaient refusé de payer sont devenues l'association du quai."}
+      - {txt: "Les conteneurs du port sont toujours là, alignés comme toujours. Mais personne n'a plus peur d'y passer."}

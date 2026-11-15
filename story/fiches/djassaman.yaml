@@ -1,0 +1,13 @@
+# Fiche du personnage propre au destin « Le Roi du Quai » (sans fiche maître dans personnages.yaml).
+ange:
+  nom: "Ange"
+  age: 29
+  role: "Ton second sur le quai de Treichville : il tient les caisses, les comptes et les hommes."
+  objectif: "Obtenir une vraie part du quai, ou le reprendre."
+  methode: "Zélé, rapide, jamais en retard sur les comptes ; sait se rendre indispensable puis se ménage une sortie."
+  tics: ["« Chef »", "« On n'a pas le choix »"]
+  limites: ["Pas de légitimité sans toi", "Dépend de ta protection face à Sékou"]
+  savoir: ["Tous les convoyages du quai, les dates, les plaques", "Qui paie et qui ne paie pas", "Que les caisses du fond contiennent des médicaments contrefaits"]
+  secret: "Il tient un carnet des convoyages depuis le début, comme assurance en cas de trahison."
+  offre: ["Un carnet de convoyages (preuve écrite)", "Les hommes du quai"]
+  evolution: "Associé et respecté → il te donne le carnet. Écarté ou humilié → il le vend à Sékou et passe chez le Baron."

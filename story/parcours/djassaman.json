@@ -1,0 +1,436 @@
+{
+ "destin": "djassaman",
+ "formule": "etoile-v1",
+ "fins": {
+  "dj_f_entre": {
+   "chemin": [
+    {
+     "noeud": "dj_0_quai",
+     "choix": "compter",
+     "issue": null
+    },
+    {
+     "noeud": "dj_0_protection",
+     "choix": "exemple",
+     "issue": null
+    },
+    {
+     "noeud": "dj_1_camions",
+     "choix": "accepter",
+     "issue": null
+    },
+    {
+     "noeud": "dj_1_medicaments",
+     "choix": "retirer",
+     "issue": null
+    },
+    {
+     "noeud": "dj_2_princesse_baron",
+     "choix": "douanier",
+     "issue": null
+    },
+    {
+     "noeud": "dj_2_quai",
+     "choix": "ouvrir_marche",
+     "issue": null
+    },
+    {
+     "noeud": "dj_3_crue_baron",
+     "choix": "sortir_caisses",
+     "issue": null
+    },
+    {
+     "noeud": "dj_4_descente_ombre",
+     "choix": "trahir",
+     "issue": "miracle"
+    }
+   ],
+   "fin": "dj_f_entre"
+  },
+  "dj_f_ombre": {
+   "chemin": [
+    {
+     "noeud": "dj_0_quai",
+     "choix": "compter",
+     "issue": null
+    },
+    {
+     "noeud": "dj_0_protection",
+     "choix": "exemple",
+     "issue": null
+    },
+    {
+     "noeud": "dj_1_camions",
+     "choix": "accepter",
+     "issue": null
+    },
+    {
+     "noeud": "dj_1_medicaments",
+     "choix": "retirer",
+     "issue": null
+    },
+    {
+     "noeud": "dj_2_princesse_baron",
+     "choix": "douanier",
+     "issue": null
+    },
+    {
+     "noeud": "dj_2_quai",
+     "choix": "ouvrir_marche",
+     "issue": null
+    },
+    {
+     "noeud": "dj_3_crue_baron",
+     "choix": "sortir_caisses",
+     "issue": null
+    },
+    {
+     "noeud": "dj_4_descente_ombre",
+     "choix": "arranger",
+     "issue": null
+    }
+   ],
+   "fin": "dj_f_ombre"
+  },
+  "dj_f_trag": {
+   "chemin": [
+    {
+     "noeud": "dj_0_quai",
+     "choix": "compter",
+     "issue": null
+    },
+    {
+     "noeud": "dj_0_protection",
+     "choix": "exemple",
+     "issue": null
+    },
+    {
+     "noeud": "dj_1_camions",
+     "choix": "accepter",
+     "issue": null
+    },
+    {
+     "noeud": "dj_1_medicaments",
+     "choix": "retirer",
+     "issue": null
+    },
+    {
+     "noeud": "dj_2_princesse_baron",
+     "choix": "douanier",
+     "issue": null
+    },
+    {
+     "noeud": "dj_2_quai",
+     "choix": "renvoyer_ange",
+     "issue": null
+    },
+    {
+     "noeud": "dj_3_crue_baron",
+     "choix": "sortir_caisses",
+     "issue": null
+    },
+    {
+     "noeud": "dj_4_descente_ombre",
+     "choix": "trahir",
+     "issue": "mauvaise"
+    }
+   ],
+   "fin": "dj_f_trag"
+  },
+  "dj_f_secret": {
+   "chemin": [
+    {
+     "noeud": "dj_0_quai",
+     "choix": "compter",
+     "issue": null
+    },
+    {
+     "noeud": "dj_0_protection",
+     "choix": "exemple",
+     "issue": null
+    },
+    {
+     "noeud": "dj_1_camions",
+     "choix": "accepter",
+     "issue": null
+    },
+    {
+     "noeud": "dj_1_medicaments",
+     "choix": "retirer",
+     "issue": null
+    },
+    {
+     "noeud": "dj_2_princesse_baron",
+     "choix": "garder_quai",
+     "issue": null
+    },
+    {
+     "noeud": "dj_2_quai",
+     "choix": "ouvrir_marche",
+     "issue": null
+    },
+    {
+     "noeud": "dj_3_crue_baron",
+     "choix": "abri",
+     "issue": "miracle"
+    },
+    {
+     "noeud": "dj_4_descente_temoin",
+     "choix": "temoigner",
+     "issue": null
+    }
+   ],
+   "fin": "dj_f_secret"
+  },
+  "dj_f_lum": {
+   "chemin": [
+    {
+     "noeud": "dj_0_quai",
+     "choix": "compter",
+     "issue": null
+    },
+    {
+     "noeud": "dj_0_protection",
+     "choix": "proteger",
+     "issue": null
+    },
+    {
+     "noeud": "dj_1_camions",
+     "choix": "refuser",
+     "issue": null
+    },
+    {
+     "noeud": "dj_1_medicaments",
+     "choix": "retirer",
+     "issue": null
+    },
+    {
+     "noeud": "dj_2_princesse_licence",
+     "choix": "licence",
+     "issue": null
+    },
+    {
+     "noeud": "dj_2_quai",
+     "choix": "associer_ange",
+     "issue": null
+    },
+    {
+     "noeud": "dj_3_crue_quartier",
+     "choix": "abri_quai",
+     "issue": "miracle"
+    },
+    {
+     "noeud": "dj_4_descente_temoin",
+     "choix": "carnet_temoin",
+     "issue": null
+    }
+   ],
+   "fin": "dj_f_lum"
+  }
+ },
+ "extremes": {
+  "compromission_max": {
+   "valeur": 10,
+   "chemin": [
+    {
+     "noeud": "dj_0_quai",
+     "choix": "compter",
+     "issue": null
+    },
+    {
+     "noeud": "dj_0_protection",
+     "choix": "exemple",
+     "issue": null
+    },
+    {
+     "noeud": "dj_1_camions",
+     "choix": "accepter",
+     "issue": null
+    },
+    {
+     "noeud": "dj_1_medicaments",
+     "choix": "retirer",
+     "issue": null
+    },
+    {
+     "noeud": "dj_2_princesse_baron",
+     "choix": "douanier",
+     "issue": null
+    },
+    {
+     "noeud": "dj_2_quai",
+     "choix": "ouvrir_marche",
+     "issue": null
+    },
+    {
+     "noeud": "dj_3_crue_baron",
+     "choix": "sortir_caisses",
+     "issue": null
+    },
+    {
+     "noeud": "dj_4_descente_ombre",
+     "choix": "arranger",
+     "issue": null
+    }
+   ]
+  },
+  "compromission_min": {
+   "valeur": -6,
+   "chemin": [
+    {
+     "noeud": "dj_0_quai",
+     "choix": "compter",
+     "issue": null
+    },
+    {
+     "noeud": "dj_0_protection",
+     "choix": "proteger",
+     "issue": null
+    },
+    {
+     "noeud": "dj_1_camions",
+     "choix": "refuser",
+     "issue": null
+    },
+    {
+     "noeud": "dj_1_medicaments",
+     "choix": "retirer",
+     "issue": null
+    },
+    {
+     "noeud": "dj_2_princesse_licence",
+     "choix": "licence",
+     "issue": null
+    },
+    {
+     "noeud": "dj_2_quai",
+     "choix": "ouvrir_marche",
+     "issue": null
+    },
+    {
+     "noeud": "dj_3_crue_quartier",
+     "choix": "abri_quai",
+     "issue": "miracle"
+    },
+    {
+     "noeud": "dj_4_descente_temoin",
+     "choix": "temoigner",
+     "issue": null
+    }
+   ]
+  },
+  "sante_min": {
+   "valeur": 45,
+   "chemin": [
+    {
+     "noeud": "dj_0_quai",
+     "choix": "compter",
+     "issue": null
+    },
+    {
+     "noeud": "dj_0_protection",
+     "choix": "exemple",
+     "issue": null
+    },
+    {
+     "noeud": "dj_1_camions",
+     "choix": "accepter",
+     "issue": null
+    },
+    {
+     "noeud": "dj_1_medicaments",
+     "choix": "retirer",
+     "issue": null
+    },
+    {
+     "noeud": "dj_2_princesse_baron",
+     "choix": "douanier",
+     "issue": null
+    },
+    {
+     "noeud": "dj_2_quai",
+     "choix": "ouvrir_marche",
+     "issue": null
+    },
+    {
+     "noeud": "dj_3_crue_baron",
+     "choix": "abri",
+     "issue": "mauvaise"
+    },
+    {
+     "noeud": "dj_4_descente_ombre",
+     "choix": "trahir",
+     "issue": "mauvaise"
+    }
+   ]
+  },
+  "argent_max": {
+   "valeur": 1900000,
+   "chemin": [
+    {
+     "noeud": "dj_0_quai",
+     "choix": "compter",
+     "issue": null
+    },
+    {
+     "noeud": "dj_0_protection",
+     "choix": "exemple",
+     "issue": null
+    },
+    {
+     "noeud": "dj_1_camions",
+     "choix": "accepter",
+     "issue": null
+    },
+    {
+     "noeud": "dj_1_medicaments",
+     "choix": "echantillons",
+     "issue": null
+    },
+    {
+     "noeud": "dj_2_princesse_baron",
+     "choix": "douanier",
+     "issue": null
+    },
+    {
+     "noeud": "dj_2_quai",
+     "choix": "associer_ange",
+     "issue": null
+    },
+    {
+     "noeud": "dj_3_crue_baron",
+     "choix": "sortir_caisses",
+     "issue": null
+    },
+    {
+     "noeud": "dj_4_descente_ombre",
+     "choix": "trahir",
+     "issue": "miracle"
+    }
+   ]
+  }
+ },
+ "distribution_pct": {
+  "0": {
+   "dj_f_entre": 88.2,
+   "dj_f_ombre": 5.3,
+   "dj_f_trag": 4.3,
+   "dj_f_secret": 2.2,
+   "dj_f_lum": 0.1
+  },
+  "50": {
+   "dj_f_entre": 87.8,
+   "dj_f_ombre": 5.7,
+   "dj_f_trag": 4.3,
+   "dj_f_secret": 2.2,
+   "dj_f_lum": 0.1
+  },
+  "100": {
+   "dj_f_entre": 87.4,
+   "dj_f_ombre": 6.3,
+   "dj_f_trag": 4.1,
+   "dj_f_secret": 2.2,
+   "dj_f_lum": 0.1
+  }
+ }
+}
