@@ -1,0 +1,41 @@
+# BLV - Catalogue commun : ecoles, diplomes, metiers, factions, curseur
+curseur:
+  echelle: [-10, 10]            # -10 = Lumiere, +10 = Ombre
+  zones: {propre: "<=2", grise: "3..6", bascule: ">=7"}
+factions: [syndicat, ordre, jetset, ombre]
+ecoles:
+  cours_du_soir_adjame: {nom: "Cours du soir d'Adjame", donne: [cepe, bepc]}
+  cfp_treichville: {nom: "Centre de formation professionnelle de Treichville", donne: [cap_mecanique, permis_d]}
+  atelier_marcory: {nom: "Atelier d'apprentissage couture de Marcory", donne: [cap_couture]}
+  lycee_classique: {nom: "Lycee Classique d'Abidjan", badge: caiman, donne: [bac]}
+  ste_marie: {nom: "Lycee Sainte-Marie de Cocody", badge: alysma, donne: [bac]}
+  lycee_excellence_bassam: {nom: "Lycee d'Excellence Alassane Ouattara de Grand-Bassam", badge: alex, donne: [bac]}
+  ufhb: {nom: "UFHB Cocody", donne: [licence, master]}
+  inpolytec: {nom: "INPolytec (campus de Yamoussoukro, stage a Abidjan)", donne: [ingenieur]}
+diplomes: [cepe, bepc, bac, licence, master, ingenieur, cap_mecanique, cap_couture, permis_b, permis_d, brevet_comptable]
+metiers:
+  manoeuvre_marche: {nom: "Manoeuvre au marche", echelons: [porteur, chef_equipe]}
+  apprenti_gbaka: {nom: "Apprenti gbaka", echelons: [apprenti, convoyeur, chauffeur_gbaka]}
+  vendeur_etal: {nom: "Vendeur d'etal", echelons: [vendeur, gerant_etal, grossiste]}
+  chauffeur_woro: {nom: "Chauffeur de woro-woro", requiert: [permis_b]}
+  apprenti_meca: {nom: "Apprenti mecanicien", echelons: [apprenti, mecanicien, chef_garage]}
+  couturier: {nom: "Couturier / styliste", echelons: [apprenti, styliste, createur]}
+  serveur_maquis: {nom: "Serveur de maquis", echelons: [serveur, gerant, patron]}
+  comptable: {nom: "Comptable", requiert: [brevet_comptable]}
+  instituteur: {nom: "Instituteur", requiert: [bac]}
+  stagiaire_audit: {nom: "Stagiaire en cabinet d'audit"}
+  cadre_banque: {nom: "Cadre de banque", requiert: [licence]}
+  footballeur_pro: {nom: "Footballeur professionnel"}
+  entrepreneur: {nom: "Entrepreneur"}
+  elu_local: {nom: "Elu / responsable local"}
+  # metiers illegaux (jamais accessibles sans passer une porte du curseur)
+  brouteur_cyber: {nom: "Brouteur", illegal: true}
+  djassa_contrefacon: {nom: "Contrefacon / marche noir", illegal: true}
+  racketeur: {nom: "Racket", illegal: true}
+  dealer_rue: {nom: "Distribution de rue", illegal: true}
+  convoyeur_illicite: {nom: "Convoyeur de marchandise illicite", illegal: true}
+  parrain: {nom: "Parrain", illegal: true}
+regles:
+  - "Un diplome ouvre des metiers ; un metier donne salaire et contacts ; l'ecole donne amis et rivaux."
+  - "Un metier illegal n'est jamais propose au depart aux 15 destins propres : seulement via une porte (noeud de choix)."
+  - "Refuser une porte ne bloque jamais l'histoire ; cela a un cout et ouvre des allies."

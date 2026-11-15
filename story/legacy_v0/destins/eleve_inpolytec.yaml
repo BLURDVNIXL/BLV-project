@@ -1,0 +1,98 @@
+destin: eleve_inpolytec
+titre: "Protocole Koidio"
+rarete: epique
+depart: {camp: propre, cur: 0, logement: chambre_stagiaire, argent: 80000, metier: stagiaire_audit, ecole: inpolytec, diplomes: [bac], etoile: 60}
+cercle:
+  - {id: traore, nom: "Mme Traore, ta tutrice de stage", rel: allie}
+  - {id: koffi, nom: "Koffi, stagiaire concurrent", rel: rival}
+  - {id: fatou, nom: "Fatou Bamba", rel: allie}
+  - {id: baron, nom: "Le Baron", rel: faction}
+noeuds:
+  - id: ih_n0
+    ch: 0
+    lieu: "Abidjan, residence de stagiaires"
+    txt: "Ton ecole est a Yamoussoukro, mais ton stage d'audit est a Abidjan. Ton Koidio tombe tous les trois jours. Mme Traore te presente le dossier Cite Lagune-Nord."
+    choix:
+      - {l: "Travailler tard sur le dossier", eff: {flag: dossier}, vers: ih_n1}
+      - {l: "Presenter tes premiers constats a Mme Traore", eff: {lien: {traore: 2}}, vers: ih_n1}
+  - id: ih_n1
+    ch: 1
+    porte: true
+    lieu: "Plateau, cabinet d'audit"
+    txt: "Tu decouvres une anomalie de flux. Koffi t'aborde : « On nous propose 50 000 F et un poste garanti pour ne rien remonter. »"
+    choix:
+      - {l: "Accepter, un poste garanti c'est ton avenir", eff: {cur: 3, argent: 50000, faction: {ombre: 1}}, vers: ih_n2o}
+      - {l: "Refuser et alerter Mme Traore", eff: {cur: -1, lien: {traore: 2}}, vers: ih_n2p}
+      - {l: "Garder l'argent et continuer de verifier", eff: {cur: 1, argent: 50000}, tirage: {normal: ih_n2g, mauvaise: ih_n2o, miracle: ih_n2p}}
+  - id: ih_n2o
+    ch: 2
+    carrefour: A
+    lieu: "Yopougon, Rue Princesse"
+    txt: "Le Baron te serre la main : « Un ingenieur qui sait se taire vaut de l'or. »"
+    choix:
+      - {l: "Entrer dans son equipe financiere", eff: {cur: 3, faction: {ombre: 2}}, vers: ih_n3o}
+      - {l: "Reculer et rentrer au cabinet", eff: {cur: -2}, vers: ih_n3p}
+  - id: ih_n2p
+    ch: 2
+    carrefour: A
+    lieu: "Yopougon, Rue Princesse"
+    txt: "Mme Traore t'emmene voir une avocate integre et Fatou, qui cherche des sources."
+    choix:
+      - {l: "Constituer un dossier chiffre", eff: {cur: -2, flag: preuve, lien: {fatou: 1}}, vers: ih_n3p}
+      - {l: "Finir d'abord ton stage", eff: {}, vers: ih_n3p}
+  - id: ih_n2g
+    ch: 2
+    carrefour: A
+    lieu: "Yopougon, Rue Princesse"
+    txt: "Tu as accepte l'argent mais continue de verifier. Koffi te surveille."
+    choix:
+      - {l: "Rendre l'argent", eff: {cur: -2}, vers: ih_n3p}
+      - {l: "Le garder et te taire", eff: {cur: 2}, vers: ih_n3o}
+  - id: ih_n3o
+    ch: 3
+    carrefour: B
+    lieu: "Plateau inonde"
+    txt: "Crue. Les serveurs du cabinet sont coupes. Tu as les copies des flux."
+    choix:
+      - {l: "Les effacer", eff: {cur: 3}, vers: ih_n4o}
+      - {l: "Les sauvegarder en secret", eff: {cur: -3, flag: preuve}, vers: ih_n4p}
+  - id: ih_n3p
+    ch: 3
+    carrefour: B
+    lieu: "Plateau inonde"
+    txt: "Crue. Ton ecole de formation t'appelle pour aider un chantier de drainage."
+    choix:
+      - {l: "Concevoir un plan d'evacuation des eaux", eff: {cur: -2}, tirage: {normal: ih_n4p, mauvaise: ih_n4p, miracle: ih_n4p}}
+      - {l: "Securiser tes donnees", eff: {flag: preuve}, vers: ih_n4p}
+  - id: ih_n4o
+    ch: 4
+    carrefour: C
+    lieu: "Plateau, aube"
+    txt: "Descente au cabinet. Aya t'interroge sur ton role."
+    choix:
+      - {l: "Collaborer et livrer les flux", eff: {cur: -3, flag: temoin, faction: {ordre: 2}}, vers: ih_n5}
+      - {l: "Accuser Koffi", eff: {cur: 1}, vers: ih_n5}
+  - id: ih_n4p
+    ch: 4
+    carrefour: C
+    lieu: "Plateau, aube"
+    txt: "Le tribunal convoque l'equipe d'audit. Koffi et Bakayoko menacent."
+    choix:
+      - {l: "Temoigner avec tes donnees", eff: {cur: -3, flag: temoin}, vers: ih_n5}
+      - {l: "Te retirer", eff: {}, vers: ih_n5}
+  - id: ih_n5
+    ch: 5
+    lieu: "Bord de la lagune, premiere pierre"
+    txt: "Ceremonie. Ton ecole a envoye une delegation."
+    choix:
+      - {l: "Obtenir ton diplome d'ingenieur, major de promotion", si: "cur<=-2 et temoin", vers: ih_f_lum}
+      - {l: "Devenir le financier du Baron", si: "cur>=6", vers: ih_f_ombre}
+      - {l: "Finir ton stage sans bruit", si: "toujours", vers: ih_f_entre}
+      - {l: "Publier tout, tout de suite", si: "cur>=3", vers: ih_f_trag}
+      - {l: "Creer le laboratoire d'audit citoyen", si: "preuve et traore>=3", vers: ih_f_secret}
+fins:
+  - {id: ih_f_lum, type: lumiere, titre: "Ingenieur Major", txt: "Ton diplome est brillant, ta conscience aussi."}
+  - {id: ih_f_ombre, type: ombre, titre: "L'Ingenieur du Baron", txt: "Tu es brillant, et ton nom ne figurera nulle part."}
+  - {id: ih_f_entre, type: entre_deux, titre: "Le Stage sans Bruit", txt: "Tu obtiens ton diplome et un souvenir qui ne te quitte pas."}
+  - {id: ih_f_trag, type: tragique, titre: "La Derniere Publication", txt: "Tu as tout publie, et tu l'as paye. Fin definitive."}
+  - {id: ih_f_secret, type: secrete, titre: "Le Laboratoire Citoyen", txt: "Avec Mme Traore, tu ouvres un laboratoire qui audite gratuitement les contrats publics."}

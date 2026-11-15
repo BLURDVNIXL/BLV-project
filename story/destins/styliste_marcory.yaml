@@ -1,0 +1,464 @@
+destin: styliste_marcory
+titre: "Le Défilé des Étoiles"
+rarete: rare
+genre: f
+resume: "Une styliste à la veille de sa grande chance : un financement de 500 000 F qui exige que ses mannequins « accompagnent » des invités. Les mannequins ont voix, consentement et choix ; l'enjeu est de les écouter."
+themes: [creation, ambition, consentement, exploitation]
+fonction_dramatique: >-
+  La styliste est le seul destin où le dilemme est contractuel : un contrat, une clause, un droit à
+  l'image. Les mannequins (Nadia, Awa) ne sont pas des victimes à sauver mais des personnes qui
+  décident. Le jeu récompense celle qui les consulte avant de les protéger.
+
+depart:
+  camp: propre
+  compromission: 0
+  argent_fcfa: 140000
+  etoile: 55
+  sante: 80
+  energie: 75
+  metier: couturier
+  echelon: styliste
+  ecole: aucune
+  diplomes: [cap_couture]
+  charges_mensuelles: 90000
+  logement_descriptif: "Studio-atelier, Marcory"
+  competences: {couture: 5, negoce: 2, gestion: 1}
+  relations:
+    nadia: {trust: 3}
+    fatou: {trust: 1}
+  factions:
+    jetset: {reputation: 0}
+
+cercle:
+  - {id: nadia, nom: "Nadia, ta première mannequin", rel: proche}
+  - {id: awa, nom: "Awa, jeune brodeuse venue de son village", rel: allie}
+  - {id: fatou, nom: "Fatou Bamba", rel: allie}
+  - {id: max, nom: "Max, organisateur de défilés", rel: faction}
+  - {id: dede, nom: "Madame Dédé", rel: rival}
+  - {id: aya, nom: "Lieutenante Aya Coulibaly", rel: neutre}
+
+flags: [contrat_signe, contrat_flou, clause_protectrice, mannequins_consultees, defile_solidaire,
+        sauve_nadia, nadia_decide, nadia_partie, awa_chez_dede, temoin, denonce_public, sans_protection,
+        protection_temoin, awa_aide, max_rancunier, contrat_detruit]
+faits: [au_courant, ecoutee, cachee, a_choisi]
+preuves: [contrat_max, liste_filles]
+
+evenements:
+  - id: ev_nadia_part
+    jour: 200
+    si: "relations.nadia.trust <= -1"
+    txt: "Nadia a laissé un mot sur ton établi : « Je ne suis la marionnette de personne. » Elle est partie pour Bouaké chez sa tante. Elle n'a pas dit au revoir."
+    eff: {flags: [nadia_partie], relations: {nadia: {trust: -1}}}
+  - id: ev_awa_dede
+    jour: 150
+    si: "relations.awa.trust <= 1"
+    txt: "Awa, qui n'a pas osé te parler, a répondu à l'annonce d'une « agence de mannequinat » de Madame Dédé. Elle y est depuis hier."
+    eff: {flags: [awa_chez_dede], relations: {awa: {trust: -1}}}
+    sinon_txt: "Awa te montre une annonce pour une « agence de mannequinat » : « Tu connais, toi ? » Tu lui expliques les signes qui doivent alerter."
+    sinon_eff: {relations: {awa: {trust: 1}}}
+  - id: ev_max_relance
+    jour: 180
+    si: "flags.contrat_signe or flags.contrat_flou"
+    txt: "Max relance : « Pour la soirée de Rue Princesse, mes invités seront nombreux. Tes filles seront prêtes ? »"
+    eff: {relations: {max: {trust: 1}}}
+  - id: ev_sanogo_bilan
+    jour: 270
+    txt: "Le docteur Sanogo de l'hôpital de Treichville t'appelle : il soigne depuis des mois des jeunes filles venues des villages, épuisées. Il cherche quelqu'un qui connaisse leurs noms."
+    eff: {competences: {enquete: 1}}
+
+noeuds:
+  - id: st_0_atelier
+    jalon: 0
+    jour: 1
+    lieu: "Marcory, atelier"
+    moment: "Matin"
+    objectif: "Ton monde : l'atelier, Nadia, la radio qui parle de la Cité Lagune-Nord, et Awa qui frappe à la porte."
+    present: [nadia, awa]
+    savoir: "Tu es prête pour un grand défilé, mais tu n'as ni salle ni budget."
+    dialogue:
+      - {narr: "Ta machine à coudre, des rouleaux de pagne wax. Nadia essaie ta dernière robe devant le miroir fendillé."}
+      - {qui: nadia, dit: "Avec ça, on passera à la radio ! Mais le défilé, c'est quand ? Moi je veux bien, mais je ne veux pas faire n'importe quoi."}
+      - {qui: radio, dit: "… la Cité Lagune-Nord, une nouvelle vitrine pour la mode et les affaires …"}
+      - {narr: "Sur le seuil, une jeune fille aux mains rougies par les aiguilles : Awa, venue de son village, cherche du travail."}
+    choix:
+      - id: robe_gratis
+        l: "Coudre une robe pour Nadia, gratuitement"
+        intention: "Soigner ta première muse"
+        cout: "Une journée sans revenu."
+        eff: {relations: {nadia: {trust: 2}}, compromission: -1, energie: -10}
+        vers: st_1_offre
+      - id: commande
+        l: "Terminer une commande pour un gros client"
+        intention: "Remplir la caisse"
+        cout: "Nadia est déçue."
+        eff: {argent: 30000, relations: {nadia: {trust: -1}}}
+        vers: st_1_offre
+      - id: embaucher_awa
+        l: "Prendre Awa comme aide-brodeuse (15 000 F d'avance)"
+        intention: "Lui donner une place honnête"
+        cout: "Une bouche de plus, une paire de mains en plus."
+        si: "argent >= 15000"
+        eff: {argent: -15000, flags: [awa_aide], relations: {awa: {trust: 3}}, competences: {gestion: 1}}
+        vers: st_1_offre
+
+  - id: st_1_offre
+    jalon: 1
+    jour: 40
+    porte: true
+    lieu: "Marcory, atelier"
+    moment: "Après-midi"
+    objectif: "L'offre : 500 000 F pour ton défilé, en échange que tes mannequins « accompagnent » les invités de Max toute la nuit."
+    present: [max, nadia]
+    savoir: "Max parle de « dîner d'affaires ». Il n'a pas mis la clause par écrit."
+    dialogue:
+      - {qui: max, dit: "Je finance ton défilé de Rue Princesse. Cinq cent mille francs, la salle, la sono, la presse. Tu es faite pour ça, ma belle."}
+      - {qui: max, dit: "En échange, tes mannequins accompagnent mes invités après le défilé. Un dîner, une soirée. Rien de méchant."}
+      - {qui: nadia, dit: "Ce qui est « rien de méchant », c'est moi qui le décide. Dis-lui.", si: "relations.nadia.trust >= 2"}
+    choix:
+      - id: accepter
+        l: "Accepter, c'est ta chance"
+        intention: "Financer ton rêve"
+        cout: "Tu exposes Nadia et les autres."
+        vu_par: [jetset]
+        eff:
+          argent: 500000
+          compromission: 3
+          flags: [contrat_signe]
+          factions: {jetset: {reputation: 2}}
+          relations: {max: {trust: 2}, nadia: {trust: -1}}
+          preuves: {contrat_max: {action: obtenir}}
+        vers: st_2_defile_max
+      - id: refuser
+        l: "Refuser et en parler à Nadia"
+        intention: "Protéger tes mannequins"
+        cout: "Tu perds 500 000 F."
+        eff: {compromission: -1, relations: {nadia: {trust: 2, fait: au_courant}}}
+        vers: st_2_defile_max
+      - id: conditions
+        l: "Accepter l'argent mais poser tes conditions par écrit"
+        intention: "Négocier une clause protectrice"
+        cout: "Max n'aime pas qu'on lui dicte les termes."
+        vu_par: [jetset]
+        eff: {factions: {jetset: {reputation: 1}}}
+        tirage:
+          difficulte: 3
+          modificateurs: [{si: "skills.negoce >= 3", valeur: 15}]
+          issues:
+            miracle: {vers: st_2_defile_max, eff: {argent: 300000, flags: [clause_protectrice], compromission: 1, relations: {max: {trust: 1}}, preuves: {contrat_max: {action: obtenir}}}, txt: "Max ricane puis signe : aucune mannequin ne sera obligée d'aller où que ce soit. Tu gardes l'exemplaire."}
+            normal: {vers: st_2_defile_max, eff: {argent: 200000, flags: [contrat_flou], compromission: 2, preuves: {contrat_max: {action: obtenir}}}, txt: "Un compromis flou : « libre choix », écrit sans définition. Tu gardes l'exemplaire, mais il pourra se retourner."}
+            mauvaise: {vers: st_2_defile_max, eff: {argent: 200000, flags: [contrat_flou, max_rancunier], compromission: 2, preuves: {contrat_max: {action: obtenir}}, relations: {max: {trust: -2}}}, txt: "Max signe en grinçant des dents. Tu sens qu'il n'oubliera pas."}
+      - id: consulter
+        l: "Réunir Nadia et Awa : chacune décidera pour elle-même"
+        intention: "Les écouter avant de décider pour elles"
+        cout: "Max s'impatiente et propose à une autre."
+        vu_par: [jetset]
+        eff: {flags: [mannequins_consultees], relations: {nadia: {trust: 2, fait: ecoutee}, awa: {trust: 2}}, factions: {jetset: {reputation: -1}}, energie: -5}
+        vers: st_2_defile_max
+
+  - id: st_2_defile_max
+    jalon: 2
+    jour: 110
+    carrefour: A
+    si: "flags.contrat_signe or flags.contrat_flou or flags.clause_protectrice"
+    sinon: st_2_defile_solidaire
+    lieu: "Yopougon, Rue Princesse"
+    moment: "Nuit du défilé"
+    objectif: "Ton défilé est sur scène. À la fin, les invités de Max attendent. Tes mannequins ont voix."
+    present: [max, nadia, awa, dede]
+    savoir: "Le Baron est dans la salle. Madame Dédé observe tes mannequins avec un intérêt qui n'a rien à voir avec la mode."
+    dialogue:
+      - {narr: "Ta collection en wax fait taire la salle. Le Baron applaudit au premier rang. Madame Dédé, derrière lui, ne quitte pas les mannequins des yeux."}
+      - {qui: max, dit: "Beau travail. Maintenant, mes invités veulent leur soirée. Les filles, on y va."}
+      - {qui: nadia, dit: "Moi, je ne monte dans aucune voiture ce soir. Dis-leur que c'est moi qui décide."}
+      - {qui: awa, dit: "Je ne sais pas… Madame Dédé dit qu'elle peut m'avoir un vrai contrat.", si: "flags.awa_aide"}
+    choix:
+      - id: laisser_faire
+        l: "Laisser faire la fin de soirée : le contrat est signé"
+        intention: "Honorer ton engagement"
+        cout: "Nadia ne te le pardonnera pas."
+        vu_par: [jetset, ombre]
+        eff: {compromission: 4, factions: {jetset: {reputation: 2}, ombre: {reputation: 2}}, relations: {nadia: {trust: -3}, awa: {peur: 2}}}
+        vers: st_3_crue_max
+      - id: proteger
+        l: "Annuler la fin de soirée et protéger les mannequins (pénalité de 150 000 F à Max)"
+        intention: "Respecter leur choix"
+        cout: "Max te réclamera la pénalité."
+        vu_par: [jetset]
+        eff: {compromission: -3, dette: {nom: max, montant: 150000}, relations: {nadia: {trust: 2}, awa: {trust: 1}, max: {trust: -3}}, factions: {jetset: {reputation: -2}}}
+        vers: st_3_crue_max
+      - id: laisser_choisir
+        l: "Laisser chaque mannequin décider pour elle-même"
+        intention: "Les traiter en adultes"
+        cout: "Tu ne maîtrises pas leur décision."
+        eff: {relations: {nadia: {trust: 2, fait: a_choisi}, awa: {trust: 1}}, competences: {gestion: 1}}
+        tirage:
+          difficulte: 2
+          issues:
+            miracle: {vers: st_3_crue_max, eff: {compromission: -1, relations: {max: {trust: -1}}}, txt: "Les trois filles refusent calmement. Max, vexé, laisse tomber : il n'a plus le beau rôle devant ses invités."}
+            normal: {vers: st_3_crue_max, eff: {flags: [awa_chez_dede], relations: {awa: {trust: -1}}}, txt: "Nadia refuse et part. Awa, éblouie par Madame Dédé, choisit de rester. Elle a le droit de choisir, mais tu t'inquiètes."}
+            mauvaise: {vers: st_3_crue_max, eff: {flags: [awa_chez_dede], compromission: 1, relations: {awa: {trust: -2}, nadia: {trust: -1}}}, txt: "Awa monte dans la voiture de Madame Dédé avant que tu puisses réagir. Nadia te reproche de ne pas avoir tranché."}
+
+  - id: st_2_defile_solidaire
+    jalon: 2
+    jour: 110
+    carrefour: A
+    lieu: "Yopougon, Rue Princesse"
+    moment: "Nuit du défilé"
+    objectif: "Pas de financement douteux : Fatou te propose un défilé solidaire, plus petit mais à toi."
+    present: [fatou, nadia, awa]
+    savoir: "Sans l'argent de Max, tu as un petit budget, un parrainage honnête et des mannequins libres."
+    dialogue:
+      - {qui: fatou, dit: "J'ai trouvé trois mécènes honnêtes et une salle près de Rue Princesse. Pas de contrepartie dans l'ombre. Mais personne ne viendra pour la gloire."}
+      - {qui: nadia, dit: "Un petit défilé où on est libres, c'est mieux qu'un grand où on est vendues."}
+    choix:
+      - id: solidaire
+        l: "Organiser le défilé solidaire (40 000 F de frais)"
+        intention: "Rester indépendante"
+        cout: "Moins de visibilité."
+        si: "argent >= 40000"
+        eff: {compromission: -2, argent: -40000, flags: [defile_solidaire], relations: {fatou: {trust: 2}, nadia: {trust: 1}}}
+        vers: st_3_crue_refuge
+      - id: boutiques
+        l: "Vendre tes robes aux boutiques de Cocody à la place"
+        intention: "Gagner ta vie sans défilé"
+        cout: "Aucune visibilité."
+        eff: {argent: 100000, relations: {fatou: {trust: -1}}}
+        vers: st_3_crue_refuge
+      - id: relancer_max
+        l: "Proposer à Max un autre contrat, sans « accompagnement »"
+        intention: "Un financement propre"
+        cout: "Max peut refuser."
+        vu_par: [jetset]
+        eff: {factions: {jetset: {reputation: 1}}}
+        tirage:
+          difficulte: 4
+          issues:
+            miracle: {vers: st_3_crue_max, eff: {argent: 200000, flags: [clause_protectrice, defile_solidaire], preuves: {contrat_max: {action: obtenir}}}, txt: "Max cède : un défilé propre lui évite un scandale. Il signe."}
+            normal: {vers: st_3_crue_refuge, eff: {relations: {max: {trust: -1}}}, txt: "Max refuse poliment. Tu gardes ta liberté."}
+            mauvaise: {vers: st_3_crue_refuge, eff: {flags: [max_rancunier], relations: {max: {trust: -2}}}, txt: "Max le prend mal et le fait savoir dans le milieu."}
+
+  - id: st_3_crue_max
+    jalon: 3
+    jour: 281
+    carrefour: B
+    si: "flags.contrat_signe or flags.contrat_flou or flags.clause_protectrice"
+    sinon: st_3_crue_refuge
+    lieu: "Marcory inondé"
+    moment: "Nuit de la crue"
+    objectif: "Nadia arrive en pleine crue, bouleversée : elle a vu quelque chose chez Max. À elle de décider ce qu'elle en fait."
+    present: [nadia]
+    savoir: "Nadia a vu un carnet de noms chez Max. Elle ne sait pas à quoi il sert."
+    dialogue:
+      - {narr: "L'eau monte dans la rue de l'atelier. Nadia entre, trempée, un sac plastique serré contre elle."}
+      - {qui: nadia, dit: "J'ai été chez Max récupérer mes affaires. J'ai vu un carnet : des noms, des villages, des sommes. Je ne comprends pas. Mais je sais que ce n'est pas bien."}
+    choix:
+      - id: faire_taire
+        l: "La faire taire : un scandale ruinerait ton défilé"
+        intention: "Protéger ta carrière"
+        cout: "Tu perds sa confiance pour toujours."
+        eff: {compromission: 3, relations: {nadia: {trust: -3}}}
+        vers: st_4_descente_max
+      - id: cacher
+        l: "La cacher dans ton atelier jusqu'à l'aube"
+        intention: "La mettre à l'abri"
+        cout: "Max saura qu'elle est chez toi."
+        vu_par: [jetset]
+        eff: {compromission: -3, flags: [sauve_nadia], relations: {nadia: {trust: 3, fait: cachee}}, factions: {jetset: {reputation: -1}}}
+        vers: st_4_descente_max
+      - id: demander
+        l: "Lui demander ce qu'elle veut faire, elle"
+        intention: "Respecter sa décision"
+        cout: "Tu ne contrôles pas ce qu'elle choisit."
+        eff: {flags: [nadia_decide], relations: {nadia: {trust: 2, fait: ecoutee}}}
+        tirage:
+          difficulte: 3
+          issues:
+            miracle: {vers: st_4_descente_max, eff: {flags: [sauve_nadia], preuves: {liste_filles: {action: obtenir}}, relations: {nadia: {trust: 2}}, compromission: -2}, txt: "Nadia a recopié le carnet de Max en entier. Elle te le tend : « C'est à toi de décider avec moi. »"}
+            normal: {vers: st_4_descente_max, eff: {flags: [sauve_nadia], compromission: -1}, txt: "Nadia choisit d'aller voir Aya Coulibaly elle-même. Tu l'accompagnes jusqu'à la porte."}
+            mauvaise: {vers: st_4_descente_max, eff: {relations: {nadia: {peur: 2}}, sante: -5}, txt: "Un homme de Max la suit dans la rue. Vous vous réfugiez dans l'atelier ; elle tremble, mais elle est vivante."}
+
+  - id: st_3_crue_refuge
+    jalon: 3
+    jour: 281
+    carrefour: B
+    lieu: "Marcory inondé"
+    moment: "Nuit de la crue"
+    objectif: "Ton atelier devient refuge : des filles venues des villages frappent à ta porte."
+    present: [nadia, awa]
+    savoir: "Les jeunes filles sont épuisées et sans papiers. Elles viennent toutes d'un même réseau de villages."
+    dialogue:
+      - {narr: "Le plancher de l'atelier est sec : c'est le seul de la rue. Trois jeunes filles, trempées, frappent à la porte."}
+      - {qui: awa, dit: "Ce sont les filles de mon village. Madame Dédé les avait « placées ». Elles n'ont plus de papiers.", si: "flags.awa_aide"}
+    choix:
+      - id: heberger
+        l: "Les héberger et les habiller"
+        intention: "Les protéger"
+        cout: "Tu t'épuises et ton stock de tissu fond."
+        eff: {compromission: -2, energie: -20, argent: -20000, relations: {awa: {trust: 2}, nadia: {trust: 1}}}
+        tirage:
+          difficulte: 2
+          issues:
+            miracle: {vers: st_4_descente_dede, eff: {relations: {awa: {trust: 2}}, etoile_mod: {valeur: 5, jours: 20}}, txt: "Les filles dorment, mangent, et l'une d'elles te remet une liste de noms qu'elle avait gardée."}
+            normal: {vers: st_4_descente_dede, txt: "La nuit passe. Les filles te remercient en silence."}
+            mauvaise: {vers: st_4_descente_dede, eff: {sante: -10}, txt: "L'eau s'infiltre à l'aube ; vous passez les dernières heures debout, serrées sur l'établi."}
+      - id: sanogo
+        l: "Les orienter vers l'hôpital de Treichville (docteur Sanogo)"
+        intention: "Les faire soigner"
+        cout: "Tu perds le contact avec elles."
+        eff: {compromission: -1}
+        vers: st_4_descente_dede
+      - id: noter
+        l: "Noter leurs noms et leurs villages"
+        intention: "Constituer un dossier"
+        cout: "Elles doivent y consentir."
+        eff: {compromission: -1, energie: -10, preuves: {liste_filles: {action: obtenir}}, competences: {enquete: 1}, relations: {awa: {trust: 1}}}
+        vers: st_4_descente_dede
+
+  - id: st_4_descente_max
+    jalon: 4
+    jour: 283
+    carrefour: C
+    si: "flags.contrat_signe or flags.contrat_flou or flags.clause_protectrice"
+    sinon: st_4_descente_dede
+    lieu: "Marcory, aube"
+    moment: "Descente"
+    objectif: "Aya t'interroge sur le financement de ton défilé : ton contrat devient une pièce de preuve."
+    present: [aya, nadia]
+    savoir: "Le contrat est entre tes mains. Aya sait déjà qui a financé le défilé."
+    dialogue:
+      - {narr: "Les policiers fouillent les ateliers de la rue. Aya Coulibaly s'arrête devant ta porte."}
+      - {qui: aya, dit: "Qui a financé votre défilé de Rue Princesse ? Je préfère l'entendre de vous."}
+    choix:
+      - id: reveler
+        l: "Tout révéler et remettre ton exemplaire du contrat"
+        intention: "Faire éclater la vérité sur Max"
+        cout: "Tu ruines ta carrière dans le milieu."
+        si: "preuves.contrat_max == 'detenue'"
+        vu_par: [ordre, jetset]
+        eff: {compromission: -3, flags: [temoin], relations: {aya: {trust: 3}}, factions: {ordre: {reputation: 2}, jetset: {reputation: -3}}, preuves: {contrat_max: {action: transmettre, a: aya}}}
+        vers: st_5_podium
+      - id: ignorer
+        l: "Dire que tu ne savais rien"
+        intention: "Te protéger"
+        cout: "Le contrat dort dans ton tiroir."
+        eff: {compromission: 1, relations: {aya: {trust: -2}}}
+        vers: st_5_podium
+      - id: detruire_contrat
+        l: "Détruire le contrat avant qu'Aya ne le voie"
+        intention: "Effacer la trace"
+        cout: "Tu perds ta seule preuve de ce que Max t'a demandé."
+        si: "preuves.contrat_max == 'detenue'"
+        eff: {compromission: 3, flags: [contrat_detruit], preuves: {contrat_max: {action: perdre}}}
+        vers: st_5_podium
+
+  - id: st_4_descente_dede
+    jalon: 4
+    jour: 283
+    carrefour: C
+    lieu: "Marcory, aube"
+    moment: "Descente"
+    objectif: "Aya enquête sur le réseau de Madame Dédé et cherche des témoignages : le tien peut être décisif ou fatal."
+    present: [aya, awa]
+    savoir: "Aya a besoin de victimes qui acceptent de parler. Sans mandat, elle ne peut pas les protéger toutes."
+    dialogue:
+      - {qui: aya, dit: "Madame Dédé a plus de vingt filles dans son carnet. Je n'ai pas de mandat suffisant pour tout arrêter. Si les filles témoignent, ça peut changer. Mais je ne leur promets pas de protection."}
+    choix:
+      - id: aider_temoigner
+        l: "Aider les jeunes filles à témoigner, si elles le souhaitent"
+        intention: "Leur donner une voix"
+        cout: "Madame Dédé saura."
+        vu_par: [ordre]
+        eff: {compromission: -3, flags: [temoin], relations: {awa: {trust: 2}, aya: {trust: 2}}, factions: {ordre: {reputation: 2}}}
+        vers: st_5_podium
+      - id: remettre_liste
+        l: "Remettre à Aya la liste de noms que tu as notée (avec leur accord)"
+        intention: "Une preuve qui protège aussi les anonymes"
+        cout: "Ta source sera exposée."
+        si: "preuves.liste_filles == 'detenue'"
+        vu_par: [ordre]
+        eff: {compromission: -2, flags: [temoin, protection_temoin], relations: {aya: {trust: 2}}, factions: {ordre: {reputation: 2}}, preuves: {liste_filles: {action: transmettre, a: aya}}}
+        vers: st_5_podium
+      - id: denoncer
+        l: "Dénoncer publiquement Madame Dédé devant les caméras (sans protection)"
+        intention: "Frapper fort"
+        cout: "Si rien ne te protège, Madame Dédé te fera taire."
+        vu_par: [ordre, ombre]
+        eff: {compromission: -2, flags: [temoin, denonce_public], relations: {aya: {trust: 1}, dede: {trust: -5, peur: 3}}, factions: {ordre: {reputation: 1}, ombre: {reputation: -2}}}
+        tirage:
+          difficulte: 6
+          issues:
+            miracle: {vers: st_5_podium, eff: {flags: [protection_temoin]}, txt: "Un magistrat, alerté par la diffusion, accorde une protection sans délai."}
+            normal: {vers: st_5_podium, eff: {flags: [sans_protection]}, txt: "L'émission passe, puis le silence. Personne ne te protège."}
+            mauvaise: {vers: st_5_podium, eff: {flags: [sans_protection], relations: {dede: {peur: 2}}, sante: -10}, txt: "Dans la rue, un homme te suit jusqu'à ton atelier. Le message est clair."}
+      - id: retrait
+        l: "Rester en retrait"
+        intention: "Ne pas t'exposer"
+        cout: "Tu portes ça à vie."
+        eff: {compromission: 1}
+        vers: st_5_podium
+
+  - id: st_5_podium
+    jalon: 5
+    jour: 304
+    denouement: true
+    lieu: "Bord de la lagune, première pierre"
+    moment: "Cérémonie d'inauguration"
+    objectif: "On te demande d'habiller le podium : choisir ce que ta création dit de toi."
+    present: [nadia, awa, fatou, max]
+    savoir: "Les mannequins ont leur mot à dire sur ce qu'elles portent."
+    dialogue:
+      - {narr: "Sur le podium de la première pierre, on attend ta collection. Dans la salle, des visages que tu connais : certains te sourient, d'autres détournent les yeux."}
+
+fins:
+  - id: st_f_lum
+    type: lumiere
+    priorite: 2
+    si: "flags.temoin and compromission <= -2"
+    titre: "Créatrice de l'Année"
+    resume: "Ta collection en wax fait le tour de l'Afrique de l'Ouest."
+    epilogue:
+      - {txt: "Ta collection, présentée sous ton nom, est applaudie par les rédactions de Dakar à Lagos."}
+      - {si: "flags.protection_temoin", txt: "Le témoignage des jeunes filles est entendu sous protection ; Madame Dédé comparaît."}
+      - {si: "flags.temoin and not flags.protection_temoin", txt: "Le procès est long, et tu as perdu le soutien du milieu de la mode : mais ton nom reste propre."}
+      - {txt: "Ce succès n'est pas gratuit : plusieurs portes sont fermées pour longtemps."}
+  - id: st_f_ombre
+    type: ombre
+    priorite: 3
+    si: "compromission >= 6"
+    titre: "La Couturière du Pouvoir"
+    resume: "Tu habilles ceux qui font taire les autres."
+    epilogue:
+      - {txt: "Tes robes sont portées par les femmes du Maire, du Baron, de la Jet-Set. Tu n'as plus de dettes."}
+      - {si: "relations.nadia.trust <= 0", txt: "Nadia est loin. Tu ne sais plus où."}
+      - {txt: "Tu ne signes plus rien sans que Max le relise."}
+  - id: st_f_entre
+    type: entre_deux
+    priorite: 5
+    si: "true"
+    titre: "La Robe Silencieuse"
+    resume: "Tu vis de ta couture, avec une photo que tu ne regardes plus."
+    epilogue:
+      - {txt: "Tu vends tes robes en boutique à Cocody, sans bruit, sans faire d'histoire."}
+      - {si: "flags.awa_chez_dede", txt: "Tu penses souvent à Awa. Tu ne sais pas ce qu'elle est devenue."}
+      - {si: "flags.nadia_partie", txt: "Nadia ne répond plus à tes messages."}
+      - {txt: "Tu portes un souvenir que tu ne montres à personne."}
+  - id: st_f_trag
+    type: tragique
+    priorite: 1
+    imposee: true
+    si: "flags.denonce_public and flags.sans_protection"
+    titre: "Le Dernier Défilé"
+    resume: "Tu as dénoncé sans protection."
+    epilogue:
+      - {txt: "Le soir de la cérémonie, Madame Dédé n'a plus besoin de toi."}
+      - {txt: "Aya t'avait prévenue : sans protection, la vérité coûte cher. Fin définitive."}
+  - id: st_f_secret
+    type: secrete
+    priorite: 0
+    si: "relations.nadia.trust >= 3 and relations.awa.trust >= 2 and (flags.defile_solidaire or flags.sauve_nadia) and compromission <= 0"
+    titre: "La Maison des Étoiles"
+    resume: "Tu ouvres un atelier-école pour jeunes filles, dirigé par Nadia."
+    epilogue:
+      - {txt: "Avec Nadia et Awa, tu ouvres un atelier-école à Marcory où chaque jeune fille choisit son contrat."}
+      - {si: "relations.nadia.faits.ecoutee", txt: "Nadia en est la directrice : tu avais écouté avant de décider pour elle."}
+      - {txt: "On y apprend la coupe, le droit à l'image et la possibilité de dire non."}

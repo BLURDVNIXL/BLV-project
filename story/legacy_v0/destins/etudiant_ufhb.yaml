@@ -1,0 +1,98 @@
+destin: etudiant_ufhb
+titre: "Majors de Cocody"
+rarete: commun
+depart: {camp: propre, cur: 0, logement: cite_universitaire, argent: 20000, metier: aucun, ecole: ufhb, diplomes: [bac], etoile: 50}
+cercle:
+  - {id: moussa, nom: "Moussa, camarade de promo", rel: proche}
+  - {id: diabate, nom: "Professeur Diabate", rel: allie}
+  - {id: fatou, nom: "Fatou Bamba", rel: allie}
+  - {id: aine, nom: "Un aine de Yopougon", rel: faction}
+noeuds:
+  - id: eu_n0
+    ch: 0
+    lieu: "Cocody, cite universitaire"
+    txt: "Ta chambre, ton vieux PC. Moussa te lance : « Tu as vu ? Un projet geant au nord de la lagune, avec des stages a la cle ! »"
+    choix:
+      - {l: "Reviser avec Moussa", eff: {lien: {moussa: 2}}, vers: eu_n1}
+      - {l: "Aller voir le Professeur Diabate", eff: {lien: {diabate: 1}}, vers: eu_n1}
+  - id: eu_n1
+    ch: 1
+    porte: true
+    lieu: "Cocody, campus"
+    txt: "Un aine de Yopougon te propose un « petit boulot en ligne » : 30 000 F par semaine pour preter ton compte et ton temps."
+    choix:
+      - {l: "Accepter, tes frais de scolarite pesent", eff: {cur: 3, metier: brouteur_cyber, argent: 30000, faction: {ombre: 1}}, vers: eu_n2o}
+      - {l: "Refuser et en parler au Professeur Diabate", eff: {cur: -1, lien: {diabate: 2}}, vers: eu_n2p}
+      - {l: "Essayer une semaine pour voir", eff: {cur: 2, argent: 30000}, tirage: {normal: eu_n2g, mauvaise: eu_n2o, miracle: eu_n2p}}
+  - id: eu_n2o
+    ch: 2
+    carrefour: A
+    lieu: "Yopougon, Rue Princesse"
+    txt: "Tu es invite a la soiree. Le Baron salue « le petit qui sait compter ». Ses comptes ont besoin de mains discretes."
+    choix:
+      - {l: "Entrer dans son reseau", eff: {cur: 3, faction: {ombre: 2}}, vers: eu_n3o}
+      - {l: "Prendre tes distances avant que ca ne se referme", eff: {cur: -2}, vers: eu_n3p}
+  - id: eu_n2p
+    ch: 2
+    carrefour: A
+    lieu: "Yopougon, Rue Princesse"
+    txt: "Fatou monte une radio de campus. Le Professeur Diabate te propose un stage de recherche."
+    choix:
+      - {l: "Rejoindre la radio du campus", eff: {cur: -2, lien: {fatou: 2}, flag: radio_campus}, vers: eu_n3p}
+      - {l: "Prendre le stage de recherche", eff: {cur: -1, lien: {diabate: 1}}, vers: eu_n3p}
+  - id: eu_n2g
+    ch: 2
+    carrefour: A
+    lieu: "Yopougon, Rue Princesse"
+    txt: "L'aine te complimente. Moussa a compris et te fixe."
+    choix:
+      - {l: "Arreter et tout lui dire", eff: {cur: -1, lien: {moussa: 2}}, vers: eu_n3p}
+      - {l: "Continuer", eff: {cur: 2}, vers: eu_n3o}
+  - id: eu_n3o
+    ch: 3
+    carrefour: B
+    lieu: "Cocody inonde"
+    txt: "Crue. Le campus est coupe. Tu es le seul a savoir ou passent certaines sommes."
+    choix:
+      - {l: "Garder le silence", eff: {cur: 2}, vers: eu_n4o}
+      - {l: "Aider le campus puis tout noter", eff: {cur: -3, flag: preuve}, vers: eu_n4p}
+  - id: eu_n3p
+    ch: 3
+    carrefour: B
+    lieu: "Cocody inonde"
+    txt: "Crue. Le campus devient un refuge."
+    choix:
+      - {l: "Organiser les secours avec Moussa", eff: {cur: -2, lien: {moussa: 2}}, tirage: {normal: eu_n4p, mauvaise: eu_n4p, miracle: eu_n4p}}
+      - {l: "Diffuser l'alerte a la radio du campus", eff: {cur: -1, flag: preuve}, vers: eu_n4p}
+  - id: eu_n4o
+    ch: 4
+    carrefour: C
+    lieu: "Cocody, aube"
+    txt: "Descente sur les comptes. Aya te reconnait comme l'un des operateurs."
+    choix:
+      - {l: "Collaborer et tout expliquer", eff: {cur: -3, flag: temoin, faction: {ordre: 2}}, vers: eu_n5}
+      - {l: "Nier", eff: {cur: 1}, vers: eu_n5}
+  - id: eu_n4p
+    ch: 4
+    carrefour: C
+    lieu: "Cocody, aube"
+    txt: "Fatou publie ton enquete. Il faut la signer."
+    choix:
+      - {l: "Signer de ton nom", eff: {cur: -3, flag: temoin}, vers: eu_n5}
+      - {l: "Publier sous pseudonyme", eff: {cur: -1}, vers: eu_n5}
+  - id: eu_n5
+    ch: 5
+    lieu: "Bord de la lagune, premiere pierre"
+    txt: "Ceremonie. Ta promotion est la, en toge."
+    choix:
+      - {l: "Decrocher ta licence, major de promotion", si: "cur<=-2 et temoin", vers: eu_f_lum}
+      - {l: "Devenir le comptable de l'ombre", si: "cur>=6", vers: eu_f_ombre}
+      - {l: "Finir tes etudes en gardant un secret", si: "toujours", vers: eu_f_entre}
+      - {l: "Defier le reseau en direct", si: "cur>=3", vers: eu_f_trag}
+      - {l: "Fonder le journal du campus", si: "radio_campus et preuve", vers: eu_f_secret}
+fins:
+  - {id: eu_f_lum, type: lumiere, titre: "Major de Promotion", txt: "Ta licence en poche, ton enquete a servi tout le monde."}
+  - {id: eu_f_ombre, type: ombre, titre: "Le Comptable de l'Ombre", txt: "Tu tiens ses comptes. Tu ne retourneras jamais en cours."}
+  - {id: eu_f_entre, type: entre_deux, titre: "Le Diplome et le Secret", txt: "Tu as ton diplome mais un secret qui ne s'eteint pas."}
+  - {id: eu_f_trag, type: tragique, titre: "L'Etudiant qui Savait", txt: "Tu en savais trop. Fin definitive."}
+  - {id: eu_f_secret, type: secrete, titre: "Le Journal du Campus", txt: "Ton journal d'etudiants devient la voix independante de la ville."}

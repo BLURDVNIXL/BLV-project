@@ -1,0 +1,77 @@
+flowchart TD
+  po_0_hangar["J0 j1: po_0_hangar"]
+  po_0_liasse["J0 j1: po_0_liasse"]
+  po_0_aube["J0 j2: po_0_aube"]
+  po_1_veille["J1 j40: po_1_veille"]
+  po_1_concours["J1 j46: po_1_concours"]
+  po_2_princesse_ombre["J2 j110: po_2_princesse_ombre"]
+  po_2_princesse_gars["J2 j110: po_2_princesse_gars"]
+  po_2_princesse_marche["J2 j110: po_2_princesse_marche"]
+  po_2_joute["J2 j265: po_2_joute"]
+  po_3_crue_ombre["J3 j281: po_3_crue_ombre"]
+  po_3_crue_hangar["J3 j281: po_3_crue_hangar"]
+  po_4_descente_temoin["J4 j283: po_4_descente_temoin"]
+  po_4_descente_ombre["J4 j283: po_4_descente_ombre"]
+  po_4_bac["J4 j288: po_4_bac"]
+  po_5_ceremonie(["J5 j304: po_5_ceremonie"])
+  po_0_hangar -->|aider:miracle| po_0_liasse
+  po_0_hangar -->|aider:normal| po_0_aube
+  po_0_hangar -->|aider:mauvaise| po_0_aube
+  po_0_hangar -->|caisse| po_0_aube
+  po_0_hangar -->|dormir| po_0_aube
+  po_0_liasse -->|rendre| po_0_aube
+  po_0_liasse -->|garder| po_0_aube
+  po_0_aube -->|marche| po_1_veille
+  po_0_aube -->|reviser| po_1_veille
+  po_0_aube -->|les_deux| po_1_veille
+  po_1_veille -->|accepter| po_1_concours
+  po_1_veille -->|refuser| po_1_concours
+  po_1_veille -->|une_nuit:miracle| po_1_concours
+  po_1_veille -->|une_nuit:normal| po_1_concours
+  po_1_veille -->|une_nuit:mauvaise| po_1_concours
+  po_1_concours -->|tenter:miracle| po_2_princesse_ombre
+  po_1_concours -->|tenter:normal| po_2_princesse_ombre
+  po_1_concours -->|tenter:mauvaise| po_2_princesse_ombre
+  po_1_concours -->|renoncer| po_2_princesse_ombre
+  po_2_princesse_ombre -. sinon .-> po_2_princesse_gars
+  po_2_princesse_ombre -->|porte_bonheur| po_2_joute
+  po_2_princesse_ombre -->|pied_dehors| po_2_joute
+  po_2_princesse_ombre -->|rendre_costume| po_2_joute
+  po_2_princesse_gars -. sinon .-> po_2_princesse_marche
+  po_2_princesse_gars -->|retour| po_2_joute
+  po_2_princesse_gars -->|quai| po_2_joute
+  po_2_princesse_marche -->|parler_fatou| po_2_joute
+  po_2_princesse_marche -->|serrer_main| po_2_joute
+  po_2_princesse_marche -->|association| po_2_joute
+  po_2_joute -. sinon .-> po_3_crue_ombre
+  po_2_joute -->|parler_hangar:miracle| po_3_crue_ombre
+  po_2_joute -->|parler_hangar:normal| po_3_crue_ombre
+  po_2_joute -->|parler_hangar:mauvaise| po_3_crue_ombre
+  po_2_joute -->|classique:miracle| po_3_crue_ombre
+  po_2_joute -->|classique:normal| po_3_crue_ombre
+  po_2_joute -->|classique:mauvaise| po_3_crue_ombre
+  po_2_joute -->|forfait| po_3_crue_ombre
+  po_3_crue_ombre -. sinon .-> po_3_crue_hangar
+  po_3_crue_ombre -->|surveiller| po_4_descente_ombre
+  po_3_crue_ombre -->|cacher_gnamien| po_4_descente_ombre
+  po_3_crue_ombre -->|filmer_ombre:miracle| po_4_descente_ombre
+  po_3_crue_ombre -->|filmer_ombre:normal| po_4_descente_ombre
+  po_3_crue_ombre -->|filmer_ombre:mauvaise| po_4_descente_ombre
+  po_3_crue_hangar -->|sauver:miracle| po_4_descente_temoin
+  po_3_crue_hangar -->|sauver:normal| po_4_descente_temoin
+  po_3_crue_hangar -->|sauver:mauvaise| po_4_descente_temoin
+  po_3_crue_hangar -->|filmer| po_4_descente_temoin
+  po_4_descente_temoin -. sinon .-> po_4_descente_ombre
+  po_4_descente_temoin -->|temoigner| po_4_bac
+  po_4_descente_temoin -->|donner_film| po_4_bac
+  po_4_descente_temoin -->|donner_registre| po_4_bac
+  po_4_descente_temoin -->|se_taire| po_4_bac
+  po_4_descente_ombre -->|trahir:miracle| po_4_bac
+  po_4_descente_ombre -->|trahir:normal| po_4_bac
+  po_4_descente_ombre -->|trahir:mauvaise| po_4_bac
+  po_4_descente_ombre -->|registre_ombre| po_4_bac
+  po_4_descente_ombre -->|loyal| po_4_bac
+  po_4_descente_ombre -->|fuir| po_4_bac
+  po_4_bac -. sinon .-> po_5_ceremonie
+  po_4_bac -->|passer_veille| po_5_ceremonie
+  po_4_bac -->|passer| po_5_ceremonie

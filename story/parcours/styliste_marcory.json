@@ -1,0 +1,301 @@
+{
+ "destin": "styliste_marcory",
+ "formule": "etoile-v1",
+ "fins": {
+  "st_f_ombre": {
+   "chemin": [
+    {
+     "noeud": "st_0_atelier",
+     "choix": "robe_gratis",
+     "issue": null
+    },
+    {
+     "noeud": "st_1_offre",
+     "choix": "accepter",
+     "issue": null
+    },
+    {
+     "noeud": "st_2_defile_max",
+     "choix": "laisser_faire",
+     "issue": null
+    },
+    {
+     "noeud": "st_3_crue_max",
+     "choix": "faire_taire",
+     "issue": null
+    },
+    {
+     "noeud": "st_4_descente_max",
+     "choix": "reveler",
+     "issue": null
+    }
+   ],
+   "fin": "st_f_ombre"
+  },
+  "st_f_entre": {
+   "chemin": [
+    {
+     "noeud": "st_0_atelier",
+     "choix": "robe_gratis",
+     "issue": null
+    },
+    {
+     "noeud": "st_1_offre",
+     "choix": "accepter",
+     "issue": null
+    },
+    {
+     "noeud": "st_2_defile_max",
+     "choix": "laisser_faire",
+     "issue": null
+    },
+    {
+     "noeud": "st_3_crue_max",
+     "choix": "faire_taire",
+     "issue": null
+    },
+    {
+     "noeud": "st_4_descente_max",
+     "choix": "reveler",
+     "issue": null
+    }
+   ],
+   "fin": "st_f_entre"
+  },
+  "st_f_lum": {
+   "chemin": [
+    {
+     "noeud": "st_0_atelier",
+     "choix": "robe_gratis",
+     "issue": null
+    },
+    {
+     "noeud": "st_1_offre",
+     "choix": "accepter",
+     "issue": null
+    },
+    {
+     "noeud": "st_2_defile_max",
+     "choix": "proteger",
+     "issue": null
+    },
+    {
+     "noeud": "st_3_crue_max",
+     "choix": "cacher",
+     "issue": null
+    },
+    {
+     "noeud": "st_4_descente_max",
+     "choix": "reveler",
+     "issue": null
+    }
+   ],
+   "fin": "st_f_lum"
+  },
+  "st_f_secret": {
+   "chemin": [
+    {
+     "noeud": "st_0_atelier",
+     "choix": "robe_gratis",
+     "issue": null
+    },
+    {
+     "noeud": "st_1_offre",
+     "choix": "refuser",
+     "issue": null
+    },
+    {
+     "noeud": "st_2_defile_solidaire",
+     "choix": "solidaire",
+     "issue": null
+    },
+    {
+     "noeud": "st_3_crue_refuge",
+     "choix": "heberger",
+     "issue": "miracle"
+    },
+    {
+     "noeud": "st_4_descente_dede",
+     "choix": "aider_temoigner",
+     "issue": null
+    }
+   ],
+   "fin": "st_f_secret"
+  },
+  "st_f_trag": {
+   "chemin": [
+    {
+     "noeud": "st_0_atelier",
+     "choix": "robe_gratis",
+     "issue": null
+    },
+    {
+     "noeud": "st_1_offre",
+     "choix": "refuser",
+     "issue": null
+    },
+    {
+     "noeud": "st_2_defile_solidaire",
+     "choix": "solidaire",
+     "issue": null
+    },
+    {
+     "noeud": "st_3_crue_refuge",
+     "choix": "heberger",
+     "issue": "miracle"
+    },
+    {
+     "noeud": "st_4_descente_dede",
+     "choix": "denoncer",
+     "issue": "mauvaise"
+    }
+   ],
+   "fin": "st_f_trag"
+  }
+ },
+ "extremes": {
+  "compromission_max": {
+   "valeur": 10,
+   "chemin": [
+    {
+     "noeud": "st_0_atelier",
+     "choix": "robe_gratis",
+     "issue": null
+    },
+    {
+     "noeud": "st_1_offre",
+     "choix": "accepter",
+     "issue": null
+    },
+    {
+     "noeud": "st_2_defile_max",
+     "choix": "laisser_faire",
+     "issue": null
+    },
+    {
+     "noeud": "st_3_crue_max",
+     "choix": "faire_taire",
+     "issue": null
+    },
+    {
+     "noeud": "st_4_descente_max",
+     "choix": "ignorer",
+     "issue": null
+    }
+   ]
+  },
+  "compromission_min": {
+   "valeur": -9,
+   "chemin": [
+    {
+     "noeud": "st_0_atelier",
+     "choix": "robe_gratis",
+     "issue": null
+    },
+    {
+     "noeud": "st_1_offre",
+     "choix": "refuser",
+     "issue": null
+    },
+    {
+     "noeud": "st_2_defile_solidaire",
+     "choix": "solidaire",
+     "issue": null
+    },
+    {
+     "noeud": "st_3_crue_refuge",
+     "choix": "heberger",
+     "issue": "miracle"
+    },
+    {
+     "noeud": "st_4_descente_dede",
+     "choix": "aider_temoigner",
+     "issue": null
+    }
+   ]
+  },
+  "sante_min": {
+   "valeur": 60,
+   "chemin": [
+    {
+     "noeud": "st_0_atelier",
+     "choix": "robe_gratis",
+     "issue": null
+    },
+    {
+     "noeud": "st_1_offre",
+     "choix": "refuser",
+     "issue": null
+    },
+    {
+     "noeud": "st_2_defile_solidaire",
+     "choix": "solidaire",
+     "issue": null
+    },
+    {
+     "noeud": "st_3_crue_refuge",
+     "choix": "heberger",
+     "issue": "mauvaise"
+    },
+    {
+     "noeud": "st_4_descente_dede",
+     "choix": "denoncer",
+     "issue": "mauvaise"
+    }
+   ]
+  },
+  "argent_max": {
+   "valeur": 1120000,
+   "chemin": [
+    {
+     "noeud": "st_0_atelier",
+     "choix": "commande",
+     "issue": null
+    },
+    {
+     "noeud": "st_1_offre",
+     "choix": "accepter",
+     "issue": null
+    },
+    {
+     "noeud": "st_2_defile_max",
+     "choix": "proteger",
+     "issue": null
+    },
+    {
+     "noeud": "st_3_crue_max",
+     "choix": "faire_taire",
+     "issue": null
+    },
+    {
+     "noeud": "st_4_descente_max",
+     "choix": "reveler",
+     "issue": null
+    }
+   ]
+  }
+ },
+ "distribution_pct": {
+  "0": {
+   "st_f_ombre": 7.5,
+   "st_f_entre": 60.4,
+   "st_f_lum": 11.9,
+   "st_f_secret": 5.3,
+   "st_f_trag": 14.9
+  },
+  "50": {
+   "st_f_ombre": 7.1,
+   "st_f_entre": 61.1,
+   "st_f_lum": 12.3,
+   "st_f_secret": 5.8,
+   "st_f_trag": 13.6
+  },
+  "100": {
+   "st_f_ombre": 6.7,
+   "st_f_entre": 62.4,
+   "st_f_lum": 13.2,
+   "st_f_secret": 6.7,
+   "st_f_trag": 11.0
+  }
+ }
+}

@@ -1,0 +1,97 @@
+destin: mecanicien_treichville
+titre: "Maitre de la Cle de 12"
+rarete: rare
+depart: {camp: propre, cur: 0, logement: atelier_garage, argent: 120000, metier: apprenti_meca, ecole: aucune, diplomes: [cap_mecanique], etoile: 55}
+cercle:
+  - {id: yacouba, nom: "Yacouba, ton apprenti", rel: proche}
+  - {id: yao, nom: "Commissaire Yao", rel: allie}
+  - {id: gars_quai, nom: "Les Gars du Quai", rel: faction}
+noeuds:
+  - id: me_n0
+    ch: 0
+    lieu: "Treichville, garage"
+    txt: "Ta boite a outils complete, ton apprenti Yacouba qui te regarde faire. A la radio, Cite Lagune-Nord promet « des milliers d'emplois »."
+    choix:
+      - {l: "Former Yacouba serieusement", eff: {lien: {yacouba: 2}, cur: -1}, vers: me_n1}
+      - {l: "Prendre trois voitures a la fois", eff: {argent: 20000}, vers: me_n1}
+  - id: me_n1
+    ch: 1
+    porte: true
+    lieu: "Treichville, garage"
+    txt: "Un client sans papiers veut blinder deux berlines et changer des plaques : 300 000 F, discretion exigee."
+    choix:
+      - {l: "Accepter le travail", eff: {cur: 3, argent: 300000, faction: {ombre: 2}}, vers: me_n2o}
+      - {l: "Refuser et prevenir le commissaire Yao", eff: {cur: -1, lien: {yao: 2}}, vers: me_n2p}
+      - {l: "Accepter les reparations, refuser les plaques", eff: {cur: 1, argent: 100000}, tirage: {normal: me_n2g, mauvaise: me_n2o, miracle: me_n2p}}
+  - id: me_n2o
+    ch: 2
+    carrefour: A
+    lieu: "Yopougon, Rue Princesse"
+    txt: "Le Baron te complimente sur « un travail de maitre ». Une flotte entiere a blinder."
+    choix:
+      - {l: "Prendre le contrat", eff: {cur: 3, argent: 500000, faction: {ombre: 2}}, vers: me_n3o}
+      - {l: "Decliner et retourner au garage", eff: {cur: -2}, vers: me_n3p}
+  - id: me_n2p
+    ch: 2
+    carrefour: A
+    lieu: "Yopougon, Rue Princesse"
+    txt: "Yao te remercie, mais prevenu, ton client part ailleurs. Le Syndicat te propose l'entretien de sa flotte."
+    choix:
+      - {l: "Prendre l'entretien du Syndicat", eff: {cur: -1, faction: {syndicat: 2}}, vers: me_n3p}
+      - {l: "Ouvrir une ecole du garage", eff: {cur: -2, ecole: cfp_treichville, lien: {yacouba: 1}}, vers: me_n3p}
+  - id: me_n2g
+    ch: 2
+    carrefour: A
+    lieu: "Yopougon, Rue Princesse"
+    txt: "Le client revient : « Tu as fait la moitie, fais le reste. »"
+    choix:
+      - {l: "Dire non, definitivement", eff: {cur: -1}, vers: me_n3p}
+      - {l: "Finir le travail", eff: {cur: 2}, vers: me_n3o}
+  - id: me_n3o
+    ch: 3
+    carrefour: B
+    lieu: "Treichville inonde"
+    txt: "Crue. Les berlines blindees sont dans ton garage, a moitie noyees. Yacouba a vu."
+    choix:
+      - {l: "Ordonner a Yacouba de se taire", eff: {cur: 3, lien: {yacouba: -2}}, vers: me_n4o}
+      - {l: "Pomper l'eau du quartier et laisser les voitures", eff: {cur: -3, lien: {yacouba: 1}, flag: sauveur}, vers: me_n4p}
+  - id: me_n3p
+    ch: 3
+    carrefour: B
+    lieu: "Treichville inonde"
+    txt: "Crue. Tu remets en marche des moteurs pour l'evacuation."
+    choix:
+      - {l: "Reparer gratuitement pour les secours", eff: {cur: -2, lien: {yacouba: 1}}, tirage: {normal: me_n4p, mauvaise: me_n4p, miracle: me_n4p}}
+      - {l: "Mettre ton atelier a l'abri", eff: {}, vers: me_n4p}
+  - id: me_n4o
+    ch: 4
+    carrefour: C
+    lieu: "Treichville, aube"
+    txt: "Descente sur ton garage. Yao tient les plaques saisies."
+    choix:
+      - {l: "Coopérer, livrer les clients", eff: {cur: -3, flag: temoin, faction: {ordre: 2}}, vers: me_n5}
+      - {l: "Se taire", eff: {cur: 1}, vers: me_n5}
+  - id: me_n4p
+    ch: 4
+    carrefour: C
+    lieu: "Treichville, aube"
+    txt: "Yao te demande d'expertiser des vehicules saisis."
+    choix:
+      - {l: "Temoigner a l'audience", eff: {cur: -2, flag: temoin}, vers: me_n5}
+      - {l: "Eviter les ennuis", eff: {}, vers: me_n5}
+  - id: me_n5
+    ch: 5
+    lieu: "Bord de la lagune, premiere pierre"
+    txt: "Ceremonie. Les voitures officielles passent, rutilantes. Tu sais qui les a reparees."
+    choix:
+      - {l: "Ouvrir le garage le plus respecte de la rive sud", si: "cur<=-2 et temoin", vers: me_f_lum}
+      - {l: "Devenir le garagiste du Baron", si: "cur>=6", vers: me_f_ombre}
+      - {l: "Garder ton garage en silence", si: "toujours", vers: me_f_entre}
+      - {l: "Refuser le dernier blindage", si: "cur>=3", vers: me_f_trag}
+      - {l: "Fonder l'ecole du garage", si: "sauveur et yacouba>=3", vers: me_f_secret}
+fins:
+  - {id: me_f_lum, type: lumiere, titre: "Docteur es Moteurs", txt: "Ton garage est le plus respecte de la rive sud."}
+  - {id: me_f_ombre, type: ombre, titre: "Le Garagiste du Baron", txt: "Tu blindes ses voitures, tu vis dans un garage fermé."}
+  - {id: me_f_entre, type: entre_deux, titre: "Le Garage du Silence", txt: "Ton garage tourne, mais Yacouba ne te regarde plus pareil."}
+  - {id: me_f_trag, type: tragique, titre: "Le Dernier Blindage", txt: "Un refus de trop. Fin definitive."}
+  - {id: me_f_secret, type: secrete, titre: "L'Ecole du Garage", txt: "Tu forme les jeunes de Treichville, certifies par le CFP."}

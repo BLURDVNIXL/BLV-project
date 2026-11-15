@@ -1,0 +1,481 @@
+{
+ "destin": "baron_ombre",
+ "formule": "etoile-v1",
+ "fins": {
+  "ba_f_entre": {
+   "chemin": [
+    {
+     "noeud": "ba_0_diner",
+     "choix": "diner",
+     "issue": null
+    },
+    {
+     "noeud": "ba_1_fusillade",
+     "choix": "regler",
+     "issue": null
+    },
+    {
+     "noeud": "ba_1_expulsions",
+     "choix": "reloger",
+     "issue": null
+    },
+    {
+     "noeud": "ba_2_hote",
+     "choix": "imposer",
+     "issue": null
+    },
+    {
+     "noeud": "ba_2_yao",
+     "choix": "payer_yao",
+     "issue": null
+    },
+    {
+     "noeud": "ba_2_sekou",
+     "choix": "part",
+     "issue": null
+    },
+    {
+     "noeud": "ba_3_crue",
+     "choix": "silence",
+     "issue": "miracle"
+    },
+    {
+     "noeud": "ba_3_aicha",
+     "choix": "verite",
+     "issue": null
+    },
+    {
+     "noeud": "ba_4_sekou_loyal",
+     "choix": "bruler",
+     "issue": null
+    }
+   ],
+   "fin": "ba_f_entre"
+  },
+  "ba_f_ombre": {
+   "chemin": [
+    {
+     "noeud": "ba_0_diner",
+     "choix": "diner",
+     "issue": null
+    },
+    {
+     "noeud": "ba_1_fusillade",
+     "choix": "regler",
+     "issue": null
+    },
+    {
+     "noeud": "ba_1_expulsions",
+     "choix": "reloger",
+     "issue": null
+    },
+    {
+     "noeud": "ba_2_hote",
+     "choix": "imposer",
+     "issue": null
+    },
+    {
+     "noeud": "ba_2_yao",
+     "choix": "payer_yao",
+     "issue": null
+    },
+    {
+     "noeud": "ba_2_sekou",
+     "choix": "part",
+     "issue": null
+    },
+    {
+     "noeud": "ba_3_crue",
+     "choix": "silence",
+     "issue": "miracle"
+    },
+    {
+     "noeud": "ba_3_aicha",
+     "choix": "mentir",
+     "issue": null
+    },
+    {
+     "noeud": "ba_4_sekou_loyal",
+     "choix": "bruler",
+     "issue": null
+    }
+   ],
+   "fin": "ba_f_ombre"
+  },
+  "ba_f_trag": {
+   "chemin": [
+    {
+     "noeud": "ba_0_diner",
+     "choix": "diner",
+     "issue": null
+    },
+    {
+     "noeud": "ba_1_fusillade",
+     "choix": "regler",
+     "issue": null
+    },
+    {
+     "noeud": "ba_1_expulsions",
+     "choix": "reloger",
+     "issue": null
+    },
+    {
+     "noeud": "ba_2_hote",
+     "choix": "imposer",
+     "issue": null
+    },
+    {
+     "noeud": "ba_2_yao",
+     "choix": "payer_yao",
+     "issue": null
+    },
+    {
+     "noeud": "ba_2_sekou",
+     "choix": "part",
+     "issue": null
+    },
+    {
+     "noeud": "ba_3_crue",
+     "choix": "evacuer",
+     "issue": null
+    },
+    {
+     "noeud": "ba_3_aicha",
+     "choix": "verite",
+     "issue": null
+    },
+    {
+     "noeud": "ba_4_sekou_trahit",
+     "choix": "fuir",
+     "issue": null
+    }
+   ],
+   "fin": "ba_f_trag"
+  },
+  "ba_f_secret": {
+   "chemin": [
+    {
+     "noeud": "ba_0_diner",
+     "choix": "diner",
+     "issue": null
+    },
+    {
+     "noeud": "ba_1_fusillade",
+     "choix": "regler",
+     "issue": null
+    },
+    {
+     "noeud": "ba_1_expulsions",
+     "choix": "reloger",
+     "issue": null
+    },
+    {
+     "noeud": "ba_2_hote",
+     "choix": "batisseur",
+     "issue": null
+    },
+    {
+     "noeud": "ba_2_yao",
+     "choix": "payer_yao",
+     "issue": null
+    },
+    {
+     "noeud": "ba_2_sekou",
+     "choix": "part",
+     "issue": null
+    },
+    {
+     "noeud": "ba_3_crue",
+     "choix": "silence",
+     "issue": "miracle"
+    },
+    {
+     "noeud": "ba_3_aicha",
+     "choix": "verite",
+     "issue": null
+    },
+    {
+     "noeud": "ba_4_sekou_trahit",
+     "choix": "livrer",
+     "issue": null
+    }
+   ],
+   "fin": "ba_f_secret"
+  },
+  "ba_f_lum": {
+   "chemin": [
+    {
+     "noeud": "ba_0_diner",
+     "choix": "diner",
+     "issue": null
+    },
+    {
+     "noeud": "ba_1_fusillade",
+     "choix": "regler",
+     "issue": null
+    },
+    {
+     "noeud": "ba_1_expulsions",
+     "choix": "reloger",
+     "issue": null
+    },
+    {
+     "noeud": "ba_2_hote",
+     "choix": "batisseur",
+     "issue": null
+    },
+    {
+     "noeud": "ba_2_yao",
+     "choix": "rompre_yao",
+     "issue": null
+    },
+    {
+     "noeud": "ba_2_sekou",
+     "choix": "part",
+     "issue": null
+    },
+    {
+     "noeud": "ba_3_crue",
+     "choix": "evacuer",
+     "issue": null
+    },
+    {
+     "noeud": "ba_3_aicha",
+     "choix": "verite",
+     "issue": null
+    },
+    {
+     "noeud": "ba_4_sekou_trahit",
+     "choix": "livrer",
+     "issue": null
+    }
+   ],
+   "fin": "ba_f_lum"
+  }
+ },
+ "extremes": {
+  "compromission_max": {
+   "valeur": 10,
+   "chemin": [
+    {
+     "noeud": "ba_0_diner",
+     "choix": "diner",
+     "issue": null
+    },
+    {
+     "noeud": "ba_1_fusillade",
+     "choix": "regler",
+     "issue": null
+    },
+    {
+     "noeud": "ba_1_expulsions",
+     "choix": "reloger",
+     "issue": null
+    },
+    {
+     "noeud": "ba_2_hote",
+     "choix": "imposer",
+     "issue": null
+    },
+    {
+     "noeud": "ba_2_yao",
+     "choix": "payer_yao",
+     "issue": null
+    },
+    {
+     "noeud": "ba_2_sekou",
+     "choix": "part",
+     "issue": null
+    },
+    {
+     "noeud": "ba_3_crue",
+     "choix": "silence",
+     "issue": "miracle"
+    },
+    {
+     "noeud": "ba_3_aicha",
+     "choix": "verite",
+     "issue": null
+    },
+    {
+     "noeud": "ba_4_sekou_loyal",
+     "choix": "bruler",
+     "issue": null
+    }
+   ]
+  },
+  "compromission_min": {
+   "valeur": -6,
+   "chemin": [
+    {
+     "noeud": "ba_0_diner",
+     "choix": "diner",
+     "issue": null
+    },
+    {
+     "noeud": "ba_1_fusillade",
+     "choix": "treve",
+     "issue": null
+    },
+    {
+     "noeud": "ba_1_expulsions",
+     "choix": "reloger",
+     "issue": null
+    },
+    {
+     "noeud": "ba_2_hote",
+     "choix": "sonder_aya",
+     "issue": null
+    },
+    {
+     "noeud": "ba_2_yao",
+     "choix": "rompre_yao",
+     "issue": null
+    },
+    {
+     "noeud": "ba_2_sekou",
+     "choix": "part",
+     "issue": null
+    },
+    {
+     "noeud": "ba_3_crue",
+     "choix": "evacuer",
+     "issue": null
+    },
+    {
+     "noeud": "ba_3_aicha",
+     "choix": "verite",
+     "issue": null
+    },
+    {
+     "noeud": "ba_4_sekou_trahit",
+     "choix": "livrer",
+     "issue": null
+    }
+   ]
+  },
+  "sante_min": {
+   "valeur": 75,
+   "chemin": [
+    {
+     "noeud": "ba_0_diner",
+     "choix": "diner",
+     "issue": null
+    },
+    {
+     "noeud": "ba_1_fusillade",
+     "choix": "regler",
+     "issue": null
+    },
+    {
+     "noeud": "ba_1_expulsions",
+     "choix": "reloger",
+     "issue": null
+    },
+    {
+     "noeud": "ba_2_hote",
+     "choix": "imposer",
+     "issue": null
+    },
+    {
+     "noeud": "ba_2_yao",
+     "choix": "payer_yao",
+     "issue": null
+    },
+    {
+     "noeud": "ba_2_sekou",
+     "choix": "part",
+     "issue": null
+    },
+    {
+     "noeud": "ba_3_crue",
+     "choix": "silence",
+     "issue": "miracle"
+    },
+    {
+     "noeud": "ba_3_aicha",
+     "choix": "verite",
+     "issue": null
+    },
+    {
+     "noeud": "ba_4_sekou_loyal",
+     "choix": "bruler",
+     "issue": null
+    }
+   ]
+  },
+  "argent_max": {
+   "valeur": 19400000,
+   "chemin": [
+    {
+     "noeud": "ba_0_diner",
+     "choix": "diner",
+     "issue": null
+    },
+    {
+     "noeud": "ba_1_fusillade",
+     "choix": "soins_seuls",
+     "issue": "miracle"
+    },
+    {
+     "noeud": "ba_1_expulsions",
+     "choix": "ignorer",
+     "issue": null
+    },
+    {
+     "noeud": "ba_2_hote",
+     "choix": "imposer",
+     "issue": null
+    },
+    {
+     "noeud": "ba_2_yao",
+     "choix": "menacer_yao",
+     "issue": null
+    },
+    {
+     "noeud": "ba_2_sekou",
+     "choix": "surveiller",
+     "issue": null
+    },
+    {
+     "noeud": "ba_3_crue",
+     "choix": "silence",
+     "issue": "miracle"
+    },
+    {
+     "noeud": "ba_3_aicha",
+     "choix": "verite",
+     "issue": null
+    },
+    {
+     "noeud": "ba_4_sekou_trahit",
+     "choix": "livrer",
+     "issue": null
+    }
+   ]
+  }
+ },
+ "distribution_pct": {
+  "0": {
+   "ba_f_entre": 58.9,
+   "ba_f_ombre": 8.9,
+   "ba_f_trag": 29.6,
+   "ba_f_secret": 1.3,
+   "ba_f_lum": 1.4
+  },
+  "50": {
+   "ba_f_entre": 59.1,
+   "ba_f_ombre": 8.7,
+   "ba_f_trag": 29.6,
+   "ba_f_secret": 1.3,
+   "ba_f_lum": 1.4
+  },
+  "100": {
+   "ba_f_entre": 59.3,
+   "ba_f_ombre": 8.5,
+   "ba_f_trag": 29.6,
+   "ba_f_secret": 1.3,
+   "ba_f_lum": 1.4
+  }
+ }
+}

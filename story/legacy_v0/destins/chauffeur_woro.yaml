@@ -1,0 +1,97 @@
+destin: chauffeur_woro
+titre: "La Ligne Directe 504"
+rarete: commun
+depart: {camp: propre, cur: 0, logement: studio, argent: 35000, metier: chauffeur_woro, ecole: aucune, diplomes: [permis_b], etoile: 50}
+cercle:
+  - {id: passagere, nom: "Une passagere reguliere, Mariam", rel: proche}
+  - {id: kader, nom: "Kader, chauffeur du Syndicat", rel: allie}
+  - {id: aya, nom: "Lieutenante Aya Coulibaly", rel: allie}
+noeuds:
+  - id: cw_n0
+    ch: 0
+    lieu: "Koumassi, ton studio"
+    txt: "Ta 504 jaune, louee a la journee. Mariam, passagere habituelle, te lance : « Tu as entendu ? Une nouvelle cite va sortir de terre. »"
+    choix:
+      - {l: "Offrir la course a Mariam", eff: {cur: -1, lien: {passagere: 2}}, vers: cw_n1}
+      - {l: "Faire ta tournee sans bavarder", eff: {}, vers: cw_n1}
+  - id: cw_n1
+    ch: 1
+    porte: true
+    lieu: "Treichville, quai"
+    txt: "Un homme te donne un colis : « 25 000 F pour le deposer au Plateau, sans l'ouvrir. »"
+    choix:
+      - {l: "Livrer le colis", eff: {cur: 3, metier: convoyeur_illicite, argent: 25000, faction: {ombre: 1}}, vers: cw_n2o}
+      - {l: "Refuser et noter la plaque de l'homme", eff: {cur: -1, flag: plaque}, vers: cw_n2p}
+      - {l: "Livrer cette fois, puis voir", eff: {cur: 2, argent: 25000}, tirage: {normal: cw_n2g, mauvaise: cw_n2o, miracle: cw_n2p}}
+  - id: cw_n2o
+    ch: 2
+    carrefour: A
+    lieu: "Yopougon, Rue Princesse"
+    txt: "Le Baron te propose un contrat de convoyeur regulier, 80 000 F par semaine."
+    choix:
+      - {l: "Signer", eff: {cur: 3, faction: {ombre: 2}}, vers: cw_n3o}
+      - {l: "Refuser, tu ne veux plus voir ces colis", eff: {cur: -2}, vers: cw_n3p}
+  - id: cw_n2p
+    ch: 2
+    carrefour: A
+    lieu: "Yopougon, Rue Princesse"
+    txt: "Kader te presente a Aya, de la PLCC, qui cherche des chauffeurs de confiance."
+    choix:
+      - {l: "Accepter d'etre ses yeux dans la ville", eff: {cur: -2, lien: {aya: 2}, faction: {ordre: 1}}, vers: cw_n3p}
+      - {l: "Rester neutre, rouler tranquille", eff: {}, vers: cw_n3p}
+  - id: cw_n2g
+    ch: 2
+    carrefour: A
+    lieu: "Yopougon, Rue Princesse"
+    txt: "On te reconnait : « Le chauffeur du colis ! » Mariam regarde, inquiete."
+    choix:
+      - {l: "Arreter, expliquer a Mariam", eff: {cur: -1, lien: {passagere: 2}}, vers: cw_n3p}
+      - {l: "Continuer", eff: {cur: 2}, vers: cw_n3o}
+  - id: cw_n3o
+    ch: 3
+    carrefour: B
+    lieu: "Treichville inonde"
+    txt: "Crue. Ta 504 est pleine de colis, et des gens appellent a l'aide."
+    choix:
+      - {l: "Jeter les colis, charger les gens", eff: {cur: -3, flag: sauveur}, vers: cw_n4p}
+      - {l: "Garder les colis, passer", eff: {cur: 2}, vers: cw_n4o}
+  - id: cw_n3p
+    ch: 3
+    carrefour: B
+    lieu: "Treichville inonde"
+    txt: "Crue. Ta 504 traverse l'eau pour conduire une femme enceinte a l'hopital."
+    choix:
+      - {l: "Foncer vers l'hopital", eff: {cur: -2, lien: {passagere: 2}}, tirage: {normal: cw_n4p, mauvaise: cw_n4p, miracle: cw_n4p}}
+      - {l: "Chercher d'autres passagers", eff: {cur: -1}, vers: cw_n4p}
+  - id: cw_n4o
+    ch: 4
+    carrefour: C
+    lieu: "Plateau, aube"
+    txt: "Descente. Ta 504 est arretee, tes colis ouverts devant toi."
+    choix:
+      - {l: "Parler a Aya, donner tout ce que tu sais", eff: {cur: -3, flag: temoin, faction: {ordre: 2}}, vers: cw_n5}
+      - {l: "Plaider l'ignorance", eff: {cur: 1}, vers: cw_n5}
+  - id: cw_n4p
+    ch: 4
+    carrefour: C
+    lieu: "Plateau, aube"
+    txt: "Aya a besoin de ton temoignage pour relier les convois."
+    choix:
+      - {l: "Temoigner", eff: {cur: -2, flag: temoin}, vers: cw_n5}
+      - {l: "Refuser par peur", eff: {}, vers: cw_n5}
+  - id: cw_n5
+    ch: 5
+    lieu: "Bord de la lagune, premiere pierre"
+    txt: "Ceremonie. Dans la file des taxis, ta 504 jaune."
+    choix:
+      - {l: "Acheter ta propre 504 et ton permis D", si: "cur<=-2 et temoin", vers: cw_f_lum}
+      - {l: "Devenir chauffeur attitre du Baron", si: "cur>=6", vers: cw_f_ombre}
+      - {l: "Rester chauffeur de woro-woro, sans histoire", si: "toujours", vers: cw_f_entre}
+      - {l: "Refuser un dernier colis", si: "cur>=3", vers: cw_f_trag}
+      - {l: "Creer la ligne directe des quartiers", si: "(sauveur ou plaque) et passagere>=4", vers: cw_f_secret}
+fins:
+  - {id: cw_f_lum, type: lumiere, titre: "Legende des Woro-Woro", txt: "Ta 504 est a toi, les passagers te saluent."}
+  - {id: cw_f_ombre, type: ombre, titre: "Le Chauffeur sans Question", txt: "Tu roules pour le Baron, a l'abri et sans amis."}
+  - {id: cw_f_entre, type: entre_deux, titre: "La Course du Silence", txt: "Tu roules honnetement mais ce que tu as vu te hante."}
+  - {id: cw_f_trag, type: tragique, titre: "Le Dernier Colis", txt: "Un refus de trop. Fin definitive."}
+  - {id: cw_f_secret, type: secrete, titre: "La Ligne Directe", txt: "Tu lances une ligne reguliere qui relie les quartiers, avec Mariam a la caisse."}

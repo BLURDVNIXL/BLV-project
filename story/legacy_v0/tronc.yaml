@@ -1,0 +1,21 @@
+# BLV - Tronc commun : meme ligne directrice pour les 19 destins
+projet: {nom: "Cite Lagune-Nord", officiel: "Nouveau quartier moderne au nord de la lagune", reel: "Machine du Baron : couverture des convois d'armes et de drogue, blanchiment par les contrats, expulsion des gens qui genent"}
+chapitres:
+  0: {titre: "Le foyer", evenement: "Une annonce a la radio presente Cite Lagune-Nord. Chacun est chez lui (ou a son coin de rue). Le chantier ouvre quand le foyer est atteint."}
+  1: {titre: "Les ombres du chantier", evenement: "Camions de nuit, geometres, avis d'expulsion affiches. Chaque role recoit sa premiere porte (offre ou pression)."}
+  2: {titre: "Les alliances", evenement: "Carrefour A : la soiree de Rue Princesse (Yopougon). Syndicat, Ordre Republicain, Jet-Set et reseau du Baron recrutent.", carrefour: A}
+  3: {titre: "La crue", evenement: "Carrefour B : la nuit de la crue. Le hangar d'Adjame cede, des caisses marquees apparaissent. Inondations, maladies, hopital.", carrefour: B}
+  4: {titre: "Le grand deballage", evenement: "Carrefour C : la descente. Raid a l'aube, arrestations, trahisons, temoignages.", carrefour: C}
+  5: {titre: "La premiere pierre", evenement: "Ceremonie d'inauguration au bord de la lagune. Le sort de la ville depend de ce que les 19 ont fait.", carrefour: null}
+casting:
+  baron: "Le Baron de l'Ombre"
+  gnamien: "Vieux Gnamien, gardien du hangar d'Adjame"
+  zephyrine: "Tantie Zephyrine, marchande d'Adjame"
+  yao: "Commissaire Yao (Ordre Republicain)"
+  aya: "Lieutenante Aya Coulibaly (PLCC)"
+  gbe: "Gbe, chef de gare d'Abobo (Syndicat des Transporteurs)"
+  dede: "Madame Dede, reseau de la nuit qui piege des jeunes filles venues des villages"
+  fatou: "Fatou Bamba, journaliste de radio"
+  sanogo: "Docteur Sanogo, hopital"
+  traore: "Mme Traore, associee du cabinet d'audit"
+  maire: "Le Maire"

@@ -1,0 +1,20 @@
+# Chronologie maître : mêmes faits objectifs pour les 19 campagnes. Jour 1 = 1er septembre de l'année 0.
+reference: "Les protagonistes ne connaissent qu'une partie de ces faits. Une campagne ne peut pas contredire cette table."
+jours:
+  1:   {jalon: 0, evenement: "Annonce radio de la Cité Lagune-Nord. Rentrée des classes.", meteo: "grosse chaleur, orages en fin de journée"}
+  40:  {jalon: 1, evenement: "Premiers camions de nuit, avis d'expulsion affichés, géomètres sur les berges.", meteo: "petite saison des pluies"}
+  110: {jalon: 2, evenement: "Soirée de fin d'année de Rue Princesse (Yopougon) : Syndicat, Ordre, Jet-Set et réseau du Baron s'y retrouvent.", meteo: "harmattan, nuit fraîche"}
+  122: {evenement: "Fin du 1er trimestre scolaire."}
+  212: {evenement: "Fin du 2e trimestre scolaire."}
+  273: {evenement: "Fin du 3e trimestre scolaire."}
+  281: {jalon: 3, evenement: "Nuit de la crue : le hangar d'Adjamé cède ; des caisses marquées flottent ; inondations à Adjamé, Marcory, Koumassi.", meteo: "orage violent, 180 mm en 6 h"}
+  283: {jalon: 4, evenement: "Descente à l'aube (PLCC et Ordre) : arrestations, trahisons, témoignages.", meteo: "bruine"}
+  288: {evenement: "Épreuves écrites du baccalauréat (pour les élèves de lycée)."}
+  304: {jalon: 5, evenement: "Cérémonie de la première pierre au bord de la lagune.", meteo: "ciel dégagé"}
+trajets:
+  - "Abidjan intra-muros : 20 à 90 min selon l'heure ; les ponts (FHB, De Gaulle, HKB) saturent à 7 h et 18 h."
+  - "Yamoussoukro – Abidjan : environ 3 h par l'autoroute du Nord."
+  - "Grand-Bassam : 45 min depuis Treichville hors embouteillage."
+crue:
+  zones_touchees: [Adjamé, Marcory, Koumassi, Treichville-sud, Abobo-Anyama (partiel)]
+  zones_epargnees: [Cocody-Riviera, Plateau, Angré]

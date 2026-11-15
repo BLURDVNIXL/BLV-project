@@ -1,0 +1,99 @@
+destin: golden_boy
+titre: "30 Days of Jet-Set Vibes"
+rarete: epique
+langue: en          # easter egg : langue forcee, non modifiable dans les reglages
+depart: {camp: propre, cur: 0, logement: duplex_assinie, argent: illimite_30_jours, metier: aucun, ecole: aucune, diplomes: [bac], etoile: 85}
+cercle:
+  - {id: dad, nom: "Dad, holder of the Platinum card", rel: proche}
+  - {id: chad, nom: "Chad, party friend", rel: faction}
+  - {id: fatou, nom: "Fatou Bamba", rel: allie}
+  - {id: baron, nom: "The Baron", rel: rival}
+noeuds:
+  - id: gb_n0
+    ch: 0
+    lieu: "Assinie bay, duplex"
+    txt: "Your duplex has its feet in the water. A BMW M and a Rolls-Royce Phantom wait in the driveway. A pop-up reads: « Bro, you literally graduated from the American International School of Abidjan, French is not in your DNA anymore! » On the radio, someone mentions a Cite Lagune-Nord."
+    choix:
+      - {l: "Throw a beach party for the whole bay", eff: {lien: {chad: 2}}, vers: gb_n1}
+      - {l: "Call Dad and ask what the card really covers", eff: {lien: {dad: 2}, cur: -1}, vers: gb_n1}
+  - id: gb_n1
+    ch: 1
+    porte: true
+    lieu: "Assinie, terrace"
+    txt: "Chad has a proposition: « Let a few of my friends use your duplex for private parties. 200,000 F a night. No questions asked. »"
+    choix:
+      - {l: "Say yes, it's just parties", eff: {cur: 3, argent: 200000, faction: {ombre: 1}}, vers: gb_n2o}
+      - {l: "Say no and keep the house for yourself", eff: {cur: -1}, vers: gb_n2p}
+      - {l: "Rent it once and see who shows up", eff: {cur: 1, argent: 200000}, tirage: {normal: gb_n2g, mauvaise: gb_n2o, miracle: gb_n2p}}
+  - id: gb_n2o
+    ch: 2
+    carrefour: A
+    lieu: "Yopougon, Rue Princesse"
+    txt: "At the big night, the Baron toasts you : « Boy, your parties are my favourite cover. » Chad grins."
+    choix:
+      - {l: "Keep playing along", eff: {cur: 3, faction: {ombre: 2}}, vers: gb_n3o}
+      - {l: "Step back and ask what is in those bags", eff: {cur: -2}, vers: gb_n3p}
+  - id: gb_n2p
+    ch: 2
+    carrefour: A
+    lieu: "Yopougon, Rue Princesse"
+    txt: "Fatou approaches : « Your name opens doors. Would you use it for the neighbourhoods that are being evicted? »"
+    choix:
+      - {l: "Lend your name for a charity gala", eff: {cur: -2, lien: {fatou: 2}, flag: gala}, vers: gb_n3p}
+      - {l: "Stay out of it, it is not your fight", eff: {}, vers: gb_n3p}
+  - id: gb_n2g
+    ch: 2
+    carrefour: A
+    lieu: "Yopougon, Rue Princesse"
+    txt: "The guests left a mess and a bag you were not supposed to see. Chad pats your back."
+    choix:
+      - {l: "Close the door on the parties", eff: {cur: -1}, vers: gb_n3p}
+      - {l: "Keep the money coming", eff: {cur: 2}, vers: gb_n3o}
+  - id: gb_n3o
+    ch: 3
+    carrefour: B
+    lieu: "Assinie, flooded road"
+    txt: "The flood reaches the coast. The Baron's men want your boathouse as a stash. Day 28 : the card says « limit approaching »."
+    choix:
+      - {l: "Lend the boathouse", eff: {cur: 3}, vers: gb_n4o}
+      - {l: "Open the duplex to flood victims instead", eff: {cur: -3, flag: abri}, vers: gb_n4p}
+  - id: gb_n3p
+    ch: 3
+    carrefour: B
+    lieu: "Assinie, flooded road"
+    txt: "The flood reaches the coast. Locals are cut off. Day 28 : the card says « limit approaching »."
+    choix:
+      - {l: "Use your cars to bring supplies", eff: {cur: -2, lien: {fatou: 1}}, tirage: {normal: gb_n4p, mauvaise: gb_n4p, miracle: gb_n4p}}
+      - {l: "Spend the last credit on a final night", eff: {cur: 1, flag: carte_coupee}, vers: gb_n4p}
+  - id: gb_n4o
+    ch: 4
+    carrefour: C
+    lieu: "Assinie, dawn"
+    txt: "Raid at your duplex. Aya asks one question : « Who were your guests ? »"
+    choix:
+      - {l: "Name them all", eff: {cur: -3, flag: temoin, faction: {ordre: 2}}, vers: gb_n5}
+      - {l: "Call Dad to make it go away", eff: {cur: 2, lien: {dad: -1}}, vers: gb_n5}
+  - id: gb_n4p
+    ch: 4
+    carrefour: C
+    lieu: "Assinie, dawn"
+    txt: "Your name is in the press. Fatou asks you to speak on air."
+    choix:
+      - {l: "Go on air and expose the eviction plan", eff: {cur: -3, flag: temoin}, vers: gb_n5}
+      - {l: "Stay silent, protect your family name", eff: {}, vers: gb_n5}
+  - id: gb_n5
+    ch: 5
+    lieu: "Lagoon shore, first stone"
+    txt: "The ceremony. The card is cut off. Who are you without it ?"
+    choix:
+      - {l: "Turn your influence into real help", si: "cur<=-2 and temoin", vers: gb_f_lum}
+      - {l: "Become the host of the Baron's circle", si: "cur>=6", vers: gb_f_ombre}
+      - {l: "Learn to live without the card", si: "toujours", vers: gb_f_entre}
+      - {l: "Defy the guests in public", si: "cur>=3", vers: gb_f_trag}
+      - {l: "Open the Assinie beach to everyone", si: "(gala or abri) and fatou>=3", vers: gb_f_secret}
+fins:
+  - {id: gb_f_lum, type: lumiere, titre: "The Influence that Helped", txt: "Your name now means something. You are known for who you protected."}
+  - {id: gb_f_ombre, type: ombre, titre: "Host of the Shadows", txt: "Your parties never stop. Neither do the secrets."}
+  - {id: gb_f_entre, type: entre_deux, titre: "The Month After", txt: "The card is gone. You learn to cook, to fix, to listen. It's a start."}
+  - {id: gb_f_trag, type: tragique, titre: "The Last Party", txt: "You crossed the wrong guest. Permanent end."}
+  - {id: gb_f_secret, type: secrete, titre: "A Beach for Everyone", txt: "You open the Assinie beach to the whole neighbourhood. Some places should never have a fence."}

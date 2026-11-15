@@ -1,0 +1,680 @@
+destin: poignon
+titre: "Les Miracles de la Baraka"
+rarete: legendaire
+genre: m
+resume: "Jeune adulte sans toit ni diplôme, né avec une chance hors norme. Tout ce qui lui arrive de bien a un prix ; tout ce qui lui arrive de mal laisse une porte ouverte."
+themes: [precarite, chance, solidarite, ecole_tardive]
+fonction_dramatique: >-
+  Poignon est le regard du bas : il voit la Cité Lagune-Nord depuis le carton où il dort. Sa
+  chance attire le Baron (qui veut un porte-bonheur) et Tantie Zéphyrine (qui veut un bras
+  honnête). Chaque miracle est une offre avec contrepartie.
+
+depart:
+  camp: propre
+  compromission: 0
+  argent_fcfa: 2000
+  etoile: 95
+  sante: 70
+  energie: 75
+  metier: aucun
+  ecole: aucune
+  diplomes: []
+  charges_mensuelles: 20000      # nourriture et petits frais ; le hangar est un abri gratuit
+  logement_descriptif: "Un carton dans le hangar d'Adjamé"
+  competences: {terrain: 2, negoce: 1}
+  relations:
+    gnamien: {trust: 1}
+  factions: {}
+
+cercle:
+  - {id: gnamien, nom: "Vieux Gnamien", rel: proche}
+  - {id: adou, nom: "Adou", rel: allie}
+  - {id: zephyrine, nom: "Tantie Zéphyrine", rel: allie}
+  - {id: fatou, nom: "Fatou Bamba", rel: allie}
+  - {id: dabo, nom: "Dabo et les Gars du Quai", rel: faction}
+  - {id: baron, nom: "Le Baron", rel: rival}
+  - {id: aya, nom: "Lieutenante Aya Coulibaly", rel: neutre}
+
+flags: [vu_caisse, voie_marche, voie_etudes, quai_loyal, dette_dabo, porte_bonheur, association_etals,
+        a_parle, filme, sauve_gnamien, gnamien_parti, temoin, trahi_baron, sans_protection,
+        protection_aya, liasse_gardee, joute_publique]
+faits:
+  - liasse_rendue
+  - sauve_crue
+  - protegee
+  - source_fiable
+  - veille_acceptee
+preuves: [film_caisses, registre_gnamien]
+
+# --------------------------------------------------------------------------- événements
+# Retombées différées et actions autonomes : les secondaires agissent sans le joueur.
+evenements:
+  - id: ev_racket_zephyrine
+    jour: 70
+    si: "not flags.association_etals"
+    txt: "Dabo et deux Gars du Quai passent à l'étal de Tantie Zéphyrine : « La cotisation de la semaine, Tantie. » Elle paie, la mâchoire serrée."
+    eff: {relations: {zephyrine: {peur: 1}}}
+    sinon_txt: "Dabo se présente à l'étal de Tantie Zéphyrine. Derrière elle, douze marchandes se lèvent. Il repart sans rien dire."
+    sinon_eff: {relations: {zephyrine: {trust: 1}}, factions: {ombre: {exposition: 1}}}
+  - id: ev_enveloppe_baron
+    jour: 150
+    si: "factions.ombre.reputation >= 2"
+    txt: "Un homme du Baron te glisse une enveloppe : « Pour ton bonheur, petit. » Tu peux désormais difficilement refuser quoi que ce soit."
+    eff: {argent: 30000, compromission: 1, factions: {ombre: {dette: 1}}}
+  - id: ev_cours_manques
+    jour: 200
+    si: "ecole == 'lycee_classique' and flags.porte_bonheur"
+    txt: "Tu as passé trop de nuits dehors avec le Baron : le surveillant note tes absences."
+    eff: {scolarite: {absence: true}}
+  - id: ev_gnamien_depart
+    jour: 215
+    si: "relations.gnamien.trust <= -2"
+    txt: "Un matin, le carton du Vieux Gnamien est vide. Le hangar sent le renfermé. Il est parti sans un mot : tu ne l'as pas assez écouté."
+    eff: {flags: [gnamien_parti], relations: {gnamien: {trust: -1}}}
+  - id: ev_registre
+    jour: 283
+    si: "relations.gnamien.faits.sauve_crue"
+    txt: "À l'aube, Gnamien, boitant, te tend un cahier d'écolier : « Les plaques de tous les camions, depuis trois ans. Tu en feras ce que tu veux, petit. »"
+    eff: {preuves: {registre_gnamien: {action: obtenir}}, relations: {gnamien: {trust: 1}}}
+  - id: ev_contestation
+    jour: 292
+    si: "preuves.film_caisses == 'transmise'"
+    txt: "Un avocat du Baron fait remarquer que ta vidéo est tournée de nuit, floue, sans date. Elle est officiellement contestée."
+    eff: {preuves: {film_caisses: {action: contester}}}
+
+# --------------------------------------------------------------------------- nœuds
+noeuds:
+  - id: po_0_hangar
+    jalon: 0
+    jour: 1
+    lieu: "Adjamé, hangar du marché"
+    moment: "Nuit, forte pluie"
+    objectif: "Installer la précarité, Gnamien et le motif des caisses marquées."
+    present: [gnamien]
+    savoir: "Tu dors ici par la grâce d'un vieux gardien. Tu ne sais rien des caisses."
+    dialogue:
+      - {narr: "La pluie tape sur la tôle comme des doigts impatients. Ton carton prend l'eau par un coin."}
+      - {qui: radio, dit: "… la future Cité Lagune-Nord, un quartier moderne qui offrira des milliers d'emplois aux jeunes de la ville …"}
+      - {qui: gnamien, dit: "Lève-toi, petit ! Les caisses vont prendre l'eau, et ce n'est pas à nous qu'on les redemandera."}
+    choix:
+      - id: aider
+        l: "« J'arrive, Vieux ! On fait comment ? »"
+        intention: "Gagner la confiance de Gnamien"
+        cout: "Tu t'épuises sous la pluie."
+        eff: {relations: {gnamien: {trust: 2}}, energie: -10}
+        tirage:
+          difficulte: 0
+          issues:
+            miracle: {vers: po_0_liasse, txt: "Sous une caisse détrempée, tu sens une épaisseur de papier : une liasse."}
+            normal: {vers: po_0_aube, txt: "Gnamien te tend un gobelet de café chaud : « Voilà un petit qui a du cœur. »"}
+            mauvaise: {vers: po_0_aube, eff: {sante: -10}, txt: "Tu glisses et te coupes la main sur la tôle. Gnamien te soigne sans te gronder : le lien monte quand même."}
+      - id: caisse
+        l: "Jeter un œil dans une caisse marquée"
+        intention: "Satisfaire ta curiosité"
+        cout: "Gnamien n'aime pas qu'on touche à ces caisses."
+        eff: {compromission: 1, flags: [vu_caisse], relations: {gnamien: {trust: -1}}}
+        vers: po_0_aube
+      - id: dormir
+        l: "Te rendormir sous la tôle"
+        intention: "Économiser ton énergie"
+        cout: "Tu auras froid."
+        eff: {sante: -5}
+        vers: po_0_aube
+
+  - id: po_0_liasse
+    jalon: 0
+    jour: 1
+    lieu: "Adjamé, hangar"
+    moment: "Nuit"
+    objectif: "Premier miracle : une offre avec contrepartie."
+    present: [gnamien]
+    savoir: "La liasse n'est à personne que tu connaisses."
+    dialogue:
+      - {narr: "Quinze mille francs, humides et collés. Gnamien est de l'autre côté du hangar et n'a rien vu."}
+      - {qui: gnamien, dit: "Eh, petit ! Tu as trouvé quelque chose ?"}
+    choix:
+      - id: rendre
+        l: "La rendre au gardien"
+        intention: "Mériter la confiance"
+        cout: "Tu mangeras peu ce mois-ci."
+        eff: {compromission: -1, relations: {gnamien: {trust: 3, fait: liasse_rendue}}}
+        vers: po_0_aube
+      - id: garder
+        l: "La garder pour manger ce mois-ci"
+        intention: "Survivre"
+        cout: "Si Gnamien l'apprend, ce sera dur à rattraper."
+        eff: {compromission: 1, argent: 15000, flags: [liasse_gardee], relations: {gnamien: {trust: -1}}}
+        vers: po_0_aube
+
+  - id: po_0_aube
+    jalon: 0
+    jour: 2
+    lieu: "Adjamé, hangar"
+    moment: "Aube"
+    objectif: "Ouvrir les deux portes honnêtes : le marché et l'école tardive."
+    present: [gnamien, adou]
+    savoir: "Gnamien te montre deux portes. Tu ne sais pas encore ce qu'elles coûtent."
+    dialogue:
+      - {qui: gnamien, dit: "Écoute-moi, petit. Tu as la baraka, mais la baraka ne remplit pas un ventre. Deux portes : Tantie Zéphyrine cherche un bras, et mon petit-fils Adou prépare le concours du Classique."}
+      - {qui: adou, dit: "Tu sais lire, au moins ? Alors tu peux réviser avec moi. À ton âge on peut encore entrer, mais il faut travailler."}
+      - {qui: gnamien, dit: "On est ensemble, hein. Mais ne compte pas sur la chance pour tout faire."}
+    choix:
+      - id: marche
+        l: "Aller voir Tantie Zéphyrine : une quête de porteur"
+        intention: "Gagner tes premiers francs"
+        cout: "Tu portes du matin au soir."
+        eff: {flags: [voie_marche], metier: manoeuvre_marche, argent: 8000, relations: {zephyrine: {trust: 1}}, energie: -10}
+        vers: po_1_veille
+      - id: reviser
+        l: "Réviser avec Adou"
+        intention: "Préparer le concours du Lycée Classique"
+        cout: "Aucun revenu pour l'instant."
+        eff: {flags: [voie_etudes], competences: {etudes: 2}, relations: {adou: {trust: 2}}, energie: -10}
+        vers: po_1_veille
+      - id: les_deux
+        l: "Porter le matin, réviser le soir"
+        intention: "Tout tenter"
+        cout: "Tu t'épuises."
+        eff: {flags: [voie_marche, voie_etudes], metier: manoeuvre_marche, argent: 4000, competences: {etudes: 1}, relations: {zephyrine: {trust: 1}, adou: {trust: 1}}, energie: -20}
+        vers: po_1_veille
+
+  - id: po_1_veille
+    jalon: 1
+    jour: 40
+    porte: true
+    lieu: "Adjamé, ruelle du marché"
+    moment: "Nuit"
+    objectif: "Première porte vers l'illégal : un travail sans question."
+    present: [dabo]
+    savoir: "Dabo a l'air aimable. Tu ne sais pas pour qui il travaille."
+    dialogue:
+      - {narr: "Des camions passent de nuit, sans phares, par le portail de l'ancien entrepôt. Personne ne les regarde."}
+      - {qui: dabo, dit: "Eh, le chanceux ! On m'a dit que tu as la main bénie. Vingt mille francs pour une nuit de veille, ça te dit ? Tu restes assis, tu ne poses pas de questions."}
+      - {qui: dabo, dit: "Les gens ne font pas la fine bouche pour moins que ça, mon frère."}
+    choix:
+      - id: accepter
+        l: "Accepter 20 000 F pour veiller un entrepôt, sans poser de question"
+        intention: "Sortir de la faim"
+        cout: "Tu t'engages dans le réseau du Baron."
+        vu_par: [ombre]
+        eff:
+          compromission: 3
+          metier: convoyeur_illicite
+          argent: 20000
+          flags: [quai_loyal]
+          factions: {ombre: {reputation: 2}}
+          relations: {dabo: {trust: 2, fait: veille_acceptee}}
+        vers: po_1_concours
+      - id: refuser
+        l: "Refuser et retourner voir Tantie Zéphyrine pour du travail de porteur"
+        intention: "Rester honnête"
+        cout: "Tu gagnes moins, mais tu dors sans peur."
+        eff: {compromission: -1, relations: {zephyrine: {trust: 2}}, argent: 10000}
+        vers: po_1_concours
+      - id: une_nuit
+        l: "Une seule nuit, sans rien transporter"
+        intention: "Un coup de pouce, rien de plus"
+        cout: "Dabo ne se laisse pas oublier si facilement."
+        vu_par: [ombre]
+        eff: {compromission: 2, argent: 20000}
+        tirage:
+          difficulte: 3
+          issues:
+            miracle: {vers: po_1_concours, txt: "Tu ne vois rien, tu n'entends rien. Dabo t'oublie."}
+            normal: {vers: po_1_concours, eff: {relations: {dabo: {trust: 1}}, flags: [dette_dabo]}, txt: "La nuit passe. Dabo te serre la main : « On se reverra, le chanceux. »"}
+            mauvaise: {vers: po_1_concours, eff: {relations: {dabo: {peur: 2}}, flags: [dette_dabo], sante: -5}, txt: "Un camion s'arrête devant toi. Un homme descend, te regarde longtemps et note quelque chose."}
+
+  - id: po_1_concours
+    jalon: 1
+    jour: 46
+    lieu: "Cocody, Lycée Classique d'Abidjan"
+    moment: "Matin, session d'admission"
+    objectif: "Concours d'entrée : l'intellect et l'Étoile aident, sans garantir."
+    present: [adou]
+    savoir: "Le concours coûte 10 000 F de frais de dossier. Adou t'a donné ses annales."
+    dialogue:
+      - {narr: "La grande grille du Lycée Classique est plus haute que le hangar. Des dizaines de candidats, sacs bien rangés, regards fixes."}
+      - {qui: adou, dit: "Respire. Tu as ta chance, moi j'ai mes annales. On entre ensemble ou on retente l'an prochain."}
+    choix:
+      - id: tenter
+        l: "Passer le concours (10 000 F de frais)"
+        intention: "Obtenir une place au Lycée Classique"
+        cout: "10 000 F, et l'échec te coûterait cher."
+        si: "argent >= 10000"
+        eff: {argent: -10000}
+        tirage:
+          difficulte: 3
+          modificateurs:
+            - {si: "skills.etudes < 2", valeur: -35}
+          issues:
+            miracle: {vers: po_2_princesse_ombre, eff: {scolarite: {admis: lycee_classique}, ecole: lycee_classique, relations: {adou: {trust: 2}}}, txt: "Tu es reçu parmi les premiers. Adou te soulève de terre devant tout le monde."}
+            normal: {vers: po_2_princesse_ombre, eff: {scolarite: {admis: lycee_classique}, ecole: lycee_classique}, txt: "Tu es reçu, de justesse. Ton nom est sur la liste affichée à la grille."}
+            mauvaise: {vers: po_2_princesse_ombre, eff: {relations: {adou: {trust: 1}}, sante: -5}, txt: "Ton nom n'y est pas. Adou, lui, est admis, et fait semblant de ne pas être content pour ne pas te blesser."}
+      - id: renoncer
+        l: "Renoncer : tu n'as ni le temps ni l'argent"
+        intention: "Garder tes forces pour le marché"
+        cout: "Tu fermes cette porte pour l'année."
+        eff: {relations: {adou: {trust: -1}}}
+        vers: po_2_princesse_ombre
+
+  - id: po_2_princesse_ombre
+    jalon: 2
+    jour: 110
+    carrefour: A
+    si: "metier == 'convoyeur_illicite'"
+    sinon: po_2_princesse_gars
+    lieu: "Yopougon, Rue Princesse"
+    moment: "Nuit de fin d'année"
+    objectif: "Le Baron t'offre une place : ta chance a une valeur marchande."
+    present: [baron, dabo]
+    savoir: "Tu sais maintenant qu'il y a un chef derrière le Quai. Tu ne l'avais jamais vu."
+    dialogue:
+      - {narr: "Champagne, sono, odeur de poisson braisé. Les trois clans, Syndicat, Ordre et Jet-Set, partagent le même trottoir. Quelqu'un te met un costume neuf entre les mains."}
+      - {qui: baron, dit: "On dit que ta chance est légendaire. Reste près de moi, petit. Un homme qui gagne, ça fait gagner les autres."}
+      - {qui: dabo, dit: "Dis oui. On ne propose pas deux fois."}
+    choix:
+      - id: porte_bonheur
+        l: "Devenir son porte-bonheur"
+        intention: "L'argent, le costume, la protection"
+        cout: "Tu appartiens au réseau ; tu ne dormiras plus avec Gnamien."
+        vu_par: [ombre]
+        eff:
+          compromission: 3
+          argent: 50000
+          flags: [porte_bonheur]
+          factions: {ombre: {reputation: 2, alliance: true}}
+          relations: {baron: {trust: 2}, gnamien: {trust: -1}}
+        vers: po_2_joute
+      - id: pied_dehors
+        l: "Prendre l'argent mais garder un pied dehors"
+        intention: "Profiter sans t'engager"
+        cout: "Le Baron note que tu as hésité."
+        vu_par: [ombre]
+        eff: {compromission: 1, argent: 20000, relations: {baron: {peur: 1}}}
+        vers: po_2_joute
+      - id: rendre_costume
+        l: "Rendre le costume et rentrer au hangar"
+        intention: "Refuser"
+        cout: "Dabo ne l'oubliera pas."
+        vu_par: [ombre]
+        eff: {compromission: -3, relations: {gnamien: {trust: 2}, baron: {peur: 2}}, factions: {ombre: {exposition: 1}}}
+        vers: po_2_joute
+
+  - id: po_2_princesse_gars
+    jalon: 2
+    jour: 110
+    carrefour: A
+    si: "flags.dette_dabo"
+    sinon: po_2_princesse_marche
+    lieu: "Yopougon, Rue Princesse"
+    moment: "Nuit de fin d'année"
+    objectif: "Entre-deux : le Quai te reconnaît, Tantie Zéphyrine te regarde."
+    present: [dabo, zephyrine]
+    savoir: "Tu as veillé une nuit pour le Quai. On ne te laisse plus faire comme si de rien n'était."
+    dialogue:
+      - {qui: dabo, dit: "Voilà le chanceux ! Un verre pour lui. Il a la main propre, celui-là, il sait se taire."}
+      - {narr: "De l'autre côté du maquis, Tantie Zéphyrine pose son plateau de bananes. Elle ne sourit pas."}
+    choix:
+      - id: retour
+        l: "Retourner auprès de Tantie Zéphyrine"
+        intention: "Reprendre ta place au marché"
+        cout: "Dabo t'a vu choisir."
+        vu_par: [ombre]
+        eff: {compromission: -1, relations: {zephyrine: {trust: 1}}, flags_off: [dette_dabo]}
+        vers: po_2_joute
+      - id: quai
+        l: "Continuer avec le Quai, l'argent est bon"
+        intention: "Ne pas te fâcher avec Dabo"
+        cout: "Zéphyrine tourne la tête."
+        vu_par: [ombre]
+        eff: {compromission: 2, relations: {dabo: {trust: 1}, zephyrine: {trust: -1}}, flags: [quai_loyal]}
+        vers: po_2_joute
+
+  - id: po_2_princesse_marche
+    jalon: 2
+    jour: 110
+    carrefour: A
+    lieu: "Yopougon, Rue Princesse"
+    moment: "Nuit de fin d'année"
+    objectif: "Rue Princesse vue d'en bas : tu portes les caisses de ceux qui font la fête."
+    present: [zephyrine, fatou, dabo]
+    savoir: "Tu portes les caisses de Tantie Zéphyrine. Un des hommes au bar travaille pour le Baron."
+    dialogue:
+      - {qui: zephyrine, dit: "Porte droit, mon fils. Ce soir tout le monde est de bonne humeur, mais les mains se serrent plus vite qu'elles ne paient."}
+      - {narr: "Au comptoir, la journaliste Fatou Bamba te sourit et fait signe d'approcher. À côté, un homme en costume rit un peu trop fort."}
+      - {qui: fatou, dit: "On m'a dit que tu dormais au hangar d'Adjamé. Les camions de nuit, tu les as vus passer ?"}
+    choix:
+      - id: parler_fatou
+        l: "Raconter les camions de nuit à Fatou"
+        intention: "Dire la vérité"
+        cout: "L'homme du Baron a peut-être entendu."
+        vu_par: [ombre]
+        eff: {compromission: -2, relations: {fatou: {trust: 2, fait: source_fiable}}, flags: [a_parle], factions: {ombre: {exposition: 1}}}
+        vers: po_2_joute
+      - id: serrer_main
+        l: "Serrer la main de l'homme du Baron, qui sourit trop"
+        intention: "Ouvrir une porte utile"
+        cout: "Tu t'inscris dans son carnet."
+        vu_par: [ombre]
+        eff: {compromission: 3, factions: {ombre: {reputation: 2}}, relations: {baron: {trust: 1}}, flags: [porte_bonheur]}
+        vers: po_2_joute
+      - id: association
+        l: "Proposer à Tantie Zéphyrine une association d'étals (5 000 F de cotisation)"
+        intention: "Protéger le marché ensemble"
+        cout: "5 000 F, et Dabo verra ce que tu fais."
+        si: "metier == 'manoeuvre_marche' and argent >= 5000"
+        vu_par: [ombre]
+        eff: {argent: -5000, flags: [association_etals], relations: {zephyrine: {trust: 2, fait: protegee}}, factions: {ombre: {exposition: 1}}}
+        vers: po_2_joute
+
+  - id: po_2_joute
+    jalon: 2
+    jour: 265
+    si: "ecole == 'lycee_classique'"
+    sinon: po_3_crue_ombre
+    lieu: "Cocody, Lycée Classique, grande salle"
+    moment: "Fin mai, épreuve spéciale"
+    objectif: "Épreuve spéciale du Classique : la joute d'éloquence, condition du badge Caïman."
+    present: [adou]
+    savoir: "Un jury d'anciens élèves écoute. Réussir l'épreuve est l'une des trois conditions du badge."
+    dialogue:
+      - {narr: "Les anciens du Classique sont assis en rang : un ministre à la retraite, un banquier, un journaliste. Ils t'attendent."}
+      - {qui: adou, dit: "Parle de ce que tu connais. Tu as dormi dans un hangar, ça te donne un sujet."}
+    choix:
+      - id: parler_hangar
+        l: "Parler du hangar, des camions et du quartier"
+        intention: "Une épreuve vraie, au risque de t'exposer"
+        cout: "Tout le monde saura ce que tu as vu."
+        vu_par: [ombre]
+        eff: {competences: {eloquence: 1}, flags: [joute_publique], compromission: -1, factions: {ombre: {exposition: 1}}}
+        tirage:
+          difficulte: 3
+          modificateurs: [{si: "skills.eloquence >= 1", valeur: 10}]
+          issues:
+            miracle: {vers: po_3_crue_ombre, eff: {scolarite: {epreuve: reussie}, relations: {adou: {trust: 1}}}, txt: "La salle se tait puis applaudit longtemps. Le ministre retraité te serre la main."}
+            normal: {vers: po_3_crue_ombre, eff: {scolarite: {epreuve: reussie}}, txt: "Le jury hoche la tête : un discours sans fard, maladroit mais juste."}
+            mauvaise: {vers: po_3_crue_ombre, eff: {scolarite: {epreuve: ratee}}, txt: "Tes mains tremblent, ta voix casse au milieu d'une phrase. Le président du jury note quelque chose sans te regarder."}
+      - id: classique
+        l: "Réciter un grand classique appris par cœur"
+        intention: "Jouer la sécurité"
+        cout: "Tu ne diras rien de toi."
+        eff: {competences: {eloquence: 1}}
+        tirage:
+          difficulte: 6
+          issues:
+            miracle: {vers: po_3_crue_ombre, eff: {scolarite: {epreuve: reussie}}, txt: "Tu récites sans accroc ; le jury sourit, flatté."}
+            normal: {vers: po_3_crue_ombre, eff: {scolarite: {epreuve: reussie}}, txt: "C'est correct, rien de plus."}
+            mauvaise: {vers: po_3_crue_ombre, eff: {scolarite: {epreuve: ratee}}, txt: "Tu perds le fil au troisième vers. Le silence dure."}
+      - id: forfait
+        l: "Déclarer forfait : tu n'as pas le cœur à ça"
+        intention: "Éviter l'humiliation"
+        cout: "Pas de badge Caïman."
+        eff: {scolarite: {epreuve: ratee}}
+        vers: po_3_crue_ombre
+
+  - id: po_3_crue_ombre
+    jalon: 3
+    jour: 281
+    carrefour: B
+    si: "compromission >= 3"
+    sinon: po_3_crue_hangar
+    lieu: "Adjamé, hangar"
+    moment: "Nuit de la crue"
+    objectif: "Tu es du côté de ceux qui sortent les caisses : la crue force ton choix."
+    present: [dabo, gnamien]
+    savoir: "Tu sais quelles caisses contiennent des armes. Gnamien, lui, a tout compris."
+    dialogue:
+      - {narr: "L'eau monte depuis le caniveau. Les hommes du Baron sortent les caisses sous l'orage, torches coupées, sans un mot."}
+      - {qui: dabo, dit: "Surveille la route. Si un flic passe, tu siffles. Si le vieux parle, tu le fais taire."}
+      - {narr: "Dans l'ombre d'un étal, Gnamien te regarde. Il ne dit rien. Il a peur de toi."}
+    choix:
+      - id: surveiller
+        l: "Surveiller la manœuvre sans bouger"
+        intention: "Ne pas te faire remarquer"
+        cout: "Gnamien comprend ce que tu es devenu."
+        vu_par: [ombre]
+        eff: {compromission: 2, factions: {ombre: {reputation: 1}}, relations: {gnamien: {trust: -2}}}
+        vers: po_4_descente_ombre
+      - id: cacher_gnamien
+        l: "Cacher Gnamien dans le marché, avant qu'on ne le trouve"
+        intention: "Le protéger au risque de te démasquer"
+        cout: "Dabo apprendra que tu as désobéi."
+        vu_par: [ombre]
+        eff:
+          compromission: -3
+          sante: -10
+          flags: [sauve_gnamien]
+          relations: {gnamien: {trust: 3, fait: sauve_crue}, dabo: {peur: 1}}
+          factions: {ombre: {exposition: 2}}
+        vers: po_4_descente_ombre
+      - id: filmer_ombre
+        l: "Filmer les caisses avec le vieux téléphone de Gnamien"
+        intention: "Garder une preuve"
+        cout: "Si on te voit, tu es mort."
+        eff: {compromission: -1, flags: [filme], preuves: {film_caisses: {action: obtenir}}, relations: {baron: {trust: -2}}}
+        tirage:
+          difficulte: 5
+          issues:
+            miracle: {vers: po_4_descente_ombre, txt: "La vidéo est nette, personne ne t'a vu."}
+            normal: {vers: po_4_descente_ombre, txt: "L'image est floue mais exploitable."}
+            mauvaise: {vers: po_4_descente_ombre, eff: {sante: -10, relations: {dabo: {peur: 2}}}, txt: "Un éclair te trahit ; Dabo te saisit le bras : « On en reparlera. »"}
+
+  - id: po_3_crue_hangar
+    jalon: 3
+    jour: 281
+    carrefour: B
+    lieu: "Adjamé, hangar"
+    moment: "Nuit de la crue"
+    objectif: "Tu es du côté des victimes : la crue force un choix entre un homme et une preuve."
+    present: [gnamien]
+    savoir: "Les caisses marquées flottent. Tu comprends ce qu'il y a dedans. Gnamien est coincé."
+    dialogue:
+      - {narr: "Le sol du hangar cède comme du pain mouillé. Un pan de tôle s'abat. Gnamien est coincé sous un poteau, l'eau à la poitrine."}
+      - {qui: gnamien, dit: "Va-t'en, petit ! Toi, tu as ta vie ! Les caisses, regarde, les caisses !"}
+      - {narr: "Dans le courant, des caisses marquées d'une croix rouge flottent. Une s'est ouverte : tu vois le métal."}
+    choix:
+      - id: sauver
+        l: "Sauver Gnamien à tout prix (l'eau peut vous emporter tous les deux)"
+        intention: "Ne pas laisser un homme se noyer"
+        cout: "Tu risques ta santé et tu perds l'occasion de filmer."
+        eff: {compromission: -2, flags: [sauve_gnamien], relations: {gnamien: {trust: 3, fait: sauve_crue}}, energie: -25}
+        tirage:
+          difficulte: 5
+          issues:
+            miracle: {vers: po_4_descente_temoin, eff: {etoile_mod: {valeur: 5, jours: 30}}, txt: "Le poteau cède comme s'il t'attendait. Gnamien est dehors, toussant, vivant ; tu n'as pas une égratignure."}
+            normal: {vers: po_4_descente_temoin, eff: {sante: -15}, txt: "Tu le sors, vous êtes tous les deux couverts de boue, les poumons en feu."}
+            mauvaise: {vers: po_4_descente_temoin, eff: {sante: -30}, txt: "Le courant vous projette contre un mur. Gnamien est sauvé mais tu as la cage thoracique en feu. Le docteur Sanogo te soignera à l'aube."}
+      - id: filmer
+        l: "Filmer les caisses pour Fatou avant de fuir (Gnamien restera seul)"
+        intention: "Une preuve qui peut sauver tout le quartier"
+        cout: "Gnamien le saura. Tu ne le verras peut-être plus."
+        eff: {compromission: -2, flags: [filme], preuves: {film_caisses: {action: obtenir}}, relations: {gnamien: {trust: -3}}}
+        vers: po_4_descente_temoin
+
+  - id: po_4_descente_temoin
+    jalon: 4
+    jour: 283
+    carrefour: C
+    si: "compromission < 2"
+    sinon: po_4_descente_ombre
+    lieu: "Adjamé, aube"
+    moment: "Descente de police"
+    objectif: "Un témoin est cherché : on te regarde, toi qui as dormi au hangar."
+    present: [aya, fatou, gnamien]
+    savoir: "Aya Coulibaly n'a pas de mandat. Elle ne peut pas te protéger si tu parles."
+    dialogue:
+      - {narr: "Les gyrophares éclairent l'eau sale. Des policiers ceinturent le hangar. Une femme sans uniforme s'avance."}
+      - {qui: aya, dit: "Lieutenante Aya Coulibaly, PLCC. Il me faut un témoin. Je ne vais pas te mentir : je n'ai pas de mandat, donc pas de protection garantie. Si tu parles, c'est toi qui décides."}
+      - {qui: fatou, dit: "Ce que tu as vu ne sert à rien si personne ne l'entend. Je peux le dire à la radio. Mais je ne suis pas la police."}
+    choix:
+      - id: temoigner
+        l: "Témoigner devant Aya"
+        intention: "Dire ce que tu as vu"
+        cout: "Aya ne peut pas te protéger sans mandat."
+        vu_par: [ordre]
+        eff: {compromission: -3, flags: [temoin], relations: {aya: {trust: 3}}, factions: {ordre: {reputation: 2}}}
+        vers: po_4_bac
+      - id: donner_film
+        l: "Remettre ta vidéo à Fatou pour la radio"
+        intention: "Faire savoir"
+        cout: "La vidéo sera attaquée par les avocats du Baron."
+        si: "preuves.film_caisses == 'detenue'"
+        eff: {relations: {fatou: {trust: 2}}, preuves: {film_caisses: {action: transmettre, a: fatou}}}
+        vers: po_4_bac
+      - id: donner_registre
+        l: "Remettre le cahier de Gnamien à Aya"
+        intention: "Une preuve que les avocats ne contesteront pas"
+        cout: "Gnamien sera exposé comme source."
+        si: "preuves.registre_gnamien == 'detenue'"
+        vu_par: [ordre]
+        eff: {compromission: -2, flags: [temoin, protection_aya], relations: {aya: {trust: 2}, gnamien: {trust: 1}}, factions: {ordre: {reputation: 2}}, preuves: {registre_gnamien: {action: transmettre, a: aya}}}
+        vers: po_4_bac
+      - id: se_taire
+        l: "Te taire pour rester en vie"
+        intention: "Survivre"
+        cout: "Tu portes ça à vie."
+        eff: {compromission: 1}
+        vers: po_4_bac
+
+  - id: po_4_descente_ombre
+    jalon: 4
+    jour: 283
+    carrefour: C
+    lieu: "Adjamé, aube"
+    moment: "Descente de police"
+    objectif: "Le Baron te pousse devant : ta chance est son bouclier. Ta loyauté se paie."
+    present: [baron, aya]
+    savoir: "Aya n'a pas de mandat. Si tu parles, personne ne te garantit rien."
+    dialogue:
+      - {qui: baron, dit: "Avance, petit. Ta chance, c'est mon bouclier. Si ça tourne mal, tu es celui qu'on regarde."}
+      - {qui: aya, dit: "Lieutenante Coulibaly, PLCC. Je n'ai pas de mandat, donc je ne peux pas te promettre de protection. Mais si tu parles, tu seras entendu."}
+    choix:
+      - id: trahir
+        l: "Trahir le Baron et parler (Aya n'a pas de mandat : le risque est réel)"
+        intention: "Briser ta dette"
+        cout: "Le Baron ne pardonne pas."
+        vu_par: [ordre, ombre]
+        eff: {compromission: -4, flags: [temoin, trahi_baron], relations: {aya: {trust: 2}, baron: {trust: -5, peur: 3}, dabo: {trust: -3}}, factions: {ordre: {reputation: 2}, ombre: {reputation: -3}}}
+        tirage:
+          difficulte: 6
+          issues:
+            miracle: {vers: po_4_bac, eff: {flags: [protection_aya]}, txt: "Aya intercède : un magistrat, qu'elle avait prévenu en secret, accepte de te placer sous protection."}
+            normal: {vers: po_4_bac, eff: {flags: [sans_protection]}, txt: "Aya note ton témoignage. Elle n'a pas de mandat pour te protéger, et le dit avec honnêteté."}
+            mauvaise: {vers: po_4_bac, eff: {flags: [sans_protection], relations: {baron: {peur: 2}}}, txt: "Un policier du commissaire Yao prévient discrètement le Baron avant même que tu sois sorti."}
+      - id: registre_ombre
+        l: "Remettre le cahier de Gnamien à Aya (preuve écrite, mais le Baron saura qui l'a donné)"
+        intention: "Une preuve que les avocats ne contesteront pas"
+        cout: "Tu rompras définitivement avec le Baron."
+        si: "preuves.registre_gnamien == 'detenue'"
+        vu_par: [ordre, ombre]
+        eff: {compromission: -4, flags: [temoin, trahi_baron, protection_aya], relations: {aya: {trust: 2}, gnamien: {trust: 1}, baron: {trust: -5, peur: 2}}, factions: {ordre: {reputation: 2}, ombre: {reputation: -3}}, preuves: {registre_gnamien: {action: transmettre, a: aya}}}
+        vers: po_4_bac
+      - id: loyal
+        l: "Rester loyal au Baron"
+        intention: "Garder ta place"
+        cout: "Gnamien ne te parlera plus."
+        vu_par: [ombre]
+        eff: {compromission: 2, relations: {baron: {trust: 2}}, factions: {ombre: {reputation: 1}}}
+        vers: po_4_bac
+      - id: fuir
+        l: "Profiter de la confusion pour disparaître dans le marché"
+        intention: "Ne choisir aucun camp"
+        cout: "Tu perds tout : toit, argent, protection."
+        eff: {compromission: -1, argent: -5000, relations: {baron: {peur: 1}}}
+        vers: po_4_bac
+
+  - id: po_4_bac
+    jalon: 4
+    jour: 288
+    si: "ecole == 'lycee_classique'"
+    sinon: po_5_ceremonie
+    lieu: "Cocody, Lycée Classique"
+    moment: "Épreuves écrites du baccalauréat"
+    objectif: "Le bac : la moyenne dépend de tes études, de ta fatigue et, un peu, de ton Étoile."
+    present: [adou]
+    savoir: "Il te faut une moyenne de 10 pour le bac. Pour le badge Caïman : mention Très Bien, aucun trimestre manqué et la joute réussie."
+    dialogue:
+      - {narr: "Cinq jours après la descente, tu es assis dans une salle d'examen, le dos encore douloureux de la nuit de la crue."}
+      - {qui: adou, dit: "On a tous les deux les yeux creux. Écris, c'est tout."}
+    choix:
+      - id: passer_veille
+        l: "Passer le bac en révisant la nuit d'avant"
+        intention: "Maximiser tes chances"
+        cout: "Tu es épuisé."
+        eff: {energie: -15, scolarite: {bac: {mod: 1}}}
+        vers: po_5_ceremonie
+      - id: passer
+        l: "Passer le bac tel que tu es"
+        intention: "Faire de ton mieux"
+        cout: "Aucun."
+        eff: {scolarite: {bac: {mod: 0}}}
+        vers: po_5_ceremonie
+
+  - id: po_5_ceremonie
+    jalon: 5
+    jour: 304
+    denouement: true
+    lieu: "Bord de la lagune, première pierre"
+    moment: "Cérémonie d'inauguration"
+    objectif: "Dire ce que tu es devenu face au quartier à moitié vrai."
+    present: [gnamien, zephyrine, baron, fatou, aya]
+    savoir: "Tu sais ce que tu as fait ; chacun sait ce qu'il a vu."
+    dialogue:
+      - {narr: "Le Maire coupe le ruban d'un quartier à moitié vrai. Les caméras tournent. Derrière les barrières, ceux qu'on a déplacés regardent."}
+      - {qui: fatou, dit: "Alors, le chanceux ? Qu'est-ce que tu veux qu'on dise de toi ?"}
+
+fins:
+  - id: po_f_lum
+    type: lumiere
+    priorite: 2
+    si: "flags.temoin and compromission <= -3 and preuves.registre_gnamien == 'transmise'"
+    titre: "Élu de la Providence"
+    resume: "Ta chance sert enfin les autres."
+    epilogue:
+      - {txt: "Le cahier de Gnamien ouvre trois enquêtes : les plaques de tous les camions sont devant le juge."}
+      - {si: "relations.gnamien.faits.sauve_crue", txt: "Gnamien, appuyé sur ton épaule, assiste à l'audience. Tu l'as sorti de l'eau ; il t'a sorti du silence."}
+      - {si: "scolarite.bac_passe and diplomes.bac", txt: "Le bac en poche, tu ouvres un petit commerce honnête : ton nom circule à Adjamé."}
+      - {si: "badges.caiman", txt: "Le badge Caïman brille à ton revers : même les ministères t'ouvrent la porte."}
+      - {txt: "Ce n'est pas gratuit : tu as perdu ta tranquillité, et le Baron n'a pas fini de te chercher."}
+  - id: po_f_ombre
+    type: ombre
+    priorite: 3
+    si: "compromission >= 5 and flags.porte_bonheur"
+    titre: "Le Porte-Bonheur du Baron"
+    resume: "Ton Étoile finance l'empire."
+    epilogue:
+      - {txt: "Tu manges à ta faim, tu portes des costumes neufs. Le Baron ne te lâche plus d'une semelle."}
+      - {si: "relations.gnamien.trust <= 0", txt: "Gnamien ne te parle plus, et tu fais semblant de ne pas t'en apercevoir."}
+      - {txt: "Tu ne dors plus. Ta chance appartient à un autre ; sans elle, tu ne vaux plus rien."}
+  - id: po_f_entre
+    type: entre_deux
+    priorite: 5
+    si: "true"
+    titre: "La Chance en Sursis"
+    resume: "Un toit, un métier, un secret trop lourd."
+    epilogue:
+      - {txt: "Tu as un toit et un métier. Chaque jour, tu te demandes quelle part de ta chance appartient encore à toi."}
+      - {si: "scolarite.bac_passe and diplomes.bac", txt: "Ton bac est ton seul vrai bien : personne ne te l'a donné."}
+      - {si: "not flags.temoin", txt: "Tu n'as rien dit, ni à Aya ni à Fatou. Ton Étoile baisse doucement."}
+      - {si: "flags.temoin", txt: "Tu as parlé, mais sans preuve irréfutable : l'affaire s'enlise, et tu vis avec."}
+  - id: po_f_trag
+    type: tragique
+    priorite: 1
+    imposee: true
+    si: "flags.trahi_baron and flags.sans_protection"
+    titre: "Le Dernier Pari"
+    resume: "Tu as parlé sans protection."
+    epilogue:
+      - {txt: "Le jour de la cérémonie, ta chance lâche. Le Baron n'a plus besoin de toi et te sait plus dangereux vivant."}
+      - {txt: "Aya t'avait prévenu : sans mandat, personne ne pouvait te protéger. Fin définitive."}
+  - id: po_f_secret
+    type: secrete
+    priorite: 0
+    si: "flags.association_etals and relations.gnamien.faits.sauve_crue and relations.zephyrine.trust >= 3 and compromission <= -1"
+    titre: "Le Marché de Gnamien"
+    resume: "Le hangar devient le marché du quartier."
+    epilogue:
+      - {txt: "Le hangar est rouvert, réparé à la main par l'association des étals de Tantie Zéphyrine."}
+      - {txt: "Gnamien en est le gardien officiel, et on y organise des révisions du soir pour les enfants du quartier."}
+      - {si: "scolarite.bac_passe", txt: "Adou y donne des cours de soutien. Le bac que tu as décroché est affiché au mur, à côté du sien."}
+      - {txt: "L'Étoile la plus brillante est celle qu'on partage."}

@@ -1,0 +1,39 @@
+# Fiches des personnages propres au destin « La Ligne Directe 504 » (sans fiche maître dans personnages.yaml).
+mariam:
+  nom: "Mariam"
+  age: 38
+  role: "Vendeuse de pagnes au marché de Koumassi et trésorière de la tontine des marchandes ; ta passagère de six heures et demie."
+  objectif: "Obtenir une ligne directe Koumassi-Adjamé, sans racket, pour les marchandes de sa tontine ; mettre son frère Lassina à l'abri."
+  methode: "Tient les comptes au centime, dit les choses en face avec de l'humour, ne prête qu'à ceux qui lui ont déjà prouvé quelque chose."
+  tics: ["« mon chauffeur »", "« le compte est bon »"]
+  limites: ["Aucun pouvoir sur le Syndicat des Transporteurs", "La tontine ne couvre qu'une voiture ou la reconstruction des étals, pas les deux"]
+  relations: {lassina: "frère cadet, qu'elle protège sans toujours le comprendre", kader: "connaît sa ligne depuis dix ans, s'en méfie quand il parle de Gbé"}
+  savoir: ["Qui monte dans quelle voiture, à quelle heure, sur toute la ligne de Koumassi", "Que son frère Lassina conduit des camions de chantier de nuit pour un sous-traitant (elle ignore la cargaison)"]
+  secret: "Elle a promis aux marchandes de la tontine une ligne directe avant la fin de l'année et n'a pas encore l'argent : elle compte sur toi pour que la promesse tienne."
+  offre: ["La caisse de la tontine (de quoi financer une ligne)", "Des passagères fidèles qui paient à l'heure", "Un regard sur la ville côté marchés"]
+  evolution: "Tenue informée → partenaire de la ligne directe, à la caisse. Menacée ou trahie → elle monte dans la voiture d'un autre, puis dans celle du Syndicat."
+
+lassina:
+  nom: "Lassina"
+  age: 35
+  role: "Chauffeur de camion de chantier de nuit pour un sous-traitant de la Cité Lagune-Nord ; frère cadet de Mariam."
+  objectif: "Payer l'école de ses trois enfants et garder ce travail bien payé sans poser de questions."
+  methode: "Silencieux, polis avec tout le monde, conduit sans jamais regarder la cargaison."
+  limites: ["Peur de perdre son emploi", "Ne sait pas lire les codes marqués sur les caisses", "Sa sœur est son seul recours"]
+  savoir: ["Les horaires et le trajet de ses chargements de nuit", "Qu'on lui a dit « matériaux » alors qu'une caisse portait une croix rouge peinte à la main", "Qu'on lui a demandé de brûler un bordereau de chargement"]
+  secret: "Il a gardé un bordereau de chargement qu'on lui a demandé de détruire."
+  offre: ["Un bordereau de chargement signé (preuve écrite)", "Un témoignage de chauffeur à chauffeur"]
+  evolution: "Sorti de l'eau à la crue → remet le bordereau et témoigne. Abandonné → se tait, ou disparaît des chargements sans un mot."
+
+kader:
+  nom: "Kader"
+  age: 44
+  role: "Chauffeur-doyen de la ligne Koumassi-Adjamé et délégué de ligne du Syndicat des Transporteurs."
+  objectif: "Garder sa place de délégué et obtenir une licence de ligne dans la Cité Lagune-Nord."
+  methode: "Parraine les nouveaux, prête des pièces détachées, transmet les ordres de Gbé en les adoucissant."
+  tics: ["« petit frère »", "« on est ensemble »"]
+  limites: ["Dépend de Gbé pour tout ce qui compte", "Cotise lui-même et n'a pas d'économies"]
+  savoir: ["Qui cotise, qui ne cotise pas, à toute la gare", "Que les camions du chantier passent sur les routes du Syndicat sans que personne regarde dedans"]
+  secret: "Gbé lui verse chaque mois une petite somme pour « ne rien voir » quand des camions escortés passent par la gare de Koumassi."
+  offre: ["La protection du Syndicat (Gbé)", "Une présentation à Aya", "Des pièces et des conseils de métier"]
+  evolution: "Prévenu et soutenu → allié qui couvre ta ligne. Trahi → il t'oublie à la première descente. Il ne parlera jamais contre Gbé, mais il peut te laisser passer."

@@ -1,0 +1,441 @@
+{
+ "destin": "poignon",
+ "formule": "etoile-v1",
+ "fins": {
+  "po_f_entre": {
+   "chemin": [
+    {
+     "noeud": "po_0_hangar",
+     "choix": "aider",
+     "issue": "mauvaise"
+    },
+    {
+     "noeud": "po_0_aube",
+     "choix": "marche",
+     "issue": null
+    },
+    {
+     "noeud": "po_1_veille",
+     "choix": "accepter",
+     "issue": null
+    },
+    {
+     "noeud": "po_1_concours",
+     "choix": "tenter",
+     "issue": "mauvaise"
+    },
+    {
+     "noeud": "po_2_princesse_ombre",
+     "choix": "porte_bonheur",
+     "issue": null
+    },
+    {
+     "noeud": "po_3_crue_ombre",
+     "choix": "surveiller",
+     "issue": null
+    },
+    {
+     "noeud": "po_4_descente_ombre",
+     "choix": "trahir",
+     "issue": "miracle"
+    }
+   ],
+   "fin": "po_f_entre"
+  },
+  "po_f_trag": {
+   "chemin": [
+    {
+     "noeud": "po_0_hangar",
+     "choix": "aider",
+     "issue": "mauvaise"
+    },
+    {
+     "noeud": "po_0_aube",
+     "choix": "marche",
+     "issue": null
+    },
+    {
+     "noeud": "po_1_veille",
+     "choix": "accepter",
+     "issue": null
+    },
+    {
+     "noeud": "po_1_concours",
+     "choix": "tenter",
+     "issue": "mauvaise"
+    },
+    {
+     "noeud": "po_2_princesse_ombre",
+     "choix": "porte_bonheur",
+     "issue": null
+    },
+    {
+     "noeud": "po_3_crue_ombre",
+     "choix": "surveiller",
+     "issue": null
+    },
+    {
+     "noeud": "po_4_descente_ombre",
+     "choix": "trahir",
+     "issue": "mauvaise"
+    }
+   ],
+   "fin": "po_f_trag"
+  },
+  "po_f_ombre": {
+   "chemin": [
+    {
+     "noeud": "po_0_hangar",
+     "choix": "aider",
+     "issue": "mauvaise"
+    },
+    {
+     "noeud": "po_0_aube",
+     "choix": "marche",
+     "issue": null
+    },
+    {
+     "noeud": "po_1_veille",
+     "choix": "accepter",
+     "issue": null
+    },
+    {
+     "noeud": "po_1_concours",
+     "choix": "tenter",
+     "issue": "mauvaise"
+    },
+    {
+     "noeud": "po_2_princesse_ombre",
+     "choix": "porte_bonheur",
+     "issue": null
+    },
+    {
+     "noeud": "po_3_crue_ombre",
+     "choix": "surveiller",
+     "issue": null
+    },
+    {
+     "noeud": "po_4_descente_ombre",
+     "choix": "trahir",
+     "issue": "miracle"
+    }
+   ],
+   "fin": "po_f_ombre"
+  },
+  "po_f_lum": {
+   "chemin": [
+    {
+     "noeud": "po_0_hangar",
+     "choix": "aider",
+     "issue": "mauvaise"
+    },
+    {
+     "noeud": "po_0_aube",
+     "choix": "marche",
+     "issue": null
+    },
+    {
+     "noeud": "po_1_veille",
+     "choix": "accepter",
+     "issue": null
+    },
+    {
+     "noeud": "po_1_concours",
+     "choix": "tenter",
+     "issue": "mauvaise"
+    },
+    {
+     "noeud": "po_2_princesse_ombre",
+     "choix": "rendre_costume",
+     "issue": null
+    },
+    {
+     "noeud": "po_3_crue_hangar",
+     "choix": "sauver",
+     "issue": "miracle"
+    },
+    {
+     "noeud": "po_4_descente_temoin",
+     "choix": "donner_registre",
+     "issue": null
+    }
+   ],
+   "fin": "po_f_lum"
+  },
+  "po_f_secret": {
+   "chemin": [
+    {
+     "noeud": "po_0_hangar",
+     "choix": "aider",
+     "issue": "mauvaise"
+    },
+    {
+     "noeud": "po_0_aube",
+     "choix": "marche",
+     "issue": null
+    },
+    {
+     "noeud": "po_1_veille",
+     "choix": "refuser",
+     "issue": null
+    },
+    {
+     "noeud": "po_1_concours",
+     "choix": "tenter",
+     "issue": "mauvaise"
+    },
+    {
+     "noeud": "po_2_princesse_marche",
+     "choix": "association",
+     "issue": null
+    },
+    {
+     "noeud": "po_3_crue_hangar",
+     "choix": "sauver",
+     "issue": "miracle"
+    },
+    {
+     "noeud": "po_4_descente_temoin",
+     "choix": "temoigner",
+     "issue": null
+    }
+   ],
+   "fin": "po_f_secret"
+  }
+ },
+ "extremes": {
+  "compromission_max": {
+   "valeur": 10,
+   "chemin": [
+    {
+     "noeud": "po_0_hangar",
+     "choix": "aider",
+     "issue": "miracle"
+    },
+    {
+     "noeud": "po_0_liasse",
+     "choix": "rendre",
+     "issue": null
+    },
+    {
+     "noeud": "po_0_aube",
+     "choix": "marche",
+     "issue": null
+    },
+    {
+     "noeud": "po_1_veille",
+     "choix": "accepter",
+     "issue": null
+    },
+    {
+     "noeud": "po_1_concours",
+     "choix": "tenter",
+     "issue": "miracle"
+    },
+    {
+     "noeud": "po_2_princesse_ombre",
+     "choix": "porte_bonheur",
+     "issue": null
+    },
+    {
+     "noeud": "po_2_joute",
+     "choix": "classique",
+     "issue": "miracle"
+    },
+    {
+     "noeud": "po_3_crue_ombre",
+     "choix": "surveiller",
+     "issue": null
+    },
+    {
+     "noeud": "po_4_descente_ombre",
+     "choix": "loyal",
+     "issue": null
+    },
+    {
+     "noeud": "po_4_bac",
+     "choix": "passer_veille",
+     "issue": null
+    }
+   ]
+  },
+  "compromission_min": {
+   "valeur": -10,
+   "chemin": [
+    {
+     "noeud": "po_0_hangar",
+     "choix": "aider",
+     "issue": "miracle"
+    },
+    {
+     "noeud": "po_0_liasse",
+     "choix": "rendre",
+     "issue": null
+    },
+    {
+     "noeud": "po_0_aube",
+     "choix": "marche",
+     "issue": null
+    },
+    {
+     "noeud": "po_1_veille",
+     "choix": "refuser",
+     "issue": null
+    },
+    {
+     "noeud": "po_1_concours",
+     "choix": "tenter",
+     "issue": "miracle"
+    },
+    {
+     "noeud": "po_2_princesse_marche",
+     "choix": "parler_fatou",
+     "issue": null
+    },
+    {
+     "noeud": "po_2_joute",
+     "choix": "parler_hangar",
+     "issue": "miracle"
+    },
+    {
+     "noeud": "po_3_crue_hangar",
+     "choix": "sauver",
+     "issue": "miracle"
+    },
+    {
+     "noeud": "po_4_descente_temoin",
+     "choix": "temoigner",
+     "issue": null
+    },
+    {
+     "noeud": "po_4_bac",
+     "choix": "passer_veille",
+     "issue": null
+    }
+   ]
+  },
+  "sante_min": {
+   "valeur": 0,
+   "chemin": [
+    {
+     "noeud": "po_0_hangar",
+     "choix": "aider",
+     "issue": "miracle"
+    },
+    {
+     "noeud": "po_0_liasse",
+     "choix": "rendre",
+     "issue": null
+    },
+    {
+     "noeud": "po_0_aube",
+     "choix": "reviser",
+     "issue": null
+    },
+    {
+     "noeud": "po_1_veille",
+     "choix": "refuser",
+     "issue": null
+    },
+    {
+     "noeud": "po_1_concours",
+     "choix": "tenter",
+     "issue": "miracle"
+    },
+    {
+     "noeud": "po_2_princesse_marche",
+     "choix": "parler_fatou",
+     "issue": null
+    },
+    {
+     "noeud": "po_2_joute",
+     "choix": "parler_hangar",
+     "issue": "miracle"
+    },
+    {
+     "noeud": "po_3_crue_hangar",
+     "choix": "sauver",
+     "issue": "mauvaise"
+    },
+    {
+     "noeud": "po_4_descente_temoin",
+     "choix": "temoigner",
+     "issue": null
+    },
+    {
+     "noeud": "po_4_bac",
+     "choix": "passer_veille",
+     "issue": null
+    }
+   ]
+  },
+  "argent_max": {
+   "valeur": 865000,
+   "chemin": [
+    {
+     "noeud": "po_0_hangar",
+     "choix": "aider",
+     "issue": "miracle"
+    },
+    {
+     "noeud": "po_0_liasse",
+     "choix": "garder",
+     "issue": null
+    },
+    {
+     "noeud": "po_0_aube",
+     "choix": "marche",
+     "issue": null
+    },
+    {
+     "noeud": "po_1_veille",
+     "choix": "accepter",
+     "issue": null
+    },
+    {
+     "noeud": "po_1_concours",
+     "choix": "renoncer",
+     "issue": null
+    },
+    {
+     "noeud": "po_2_princesse_ombre",
+     "choix": "porte_bonheur",
+     "issue": null
+    },
+    {
+     "noeud": "po_3_crue_ombre",
+     "choix": "surveiller",
+     "issue": null
+    },
+    {
+     "noeud": "po_4_descente_ombre",
+     "choix": "trahir",
+     "issue": "miracle"
+    }
+   ]
+  }
+ },
+ "distribution_pct": {
+  "0": {
+   "po_f_entre": 76.1,
+   "po_f_trag": 14.6,
+   "po_f_ombre": 3.8,
+   "po_f_lum": 4.0,
+   "po_f_secret": 1.7
+  },
+  "50": {
+   "po_f_entre": 76.4,
+   "po_f_trag": 13.8,
+   "po_f_ombre": 4.1,
+   "po_f_lum": 3.9,
+   "po_f_secret": 1.8
+  },
+  "100": {
+   "po_f_entre": 77.7,
+   "po_f_trag": 11.8,
+   "po_f_ombre": 4.6,
+   "po_f_lum": 3.9,
+   "po_f_secret": 1.9
+  }
+ }
+}

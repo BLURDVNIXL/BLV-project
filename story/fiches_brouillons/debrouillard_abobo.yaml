@@ -1,0 +1,40 @@
+# Fiches propres au destin « L'Ascension d'Abobo Gare » (personnages sans fiche maître).
+# Gbé, Sékou, Fatou et Aya ont une fiche maître dans story/common/personnages.yaml.
+
+maman_awa:
+  nom: "Maman Awa"
+  age: 58
+  role: "Logeuse de la cour commune d'Abobo ; tient la tontine des voisins et vend du riz sauce devant sa porte."
+  objectif: "Que la cour tienne debout : la tôle, la pompe et les enfants à l'école."
+  methode: "Maternelle et pratique. Nourrit d'abord, questionne ensuite ; sait faire parler une cour entière sans élever la voix."
+  limites:
+    - "Ne quittera jamais la cour, même inondée"
+    - "Une moitié de ses locataires vit du Syndicat : elle ne peut pas se fâcher avec Gbé"
+    - "Ne prête qu'à ceux qui cotisent à la tontine"
+  tics: ["« petit »", "« la cour tient ceux qui la tiennent »"]
+  savoir:
+    - "Qui rentre à quelle heure dans la cour"
+    - "Que des vans sans nom passent la nuit à la gare (les chauffeurs le murmurent près du puits)"
+    - "Pas qui les envoie, ni ce qu'ils portent"
+  secret: "Elle a hypothéqué la cagnotte de la tontine pour payer la dalle de la cour ; si la crue passe, elle perd tout et ne l'avouera à personne."
+  offre: ["Un toit et un repas", "La tontine (une cagnotte de départ)", "Dix voisins prêts à cotiser pour un gbaka, si on le lui demande bien"]
+  evolution: "Si tu rejoins la tontine et sauves la cour : elle devient le premier pilier d'une coopérative. Si tu passes devant elle sans t'arrêter la nuit de la crue : elle te ferme sa porte, poliment, pour de bon."
+
+kader:
+  nom: "Kader"
+  age: 46
+  role: "Chauffeur du Syndicat sur la ligne Abobo–Adjamé ; ton formateur à la monnaie et au volant."
+  objectif: "Garder sa ligne, nourrir ses quatre enfants et te transmettre le métier avant que les vans de nuit ne le dégoûtent de la gare."
+  methode: "Taciturne, pédagogue par l'exemple. Tient depuis onze ans un carnet de ligne : heures, plaques, recettes."
+  limites:
+    - "Ne dénoncera jamais Gbé sans garantie pour sa famille"
+    - "Ne supporte pas qu'on touche à son carnet sans le lui demander"
+    - "Sa paie dépend de la craie de Gbé"
+  tics: ["« Un gbaka sans carnet, c'est un homme sans mémoire »"]
+  savoir:
+    - "Chaque rotation de la ligne et chaque plaque, depuis onze ans"
+    - "Que des vans sans craie passent le portail du fond la nuit"
+    - "Pas l'identité de Sékou, ni ce que contiennent les caisses"
+  secret: "Gbé a payé l'hôpital de son fils : depuis, certaines nuits, il conduit un van sans demander ce qu'il porte, et il en a honte."
+  offre: ["Le volant", "Le carnet de ligne (s'il te fait confiance)", "Un mot pour l'inscription au CFP de Treichville"]
+  evolution: "Traité franchement, il confie le carnet et te suit dans la coopérative. Copié en douce, il se ferme. Exposé par un témoignage sans son accord, il perd sa ligne et ne te le pardonne pas."

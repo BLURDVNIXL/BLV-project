@@ -1,0 +1,97 @@
+destin: brouteur
+titre: "Le Gayman et la PLCC"
+rarete: legendaire
+depart: {camp: ombre, cur: 6, logement: studio_clim_yopougon, argent: 350000, metier: brouteur_cyber, ecole: aucune, diplomes: [bac], etoile: 45}
+cercle:
+  - {id: mimi, nom: "Mimi, ta compagne", rel: proche}
+  - {id: jo, nom: "Jo, ton complice", rel: faction}
+  - {id: aya, nom: "Lieutenante Aya Coulibaly (PLCC)", rel: rival}
+  - {id: fatou, nom: "Fatou Bamba", rel: allie}
+noeuds:
+  - id: br_n0
+    ch: 0
+    lieu: "Yopougon, studio climatise"
+    txt: "iPhone dernier cri, champagne au maquis. Mimi t'aime sans savoir d'ou vient l'argent. Jo t'envoie un message : « On prepare un gros coup. » A la radio, Cite Lagune-Nord."
+    choix:
+      - {l: "Inviter Mimi a diner", eff: {lien: {mimi: 2}}, vers: br_n1}
+      - {l: "Preparer le coup avec Jo", eff: {cur: 1, lien: {jo: 1}}, vers: br_n1}
+  - id: br_n1
+    ch: 1
+    lieu: "Yopougon, studio"
+    txt: "Un contact te previent : la PLCC remonte tes adresses. Mimi, elle, a trouve ton deuxieme telephone."
+    choix:
+      - {l: "Continuer et brouiller les pistes", eff: {cur: 2, lien: {mimi: -2}}, vers: br_n2o}
+      - {l: "Couper et tout avouer a Mimi", eff: {cur: -2, lien: {mimi: 2}}, vers: br_n2p}
+      - {l: "Un dernier coup, puis tu arretes", eff: {cur: 1, argent: 150000}, tirage: {normal: br_n2g, mauvaise: br_n2o, miracle: br_n2p}}
+  - id: br_n2o
+    ch: 2
+    carrefour: A
+    lieu: "Yopougon, Rue Princesse"
+    txt: "Le Baron : « Un petit qui sait faire disparaitre l'argent sur les ecrans, voila un homme precieux. »"
+    choix:
+      - {l: "Devenir son cyber-comptable", eff: {cur: 3, faction: {ombre: 2}}, vers: br_n3o}
+      - {l: "Refuser, tu veux garder ta liberte", eff: {cur: -2}, vers: br_n3p}
+  - id: br_n2p
+    ch: 2
+    carrefour: A
+    lieu: "Yopougon, Rue Princesse"
+    txt: "Aya t'attend a la sortie du maquis : « Un coup de main contre le Baron, et on oublie ton dossier. »"
+    choix:
+      - {l: "Devenir son indicateur", eff: {cur: -2, lien: {aya: 2}, faction: {ordre: 1}, flag: indic}, vers: br_n3p}
+      - {l: "Avouer tes torts a la radio de Fatou", eff: {cur: -2, lien: {fatou: 2}}, vers: br_n3p}
+  - id: br_n2g
+    ch: 2
+    carrefour: A
+    lieu: "Yopougon, Rue Princesse"
+    txt: "Le dernier coup a marche. Jo veut recommencer. Mimi t'ecoute avec des yeux tristes."
+    choix:
+      - {l: "Arreter vraiment", eff: {cur: -2, lien: {mimi: 1}}, vers: br_n3p}
+      - {l: "Recommencer", eff: {cur: 2}, vers: br_n3o}
+  - id: br_n3o
+    ch: 3
+    carrefour: B
+    lieu: "Yopougon inonde"
+    txt: "Crue. Le Baron te demande de deplacer des fonds immediatement."
+    choix:
+      - {l: "Deplacer les fonds", eff: {cur: 3}, vers: br_n4o}
+      - {l: "Rediriger les fonds vers les secours aux sinistres", eff: {cur: -3, flag: detourne_secours}, vers: br_n4p}
+  - id: br_n3p
+    ch: 3
+    carrefour: B
+    lieu: "Yopougon inonde"
+    txt: "Crue. Les reseaux sont coupes. Tu sais comment rouvrir des canaux."
+    choix:
+      - {l: "Retablir les communications d'urgence", eff: {cur: -2, lien: {fatou: 1}}, tirage: {normal: br_n4p, mauvaise: br_n4p, miracle: br_n4p}}
+      - {l: "Effacer tes traces pendant que tout est coupe", eff: {cur: 1}, vers: br_n4p}
+  - id: br_n4o
+    ch: 4
+    carrefour: C
+    lieu: "Yopougon, aube"
+    txt: "Descente sur ton studio. Aya a tes adresses, une par une."
+    choix:
+      - {l: "Collaborer et livrer les comptes du Baron", eff: {cur: -3, flag: temoin, faction: {ordre: 2}}, vers: br_n5}
+      - {l: "Fuir avec ton ordinateur", eff: {cur: 1}, vers: br_n5}
+  - id: br_n4p
+    ch: 4
+    carrefour: C
+    lieu: "Yopougon, aube"
+    txt: "Le tribunal veut ton temoignage sur les comptes du Baron."
+    choix:
+      - {l: "Temoigner", eff: {cur: -3, flag: temoin}, vers: br_n5}
+      - {l: "Disparaitre", eff: {}, vers: br_n5}
+  - id: br_n5
+    ch: 5
+    lieu: "Bord de la lagune, premiere pierre"
+    txt: "Ceremonie. Ton pseudonyme est dans toutes les conversations."
+    choix:
+      - {l: "Devenir expert en securite, officiellement", si: "cur<=0 et temoin", vers: br_f_lum}
+      - {l: "Rester le cyber-comptable du Baron", si: "cur>=8", vers: br_f_ombre}
+      - {l: "Ranger tes ordinateurs et vivre discretement", si: "toujours", vers: br_f_entre}
+      - {l: "Defier le reseau en ligne", si: "cur>=5", vers: br_f_trag}
+      - {l: "Devenir le white hat d'Abidjan", si: "(indic ou detourne_secours) et temoin et mimi>=3", vers: br_f_secret}
+fins:
+  - {id: br_f_lum, type: lumiere, titre: "Le Repenti du Net", txt: "Tu travailles pour la securite, avec un casier a purger et un nom a refaire."}
+  - {id: br_f_ombre, type: ombre, titre: "Le Cyber-Comptable", txt: "Riche, intouchable, seul."}
+  - {id: br_f_entre, type: entre_deux, titre: "Le Gayman Range", txt: "Tu ranges tes ordinateurs. Mimi te regarde toujours avec des questions."}
+  - {id: br_f_trag, type: tragique, titre: "Le Dernier Virement", txt: "Tu as defie le reseau. Il t'a rattrape. Fin definitive."}
+  - {id: br_f_secret, type: secrete, titre: "Le White Hat d'Abidjan", txt: "Tu formes les jeunes a la securite informatique et tu aides la PLCC a reconstruire."}

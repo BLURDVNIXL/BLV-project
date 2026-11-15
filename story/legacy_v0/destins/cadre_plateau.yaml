@@ -1,0 +1,98 @@
+destin: cadre_plateau
+titre: "Le Parapheur"
+rarete: epique
+depart: {camp: propre, cur: 0, logement: studio_standing, argent: 500000, metier: cadre_banque, ecole: aucune, diplomes: [bac, licence], etoile: 60}
+cercle:
+  - {id: traore, nom: "Mme Traore", rel: allie}
+  - {id: bakayoko, nom: "Directeur Bakayoko", rel: rival}
+  - {id: fatou, nom: "Fatou Bamba", rel: allie}
+  - {id: baron, nom: "Le Baron", rel: faction}
+noeuds:
+  - id: cp_n0
+    ch: 0
+    lieu: "Plateau, studio vue lagune"
+    txt: "Costume cintre, cafe en terrasse. Ta banque s'apprete a financer Cite Lagune-Nord. Le directeur Bakayoko te lance : « Ce dossier, c'est ta promotion. »"
+    choix:
+      - {l: "Etudier le dossier a fond", eff: {cur: -1, flag: dossier}, vers: cp_n1}
+      - {l: "Faire confiance au directeur", eff: {}, vers: cp_n1}
+  - id: cp_n1
+    ch: 1
+    porte: true
+    lieu: "Plateau, banque"
+    txt: "Bakayoko te tend un credit a approuver, sans garanties : « Signe, et tu seras directeur adjoint avant la fin de l'annee. »"
+    choix:
+      - {l: "Signer", eff: {cur: 3, faction: {ombre: 1}, argent: 100000}, vers: cp_n2o}
+      - {l: "Refuser et demander les garanties", eff: {cur: -1, lien: {traore: 1}}, vers: cp_n2p}
+      - {l: "Signer avec des reserves ecrites", eff: {cur: 1}, tirage: {normal: cp_n2g, mauvaise: cp_n2o, miracle: cp_n2p}}
+  - id: cp_n2o
+    ch: 2
+    carrefour: A
+    lieu: "Yopougon, Rue Princesse"
+    txt: "Le Baron te complimente : « Les bons cadres savent ne pas poser de questions. »"
+    choix:
+      - {l: "Entrer dans son cercle", eff: {cur: 3, faction: {ombre: 2}}, vers: cp_n3o}
+      - {l: "Prendre ton temps pour reculer", eff: {cur: -2}, vers: cp_n3p}
+  - id: cp_n2p
+    ch: 2
+    carrefour: A
+    lieu: "Yopougon, Rue Princesse"
+    txt: "Mme Traore te presente un juge integre. Bakayoko te regarde de travers."
+    choix:
+      - {l: "Confier ton dossier au juge", eff: {cur: -3, flag: preuve, lien: {traore: 2}, faction: {ordre: 2}}, vers: cp_n3p}
+      - {l: "Attendre un meilleur moment", eff: {}, vers: cp_n3p}
+  - id: cp_n2g
+    ch: 2
+    carrefour: A
+    lieu: "Yopougon, Rue Princesse"
+    txt: "Bakayoko sourit : « Tu as des scrupules. Ils passeront. »"
+    choix:
+      - {l: "Garder tes scrupules", eff: {cur: -1}, vers: cp_n3p}
+      - {l: "Les laisser passer", eff: {cur: 2}, vers: cp_n3o}
+  - id: cp_n3o
+    ch: 3
+    carrefour: B
+    lieu: "Plateau inonde"
+    txt: "Crue. La banque est sous l'eau. Les originaux du credit sont dans ton coffre."
+    choix:
+      - {l: "Detruire les originaux", eff: {cur: 3}, vers: cp_n4o}
+      - {l: "Mettre les originaux a l'abri chez Fatou", eff: {cur: -3, flag: preuve, lien: {fatou: 2}}, vers: cp_n4p}
+  - id: cp_n3p
+    ch: 3
+    carrefour: B
+    lieu: "Plateau inonde"
+    txt: "Crue. Ta banque ouvre une cellule d'aide d'urgence."
+    choix:
+      - {l: "Debloquer des credits d'urgence aux sinistres", eff: {cur: -2}, tirage: {normal: cp_n4p, mauvaise: cp_n4p, miracle: cp_n4p}}
+      - {l: "Securiser tes dossiers avant tout", eff: {flag: preuve}, vers: cp_n4p}
+  - id: cp_n4o
+    ch: 4
+    carrefour: C
+    lieu: "Plateau, aube"
+    txt: "Descente a la banque. Aya tient le dossier signe."
+    choix:
+      - {l: "Plaider coupable et tout livrer", eff: {cur: -3, flag: temoin, faction: {ordre: 2}}, vers: cp_n5}
+      - {l: "Accuser Bakayoko", eff: {cur: 1}, vers: cp_n5}
+  - id: cp_n4p
+    ch: 4
+    carrefour: C
+    lieu: "Plateau, aube"
+    txt: "Le juge te convoque. Bakayoko te fait savoir que ta carriere est finie si tu parles."
+    choix:
+      - {l: "Parler", eff: {cur: -3, flag: temoin}, vers: cp_n5}
+      - {l: "Garder le silence", eff: {}, vers: cp_n5}
+  - id: cp_n5
+    ch: 5
+    lieu: "Bord de la lagune, premiere pierre"
+    txt: "Ceremonie. Ton nom figure sur le programme."
+    choix:
+      - {l: "Devenir directeur d'une banque qui rend des comptes", si: "cur<=-2 et temoin", vers: cp_f_lum}
+      - {l: "Rejoindre le cercle du Baron", si: "cur>=6", vers: cp_f_ombre}
+      - {l: "Garder ton poste sans grandir", si: "toujours", vers: cp_f_entre}
+      - {l: "Tout reveler publiquement", si: "cur>=3", vers: cp_f_trag}
+      - {l: "Fonder la banque du quartier", si: "preuve et traore>=3", vers: cp_f_secret}
+fins:
+  - {id: cp_f_lum, type: lumiere, titre: "Le Banquier Integre", txt: "Tu diriges une banque qui rend des comptes. Une rarete."}
+  - {id: cp_f_ombre, type: ombre, titre: "L'Ami du Baron", txt: "Ta carriere decolle, ton nom disparait de ton bureau."}
+  - {id: cp_f_entre, type: entre_deux, titre: "Le Poste sans Etoiles", txt: "Tu gardes ton poste, mais pas ta fierte."}
+  - {id: cp_f_trag, type: tragique, titre: "Le Parapheur Final", txt: "Ta revelation te coute la vie. Fin definitive."}
+  - {id: cp_f_secret, type: secrete, titre: "La Banque du Quartier", txt: "Avec Mme Traore, tu fondes une banque de micro-credit pour les gens d'Adjame et d'Abobo."}

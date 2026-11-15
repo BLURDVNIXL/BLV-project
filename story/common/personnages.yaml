@@ -1,0 +1,196 @@
+# Fiches maîtres des personnages récurrents (GDD §6.3).
+# Chaque fiche : rôle, objectif, méthode, limites, relations, savoir (ce qu'il sait vraiment),
+# secret, offre, évolution, chronologie. Sa FONCTION varie selon la campagne ; pas sa personnalité.
+# Un personnage ne révèle jamais ce qu'il n'a pas appris : `savoir` borne ses répliques.
+
+baron:
+  nom: "Le Baron de l'Ombre"
+  age: 58
+  role: "Maître d'œuvre réel de la Cité Lagune-Nord ; parrain d'un réseau d'armes, de drogue et de blanchiment."
+  objectif: "Tenir la couverture du projet jusqu'à l'inauguration (jour 304), puis se retirer propre."
+  methode: "Dette et protection d'abord, menace ensuite. Parle peu, offre beaucoup. Ne tue jamais en public."
+  limites: ["Pas omniscient : dépend de Sékou et des chefs de cellule", "Sa fille Aïcha est sa ligne rouge", "Ses comptes officiels sont gelés : il vit sur du cash"]
+  tics: ["« Petit »", "« Dans mon quartier, personne n'a faim »"]
+  relations: {aicha: "fille, qu'il protège de tout (y compris de la vérité)", sekou: "bras droit, dont il se méfie sans le dire", yao: "protégé par corruption"}
+  savoir: ["Tous les convois", "Qui a vu le hangar", "Qu'Aya enquête (pas qu'elle a un témoin)"]
+  secret: "Il finance en cachette l'école du quartier où grandit Aïcha ; il veut quitter le réseau avant que sa fille ne l'apprenne."
+  offre: ["Argent", "Protection", "Un nom", "Une place dans l'empire"]
+  evolution: "Selon le joueur : allié, patron, victime ou ennemi. Il peut mentir, partir, faire exécuter un ordre sans témoin."
+  chronologie: {0: "Dîne chez lui", 1: "Fusillade évitée de justesse", 2: "Hôte de Rue Princesse", 3: "Perd le hangar", 4: "Trahi par Sékou ou par un témoin", 5: "Tente de couper le ruban"}
+
+sekou:
+  nom: "Sékou"
+  age: 41
+  role: "Bras droit du Baron."
+  objectif: "Prendre la place du Baron sans en avoir l'air."
+  methode: "Loyal en apparence ; construit ses propres dettes dans les cellules."
+  limites: ["Peur du Baron", "N'a pas l'argent du Baron"]
+  savoir: ["Tous les noms des cellules", "Le calendrier exact des convois"]
+  secret: "Il négocie avec le Syndicat pour racheter les camions."
+  offre: ["Accès aux convois", "Un contact en cas de coup dur"]
+  evolution: "Trahit si le Baron faiblit ; sinon reste fidèle jusqu'à la descente."
+
+aicha:
+  nom: "Aïcha"
+  age: 22
+  role: "Fille du Baron, étudiante en droit."
+  objectif: "Comprendre d'où vient l'argent de son père et choisir son camp elle-même."
+  methode: "Pose les questions que personne ne pose ; enquête seule à la bibliothèque et sur les registres fonciers."
+  limites: ["Ne peut pas rompre avec son père sans perdre sa famille"]
+  savoir: ["Que son père possède des sociétés prête-noms (elle a vu un registre)", "Pas la nature des convois"]
+  secret: "Elle a contacté la lieutenante Aya en cachette, avant le jour 110."
+  offre: ["Un témoin documentaire", "Un alibi moral"]
+  evolution: "Autonome : peut se dresser contre son père ou le protéger, avec ou sans le joueur."
+
+gnamien:
+  nom: "Vieux Gnamien"
+  age: 67
+  role: "Gardien du hangar d'Adjamé."
+  objectif: "Que le hangar reste un abri pour le quartier."
+  methode: "Taiseux, ironique, protecteur ; parle par proverbes courts."
+  tics: ["« petit »", "« on est ensemble »"]
+  limites: ["Vieux, il ne court pas", "Ne dénoncera jamais sans protection"]
+  savoir: ["Il a vu les camions du Baron toutes les nuits", "Il tient un registre des plaques"]
+  secret: "Son petit-fils Adou prépare le concours du Lycée Classique grâce à l'argent que le Baron lui verse pour se taire (il le regrette)."
+  offre: ["Un toit", "Un conseil", "La porte vers Tantie Zéphyrine et Adou", "Son registre (s'il a confiance)"]
+  evolution: "Sauvé à la crue → allié, il remet le registre. Abandonné → disparaît ou meurt dans la crue."
+
+adou:
+  nom: "Adou"
+  age: 17
+  role: "Petit-fils de Gnamien ; prépare le concours du Lycée Classique."
+  objectif: "Réussir le concours et sortir son grand-père du hangar."
+  savoir: ["Le Baron a payé ses cours", "Que son grand-père lui cache quelque chose"]
+  offre: ["Révisions partagées", "Un lien avec le lycée"]
+
+zephyrine:
+  nom: "Tantie Zéphyrine"
+  age: 52
+  role: "Marchande d'Adjamé, patronne du marché couvert."
+  objectif: "Obtenir une place dans le marché de la Cité Lagune-Nord pour son association d'étals."
+  methode: "Franche, rusée, sans pitié pour les menteurs. Paie à la journée."
+  tics: ["« mon fils / ma fille »", "« on ne vend pas du vent »"]
+  limites: ["Paie un racket depuis des mois", "Ne peut pas fermer son marché une journée"]
+  savoir: ["Qui paie qui à Adjamé", "Que Dabo collecte pour le Baron"]
+  secret: "Elle a signé l'accord d'indemnisation sans le lire."
+  offre: ["Quêtes de porteur", "Accès au marché", "Présentation à Fatou"]
+  evolution: "Protégée par le héros → pilier de l'association des étals. Sinon plie sous le racket."
+
+dabo:
+  nom: "Dabo"
+  age: 33
+  role: "Chef des Gars du Quai (collecte du racket au marché d'Adjamé)."
+  objectif: "Monter dans l'organisation du Baron."
+  methode: "Charmant en public, brutal en privé."
+  limites: ["Obéit à Sékou", "Craint le Baron"]
+  savoir: ["Les recettes du marché", "Les noms de ceux qui paient"]
+  offre: ["Argent rapide (veille d'entrepôt)", "Appartenance"]
+
+yao:
+  nom: "Commissaire Yao"
+  age: 55
+  role: "Commissaire central, chef de l'Ordre républicain sur le dossier."
+  objectif: "Prendre sa retraite sans que ses arrangements ne sortent."
+  methode: "Poli, légaliste, ferme les yeux contre paiement."
+  limites: ["Ne peut pas empêcher une enquête mandatée par le parquet"]
+  savoir: ["Les convois", "Qu'Aya enquête"]
+  secret: "Il garde un carnet de ses paiements : son assurance-vie."
+  offre: ["Protection judiciaire", "Un arrangement à la descente"]
+
+aya:
+  nom: "Lieutenante Aya Coulibaly"
+  age: 34
+  role: "Enquêtrice PLCC (Plateforme de lutte contre la criminalité), sans mandat."
+  objectif: "Un témoin et une preuve matérielle avant le jour 283."
+  methode: "Patiente, précise, ne promet que ce qu'elle peut tenir."
+  limites: ["Pas de mandat", "Hiérarchie qui la surveille"]
+  savoir: ["La structure du réseau", "Qu'Aïcha l'a contactée (selon la campagne)"]
+  offre: ["Protection de témoin (limitée)", "Une voie légale"]
+
+gbe:
+  nom: "Gbé"
+  age: 49
+  role: "Chef de gare d'Abobo (Syndicat des Transporteurs)."
+  objectif: "Garder la gare et ses cotisations."
+  methode: "Autoritaire, jovial, rancunier."
+  savoir: ["Les itinéraires des camions", "Les noms des convoyeurs"]
+  offre: ["Une place de convoyeur", "La protection du Syndicat"]
+
+dede:
+  nom: "Madame Dédé"
+  age: 47
+  role: "Tient le réseau de la nuit qui piège de jeunes filles venues des villages, sous couvert d'agence de mannequins."
+  objectif: "Placer de nouvelles recrues avant l'inauguration."
+  methode: "Maternelle, généreuse, jamais directement coupable."
+  limites: ["Dépend de Max et du Baron pour la protection"]
+  savoir: ["Les identités et familles de chaque jeune fille", "Les lieux d'hébergement"]
+  offre: ["Du travail, de l'argent, un contact"]
+
+fatou:
+  nom: "Fatou Bamba"
+  age: 36
+  role: "Journaliste de radio (Radio Lagune)."
+  objectif: "Une source documentée avant de parler sur les ondes."
+  methode: "Écoute plus qu'elle ne parle ; ne publie jamais sans recoupement."
+  limites: ["Station sous pression du Maire", "Un témoin non protégé est un témoin perdu"]
+  savoir: ["Qu'il y a des camions de nuit", "Pas leur contenu"]
+  offre: ["Une voix publique", "Un contact avec Aya"]
+
+sanogo:
+  nom: "Docteur Sanogo"
+  age: 45
+  role: "Médecin de l'hôpital de Treichville."
+  objectif: "Soigner tout le monde avant la saison des pluies."
+  savoir: ["L'état de santé réel des victimes de la crue"]
+  offre: ["Soins", "Un certificat médical (preuve)"]
+
+traore:
+  nom: "Madame Traoré"
+  age: 52
+  role: "Associée du cabinet d'audit."
+  objectif: "Protéger la réputation du cabinet."
+  savoir: ["Les bilans de la SALN"]
+  offre: ["Un poste", "Un silence acheté"]
+
+maire:
+  nom: "Le Maire"
+  age: 61
+  role: "Parrain politique du projet."
+  objectif: "Couper le ruban avant sa réélection."
+  methode: "Ne veut rien savoir ; délègue la peur."
+  limites: ["Dépend de l'image de la Cité"]
+  savoir: ["Que le projet a des financements troubles (il ne veut pas les détails)"]
+
+max:
+  nom: "Max"
+  age: 39
+  role: "Organisateur de défilés et de soirées (Jet-Set)."
+  objectif: "Rendre sa soirée de Rue Princesse inoubliable, à n'importe quel prix."
+  methode: "Séduction, financement conditionnel."
+  savoir: ["Qui finance quoi dans le monde de la nuit"]
+  secret: "Il doit de l'argent à Dédé."
+  offre: ["500 000 F pour un défilé, avec une contrepartie à ne pas poser par écrit"]
+
+nadia:
+  nom: "Nadia"
+  age: 24
+  role: "Première mannequin du styliste."
+  objectif: "Vivre de son image sans appartenir à personne."
+  methode: "Directe, drôle, ne se laisse pas décider à sa place."
+  limites: ["Famille au village qui compte sur son argent"]
+  savoir: ["Ce qu'elle a vu chez Max"]
+  secret: "Elle a signé un contrat sans le lire."
+  offre: ["Sa confiance, un témoignage, une alliée"]
+  evolution: "A voix, consentement et choix : peut refuser, partir ou accuser sans le héros."
+
+awa:
+  nom: "Awa"
+  age: 19
+  role: "Jeune brodeuse venue de son village, en quête de travail à Abidjan."
+  objectif: "Gagner de quoi aider sa famille sans dépendre de personne."
+  methode: "Timide, appliquée, observe avant de parler ; croit qu'un « vrai contrat » règle tout."
+  limites: ["Peu de papiers", "Famille au village qui compte sur elle", "Facile à impressionner"]
+  savoir: ["Les filles de son village que Madame Dédé a « placées »", "Pas les clauses des contrats"]
+  secret: "Elle a déjà signé un papier chez Madame Dédé avant de venir à l'atelier."
+  offre: ["Un témoignage", "Un lien avec les autres jeunes filles", "Des mains habiles"]
+  evolution: "A voix et choix : peut accepter, refuser, partir ou parler sans le héros ; le jeu récompense celle qui l'écoute avant de la protéger."

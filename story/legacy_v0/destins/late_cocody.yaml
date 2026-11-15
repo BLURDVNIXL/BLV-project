@@ -1,0 +1,98 @@
+destin: late_cocody
+titre: "L'Heritier"
+rarete: epique
+depart: {camp: propre, cur: 0, logement: trois_pieces_chic, argent: 1200000, metier: aucun, ecole: aucune, diplomes: [bac], etoile: 60}
+cercle:
+  - {id: papa, nom: "Papa", rel: proche}
+  - {id: kevin, nom: "Kevin, ami de soirees", rel: faction}
+  - {id: fatou, nom: "Fatou Bamba", rel: allie}
+  - {id: baron, nom: "Le Baron", rel: rival}
+noeuds:
+  - id: la_n0
+    ch: 0
+    lieu: "Cocody, trois pieces chic"
+    txt: "Ta berline neuve, quatre semaines de loyer payees par tes parents. Papa t'appelle : « On investit dans un grand projet, tu verras. »"
+    choix:
+      - {l: "Passer voir Papa", eff: {lien: {papa: 2}}, vers: la_n1}
+      - {l: "Sortir avec Kevin", eff: {lien: {kevin: 1}}, vers: la_n1}
+  - id: la_n1
+    ch: 1
+    porte: true
+    lieu: "Cocody, villa familiale"
+    txt: "Kevin te propose un « placement exceptionnel » dans Cite Lagune-Nord : tes economies contre un joli rendement, discretion exigee."
+    choix:
+      - {l: "Investir et en parler autour de toi", eff: {cur: 3, argent: -300000, faction: {ombre: 1}}, vers: la_n2o}
+      - {l: "Refuser et demander d'ou vient l'argent", eff: {cur: -1}, vers: la_n2p}
+      - {l: "Mettre une petite somme pour voir", eff: {cur: 1, argent: -50000}, tirage: {normal: la_n2g, mauvaise: la_n2o, miracle: la_n2p}}
+  - id: la_n2o
+    ch: 2
+    carrefour: A
+    lieu: "Yopougon, Rue Princesse"
+    txt: "Le Baron te flatte : « Les heritiers comprennent le monde. » Papa est a ses cotes."
+    choix:
+      - {l: "Entrer dans l'affaire familiale", eff: {cur: 3, faction: {ombre: 2}, lien: {papa: 1}}, vers: la_n3o}
+      - {l: "Prendre Papa a part et exiger la verite", eff: {cur: -2, lien: {papa: 1}}, vers: la_n3p}
+  - id: la_n2p
+    ch: 2
+    carrefour: A
+    lieu: "Yopougon, Rue Princesse"
+    txt: "Fatou t'interpelle : « Ton pere finance quoi, exactement ? »"
+    choix:
+      - {l: "Enqueter sur sa famille", eff: {cur: -2, lien: {fatou: 2}, flag: preuve}, vers: la_n3p}
+      - {l: "Ne pas vouloir savoir", eff: {cur: 1}, vers: la_n3p}
+  - id: la_n2g
+    ch: 2
+    carrefour: A
+    lieu: "Yopougon, Rue Princesse"
+    txt: "Ton petit placement rapporte vite. Kevin te regarde en connaisseur."
+    choix:
+      - {l: "Retirer ta mise", eff: {cur: -1}, vers: la_n3p}
+      - {l: "Doubler", eff: {cur: 2}, vers: la_n3o}
+  - id: la_n3o
+    ch: 3
+    carrefour: B
+    lieu: "Cocody inonde"
+    txt: "Crue. Papa t'appelle, affole : « Des caisses ont ete retrouvees a Adjame. Aide-moi a effacer ca. »"
+    choix:
+      - {l: "L'aider a effacer les traces", eff: {cur: 3, lien: {papa: 2}}, vers: la_n4o}
+      - {l: "Refuser et lui demander de se rendre", eff: {cur: -3, lien: {papa: -1}}, vers: la_n4p}
+  - id: la_n3p
+    ch: 3
+    carrefour: B
+    lieu: "Cocody inonde"
+    txt: "Crue. Ta villa est epargnee ; les quartiers voisins, non."
+    choix:
+      - {l: "Ouvrir ta villa et ta voiture aux sinistres", eff: {cur: -2}, tirage: {normal: la_n4p, mauvaise: la_n4p, miracle: la_n4p}}
+      - {l: "Ne pas t'en meler", eff: {cur: 1}, vers: la_n4p}
+  - id: la_n4o
+    ch: 4
+    carrefour: C
+    lieu: "Cocody, aube"
+    txt: "Descente. Papa est menotte. Aya te regarde : « Tu savais ? »"
+    choix:
+      - {l: "Avouer ce que tu as vu", eff: {cur: -3, flag: temoin, faction: {ordre: 2}}, vers: la_n5}
+      - {l: "Defendre ton pere", eff: {cur: 1, lien: {papa: 2}}, vers: la_n5}
+  - id: la_n4p
+    ch: 4
+    carrefour: C
+    lieu: "Cocody, aube"
+    txt: "Papa est interroge. Tu peux lui apporter une preuve, ou le proteger."
+    choix:
+      - {l: "Remettre la preuve a Aya", eff: {cur: -3, flag: temoin}, vers: la_n5}
+      - {l: "Garder la preuve pour toi", eff: {cur: 1}, vers: la_n5}
+  - id: la_n5
+    ch: 5
+    lieu: "Bord de la lagune, premiere pierre"
+    txt: "Ceremonie. Tes parents ne sont pas tous presents."
+    choix:
+      - {l: "Prendre ton independance et monter ta boite", si: "cur<=-2 et temoin", vers: la_f_lum}
+      - {l: "Reprendre l'empire de ton pere", si: "cur>=6", vers: la_f_ombre}
+      - {l: "Vivre de ta rente, sans te poser de questions", si: "toujours", vers: la_f_entre}
+      - {l: "Defier le Baron seul", si: "cur>=3", vers: la_f_trag}
+      - {l: "Creer une fondation avec l'argent de la famille", si: "preuve et papa>=2 et cur<=-2", vers: la_f_secret}
+fins:
+  - {id: la_f_lum, type: lumiere, titre: "L'Heritier Libre", txt: "Tu montes ta propre boite, loin de l'argent de la famille."}
+  - {id: la_f_ombre, type: ombre, titre: "Le Prince de l'Ombre", txt: "Tu herites d'un empire qui sent le soufre."}
+  - {id: la_f_entre, type: entre_deux, titre: "La Rente et le Doute", txt: "Tu vis bien, mais tu n'oses pas ouvrir les comptes de Papa."}
+  - {id: la_f_trag, type: tragique, titre: "Le Dernier Heritier", txt: "Defier le Baron seul t'a coute la vie. Fin definitive."}
+  - {id: la_f_secret, type: secrete, titre: "La Fondation du Fleuve", txt: "La fortune familiale finance la reconstruction des quartiers inondes."}

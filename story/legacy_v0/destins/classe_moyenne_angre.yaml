@@ -1,0 +1,97 @@
+destin: classe_moyenne_angre
+titre: "La Serenite d'Angre"
+rarete: rare
+depart: {camp: propre, cur: 0, logement: trois_pieces, argent: 180000, metier: comptable, ecole: aucune, diplomes: [bac, brevet_comptable], etoile: 55}
+cercle:
+  - {id: honore, nom: "Honore, collegue honnete", rel: proche}
+  - {id: traore, nom: "Mme Traore, associee du cabinet", rel: allie}
+  - {id: baron, nom: "Le Baron", rel: rival}
+noeuds:
+  - id: ca_n0
+    ch: 0
+    lieu: "Angre, 8eme tranche"
+    txt: "Ton trois-pieces, ton salaire de comptable verse chaque semaine. Honore te taquine : « Un gros client arrive, un certain projet Lagune-Nord. »"
+    choix:
+      - {l: "Inviter Honore a diner", eff: {lien: {honore: 2}}, vers: ca_n1}
+      - {l: "Preparer le dossier du nouveau client", eff: {}, vers: ca_n1}
+  - id: ca_n1
+    ch: 1
+    porte: true
+    lieu: "Plateau, cabinet"
+    txt: "Le client demande un bilan « allege » : 400 000 F de gratification si tu signes sans verifier les flux."
+    choix:
+      - {l: "Signer le bilan", eff: {cur: 3, argent: 400000, faction: {ombre: 1}}, vers: ca_n2o}
+      - {l: "Refuser et alerter Mme Traore", eff: {cur: -1, lien: {traore: 2}}, vers: ca_n2p}
+      - {l: "Signer un bilan partiel avec reserves", eff: {cur: 1}, tirage: {normal: ca_n2g, mauvaise: ca_n2o, miracle: ca_n2p}}
+  - id: ca_n2o
+    ch: 2
+    carrefour: A
+    lieu: "Yopougon, Rue Princesse"
+    txt: "A la soiree, le Baron te trouve « precieux » : un second dossier, bien paye."
+    choix:
+      - {l: "Accepter le second dossier", eff: {cur: 3, faction: {ombre: 2}}, vers: ca_n3o}
+      - {l: "Decliner et rentrer a Angre", eff: {cur: -2}, vers: ca_n3p}
+  - id: ca_n2p
+    ch: 2
+    carrefour: A
+    lieu: "Yopougon, Rue Princesse"
+    txt: "Mme Traore te remercie, mais le client a des amis haut places."
+    choix:
+      - {l: "Constituer un dossier confidentiel", eff: {cur: -2, flag: dossier, lien: {honore: 1}}, vers: ca_n3p}
+      - {l: "Passer a autre chose", eff: {}, vers: ca_n3p}
+  - id: ca_n2g
+    ch: 2
+    carrefour: A
+    lieu: "Yopougon, Rue Princesse"
+    txt: "Le client est mecontent de tes reserves. Honore te regarde avec inquietude."
+    choix:
+      - {l: "Garder tes reserves", eff: {cur: -1}, vers: ca_n3p}
+      - {l: "Ceder", eff: {cur: 2}, vers: ca_n3o}
+  - id: ca_n3o
+    ch: 3
+    carrefour: B
+    lieu: "Angre inonde"
+    txt: "Crue. Ton immeuble est coupe. Un appel : « Brule les originaux. »"
+    choix:
+      - {l: "Detruire les originaux", eff: {cur: 3}, vers: ca_n4o}
+      - {l: "Mettre les copies en lieu sur", eff: {cur: -3, flag: dossier}, vers: ca_n4p}
+  - id: ca_n3p
+    ch: 3
+    carrefour: B
+    lieu: "Angre inonde"
+    txt: "Crue. Tu heberges des voisins sinistres."
+    choix:
+      - {l: "Organiser la solidarite de l'immeuble", eff: {cur: -2, lien: {honore: 1}}, tirage: {normal: ca_n4p, mauvaise: ca_n4p, miracle: ca_n4p}}
+      - {l: "Preserver tes dossiers avant tout", eff: {flag: dossier}, vers: ca_n4p}
+  - id: ca_n4o
+    ch: 4
+    carrefour: C
+    lieu: "Plateau, aube"
+    txt: "Aya t'interroge sur les bilans signes."
+    choix:
+      - {l: "Avouer et livrer les copies", eff: {cur: -3, flag: temoin}, vers: ca_n5}
+      - {l: "Plaider la bonne foi", eff: {cur: 1}, vers: ca_n5}
+  - id: ca_n4p
+    ch: 4
+    carrefour: C
+    lieu: "Plateau, aube"
+    txt: "Le procureur cherche un expert-comptable temoin."
+    choix:
+      - {l: "Etre l'expert temoin", eff: {cur: -3, flag: temoin}, vers: ca_n5}
+      - {l: "Decliner par prudence", eff: {}, vers: ca_n5}
+  - id: ca_n5
+    ch: 5
+    lieu: "Bord de la lagune, premiere pierre"
+    txt: "Ceremonie. Les chiffres de ton cabinet sont dans toutes les conversations."
+    choix:
+      - {l: "Etre promu associe, avec les mains propres", si: "cur<=-2 et temoin", vers: ca_f_lum}
+      - {l: "Devenir l'expert du Baron", si: "cur>=6", vers: ca_f_ombre}
+      - {l: "Garder ton salaire et fermer les livres", si: "toujours", vers: ca_f_entre}
+      - {l: "Tout reveler publiquement", si: "cur>=3", vers: ca_f_trag}
+      - {l: "Creer un cabinet citoyen de comptes publics", si: "dossier et honore>=3", vers: ca_f_secret}
+fins:
+  - {id: ca_f_lum, type: lumiere, titre: "Pilier de la Republique", txt: "Ta rigueur est reconnue. Ton salaire est propre."}
+  - {id: ca_f_ombre, type: ombre, titre: "L'Expert du Baron", txt: "Tu es riche, avec un classeur que tu ne peux plus ouvrir."}
+  - {id: ca_f_entre, type: entre_deux, titre: "Les Livres Fermes", txt: "Tu gardes la serenite d'Angre, mais pas le sommeil."}
+  - {id: ca_f_trag, type: tragique, titre: "Le Bilan Final", txt: "Tout reveler t'a coute la vie. Fin definitive."}
+  - {id: ca_f_secret, type: secrete, titre: "Le Cabinet Citoyen", txt: "Avec Honore, tu fondes un cabinet qui audite gratuitement les contrats publics."}

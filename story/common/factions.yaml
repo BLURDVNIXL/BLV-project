@@ -1,0 +1,58 @@
+# Fiches de factions (GDD §5.6). Chaque faction : objectifs, ressources, hiérarchie, territoire,
+# méthodes, alliances, rivalités, lignes rouges, personnages, visibilité, conséquences d'une rupture.
+syndicat:
+  nom: "Syndicat des Transporteurs"
+  fonction: "Intérêts économiques et transport : gbakas, woro-woro, camions, gares."
+  objectifs: ["Garder le monopole des gares et des itinéraires", "Obtenir des licences de transport dans la future cité"]
+  ressources: ["Cotisations hebdomadaires", "Capacité de bloquer la ville (grève des gares)", "Hommes de gare"]
+  hierarchie: "Bureau national (Abidjan) > chefs de gare (Gbé à Abobo) > chefs de ligne > convoyeurs."
+  territoire: ["Abobo Gare", "Adjamé gare", "Yopougon Siporex"]
+  methodes: ["Cotisation obligatoire", "Mise à l'index", "Grève", "Médiation"]
+  alliances: ["Jet-Set (contrats de navette)", "Ombre (passage des camions, par intérêt)"]
+  rivalites: ["Ordre (contrôles routiers)", "Opérateurs de bus publics"]
+  lignes_rouges: ["Toucher à un conducteur du Syndicat", "Rendre publiques les cotisations"]
+  personnages: [gbe]
+  visibilite_publique: "Haute : tout le monde connaît le Syndicat."
+  rupture: "Perte de la protection de gare ; les conducteurs refusent de travailler avec toi ; amende des cotisations."
+ordre:
+  nom: "Ordre républicain"
+  fonction: "Maintien de l'ordre et enquêtes (police, PLCC)."
+  objectifs: ["Garder la paix avant l'inauguration", "Pour Aya : démonter le réseau du Baron"]
+  ressources: ["Mandat judiciaire (limité)", "Informateurs", "Contrôle des arrestations"]
+  hierarchie: "Commissaire Yao (commissariat central) > lieutenante Aya Coulibaly (PLCC, sans mandat) > agents."
+  territoire: ["Commissariat du Plateau", "Postes de quartier"]
+  methodes: ["Contrôles", "Descente à l'aube", "Négociation de témoignages", "Fermer les yeux contre paiement (Yao)"]
+  alliances: ["Maire (par prudence)"]
+  rivalites: ["Aya contre Yao", "Ombre"]
+  lignes_rouges: ["Violence contre un agent", "Témoin tué avant audition"]
+  personnages: [yao, aya]
+  visibilite_publique: "Moyenne : on voit les contrôles, pas les arrangements."
+  rupture: "Mandat d'arrêt, perquisition, perte de la protection d'Aya comme de Yao."
+jetset:
+  nom: "Jet-Set"
+  fonction: "Prestige, financement, influence sociale : promoteurs, artistes, influenceurs, riches héritiers."
+  objectifs: ["Vendre l'image de la Cité Lagune-Nord", "Rester propres aux yeux de la presse"]
+  ressources: ["Capitaux", "Soirées (Rue Princesse)", "Presse amie"]
+  hierarchie: "Réseau informel : mécènes > organisateurs de soirées (Max) > relais d'influence."
+  territoire: ["Cocody", "Plateau", "Rue Princesse (soirée annuelle)"]
+  methodes: ["Mécénat conditionnel", "Invitation / exclusion", "Rumeur"]
+  alliances: ["Syndicat (navettes)", "Maire"]
+  rivalites: ["Ombre pour l'argent propre", "Presse indépendante"]
+  lignes_rouges: ["Scandale public", "Affichage des sources de financement"]
+  personnages: [max]
+  visibilite_publique: "Très haute en surface ; les arrangements restent privés."
+  rupture: "Exclusion des soirées, retrait des financements, campagne de dénigrement."
+ombre:
+  nom: "Réseau du Baron (l'Ombre)"
+  fonction: "Réseau criminel qui détourne la Cité Lagune-Nord : convois d'armes et de drogue, blanchiment, racket, expulsions."
+  objectifs: ["Garder la couverture du projet jusqu'à l'inauguration", "Faire disparaître les témoins gênants"]
+  ressources: ["Cash", "Camions de chantier", "Hommes de main", "Contrats prête-noms"]
+  hierarchie: "Le Baron > Sékou (bras droit) > chefs de cellule > petites mains (veilleurs, convoyeurs)."
+  territoire: ["Hangar d'Adjamé", "Villa-bunker (Cocody)", "Chantier de la Cité"]
+  methodes: ["Dette", "Protection", "Corruption", "Menace", "Expulsion"]
+  alliances: ["Yao (par la corruption)", "Gars du Quai (Dabo)", "Syndicat (par intérêt)"]
+  rivalites: ["Ordre (Aya)", "Presse", "Clans concurrents"]
+  lignes_rouges: ["Le Baron ne touche jamais sa fille Aïcha", "Pas de traitre dans la cellule"]
+  personnages: [baron, sekou, dabo, dede]
+  visibilite_publique: "Faible : le Baron est un mythe, pas une silhouette."
+  rupture: "Poursuite directe : menaces, enlèvement de proches, attaque du lieu de vie."

@@ -1,0 +1,738 @@
+destin: chauffeur_woro
+titre: "La Ligne Directe 504"
+rarete: commun
+genre: libre
+resume: "Chauffeur de woro-woro à Koumassi, tu connais chaque passager de ta ligne et chaque voiture de ta gare. Un colis à 25 000 F, une licence de ligne, une tontine de marchandes : la ville te demande de choisir qui monte dans ta voiture."
+themes: [route, solidarite, syndicat, temoignage]
+fonction_dramatique: >-
+  Le chauffeur est le seul protagoniste qui voit circuler la Cité Lagune-Nord : qui monte dans quelle
+  voiture, à quelle heure, et quels camions passent sans que personne ne regarde dedans. Sa route
+  relie les quartiers que le projet veut séparer ; chaque offre (colis, licence, contrat) est une
+  façon de lui acheter son regard.
+
+depart:
+  camp: propre
+  compromission: 0
+  argent_fcfa: 35000
+  etoile: 50
+  sante: 75
+  energie: 75
+  metier: chauffeur_woro
+  echelon: locataire
+  ecole: aucune
+  diplomes: [permis_b]
+  charges_mensuelles: 70000      # location de la 504, essence, studio de Koumassi
+  logement_descriptif: "Un studio à Koumassi, ta 504 jaune louée à la journée"
+  competences: {terrain: 3, negoce: 1}
+  relations:
+    mariam: {trust: 1}
+    kader: {trust: 1}
+  factions:
+    syndicat: {reputation: 0}
+
+cercle:
+  - {id: mariam, nom: "Mariam, ta passagère de six heures et demie", rel: proche}
+  - {id: lassina, nom: "Lassina, le frère de Mariam", rel: allie}
+  - {id: kader, nom: "Kader, doyen de la gare", rel: allie}
+  - {id: gbe, nom: "Gbé, chef de gare du Syndicat", rel: faction}
+  - {id: aya, nom: "Lieutenante Aya Coulibaly", rel: neutre}
+  - {id: baron, nom: "Le Baron", rel: rival}
+  - {id: dabo, nom: "Dabo, des Gars du Quai", rel: faction}
+  - {id: sekou, nom: "Sékou, bras droit du Baron", rel: rival}
+
+flags: [cotise, plaque, colis_une_fois, convoie, dette_dabo, mariam_informee, vu_chantier, contrat_baron,
+        sorti_ombre, informateur, plaque_gardee, licence_syndicat, ligne_sans_syndicat, association_ligne,
+        ligne_syndicat, tontine_prete, sauveur, caisses_jetees, a_garde_caisses, vu_armes,
+        marchandes_sauvees, temoin, trahi_baron, sans_protection, protection_aya, loyal_baron, silence,
+        lassina_disparu, kader_prevenu, convoi_escorte_vu]
+faits:
+  - associee
+  - sauve_crue
+  - protege
+preuves: [plaque_notee, bordereau_lassina]
+actifs: [ma_504, ligne_directe]
+
+# --------------------------------------------------------------------------- événements
+# Retombées différées : Kader, Mariam, Lassina et Gbé agissent sans toi.
+evenements:
+  - id: cw_ev_gare
+    jour: 60
+    si: "not flags.cotise"
+    txt: "Deux hommes de Gbé passent à la gare de Koumassi : « Les chauffeurs qui ne cotisent pas, on les note. » Kader baisse les yeux et paie une part de ta cotisation, sans un mot."
+    eff: {relations: {kader: {peur: 1}}, factions: {syndicat: {reputation: -1}}}
+    sinon_txt: "Kader te fait passer en tête de file à l'heure de pointe : « Les petits frères à jour, on les sert d'abord. On est ensemble. »"
+    sinon_eff: {relations: {kader: {trust: 1}}}
+  - id: cw_ev_lassina_nuit
+    jour: 130
+    si: "not flags.mariam_informee"
+    txt: "Mariam te retient à la gare, inquiète : Lassina a été affecté aux convois de nuit, six nuits sur sept. « Il dort le jour, il ne dit plus rien. Toi qui roules la nuit, tu n'as rien vu ? »"
+    eff: {relations: {mariam: {peur: 1}}}
+    sinon_txt: "Lassina vient de lui-même à la gare : « Mariam m'a dit que tu avais vu le chantier. Si un jour on me demande de brûler du papier, je ne brûlerai pas tout. »"
+    sinon_eff: {relations: {lassina: {trust: 1}}}
+  - id: cw_ev_tontine
+    jour: 170
+    si: "relations.mariam.trust >= 2"
+    txt: "Mariam te montre le cahier de la tontine : les marchandes de Koumassi ont réuni de quoi payer les papiers d'une ligne directe. « Le compte est bon, mon chauffeur. Il ne manque plus qu'une voiture et un nom. »"
+    eff: {flags: [tontine_prete]}
+    sinon_txt: "Mariam place l'argent de la tontine chez un jeune chauffeur que Kader a parrainé. Elle te salue de loin : « Je ne t'en veux pas. Tu n'étais pas là quand j'avais besoin. »"
+    sinon_eff: {relations: {mariam: {trust: -1}}}
+  - id: cw_ev_kader_gbe
+    jour: 240
+    si: "flags.licence_syndicat"
+    txt: "Gbé te fait passer le mot par Kader : les camions escortés de la semaine prochaine traverseront ta ligne. « Tu ne regardes pas dedans, petit frère. C'est la licence qui parle. »"
+    eff: {compromission: 1, flags: [convoi_escorte_vu], factions: {syndicat: {dette: 1}}}
+    sinon_txt: "Kader te glisse, entre deux courses : « Les camions qui passent à la gare à deux heures du matin, regarde leurs plaques. Moi, je n'ai rien dit. »"
+    sinon_eff: {flags: [kader_prevenu], relations: {kader: {trust: 1}}}
+  - id: cw_ev_bordereau
+    jour: 283
+    si: "relations.lassina.faits.sauve_crue"
+    txt: "À l'aube, Lassina, encore tremblant, te met dans la main un bordereau de chargement froissé : « On m'a demandé de le brûler. Je l'ai gardé. Fais-en ce que tu veux, mon frère. »"
+    eff: {preuves: {bordereau_lassina: {action: obtenir}}, relations: {lassina: {trust: 1}}}
+    sinon_txt: "Lassina n'est pas venu à la gare. Son camion ne passe plus sur la route de nuit. Mariam ne sait plus quoi dire."
+    sinon_eff: {flags: [lassina_disparu], relations: {mariam: {peur: 1}}}
+  - id: cw_ev_contestation
+    jour: 292
+    si: "preuves.plaque_notee == 'transmise'"
+    txt: "Un avocat du Baron fait remarquer que la plaque relevée à Treichville a été notée à la main, de nuit, sans témoin. Elle est officiellement contestée."
+    eff: {preuves: {plaque_notee: {action: contester}}}
+
+# --------------------------------------------------------------------------- nœuds
+noeuds:
+  - id: cw_0_course
+    jalon: 0
+    jour: 1
+    lieu: "Koumassi, gare des woro-woro"
+    moment: "6 h 30, premier tour"
+    objectif: "Installer ta 504, ta ligne, et Mariam qui rêve d'une ligne directe pour les marchandes."
+    present: [mariam, kader]
+    savoir: "Ta 504 est louée à la journée. Tu connais tous tes passagers, mais pas ce que transportent les camions de nuit."
+    dialogue:
+      - {narr: "La 504 jaune sent l'essence et le pagne mouillé. Mariam s'installe à l'avant comme chaque matin, son sac de wax sur les genoux."}
+      - {qui: radio, dit: "… la future Cité Lagune-Nord offrira des licences de ligne aux transporteurs de confiance …"}
+      - {qui: mariam, dit: "Tu entends, mon chauffeur ? Les marchandes de la tontine en ont assez de payer quatre woro pour aller à Adjamé. Une ligne directe, ce serait enjaillant."}
+      - {qui: kader, dit: "Petit frère, la licence, ça se discute à la gare, pas dans la voiture. On est ensemble, mais on ne parle pas fort."}
+    choix:
+      - id: offrir_course
+        l: "Offrir la course à Mariam et l'écouter parler de sa tontine"
+        intention: "Gagner une passagère fidèle, et son secret"
+        cout: "Une course perdue, et du retard à la gare."
+        eff: {argent: -2000, relations: {mariam: {trust: 2}}}
+        vers: cw_0_gare
+      - id: tournee
+        l: "Faire ta tournée sans bavarder"
+        intention: "Remplir la caisse"
+        cout: "Mariam te trouve distant."
+        eff: {argent: 5000, relations: {mariam: {trust: -1}}}
+        vers: cw_0_gare
+      - id: embrayage
+        l: "Aider Kader à changer un câble d'embrayage avant la première course"
+        intention: "Te faire parrainer par le doyen de la gare"
+        cout: "Tu perds l'heure de pointe."
+        eff: {competences: {mecanique: 1}, relations: {kader: {trust: 2}}, energie: -5}
+        vers: cw_0_gare
+
+  - id: cw_0_gare
+    jalon: 0
+    jour: 14
+    lieu: "Koumassi, la gare"
+    moment: "Lundi, jour de cotisation"
+    objectif: "Le Syndicat entre en scène : tu roules sous sa protection, ou tu roules seul."
+    present: [kader, gbe]
+    savoir: "Gbé passe une fois par mois ; chaque chauffeur cotise 5 000 F. Qui ne cotise pas est noté."
+    dialogue:
+      - {narr: "Une vingtaine de chauffeurs en file, les clés à la main. Gbé arrive en dernier, jovial, un sachet de cacahuètes à la main."}
+      - {qui: gbe, dit: "Le Syndicat, c'est la famille, mes frères. Et la famille cotise. Alors, le nouveau de la 504 jaune, on est à jour ?"}
+      - {qui: kader, dit: "Il est sérieux, Gbé. Laisse-le respirer.", si: "relations.kader.trust >= 3"}
+    choix:
+      - id: cotiser
+        l: "Payer la cotisation de 5 000 F"
+        intention: "Rouler tranquille sous la protection de la gare"
+        cout: "5 000 F de moins dans ta caisse."
+        vu_par: [syndicat]
+        si: "argent >= 5000"
+        eff: {argent: -5000, flags: [cotise], factions: {syndicat: {reputation: 1}}, relations: {kader: {trust: 1}, gbe: {trust: 1}}}
+        vers: cw_1_colis
+      - id: marchander
+        l: "Marchander la cotisation devant tout le monde"
+        intention: "Montrer que tu ne te laisses pas faire"
+        cout: "Gbé rancunier ne rit pas toujours."
+        vu_par: [syndicat]
+        tirage:
+          difficulte: 3
+          issues:
+            miracle: {vers: cw_1_colis, eff: {argent: -2000, flags: [cotise], factions: {syndicat: {reputation: 1}}}, txt: "Gbé éclate de rire et réduit la somme : « Celui-là sait parler ! »"}
+            normal: {vers: cw_1_colis, eff: {argent: -5000, flags: [cotise]}, txt: "Gbé te regarde longuement puis tend la main : tu paies le prix plein, mais devant tout le monde."}
+            mauvaise: {vers: cw_1_colis, eff: {factions: {syndicat: {reputation: -1, dette: 1}}, relations: {kader: {trust: -1}}}, txt: "Gbé n'aime pas les petits qui comptent. Kader paie pour toi, et tu lui dois."}
+      - id: esquiver
+        l: "Rouler en dehors de la gare, sans cotiser"
+        intention: "Garder tes cinq mille francs"
+        cout: "Le Syndicat te note, et Kader s'inquiète pour toi."
+        vu_par: [syndicat]
+        eff: {factions: {syndicat: {reputation: -1}}, relations: {kader: {peur: 1}}, energie: -5}
+        vers: cw_1_colis
+
+  - id: cw_1_colis
+    jalon: 1
+    jour: 40
+    porte: true
+    lieu: "Treichville, quai"
+    moment: "Soir, après la dernière course"
+    objectif: "Première porte vers l'illégal : un colis à déposer sans l'ouvrir."
+    present: [dabo]
+    savoir: "Dabo dit travailler pour un transporteur. Tu ne sais pas pour qui. La plaque du pick-up est masquée."
+    dialogue:
+      - {narr: "Un pick-up sans phares, moteur tournant. Une caisse en bois, légère pour sa taille, une croix rouge peinte à la main."}
+      - {qui: dabo, dit: "Le chauffeur de Koumassi ! Vingt-cinq mille francs pour déposer ça au Plateau, sans l'ouvrir. Tu ne poses pas de question, on ne t'en pose pas."}
+      - {qui: dabo, dit: "Les gens ne font pas les difficiles pour moins que ça, mon frère."}
+    choix:
+      - id: livrer
+        l: "Livrer le colis : 25 000 F, sans poser de question"
+        intention: "Sortir des fins de mois difficiles"
+        cout: "Tu entres dans le réseau du Baron, et ta plaque est notée."
+        vu_par: [ombre]
+        eff:
+          compromission: 3
+          metier: convoyeur_illicite
+          argent: 25000
+          flags: [convoie]
+          factions: {ombre: {reputation: 2}}
+          relations: {dabo: {trust: 2}}
+        vers: cw_1_bordereau
+      - id: refuser
+        l: "Refuser et relever la plaque du pick-up"
+        intention: "Rester propre et garder une trace"
+        cout: "Dabo a vu ton regard, et il n'oublie pas."
+        vu_par: [ombre]
+        eff: {compromission: -1, flags: [plaque], preuves: {plaque_notee: {action: obtenir}}, factions: {ombre: {exposition: 1}}}
+        vers: cw_1_bordereau
+      - id: une_fois
+        l: "Livrer une seule fois, puis voir"
+        intention: "Un coup de pouce, rien de plus"
+        cout: "On ne livre jamais « une seule fois »."
+        vu_par: [ombre]
+        eff: {compromission: 2, argent: 25000, flags: [colis_une_fois]}
+        tirage:
+          difficulte: 3
+          issues:
+            miracle: {vers: cw_1_bordereau, eff: {compromission: -1}, txt: "La livraison passe sans histoire. Dabo t'oublie, et tu rentres le cœur plus léger que la caisse."}
+            normal: {vers: cw_1_bordereau, eff: {flags: [dette_dabo], relations: {dabo: {trust: 1}}}, txt: "Dabo te serre la main : « On se reverra, le chauffeur. »"}
+            mauvaise: {vers: cw_1_bordereau, eff: {flags: [dette_dabo], relations: {mariam: {trust: -1}}}, txt: "Mariam, qui sortait de l'étal, te voit descendre du Plateau avec un homme en costume. Elle ne dit rien, mais elle a vu."}
+
+  - id: cw_1_bordereau
+    jalon: 1
+    jour: 75
+    lieu: "Koumassi, étals de la tontine"
+    moment: "21 h, après la fermeture du marché"
+    objectif: "Mariam te présente son frère Lassina : lui aussi roule la nuit, mais pour les camions du chantier."
+    present: [mariam, lassina]
+    savoir: "Lassina conduit un camion de chantier de nuit. Il dit « matériaux » ; il n'en dit pas plus."
+    dialogue:
+      - {narr: "Les marchandes plient leurs pagnes. Mariam fait signe à un homme voûté, les mains calleuses, qui attend près d'une cantine fermée."}
+      - {qui: mariam, dit: "Voici mon frère Lassina. Il conduit pour un sous-traitant de la Cité. Il n'a plus le temps de manger avec ses enfants."}
+      - {qui: lassina, dit: "Ah, c'est toi, le chauffeur ? Ma sœur parle de toi. Toi aussi, tu portes pour le chantier ?", si: "metier == 'convoyeur_illicite'"}
+      - {qui: lassina, dit: "On m'a dit « matériaux ». Voilà. C'est du travail, hein, pas de question."}
+    choix:
+      - id: voir_chantier
+        l: "Conduire Mariam au chantier de nuit pour voir son frère"
+        intention: "Savoir ce que Lassina transporte"
+        cout: "Une nuit sans passagers, et ce que tu verras ne pourra plus s'oublier."
+        eff: {energie: -10, flags: [mariam_informee, vu_chantier], relations: {mariam: {trust: 2}, lassina: {trust: 1}}}
+        vers: cw_2_princesse_ombre
+      - id: demander
+        l: "Demander à Lassina ce qu'il charge, sans éclat"
+        intention: "Une vraie réponse, de chauffeur à chauffeur"
+        cout: "Il peut se fermer, et ne plus jamais te parler."
+        tirage:
+          difficulte: 4
+          modificateurs: [{si: "relations.mariam.trust >= 3", valeur: 1}]
+          issues:
+            miracle: {vers: cw_2_princesse_ombre, eff: {flags: [mariam_informee], relations: {lassina: {trust: 2}}}, txt: "Lassina baisse la voix : « Une caisse portait une croix rouge, peinte à la main. On m'a dit de ne pas regarder. » Il n'en dit pas plus, mais il t'a fait confiance."}
+            normal: {vers: cw_2_princesse_ombre, eff: {flags: [mariam_informee], relations: {lassina: {trust: 1}}}, txt: "« Des matériaux, je te dis. » Mais il détourne les yeux, et Mariam l'a vu."}
+            mauvaise: {vers: cw_2_princesse_ombre, eff: {relations: {lassina: {trust: -1, peur: 1}}}, txt: "Lassina se ferme comme une porte : « Mêle-toi de tes courses. » Mariam te regarde, gênée."}
+      - id: laisser
+        l: "Ne pas te mêler des affaires de famille"
+        intention: "Garder ta tranquillité"
+        cout: "Mariam te trouve lâche."
+        eff: {relations: {mariam: {trust: -1}}}
+        vers: cw_2_princesse_ombre
+
+  - id: cw_2_princesse_ombre
+    jalon: 2
+    jour: 110
+    carrefour: A
+    si: "metier == 'convoyeur_illicite'"
+    sinon: cw_2_princesse_aya
+    lieu: "Yopougon, Rue Princesse"
+    moment: "Nuit de fin d'année"
+    objectif: "Le Baron veut un chauffeur régulier : ta plaque est déjà dans son carnet."
+    present: [baron, dabo, mariam]
+    savoir: "Tu sais maintenant qu'il y a un chef derrière les colis. Mariam, elle, ne sait pas encore qui tu es devenu."
+    dialogue:
+      - {narr: "Champagne, sono, poisson braisé. Syndicat, Ordre et Jet-Set partagent le même trottoir. À dix mètres, Mariam te cherche du regard, un plateau de pagnes sur la tête."}
+      - {qui: baron, dit: "Le chauffeur de la 504. Tu roules bien, petit, tu roules sans question. Quatre-vingt mille francs par semaine : un contrat régulier."}
+      - {qui: dabo, dit: "Dis oui. On ne propose pas deux fois."}
+    choix:
+      - id: signer
+        l: "Signer le contrat de convoyeur régulier : 80 000 F par semaine"
+        intention: "L'argent, la protection, la certitude"
+        cout: "Tu appartiens au Baron, et Mariam te regarde autrement."
+        vu_par: [ombre]
+        eff:
+          compromission: 3
+          flags: [contrat_baron]
+          factions: {ombre: {reputation: 2, alliance: true}}
+          relations: {baron: {trust: 2}, mariam: {trust: -2}}
+        vers: cw_2_ligne
+      - id: sortir
+        l: "Refuser le contrat et reprendre ta 504 de louage"
+        intention: "Sortir tant qu'il est temps"
+        cout: "Le Baron note ton refus, et ta paie redescend."
+        vu_par: [ombre]
+        eff:
+          compromission: -2
+          metier: chauffeur_woro
+          flags: [sorti_ombre]
+          factions: {ombre: {exposition: 1}}
+          relations: {baron: {peur: 2}, mariam: {trust: 1}}
+        vers: cw_2_ligne
+      - id: pied_dehors
+        l: "Prendre l'avance de 30 000 F mais ne rien signer"
+        intention: "Profiter sans t'engager"
+        cout: "Sékou notera que tu as hésité."
+        vu_par: [ombre]
+        eff: {argent: 30000}
+        tirage:
+          difficulte: 4
+          issues:
+            miracle: {vers: cw_2_ligne, eff: {compromission: 1}, txt: "Le Baron sourit : « Un homme prudent. J'aime ça. » Il te laisse partir, pour l'instant."}
+            normal: {vers: cw_2_ligne, eff: {compromission: 2, relations: {baron: {trust: 1}}}, txt: "Le Baron remplit ton verre : « Tu signeras, petit. Pas ce soir. »"}
+            mauvaise: {vers: cw_2_ligne, eff: {compromission: 2, flags: [dette_dabo], relations: {dabo: {trust: -1}}}, txt: "Dabo t'attrape la manche : « On ne prend pas l'argent du Baron sans lui rendre. » Tu repars avec une dette."}
+
+  - id: cw_2_princesse_aya
+    jalon: 2
+    jour: 110
+    carrefour: A
+    si: "flags.plaque"
+    sinon: cw_2_princesse_gbe
+    lieu: "Yopougon, Rue Princesse"
+    moment: "Nuit de fin d'année"
+    objectif: "Kader te présente Aya : la plaque que tu as relevée vaut quelque chose."
+    present: [kader, aya]
+    savoir: "Aya Coulibaly, de la PLCC, cherche des chauffeurs de confiance. Elle n'a pas de mandat."
+    dialogue:
+      - {narr: "Entre deux haut-parleurs, Kader te tire par la manche vers une table à l'écart. Une femme en simple chemise y garde les mains à plat, très calme."}
+      - {qui: kader, dit: "Petit frère, je te présente quelqu'un. Je ne dis pas d'où je la connais."}
+      - {qui: aya, dit: "Lieutenante Coulibaly. On m'a dit que tu avais relevé une plaque au quai de Treichville. Je n'ai pas de mandat : je ne te promets pas de protection, seulement que je t'écoute."}
+    choix:
+      - id: yeux
+        l: "Accepter d'être ses yeux dans la ville, et lui remettre la plaque"
+        intention: "Servir de témoin de la route"
+        cout: "Le Syndicat n'aime pas qu'un de ses chauffeurs parle à la police."
+        vu_par: [ordre, syndicat]
+        eff:
+          compromission: -2
+          flags: [informateur]
+          relations: {aya: {trust: 2}}
+          factions: {ordre: {reputation: 1}, syndicat: {exposition: 1}}
+          preuves: {plaque_notee: {action: transmettre, a: aya}}
+        vers: cw_2_ligne
+      - id: garder
+        l: "Garder la plaque pour toi et attendre"
+        intention: "Ne pas t'exposer avant d'être sûr"
+        cout: "Aya te trouvera hésitant."
+        eff: {flags: [plaque_gardee], relations: {aya: {trust: -1}}}
+        vers: cw_2_ligne
+      - id: neutre
+        l: "Rester neutre, rouler tranquille"
+        intention: "Ne mettre personne en colère"
+        cout: "Tu ne seras plus jamais sûr d'avoir bien fait."
+        eff: {relations: {kader: {trust: -1}}}
+        vers: cw_2_ligne
+
+  - id: cw_2_princesse_gbe
+    jalon: 2
+    jour: 110
+    carrefour: A
+    lieu: "Yopougon, Rue Princesse"
+    moment: "Nuit de fin d'année"
+    objectif: "Gbé te propose la licence de ligne dont Mariam rêve, et le prix de ton silence."
+    present: [gbe, kader, mariam]
+    savoir: "Kader a l'air embarrassé. Gbé n'offre pas une licence pour rien."
+    dialogue:
+      - {narr: "Sur la terrasse d'un maquis, Gbé tient sa cour. Kader se tient debout à côté, la mâchoire serrée. Mariam, un peu plus loin, fait semblant de ne pas écouter."}
+      - {qui: gbe, dit: "Le chauffeur de la 504 ! Écoute-moi bien : la licence de ligne dans la Cité, je la donne à ceux qui sont de la famille. Une cotisation spéciale, et ta voiture ne regarde pas dans les camions qui passent à Koumassi. Tu comprends ?"}
+      - {qui: kader, dit: "C'est une bonne offre, petit frère. Je ne te dis pas de la prendre. Je dis qu'elle est bonne."}
+    choix:
+      - id: accepter_licence
+        l: "Accepter la licence du Syndicat : cotisation spéciale, et tu ne regardes pas dans les camions"
+        intention: "Une vraie ligne, protégée par la gare"
+        cout: "Tu t'engages à ne pas voir ce que Kader, lui, a déjà décidé de ne pas voir."
+        si: "argent >= 5000"
+        vu_par: [syndicat]
+        eff:
+          argent: -5000
+          compromission: 2
+          flags: [licence_syndicat]
+          factions: {syndicat: {reputation: 2, dette: 1}}
+          relations: {kader: {trust: 1}, mariam: {trust: -1}}
+        vers: cw_2_ligne
+      - id: refuser_licence
+        l: "Refuser et dire à Gbé que la ligne de Mariam se fera sans lui"
+        intention: "Garder ta route libre"
+        cout: "Le Syndicat n'oublie pas, et Kader ne pourra plus te couvrir."
+        vu_par: [syndicat]
+        eff:
+          compromission: -1
+          flags: [ligne_sans_syndicat]
+          factions: {syndicat: {reputation: -2, exposition: 1}}
+          relations: {mariam: {trust: 2}, kader: {peur: 1}, gbe: {trust: -2}}
+        vers: cw_2_ligne
+      - id: delai
+        l: "Demander du temps : une tontine ne décide pas en une nuit"
+        intention: "Gagner de quoi réfléchir"
+        cout: "Gbé n'aime pas qu'on lui fasse attendre une réponse."
+        vu_par: [syndicat]
+        tirage:
+          difficulte: 3
+          issues:
+            miracle: {vers: cw_2_ligne, eff: {factions: {syndicat: {reputation: 1}}}, txt: "Gbé rit : « Une tontine ! Il a raison. Reviens avec les marchandes. » La porte reste ouverte."}
+            normal: {vers: cw_2_ligne, txt: "Gbé hausse les épaules : « Réfléchis. L'offre ne tiendra pas jusqu'à la saison sèche. »"}
+            mauvaise: {vers: cw_2_ligne, eff: {factions: {syndicat: {reputation: -1}}, relations: {kader: {trust: -1}}}, txt: "Gbé se lève : « Alors c'est non. » Kader n'ose pas te regarder."}
+
+  - id: cw_2_ligne
+    jalon: 2
+    jour: 190
+    lieu: "Koumassi, l'étal de Mariam"
+    moment: "Soir de tontine"
+    objectif: "Entrepreneuriat : deux façons d'engager ton argent, une ligne partagée ou une voiture à toi. Et le permis D."
+    present: [mariam, kader]
+    savoir: "Une ligne coûte une licence ou des amis. Le permis D se passe au CFP de Treichville."
+    dialogue:
+      - {narr: "Le cahier de la tontine est ouvert sur l'étal, entre les piles de pagnes. Mariam lisse la page avant de parler."}
+      - {qui: mariam, dit: "Le compte est bon, mon chauffeur. Il manque une voiture et quelqu'un qui roule droit. Tu mets quarante mille, la tontine met le reste, on lance la ligne."}
+      - {qui: kader, dit: "Moi je dis juste une chose : une voiture à toi, c'est un autre homme.", si: "metier == 'chauffeur_woro'"}
+    choix:
+      - id: cofinancer
+        l: "Mettre 40 000 F de ta poche dans la ligne directe de Mariam"
+        intention: "Lancer la ligne des quartiers, à deux"
+        cout: "40 000 F, et tu ne pourras plus racheter ta voiture cette année."
+        si: "argent >= 40000"
+        eff:
+          argent: -40000
+          compromission: -1
+          flags: [association_ligne]
+          actifs: {ligne_directe: lancee}
+          relations: {mariam: {trust: 2, fait: associee}}
+        vers: cw_3_crue_ombre
+      - id: racheter
+        l: "Racheter ta 504 au loueur en deux versements (40 000 F)"
+        intention: "Une voiture à toi, un autre statut"
+        cout: "La ligne de Mariam devra attendre."
+        si: "metier == 'chauffeur_woro' and argent >= 40000"
+        eff: {argent: -40000, echelon: proprietaire, actifs: {ma_504: possedee}}
+        vers: cw_3_crue_ombre
+      - id: sous_licence
+        l: "Lancer la ligne sous la licence du Syndicat"
+        intention: "Une ligne protégée, sans tarder"
+        cout: "Mariam ne comprend pas pourquoi la protection a un prix."
+        si: "flags.licence_syndicat"
+        vu_par: [syndicat]
+        eff:
+          compromission: 1
+          flags: [ligne_syndicat]
+          actifs: {ligne_directe: sous_licence}
+          factions: {syndicat: {dette: 1}}
+          relations: {mariam: {trust: -1}}
+        vers: cw_3_crue_ombre
+      - id: permis_d
+        l: "Passer le permis D au CFP de Treichville (10 000 F de frais)"
+        intention: "Pouvoir conduire un autocar"
+        cout: "Une semaine de fatigue, et un échec te coûterait cher."
+        si: "argent >= 10000"
+        examen: permis_d
+        eff: {argent: -10000, energie: -10}
+        tirage:
+          difficulte: 3
+          issues:
+            miracle: {vers: cw_3_crue_ombre, eff: {diplome: permis_d, competences: {etudes: 1}}, txt: "Le moniteur te serre la main : premier de ta session."}
+            normal: {vers: cw_3_crue_ombre, eff: {diplome: permis_d}, txt: "Tu passes, de justesse. Le papier est dans ta poche."}
+            mauvaise: {vers: cw_3_crue_ombre, eff: {sante: -5}, txt: "Tu cales au créneau. On te dit de revenir l'an prochain."}
+      - id: attendre
+        l: "Dire à Mariam que ce n'est pas le moment"
+        intention: "Ne rien engager"
+        cout: "Mariam trouvera quelqu'un d'autre."
+        eff: {relations: {mariam: {trust: -1}}}
+        vers: cw_3_crue_ombre
+
+  - id: cw_3_crue_ombre
+    jalon: 3
+    jour: 281
+    carrefour: B
+    si: "metier == 'convoyeur_illicite'"
+    sinon: cw_3_crue_lassina
+    lieu: "Treichville, quai inondé"
+    moment: "Nuit de la crue"
+    objectif: "Ta 504 est pleine de caisses du Baron, et des gens crient dans l'eau."
+    present: [dabo]
+    savoir: "Les caisses sont marquées d'une croix rouge. Tu sais maintenant à quoi elles servent."
+    dialogue:
+      - {narr: "L'eau monte par les caniveaux du quai. Ta 504 est à moitié noyée, chargée jusqu'au toit. Des cris viennent du bas de la rue."}
+      - {qui: dabo, dit: "Tu ne t'arrêtes pas. Les caisses d'abord, les gens après. C'est le Baron qui l'a dit."}
+      - {narr: "Une caisse s'est ouverte contre la portière : tu vois le métal, et tu comprends."}
+    choix:
+      - id: jeter
+        l: "Jeter les caisses à l'eau et charger les gens"
+        intention: "Sauver des vies plutôt que de la marchandise"
+        cout: "Dabo comptera chaque caisse perdue."
+        vu_par: [ombre]
+        eff: {compromission: -3, flags: [sauveur, caisses_jetees], energie: -15, relations: {lassina: {trust: 2}}, factions: {ombre: {exposition: 1}}}
+        tirage:
+          difficulte: 4
+          issues:
+            miracle: {vers: cw_4_descente_ombre, eff: {etoile_mod: {valeur: 5, jours: 30}, relations: {lassina: {fait: sauve_crue}}}, txt: "Neuf personnes tiennent dans la 504. Parmi elles, Lassina, trempé, qui te serre le bras sans un mot."}
+            normal: {vers: cw_4_descente_ombre, eff: {sante: -10, relations: {lassina: {fait: sauve_crue}}}, txt: "Tu sauves ceux que tu peux. Le moteur s'étouffe au dernier tour ; Lassina est dans l'eau jusqu'à la poitrine, mais debout."}
+            mauvaise: {vers: cw_4_descente_ombre, eff: {sante: -20, relations: {dabo: {peur: 1}}}, txt: "Un courant t'arrache à la portière. Tu sors la tête de l'eau, et Dabo, de loin, te regarde noter ce que tu as jeté."}
+      - id: garder
+        l: "Garder les caisses et passer sans t'arrêter"
+        intention: "Obéir pour survivre"
+        cout: "Tu entendras ces voix-là longtemps."
+        vu_par: [ombre]
+        eff: {compromission: 2, flags: [a_garde_caisses], factions: {ombre: {reputation: 1}}, relations: {mariam: {trust: -2}}}
+        vers: cw_4_descente_ombre
+      - id: ouvrir
+        l: "Ouvrir une caisse pour en avoir le cœur net avant de décider"
+        intention: "Savoir ce que tu transportes"
+        cout: "Une seconde de trop, et Dabo te regarde."
+        eff: {flags: [vu_armes], compromission: -1}
+        tirage:
+          difficulte: 5
+          issues:
+            miracle: {vers: cw_4_descente_ombre, eff: {competences: {enquete: 1}}, txt: "Tu vois les armes, tu refermes sans qu'on te voie. Désormais tu sais, et personne ne sait que tu sais."}
+            normal: {vers: cw_4_descente_ombre, eff: {relations: {dabo: {peur: 1}}}, txt: "Dabo t'a vu. Il ne dit rien, mais il note."}
+            mauvaise: {vers: cw_4_descente_ombre, eff: {sante: -10, compromission: 1}, txt: "Dabo te rattrape par le col : « Qui t'a dit de regarder ? » Tu paies cette seconde cher."}
+
+  - id: cw_3_crue_lassina
+    jalon: 3
+    jour: 281
+    carrefour: B
+    lieu: "Koumassi inondé"
+    moment: "Nuit de la crue, 22 h"
+    objectif: "Le camion de Lassina se couche dans l'eau ; Mariam est dans ta voiture, six marchandes attendent sur les hauteurs."
+    present: [mariam, lassina, kader]
+    savoir: "Les caisses à croix rouge flottent autour du camion. Lassina est coincé dans la cabine."
+    dialogue:
+      - {narr: "L'eau marron monte à mi-portière. Le camion de Lassina penche, phares allumés, une caisse ouverte flotte à côté, la croix rouge vers le ciel."}
+      - {qui: mariam, dit: "C'est mon frère ! Mon chauffeur, fais quelque chose !"}
+      - {qui: kader, dit: "Petit frère, les marchandes sont au deuxième étage de la gare. Les deux ne tiendront pas. Il faut choisir."}
+    choix:
+      - id: sauver_lassina
+        l: "Sauver Lassina (l'eau peut vous emporter tous les deux)"
+        intention: "Ne pas laisser un homme se noyer"
+        cout: "Tu risques ta santé, et les marchandes attendront."
+        eff: {compromission: -2, flags: [sauveur], energie: -25, relations: {mariam: {trust: 2}}}
+        tirage:
+          difficulte: 5
+          issues:
+            miracle: {vers: cw_4_descente_temoin, eff: {etoile_mod: {valeur: 5, jours: 30}, relations: {lassina: {trust: 3, fait: sauve_crue}}}, txt: "La portière cède comme si elle t'attendait. Lassina est dehors, toussant, vivant ; tu n'as pas une égratignure."}
+            normal: {vers: cw_4_descente_temoin, eff: {sante: -15, relations: {lassina: {trust: 3, fait: sauve_crue}}}, txt: "Vous êtes tous les deux couverts de boue, les poumons en feu. Lassina est vivant."}
+            mauvaise: {vers: cw_4_descente_temoin, eff: {sante: -30, relations: {lassina: {trust: 1, fait: sauve_crue}}}, txt: "Le courant vous projette contre un mur. Lassina est sauvé, mais tu as la cage thoracique en feu ; le docteur Sanogo te soignera à l'aube."}
+      - id: tontine
+        l: "Emmener d'abord les marchandes sur les hauteurs (Lassina restera seul dans l'eau)"
+        intention: "Sauver le plus grand nombre"
+        cout: "Mariam ne te le pardonnera peut-être pas."
+        eff: {compromission: -1, flags: [marchandes_sauvees], energie: -15, relations: {mariam: {trust: -3}, kader: {trust: 1}, lassina: {trust: -2}}}
+        vers: cw_4_descente_temoin
+      - id: chaine
+        l: "Appeler Kader et les chauffeurs de la gare pour une chaîne de sauvetage"
+        intention: "Utiliser ta gare comme un filet"
+        cout: "Chaque minute compte, et Lassina n'en a pas beaucoup."
+        si: "relations.kader.trust >= 2"
+        eff: {flags: [sauveur], energie: -10}
+        tirage:
+          difficulte: 4
+          modificateurs: [{si: "factions.syndicat.reputation >= 1", valeur: 1}]
+          issues:
+            miracle: {vers: cw_4_descente_temoin, eff: {flags: [marchandes_sauvees], relations: {kader: {trust: 2}, lassina: {trust: 2, fait: sauve_crue}}}, txt: "Vingt chauffeurs forment une chaîne de bras dans l'eau. Lassina et les six marchandes sont sauvés."}
+            normal: {vers: cw_4_descente_temoin, eff: {relations: {kader: {trust: 1}, lassina: {trust: 2, fait: sauve_crue}}}, txt: "La chaîne tient. Lassina est dehors, mais les étals sont perdus."}
+            mauvaise: {vers: cw_4_descente_temoin, eff: {sante: -10, relations: {mariam: {peur: 1}, lassina: {trust: -1}}}, txt: "La chaîne se rompt. Lassina est repêché plus loin, blessé, sans connaissance. Il ne parlera pas de sitôt."}
+
+  - id: cw_4_descente_ombre
+    jalon: 4
+    jour: 283
+    carrefour: C
+    si: "compromission >= 2"
+    sinon: cw_4_descente_temoin
+    lieu: "Koumassi, la gare"
+    moment: "Descente de police, à l'aube"
+    objectif: "Ta plaque est dans le carnet des convois : Sékou arrive avec un avocat, Aya avec une question."
+    present: [aya, sekou]
+    savoir: "Aya n'a pas de mandat. Si tu parles, personne ne te garantit rien."
+    dialogue:
+      - {narr: "Les gyrophares bleus balaient la boue. Les chauffeurs, alignés devant leurs voitures, se taisent. Sékou fend la file avec un homme en costume."}
+      - {qui: sekou, dit: "Mon frère, tu n'as rien vu et rien transporté. Mon avocat te dira quoi répondre."}
+      - {qui: aya, dit: "Lieutenante Coulibaly. Ta plaque est dans leurs carnets. Je n'ai pas de mandat, donc pas de protection garantie. Si tu parles, tu seras entendu."}
+    choix:
+      - id: trahir
+        l: "Tout dire à Aya sur les convois (elle n'a pas de mandat : sans protection, Sékou saura que c'est toi)"
+        intention: "Briser ta dette"
+        cout: "Le Baron ne pardonne pas, et tu risques ta vie."
+        vu_par: [ordre, ombre]
+        eff:
+          compromission: -4
+          flags: [temoin, trahi_baron]
+          relations: {aya: {trust: 3}, baron: {trust: -5, peur: 3}, sekou: {trust: -3}}
+          factions: {ordre: {reputation: 2}, ombre: {reputation: -3}}
+        tirage:
+          difficulte: 6
+          issues:
+            miracle: {vers: cw_5_ceremonie, eff: {flags: [protection_aya]}, txt: "Aya intercède : un magistrat, qu'elle avait prévenu en secret, accepte de te placer sous protection."}
+            normal: {vers: cw_5_ceremonie, eff: {flags: [sans_protection]}, txt: "Aya note ton témoignage. Elle n'a pas de mandat pour te protéger, et elle te le dit avec honnêteté."}
+            mauvaise: {vers: cw_5_ceremonie, eff: {flags: [sans_protection], relations: {baron: {peur: 2}}, sante: -10}, txt: "Un policier du commissaire Yao prévient discrètement Sékou avant même que tu sois sorti."}
+      - id: bordereau
+        l: "Remettre le bordereau de Lassina à Aya (une preuve écrite, mais Sékou saura qui l'a donnée)"
+        intention: "Une preuve que les avocats ne contesteront pas"
+        cout: "Tu rompras définitivement avec le Baron."
+        si: "preuves.bordereau_lassina == 'detenue'"
+        vu_par: [ordre, ombre]
+        eff:
+          compromission: -4
+          flags: [temoin, trahi_baron, protection_aya]
+          relations: {aya: {trust: 2}, lassina: {trust: 1, fait: protege}, baron: {trust: -5, peur: 2}}
+          factions: {ordre: {reputation: 2}, ombre: {reputation: -3}}
+          preuves: {bordereau_lassina: {action: transmettre, a: aya}}
+        vers: cw_5_ceremonie
+      - id: loyal
+        l: "Plaider l'ignorance et rester loyal à Sékou"
+        intention: "Garder ta place"
+        cout: "Mariam ne montera plus jamais dans ta voiture."
+        vu_par: [ombre]
+        eff: {compromission: 2, flags: [loyal_baron], relations: {sekou: {trust: 2}, mariam: {trust: -2}}, factions: {ombre: {reputation: 1}}}
+        vers: cw_5_ceremonie
+      - id: fuir
+        l: "Profiter de la confusion et filer par les ruelles de Koumassi"
+        intention: "Ne choisir aucun camp"
+        cout: "Tu perds ta voiture de l'heure, et ta place à la gare."
+        eff: {compromission: -1, argent: -5000, relations: {kader: {trust: -1}}}
+        vers: cw_5_ceremonie
+
+  - id: cw_4_descente_temoin
+    jalon: 4
+    jour: 283
+    carrefour: C
+    lieu: "Koumassi, la gare"
+    moment: "Descente de police, à l'aube"
+    objectif: "Aya a besoin d'un témoin de la route pour relier les convois : on te regarde, toi qui roules tous les jours dessus."
+    present: [aya, kader, mariam]
+    savoir: "Kader a peur de Gbé. Aya ne peut pas te protéger sans mandat."
+    dialogue:
+      - {narr: "L'aube grise sur la boue. Des policiers fouillent les voitures. Kader, serré contre ton capot, murmure sans te regarder."}
+      - {qui: kader, dit: "Petit frère, je ne parlerai jamais contre Gbé. Mais personne ne t'empêche de parler pour toi."}
+      - {qui: aya, dit: "Lieutenante Coulibaly. Je cherche quelqu'un qui connaisse la route et les camions de nuit. Je ne te promets pas de protection. Je te promets que tu seras entendu."}
+    choix:
+      - id: temoigner
+        l: "Témoigner devant Aya : ce que tu as vu au chantier, à la gare, sur la route"
+        intention: "Dire ce que tu sais"
+        cout: "Aya ne peut pas te protéger sans mandat, et Gbé saura."
+        vu_par: [ordre, syndicat]
+        eff: {compromission: -3, flags: [temoin], relations: {aya: {trust: 3}}, factions: {ordre: {reputation: 2}, syndicat: {exposition: 1}}}
+        vers: cw_5_ceremonie
+      - id: remettre_bordereau
+        l: "Remettre le bordereau de Lassina à Aya"
+        intention: "Une preuve que personne ne pourra nier"
+        cout: "Lassina sera exposé comme source."
+        si: "preuves.bordereau_lassina == 'detenue'"
+        vu_par: [ordre]
+        eff:
+          compromission: -3
+          flags: [temoin, protection_aya]
+          relations: {aya: {trust: 2}, lassina: {trust: 1, fait: protege}}
+          factions: {ordre: {reputation: 2}}
+          preuves: {bordereau_lassina: {action: transmettre, a: aya}}
+        vers: cw_5_ceremonie
+      - id: donner_plaque
+        l: "Donner à Aya la plaque relevée au quai de Treichville"
+        intention: "Une pièce, même fragile"
+        cout: "Une plaque notée à la main se conteste."
+        si: "preuves.plaque_notee == 'detenue'"
+        vu_par: [ordre]
+        eff: {compromission: -1, relations: {aya: {trust: 1}}, factions: {ordre: {reputation: 1}}, preuves: {plaque_notee: {action: transmettre, a: aya}}}
+        vers: cw_5_ceremonie
+      - id: se_taire
+        l: "Te taire par peur"
+        intention: "Survivre"
+        cout: "Tu porteras ce silence longtemps."
+        eff: {flags: [silence], relations: {aya: {trust: -1}}}
+        vers: cw_5_ceremonie
+
+  - id: cw_5_ceremonie
+    jalon: 5
+    jour: 304
+    denouement: true
+    lieu: "Bord de la lagune, première pierre"
+    moment: "Cérémonie d'inauguration"
+    objectif: "Dire ce que tu es devenu face à la file des taxis."
+    present: [mariam, lassina, kader, aya, baron]
+    savoir: "Tu sais ce que tu as vu sur la route. Chacun sait ce qu'il a vu dans ta voiture."
+    dialogue:
+      - {narr: "Le Maire coupe le ruban d'un quartier à moitié vrai. Dans la file des taxis, ta 504 jaune, moteur éteint, attend comme une vieille connaissance."}
+      - {qui: mariam, dit: "Alors, mon chauffeur ? Le compte est bon, ou il faut recompter ?", si: "relations.mariam.trust >= 2"}
+      - {qui: kader, dit: "Petit frère. On est ensemble, hein. Ce qu'on a dit, ce qu'on n'a pas dit : c'est la route qui décide."}
+
+fins:
+  - id: cw_f_lum
+    type: lumiere
+    priorite: 2
+    si: "flags.temoin and compromission <= -2 and preuves.bordereau_lassina == 'transmise'"
+    titre: "Légende des Woro-Woro"
+    resume: "Ta route sert enfin à ceux qui l'empruntent."
+    epilogue:
+      - {txt: "Le bordereau de Lassina ouvre trois enquêtes : les camions de nuit sont devant le juge, et la route qu'ils empruntaient n'est plus un secret."}
+      - {si: "actifs.ma_504", txt: "Ta 504 est à toi. Les passagers te saluent par ton nom, et Kader, le premier, t'appelle « patron »."}
+      - {si: "diplomes.permis_d", txt: "Le permis D en poche, tu prépares le premier autocar de la ligne de Koumassi."}
+      - {si: "relations.lassina.faits.sauve_crue", txt: "Lassina, appuyé sur ton bras, assiste à l'audience. Tu l'as sorti de l'eau ; il t'a sorti du silence."}
+      - {txt: "Ce n'est pas gratuit : tu as perdu des routes, et le Baron n'a pas fini de te chercher."}
+  - id: cw_f_ombre
+    type: ombre
+    priorite: 3
+    si: "flags.contrat_baron and compromission >= 5"
+    titre: "Le Chauffeur sans Question"
+    resume: "Tu roules pour le Baron, à l'abri et sans amis."
+    epilogue:
+      - {txt: "Tu es le chauffeur attitré du Baron : une voiture neuve, un salaire sûr, des routes que personne n'inspecte."}
+      - {si: "relations.mariam.trust <= 0", txt: "Mariam est montée dans la voiture d'un autre, puis dans celle du Syndicat. Tu fais semblant de ne pas l'avoir vue."}
+      - {si: "flags.caisses_jetees", txt: "Tu as sauvé neuf personnes une nuit de crue, et tu ne l'as jamais dit à personne. Cela ne change rien à ce que tu transportes."}
+      - {txt: "Tu ne poses plus de question. Mais la nuit, tu les entends encore."}
+  - id: cw_f_entre
+    type: entre_deux
+    priorite: 5
+    si: "true"
+    titre: "La Course du Silence"
+    resume: "Un métier honnête, mais ce que tu as vu te hante."
+    epilogue:
+      - {txt: "Tu roules honnêtement, la 504 sent toujours l'essence et le pagne mouillé. Mais les camions de nuit sont toujours là."}
+      - {si: "flags.tontine_prete", txt: "La tontine de Mariam a fini par acheter une voiture à un autre. Elle te salue toujours en passant."}
+      - {si: "flags.silence", txt: "Tu n'as rien dit à Aya. Chaque matin, tu te demandes combien de temps ça tiendra."}
+      - {si: "flags.temoin", txt: "Tu as parlé, mais sans preuve irréfutable : l'affaire s'enlise, et tu vis avec."}
+      - {si: "flags.lassina_disparu", txt: "Lassina n'est jamais revenu. Mariam te demande parfois si tu l'as aperçu sur la route."}
+  - id: cw_f_trag
+    type: tragique
+    priorite: 1
+    imposee: true
+    si: "flags.convoie and flags.trahi_baron and flags.sans_protection"
+    titre: "Le Dernier Colis"
+    resume: "Tu as parlé sans protection."
+    epilogue:
+      - {txt: "Tu avais livré pour le Baron. Tu as parlé à Aya sans mandat, sans protection, devant des hommes qui te connaissaient."}
+      - {txt: "Le jour de la cérémonie, la 504 jaune reste dans la file, vide. Sékou n'a plus besoin de toi et te sait plus dangereux vivant."}
+      - {txt: "Aya t'avait prévenu : sans mandat, personne ne pouvait te protéger. Fin définitive."}
+  - id: cw_f_secret
+    type: secrete
+    priorite: 0
+    si: "actifs.ligne_directe and flags.association_ligne and not flags.licence_syndicat and relations.mariam.trust >= 4 and relations.lassina.faits.sauve_crue and compromission <= 0"
+    titre: "La Ligne Directe"
+    resume: "Une ligne régulière relie les quartiers, avec Mariam à la caisse."
+    epilogue:
+      - {txt: "La ligne Koumassi-Adjamé existe : une 504 jaune, une caisse de tontine, et Mariam au comptoir qui vérifie chaque course."}
+      - {txt: "Lassina conduit l'autocar du matin. Kader, en retraite du Syndicat, tient la gare qu'il n'osait plus regarder."}
+      - {si: "flags.tontine_prete", txt: "La tontine a servi à acheter la deuxième voiture. Le compte est bon."}
+      - {txt: "Les camions de nuit ne passent plus sans qu'on regarde dedans. La route est à ceux qui la prennent."}

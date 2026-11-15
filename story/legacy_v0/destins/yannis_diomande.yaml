@@ -1,0 +1,98 @@
+destin: yannis_diomande
+titre: "Le Retour du Numero 25"
+rarete: legendaire
+depart: {camp: propre, cur: 0, logement: villa_cocody_ambassades, argent: 500000000, metier: footballeur_pro, ecole: aucune, diplomes: [bac], etoile: 80}
+cercle:
+  - {id: maman, nom: "Maman", rel: proche}
+  - {id: kouame, nom: "Coach Kouame, entraineur de l'academie", rel: allie}
+  - {id: ibrahim, nom: "Ibrahim, jeune supporter", rel: proche}
+  - {id: baron, nom: "Le Baron", rel: rival}
+noeuds:
+  - id: yd_n0
+    ch: 0
+    lieu: "Cocody Ambassades, villa"
+    txt: "Retour d'Abidjan. Vacances, selection des Elephants, la foule te reconnait. Maman te serre dans ses bras. L'academie de foot que tu finances a besoin d'un terrain."
+    choix:
+      - {l: "Aller voir le terrain de l'academie avec Coach Kouame", eff: {lien: {kouame: 2}}, vers: yd_n1}
+      - {l: "Signer des selfies devant la villa", eff: {lien: {ibrahim: 2}}, vers: yd_n1}
+  - id: yd_n1
+    ch: 1
+    porte: true
+    lieu: "Abidjan, terrain de l'academie"
+    txt: "Un conseiller de Cite Lagune-Nord arrive : « Vendez le terrain a prix d'or, on vous offre un stade. » Maman, pressee par la famille, te dit : « Accepte. »"
+    choix:
+      - {l: "Accepter, la famille d'abord", eff: {cur: 3, argent: 100000000, faction: {ombre: 1}, lien: {maman: 1}}, vers: yd_n2o}
+      - {l: "Refuser et defendre le terrain", eff: {cur: -1, lien: {kouame: 2}}, vers: yd_n2p}
+      - {l: "Demander un delai pour verifier", eff: {cur: 1}, tirage: {normal: yd_n2g, mauvaise: yd_n2o, miracle: yd_n2p}}
+  - id: yd_n2o
+    ch: 2
+    carrefour: A
+    lieu: "Yopougon, Rue Princesse"
+    txt: "Le Baron te felicite : « Un stade a ton nom, grace a moi. » Les fans crient ton nom."
+    choix:
+      - {l: "Laisser le Baron financer ton nom", eff: {cur: 3, faction: {ombre: 2, jetset: 1}}, vers: yd_n3o}
+      - {l: "Prendre tes distances, devant tout le monde", eff: {cur: -2}, vers: yd_n3p}
+  - id: yd_n2p
+    ch: 2
+    carrefour: A
+    lieu: "Yopougon, Rue Princesse"
+    txt: "Ibrahim et les supporters te portent. L'Ordre Republicain propose de proteger l'academie."
+    choix:
+      - {l: "Accepter la protection de l'Ordre", eff: {cur: -1, faction: {ordre: 2}}, vers: yd_n3p}
+      - {l: "Defendre l'academie par la mobilisation des supporters", eff: {cur: -2, lien: {ibrahim: 2}, flag: supporters}, vers: yd_n3p}
+  - id: yd_n2g
+    ch: 2
+    carrefour: A
+    lieu: "Yopougon, Rue Princesse"
+    txt: "Tu hesites. Les offres montent. Maman insiste. Ibrahim te regarde."
+    choix:
+      - {l: "Refuser", eff: {cur: -1, lien: {ibrahim: 1}}, vers: yd_n3p}
+      - {l: "Accepter", eff: {cur: 2}, vers: yd_n3o}
+  - id: yd_n3o
+    ch: 3
+    carrefour: B
+    lieu: "Abidjan inonde"
+    txt: "Crue. Le stade promis est vide. Le chantier cache des caisses. Ibrahim les a vues."
+    choix:
+      - {l: "Lui demander de se taire", eff: {cur: 3, lien: {ibrahim: -3}}, vers: yd_n4o}
+      - {l: "Ouvrir l'academie aux sinistres", eff: {cur: -3, flag: abri}, vers: yd_n4p}
+  - id: yd_n3p
+    ch: 3
+    carrefour: B
+    lieu: "Abidjan inonde"
+    txt: "Crue. L'academie est en zone inondable. Les jeunes sont evacues."
+    choix:
+      - {l: "Prendre en charge toute l'evacuation", eff: {cur: -2}, tirage: {normal: yd_n4p, mauvaise: yd_n4p, miracle: yd_n4p}}
+      - {l: "Deplacer l'academie sur ton propre terrain", eff: {cur: -1}, vers: yd_n4p}
+  - id: yd_n4o
+    ch: 4
+    carrefour: C
+    lieu: "Abidjan, aube"
+    txt: "Descente. Ton stade est cible. Aya te demande des comptes."
+    choix:
+      - {l: "Livrer ce que tu sais", eff: {cur: -3, flag: temoin, faction: {ordre: 2}}, vers: yd_n5}
+      - {l: "Te retirer a Reel Madird", eff: {cur: 1}, vers: yd_n5}
+  - id: yd_n4p
+    ch: 4
+    carrefour: C
+    lieu: "Abidjan, aube"
+    txt: "La presse veut ta parole : « Yannis, que savez-vous du projet ? »"
+    choix:
+      - {l: "Dire la verite devant les cameras", eff: {cur: -3, flag: temoin}, vers: yd_n5}
+      - {l: "Parler uniquement de foot", eff: {}, vers: yd_n5}
+  - id: yd_n5
+    ch: 5
+    lieu: "Bord de la lagune, premiere pierre"
+    txt: "Ceremonie. Les Elephants jouent ce soir. Les jeunes de ton academie sont dans les gradins."
+    choix:
+      - {l: "Inaugurer l'academie en regle", si: "cur<=-2 et temoin", vers: yd_f_lum}
+      - {l: "Devenir l'ambassadeur du Baron", si: "cur>=6", vers: yd_f_ombre}
+      - {l: "Retourner a Reel Madird sans regarder en arriere", si: "toujours", vers: yd_f_entre}
+      - {l: "Defier le Baron devant le stade", si: "cur>=3", vers: yd_f_trag}
+      - {l: "Ouvrir l'academie du foot et du bac", si: "(abri ou supporters) et ibrahim>=3", vers: yd_f_secret}
+fins:
+  - {id: yd_f_lum, type: lumiere, titre: "Legende des Elephants", txt: "Ton academie forme les futurs numeros 25."}
+  - {id: yd_f_ombre, type: ombre, titre: "L'Ambassadeur du Baron", txt: "Ton visage est partout, ton nom ne t'appartient plus."}
+  - {id: yd_f_entre, type: entre_deux, titre: "Le Vol de Reel Madird", txt: "Tu es loin de la ville que tu aimais, avec un terrain vendu."}
+  - {id: yd_f_trag, type: tragique, titre: "Le Dernier Match", txt: "Defier le Baron en public t'a coute la vie. Fin definitive."}
+  - {id: yd_f_secret, type: secrete, titre: "L'Academie du Foot et du Bac", txt: "L'academie delivre des diplomes aussi bien que des contrats."}

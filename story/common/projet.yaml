@@ -1,0 +1,39 @@
+# Cité Lagune-Nord : chaîne causale (GDD §6.1). Vérité objective de l'univers :
+# aucun protagoniste ne la connaît en entier.
+nom: "Cité Lagune-Nord"
+facade: "Nouveau quartier moderne au nord de la lagune : logements, bureaux, marché couvert, milliers d'emplois annoncés."
+verite:
+  foncier: >-
+    Les terrains appartiennent à l'État mais sont occupés depuis des décennies (Adjamé-nord,
+    berges de Marcory, une partie d'Abobo). La Société d'Aménagement de la Lagune-Nord (SALN)
+    obtient la concession par un décret signé après une étude d'impact bâclée.
+  financement: >-
+    Un prêt d'une banque de développement (dossier instruit au Plateau) couvre 40 % ; le reste
+    vient de contrats surfacturés attribués à des sous-traitants prête-noms. Ces sociétés sont
+    contrôlées par le réseau du Baron, qui y fait passer l'argent de ses activités illicites.
+  flux_illicites: >-
+    Les camions de chantier de nuit transportent des armes et de la drogue sous couvert de
+    matériaux. Le hangar d'Adjamé (ancien entrepôt de marché) sert de dépôt tampon : il n'est pas
+    surveillé parce que le gardien, Vieux Gnamien, est considéré comme inoffensif.
+  expulsions: >-
+    Des avis d'expulsion sont affichés pour libérer les emprises. L'indemnisation promise
+    n'est versée qu'aux détenteurs d'un titre : les occupants informels, majoritaires, reçoivent
+    une promesse de relogement jamais financée.
+  pourquoi_pas_d_intervention: >-
+    L'Ordre républicain est divisé : le commissaire Yao touche une part et couvre les convois ;
+    la lieutenante Aya Coulibaly (PLCC) enquête sans mandat. Le Maire a besoin du projet pour sa
+    réélection et ne veut rien savoir. La presse (Fatou Bamba) n'a pas encore de preuve matérielle.
+  lien_materiel: >-
+    La crue de la nuit 281 submerge le hangar d'Adjamé : les caisses marquées (armes) flottent à
+    la vue de tous. C'est ce qui rend possible la descente (nuit 283) et fait de l'inauguration
+    (jour 304) un moment où les masques tombent.
+roles:
+  maire: "Parrain politique du projet ; veut couper le ruban avant la réélection ; cherche à ne rien savoir."
+  baron: "Maître d'œuvre réel : fait passer l'argent sale par les contrats. Pas omniscient : dépend de Sékou et des intermédiaires, subit rivalités et erreurs logistiques."
+  syndicat: "Contrôle les gares et les convois de transport ; vend ses services de passage aux camions sans savoir ce qu'ils portent (sauf Gbé)."
+  ordre: "Divisé : Yao protège les convois, Aya cherche un témoin."
+  jetset: "Finance les soirées et les relations publiques du projet ; veut des appartements témoins, pas de scandale."
+deplacement_des_populations:
+  deplaces: "Environ 4 000 personnes (Adjamé-nord, berges de Marcory)."
+  indemnises: "Moins de 15 % (titres)."
+  relogement: "Promis, non financé. Sujet central des fins « Lumière »."

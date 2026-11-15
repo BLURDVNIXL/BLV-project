@@ -1,0 +1,98 @@
+destin: rescape_bas_fonds
+titre: "Sept Jours vers la Lumiere"
+rarete: legendaire
+depart: {camp: ombre, cur: 5, logement: chambre_koumassi, argent: 20000, metier: dealer_rue, ecole: aucune, diplomes: [], etoile: 40, sante: fragile}
+cercle:
+  - {id: sanogo, nom: "Docteur Sanogo", rel: allie}
+  - {id: lea, nom: "Lea, ta soeur", rel: proche}
+  - {id: sekou, nom: "Sekou, ton ancien fournisseur", rel: faction}
+  - {id: aya, nom: "Lieutenante Aya Coulibaly", rel: rival}
+  - {id: fatou, nom: "Fatou Bamba", rel: allie}
+noeuds:
+  - id: re_n0
+    ch: 0
+    lieu: "Koumassi, chambre"
+    txt: "Premier jour de sevrage. La vision se trouble par moments. Lea t'apporte a manger : « Tiens bon, grand frere. » A la radio, Cite Lagune-Nord."
+    choix:
+      - {l: "Manger ce que Lea t'apporte", eff: {lien: {lea: 2}, cur: -1}, vers: re_n1}
+      - {l: "Retourner voir Sekou", eff: {cur: 1}, vers: re_n1}
+  - id: re_n1
+    ch: 1
+    lieu: "Koumassi, ruelle"
+    txt: "Sekou te propose du travail et de quoi tenir : « Tu connais le terrain, on a besoin de toi. » Le Docteur Sanogo t'attend a la clinique."
+    choix:
+      - {l: "Accepter l'offre de Sekou", eff: {cur: 2, faction: {ombre: 1}}, vers: re_n2o}
+      - {l: "Aller a la clinique du Docteur Sanogo", eff: {cur: -2, lien: {sanogo: 2}, flag: sevrage}, vers: re_n2p}
+      - {l: "Tenir vingt-quatre heures seul", eff: {cur: 0, flag: sevrage}, tirage: {normal: re_n2g, mauvaise: re_n2o, miracle: re_n2p}}
+  - id: re_n2o
+    ch: 2
+    carrefour: A
+    lieu: "Yopougon, Rue Princesse"
+    txt: "Sekou te met a un poste de revente pendant la grande soiree. Lea apparait dans la foule."
+    choix:
+      - {l: "Rester a ton poste", eff: {cur: 3, lien: {lea: -2}}, vers: re_n3o}
+      - {l: "Partir avec Lea", eff: {cur: -2, lien: {lea: 2}}, vers: re_n3p}
+  - id: re_n2p
+    ch: 2
+    carrefour: A
+    lieu: "Yopougon, Rue Princesse"
+    txt: "Le Docteur Sanogo t'a mis dans un groupe de parole. Fatou y vient avec un micro."
+    choix:
+      - {l: "Raconter ton histoire a la radio", eff: {cur: -2, lien: {fatou: 2, sanogo: 1}, flag: parole}, vers: re_n3p}
+      - {l: "Rester dans l'ombre du groupe", eff: {cur: -1}, vers: re_n3p}
+  - id: re_n2g
+    ch: 2
+    carrefour: A
+    lieu: "Yopougon, Rue Princesse"
+    txt: "Tu as tenu une journee. Lea pleure de joie. Sekou t'envoie un message."
+    choix:
+      - {l: "Ignorer le message et aller voir le Docteur Sanogo", eff: {cur: -2, lien: {sanogo: 1}}, vers: re_n3p}
+      - {l: "Repondre a Sekou", eff: {cur: 2}, vers: re_n3o}
+  - id: re_n3o
+    ch: 3
+    carrefour: B
+    lieu: "Koumassi inonde"
+    txt: "Crue. Lea a de la fievre, un paludisme probable. Sekou t'ordonne de livrer le stock avant les secours."
+    choix:
+      - {l: "Emmener Lea a l'hopital", eff: {cur: -3, lien: {lea: 3}}, vers: re_n4p}
+      - {l: "Livrer le stock d'abord", eff: {cur: 2, lien: {lea: -3}}, vers: re_n4o}
+  - id: re_n3p
+    ch: 3
+    carrefour: B
+    lieu: "Koumassi inonde"
+    txt: "Crue. Tu aides a evacuer les voisins. Un ancien client te tend une dose, « pour te remercier »."
+    choix:
+      - {l: "Refuser et continuer a aider avec Lea", eff: {cur: -2, lien: {lea: 1}}, tirage: {normal: re_n4p, mauvaise: re_n4p, miracle: re_n4p}}
+      - {l: "Prendre, une seule fois", eff: {cur: 2, sante: -1}, vers: re_n4p}
+  - id: re_n4o
+    ch: 4
+    carrefour: C
+    lieu: "Koumassi, aube"
+    txt: "Descente. Aya te trouve pres du stock. Elle te tend une chance."
+    choix:
+      - {l: "Temoigner contre le reseau de Sekou", eff: {cur: -3, flag: temoin, faction: {ordre: 2}}, vers: re_n5}
+      - {l: "Te taire", eff: {cur: 1}, vers: re_n5}
+  - id: re_n4p
+    ch: 4
+    carrefour: C
+    lieu: "Koumassi, aube"
+    txt: "Aya a besoin d'un temoin qui connait les fournisseurs. Ta propre sante est fragile."
+    choix:
+      - {l: "Temoigner, malgre la peur", eff: {cur: -3, flag: temoin}, vers: re_n5}
+      - {l: "Refuser", eff: {}, vers: re_n5}
+  - id: re_n5
+    ch: 5
+    lieu: "Bord de la lagune, premiere pierre"
+    txt: "Ceremonie. Tu es la, debout, avec Lea. C'est le septieme jour, ou le premier d'une autre vie."
+    choix:
+      - {l: "Rester sobre et libre", si: "cur<=0 et temoin", vers: re_f_lum}
+      - {l: "Devenir lieutenant de rue", si: "cur>=8", vers: re_f_ombre}
+      - {l: "Vivre au jour le jour, avec des rechutes", si: "toujours", vers: re_f_entre}
+      - {l: "Refuser de te taire jusqu'au bout", si: "cur>=4", vers: re_f_trag}
+      - {l: "Devenir le Phenix de Koumassi", si: "sevrage et temoin et lea>=3 et sanogo>=3", vers: re_f_secret}
+fins:
+  - {id: re_f_lum, type: lumiere, titre: "Le Temoin Libere", txt: "Ton temoignage fait tomber des noms, et tu restes debout."}
+  - {id: re_f_ombre, type: ombre, titre: "Le Lieutenant de Rue", txt: "Tu tiens ton poste. Lea ne te rend plus visite."}
+  - {id: re_f_entre, type: entre_deux, titre: "Les Jours qui Restent", txt: "Tu tombes, tu te releves. Un jour a la fois."}
+  - {id: re_f_trag, type: tragique, titre: "Le Temoin Reduit au Silence", txt: "Tu as refuse de te taire. Fin definitive."}
+  - {id: re_f_secret, type: secrete, titre: "Le Phenix de Koumassi", txt: "Le trophee le plus respecte du jeu : tu aides d'autres a sortir comme tu es sorti."}

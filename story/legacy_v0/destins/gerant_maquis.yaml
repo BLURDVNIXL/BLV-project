@@ -1,0 +1,98 @@
+destin: gerant_maquis
+titre: "Le Temple de Rue Princesse"
+rarete: rare
+depart: {camp: propre, cur: 0, logement: au_dessus_maquis, argent: 250000, metier: gerant_maquis, ecole: aucune, diplomes: [], etoile: 55}
+cercle:
+  - {id: adjoua, nom: "Adjoua, serveuse", rel: proche}
+  - {id: fatou, nom: "Fatou Bamba", rel: allie}
+  - {id: dede, nom: "Madame Dede", rel: rival}
+  - {id: baron, nom: "Le Baron", rel: faction}
+noeuds:
+  - id: gm_n0
+    ch: 0
+    lieu: "Yopougon, Rue Princesse"
+    txt: "Ton maquis vibre chaque soir. Adjoua remplit les casiers : « Patron, on dit que la grande soiree de la ville se fera chez nous. »"
+    choix:
+      - {l: "Preparer une soiree solidaire pour le quartier", eff: {cur: -1, lien: {adjoua: 2}}, vers: gm_n1}
+      - {l: "Augmenter les prix pour la grande soiree", eff: {argent: 20000}, vers: gm_n1}
+  - id: gm_n1
+    ch: 1
+    porte: true
+    lieu: "Yopougon, bureau du maquis"
+    txt: "Un envoye du Baron : « 200 000 F par mois pour que ta caisse accueille un peu d'argent. Sinon ton bail change de main. »"
+    choix:
+      - {l: "Accepter, laver l'argent par la caisse", eff: {cur: 3, argent: 200000, faction: {ombre: 2}}, vers: gm_n2o}
+      - {l: "Refuser et prevenir Fatou", eff: {cur: -1, lien: {fatou: 2}}, vers: gm_n2p}
+      - {l: "Accepter un mois et chercher une issue", eff: {cur: 2, argent: 200000}, tirage: {normal: gm_n2g, mauvaise: gm_n2o, miracle: gm_n2p}}
+  - id: gm_n2o
+    ch: 2
+    carrefour: A
+    lieu: "Yopougon, Rue Princesse"
+    txt: "Ta grande soiree accueille le Baron. Madame Dede te glisse : « Mes filles pourraient servir chez toi. »"
+    choix:
+      - {l: "Accepter Madame Dede", eff: {cur: 3, faction: {ombre: 1}, lien: {dede: 1}}, vers: gm_n3o}
+      - {l: "Refuser net, ca ne se fera pas ici", eff: {cur: -2, lien: {adjoua: 1}}, vers: gm_n3p}
+  - id: gm_n2p
+    ch: 2
+    carrefour: A
+    lieu: "Yopougon, Rue Princesse"
+    txt: "Ta soiree reunit Syndicat, Ordre et Jet-Set. Fatou prepare un reportage."
+    choix:
+      - {l: "Laisser Fatou diffuser", eff: {cur: -2, lien: {fatou: 2}}, vers: gm_n3p}
+      - {l: "Preferer la prudence", eff: {}, vers: gm_n3p}
+  - id: gm_n2g
+    ch: 2
+    carrefour: A
+    lieu: "Yopougon, Rue Princesse"
+    txt: "La grande soiree se tient. Le Baron te serre la main devant tout le monde."
+    choix:
+      - {l: "Reprendre ta liberte", eff: {cur: -1}, vers: gm_n3p}
+      - {l: "Rester dans son jeu", eff: {cur: 2}, vers: gm_n3o}
+  - id: gm_n3o
+    ch: 3
+    carrefour: B
+    lieu: "Yopougon inonde"
+    txt: "Crue. Le maquis sert d'entrepot. Adjoua trouve les caisses."
+    choix:
+      - {l: "Lui imposer le silence", eff: {cur: 3, lien: {adjoua: -2}}, vers: gm_n4o}
+      - {l: "Ouvrir le maquis aux sinistres", eff: {cur: -3, lien: {adjoua: 1}, flag: sauveur}, vers: gm_n4p}
+  - id: gm_n3p
+    ch: 3
+    carrefour: B
+    lieu: "Yopougon inonde"
+    txt: "Crue. Ton maquis devient un refuge. Qui paiera les degats ?"
+    choix:
+      - {l: "Offrir le gite et les repas", eff: {cur: -2, lien: {adjoua: 2}}, tirage: {normal: gm_n4p, mauvaise: gm_n4p, miracle: gm_n4p}}
+      - {l: "Fermer pour sauver le stock", eff: {}, vers: gm_n4p}
+  - id: gm_n4o
+    ch: 4
+    carrefour: C
+    lieu: "Yopougon, aube"
+    txt: "Descente sur ton maquis. Le commissaire Yao ouvre ta caisse."
+    choix:
+      - {l: "Livrer les preuves contre le Baron", eff: {cur: -3, flag: temoin, faction: {ordre: 2}}, vers: gm_n5}
+      - {l: "Tout nier", eff: {cur: 1}, vers: gm_n5}
+  - id: gm_n4p
+    ch: 4
+    carrefour: C
+    lieu: "Yopougon, aube"
+    txt: "Aya vient te voir : « Ton maquis voit tout le monde. Tu as vu qui ? »"
+    choix:
+      - {l: "Parler", eff: {cur: -2, flag: temoin}, vers: gm_n5}
+      - {l: "Garder pour toi ce que tu as vu", eff: {}, vers: gm_n5}
+  - id: gm_n5
+    ch: 5
+    lieu: "Bord de la lagune, premiere pierre"
+    txt: "Ceremonie. Dans ton maquis, on suit tout sur grand ecran."
+    choix:
+      - {l: "Garder ton maquis propre, ambassadeur du zouglou", si: "cur<=-2 et temoin", vers: gm_f_lum}
+      - {l: "Faire de ton maquis la banque du Baron", si: "cur>=6", vers: gm_f_ombre}
+      - {l: "Survivre avec un bail negocie", si: "toujours", vers: gm_f_entre}
+      - {l: "Defier Madame Dede et le Baron", si: "cur>=3", vers: gm_f_trag}
+      - {l: "Creer le maquis des etoiles, scene ouverte du quartier", si: "sauveur et adjoua>=3", vers: gm_f_secret}
+fins:
+  - {id: gm_f_lum, type: lumiere, titre: "Ambassadeur du Zouglou", txt: "Ton maquis reste debout, plein de musique et de mains propres."}
+  - {id: gm_f_ombre, type: ombre, titre: "La Banque de la Nuit", txt: "Tu es riche, ton maquis est une facade."}
+  - {id: gm_f_entre, type: entre_deux, titre: "Le Bail Negocie", txt: "Le maquis tient, mais il a change de visage."}
+  - {id: gm_f_trag, type: tragique, titre: "La Derniere Soiree", txt: "Ton refus te coute tout. Fin definitive."}
+  - {id: gm_f_secret, type: secrete, titre: "Le Maquis des Etoiles", txt: "Ton maquis devient la scene ouverte de Yopougon, avec concerts gratuits."}

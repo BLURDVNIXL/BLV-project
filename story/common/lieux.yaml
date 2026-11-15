@@ -1,0 +1,20 @@
+# Carte de référence : quartiers, lieux-clés, raisons d'être présent à Rue Princesse (GDD §6.2).
+quartiers:
+  adjame:    {nom: "Adjamé", traits: "Grand marché, gares, hangar d'entrepôt", crue: true}
+  yopougon:  {nom: "Yopougon", traits: "Rue Princesse, maquis, vie nocturne", crue: false}
+  marcory:   {nom: "Marcory", traits: "Ateliers, couture, zone 4", crue: true}
+  treichville: {nom: "Treichville", traits: "Garages, port, CFP", crue: true}
+  plateau:   {nom: "Le Plateau", traits: "Banques, ministères, cabinets", crue: false}
+  cocody:    {nom: "Cocody", traits: "Villas, ambassades, UFHB, lycées d'élite", crue: false}
+  abobo:     {nom: "Abobo", traits: "Gare, gbakas, entraide de quartier", crue: partiel}
+  koumassi:  {nom: "Koumassi", traits: "Quartiers denses, bas-fonds", crue: true}
+  angre:     {nom: "Angré", traits: "Classe moyenne, immeubles", crue: false}
+lieux_cles:
+  hangar_adjame: "Ancien entrepôt de marché ; Gnamien le garde ; les caisses du Baron y transitent."
+  rue_princesse: "Rue des maquis de Yopougon ; soirée annuelle, lieu neutre où tout le monde se croise."
+  villa_bunker: "Résidence du Baron, Cocody."
+  lagune_premiere_pierre: "Berge où se tient la cérémonie du jour 304."
+raisons_rue_princesse:
+  poignon: "Porte des caisses pour Tantie Zéphyrine (ou veille pour le Quai)."
+  baron: "Il offre la soirée."
+  styliste: "Son défilé est programmé ce soir-là."

@@ -1,0 +1,220 @@
+# BLV V1 — Catalogue commun : règles, écoles, diplômes, métiers, badges, compétences.
+# Source de vérité unique. Toute valeur utilisée par un destin doit exister ici.
+version: 1
+
+# ---------------------------------------------------------------------------
+# Jauges (voir GDD §5)
+# ---------------------------------------------------------------------------
+compromission:
+  nom_fictionnel: "curseur Lumière / Ombre"
+  echelle: [-10, 10]            # -10 = intégrité, +10 = compromission totale
+  zones:
+    integrite: "-10 à -4"
+    compromis: "-3 à +3"
+    compromission_forte: "+4 à +10"
+  regle: >-
+    Le score mesure l'implication dans des actes ou alliances compromis, pas la valeur
+    morale d'une personne. Les faits (preuve, violence, aide, trahison) vivent dans les
+    flags et les relations ; le score ne les remplace jamais.
+sante:
+  echelle: [0, 100]
+  etats: {critique: "< 20", fragile: "20 à 49", correct: "50 à 79", bon: ">= 80"}
+  regle: "Score physique. La santé mentale et l'addiction ne sont jamais réduites à ce score : elles passent par des flags, des relations et des scènes."
+etoile:
+  echelle: [0, 100]
+  regle: "Chance contextuelle, pas compétence. Probabilités : engine/random_events.py (formule etoile-v1)."
+
+# ---------------------------------------------------------------------------
+# Temps (jour 1 = 1er septembre de l'« année 0 », voir chronologie.yaml)
+# ---------------------------------------------------------------------------
+calendrier:
+  fins_de_trimestre: [122, 212, 273]   # 31 déc, 31 mars, 31 mai
+  jalons_communs: {0: 1, 1: 40, 2: 110, 3: 281, 4: 283, 5: 304}
+
+# ---------------------------------------------------------------------------
+# Argent (règle auteur : 4 sources — missions, quêtes PNJ, travail, entrepreneuriat)
+# ---------------------------------------------------------------------------
+regles_argent:
+  sources: [missions_histoire, quetes_pnj, travail, entrepreneuriat]
+  plafond_petit_boulot_sans_bac: 60000      # F CFA / mois ; au-delà, le bac est requis
+  paie: "Chaque 30 jours : revenu du métier (échelon) − charges mensuelles. Solde négatif → arriérés (dette explicite) et −5 santé."
+
+# ---------------------------------------------------------------------------
+# Règles auteur sur les écoles et le bac
+# ---------------------------------------------------------------------------
+regles_ecoles:
+  - "Le joueur choisit UN lycée parmi les trois du README ; plus de CEPE, de BEPC ni de cours du soir."
+  - "Parcours d'un lycée : concours d'entrée (l'Étoile et l'intellect aident, sans garantir), puis 3 trimestres d'assiduité."
+  - "Bac : moyenne >= 10. Le bac s'obtient à la fin des 3 trimestres, par scolarite.bac."
+  - "Badge (difficile) : mention Très Bien (>= 16) ET aucun trimestre manqué ET épreuve spéciale du lycée réussie."
+  - "Un bac sans badge ouvre quand même le supérieur et les emplois formels."
+  - "Le supérieur (UFHB, INPolytec) et les emplois formels exigent le bac."
+  - "Sainte-Marie (badge Alysma) est réservé aux personnages féminins."
+
+ecoles:
+  lycee_classique:
+    nom: "Lycée Classique d'Abidjan (Cocody)"
+    type: lycee
+    badge: caiman
+    genre: tous
+    concours: {difficulte: 3}
+    epreuve_speciale: "Joute d'éloquence devant le jury des anciens"
+    donne: [bac]
+  ste_marie:
+    nom: "Lycée Sainte-Marie de Cocody"
+    type: lycee
+    badge: alysma
+    genre: f
+    concours: {difficulte: 3}
+    epreuve_speciale: "Grand oral de culture générale et de maîtrise de soi"
+    donne: [bac]
+  lycee_excellence_bassam:
+    nom: "Lycée d'Excellence Alassane Ouattara de Grand-Bassam"
+    type: lycee
+    badge: alex
+    genre: tous
+    concours: {difficulte: 4}
+    epreuve_speciale: "Défi scientifique en équipe (laboratoire du campus)"
+    donne: [bac]
+  ufhb:
+    nom: "UFHB Cocody"
+    type: superieur
+    requiert: [bac]
+    donne: [licence, master]
+  inpolytec:
+    nom: "INPolytec (campus de Yamoussoukro, stage à Abidjan)"
+    type: superieur
+    requiert: [bac]
+    donne: [ingenieur]
+  cfp_treichville:
+    nom: "Centre de formation professionnelle de Treichville"
+    type: pro
+    donne: [cap_mecanique, permis_d]
+  atelier_marcory:
+    nom: "Atelier d'apprentissage couture de Marcory"
+    type: pro
+    donne: [cap_couture]
+
+badges:
+  caiman:
+    nom: "Caïman"
+    ecole: lycee_classique
+    buff: "+25 % de gains d'affaires au Plateau, respect immédiat dans les ministères."
+  alysma:
+    nom: "Alysma"
+    ecole: ste_marie
+    buff: "+10 Étoile permanente (protégée du mauvais œil), prestance naturelle et hygiène préservée."
+  alex:
+    nom: "Alex"
+    ecole: lycee_excellence_bassam
+    buff: "+25 % de rendement sur les investissements bancaires, bourses et carrières tech."
+
+diplomes: [bac, licence, master, ingenieur, cap_mecanique, cap_couture, permis_b, permis_d, brevet_comptable]
+
+competences: [etudes, negoce, mecanique, couture, cyber, enquete, gestion, eloquence, terrain]
+
+factions: [syndicat, ordre, jetset, ombre]
+
+# ---------------------------------------------------------------------------
+# Métiers. categorie :
+#   petit_boulot : sans bac, revenus plafonnés (regles_argent) tant que le bac manque
+#   independant  : sans bac, ouvert, revenus variables liés aux actifs
+#   formel       : bac obligatoire (+ diplôme éventuel), salaires plus hauts
+#   illegal      : jamais proposé au départ aux destins « propres » ; seulement par une porte
+# revenu : F CFA / mois
+# ---------------------------------------------------------------------------
+metiers:
+  manoeuvre_marche:
+    nom: "Manœuvre / porteur au marché"
+    categorie: petit_boulot
+    echelons: [{id: porteur, revenu: 40000}, {id: chef_equipe, revenu: 75000}]
+  apprenti_gbaka:
+    nom: "Apprenti gbaka"
+    categorie: petit_boulot
+    echelons: [{id: apprenti, revenu: 20000}, {id: convoyeur, revenu: 45000}, {id: chauffeur_gbaka, revenu: 90000}]
+  apprenti_meca:
+    nom: "Apprenti mécanicien"
+    categorie: petit_boulot
+    echelons: [{id: apprenti, revenu: 30000}, {id: mecanicien, revenu: 70000}, {id: chef_garage, revenu: 120000}]
+  serveur_maquis:
+    nom: "Serveur de maquis"
+    categorie: petit_boulot
+    echelons: [{id: serveur, revenu: 45000}, {id: gerant, revenu: 80000}]
+  vendeur_etal:
+    nom: "Vendeur d'étal"
+    categorie: independant
+    echelons: [{id: vendeur, revenu: 60000}, {id: gerant_etal, revenu: 110000}, {id: grossiste, revenu: 220000}]
+  chauffeur_woro:
+    nom: "Chauffeur de woro-woro"
+    categorie: independant
+    requiert: [permis_b]
+    echelons: [{id: locataire, revenu: 90000}, {id: proprietaire, revenu: 150000}]
+  couturier:
+    nom: "Couturier / styliste"
+    categorie: independant
+    echelons: [{id: apprenti, revenu: 40000}, {id: styliste, revenu: 120000}, {id: createur, revenu: 250000}]
+  gerant_maquis:
+    nom: "Gérant de maquis"
+    categorie: independant
+    echelons: [{id: gerant, revenu: 200000}, {id: patron, revenu: 350000}]
+  entrepreneur:
+    nom: "Entrepreneur"
+    categorie: independant
+    echelons: [{id: lancement, revenu: 50000}, {id: etabli, revenu: 250000}]
+  elu_local:
+    nom: "Élu / responsable local"
+    categorie: independant
+    echelons: [{id: responsable, revenu: 150000}]
+  footballeur_pro:
+    nom: "Footballeur professionnel"
+    categorie: independant
+    echelons: [{id: titulaire, revenu: 4000000}]
+  comptable:
+    nom: "Comptable"
+    categorie: formel
+    requiert: [brevet_comptable]
+    echelons: [{id: junior, revenu: 250000}, {id: senior, revenu: 450000}]
+  instituteur:
+    nom: "Instituteur"
+    categorie: formel
+    echelons: [{id: titulaire, revenu: 220000}]
+  stagiaire_audit:
+    nom: "Stagiaire en cabinet d'audit"
+    categorie: formel
+    echelons: [{id: stagiaire, revenu: 150000}]
+  cadre_banque:
+    nom: "Cadre de banque"
+    categorie: formel
+    requiert: [licence]
+    echelons: [{id: charge_clientele, revenu: 600000}, {id: responsable, revenu: 1100000}]
+  # --- métiers illégaux : verrouillés derrière une porte ---------------------
+  brouteur_cyber:
+    nom: "Brouteur"
+    categorie: illegal
+    echelons: [{id: operateur, revenu: 300000}]
+  djassa_contrefacon:
+    nom: "Contrefaçon / marché noir"
+    categorie: illegal
+    echelons: [{id: revendeur, revenu: 250000}, {id: chef_reseau, revenu: 600000}]
+  racketeur:
+    nom: "Racket"
+    categorie: illegal
+    echelons: [{id: collecteur, revenu: 200000}]
+  dealer_rue:
+    nom: "Distribution de rue"
+    categorie: illegal
+    echelons: [{id: revendeur, revenu: 120000}]
+  convoyeur_illicite:
+    nom: "Convoyeur de marchandise illicite"
+    categorie: illegal
+    echelons: [{id: veilleur, revenu: 100000}, {id: convoyeur, revenu: 200000}]
+  parrain:
+    nom: "Parrain"
+    categorie: illegal
+    echelons: [{id: parrain, revenu: 2500000}]
+
+regles:
+  - "Un diplôme ouvre des métiers ; un métier donne salaire et contacts ; l'école donne amis et rivaux."
+  - "Un métier illégal n'est jamais proposé au départ aux 15 destins propres : seulement via une porte (nœud `porte: true`)."
+  - "Refuser une porte ne bloque jamais l'histoire ; cela a un coût et ouvre des alliés."
+  - "Un diplôme ne s'obtient qu'à l'examen (choix déclarant `examen:`) ou par équivalence documentée."

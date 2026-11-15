@@ -1,0 +1,98 @@
+destin: debrouillard_abobo
+titre: "L'Ascension d'Abobo Gare"
+rarete: commun
+depart: {camp: propre, cur: 0, logement: chambre_cour, argent: 15000, metier: apprenti_gbaka, ecole: aucune, diplomes: [], etoile: 50}
+cercle:
+  - {id: awa, nom: "Maman Awa", rel: proche}
+  - {id: kader, nom: "Kader, chauffeur du Syndicat", rel: allie}
+  - {id: gbe, nom: "Gbe, chef de gare", rel: rival}
+  - {id: fatou, nom: "Fatou Bamba", rel: allie}
+noeuds:
+  - id: db_n0
+    ch: 0
+    lieu: "Abobo, cour commune"
+    txt: "Ta chambre, un vieux ventilo. Maman Awa te tend une marmite : « Mange avant d'aller courir, petit. » La radio parle de Cite Lagune-Nord."
+    choix:
+      - {l: "L'aider a porter l'eau", eff: {lien: {awa: 2}}, vers: db_n1}
+      - {l: "Filer directement a la gare", eff: {}, vers: db_n1}
+  - id: db_n1
+    ch: 1
+    porte: true
+    lieu: "Abobo, gare routiere"
+    txt: "Gbe distribue les lignes. Un inconnu te glisse : « 15 000 F la nuit pour conduire un van ferme. Pas de question. »"
+    choix:
+      - {l: "Accepter le van", eff: {cur: 3, metier: convoyeur_illicite, faction: {ombre: 1}, argent: 15000}, vers: db_n2o}
+      - {l: "Refuser et prevenir Kader du Syndicat", eff: {cur: -1, faction: {syndicat: 2}, lien: {kader: 2}}, vers: db_n2p}
+      - {l: "Une seule fois, sans ouvrir", eff: {cur: 2}, tirage: {normal: db_n2g, mauvaise: db_n2o, miracle: db_n2p}}
+  - id: db_n2o
+    ch: 2
+    carrefour: A
+    lieu: "Yopougon, Rue Princesse"
+    txt: "L'homme du Baron te tend une cle : « Tu auras ta propre ligne, loin de Gbe. »"
+    choix:
+      - {l: "Prendre la cle et quitter le Syndicat", eff: {cur: 2, faction: {syndicat: -2, ombre: 2}}, vers: db_n3o}
+      - {l: "Rendre la cle, la fierte avant tout", eff: {cur: -2}, vers: db_n3p}
+  - id: db_n2p
+    ch: 2
+    carrefour: A
+    lieu: "Yopougon, Rue Princesse"
+    txt: "Gbe, de mauvais gre, te presente au Syndicat. Kader rit : « Un gars droit, ca se garde ! »"
+    choix:
+      - {l: "Accepter l'echelon de convoyeur", eff: {faction: {syndicat: 1}}, vers: db_n3p}
+      - {l: "Demander la formation permis D au CFP", eff: {cur: -1, ecole: cfp_treichville}, vers: db_n3p}
+  - id: db_n2g
+    ch: 2
+    carrefour: A
+    lieu: "Yopougon, Rue Princesse"
+    txt: "Tu as livre une nuit. Le Baron t'envoie un verre ; Kader te regarde de loin."
+    choix:
+      - {l: "Arreter la", eff: {cur: -1}, vers: db_n3p}
+      - {l: "Continuer, l'argent est bon", eff: {cur: 2}, vers: db_n3o}
+  - id: db_n3o
+    ch: 3
+    carrefour: B
+    lieu: "Abobo inonde"
+    txt: "Crue. Ton van est plein de caisses. Des familles crient depuis les toits de tole."
+    choix:
+      - {l: "Decharger les caisses et embarquer les familles", eff: {cur: -3, flag: sauveur}, vers: db_n4p}
+      - {l: "Garder la route, la livraison avant tout", eff: {cur: 2}, vers: db_n4o}
+  - id: db_n3p
+    ch: 3
+    carrefour: B
+    lieu: "Abobo inonde"
+    txt: "Crue. Ton gbaka est le seul a passer dans l'eau."
+    choix:
+      - {l: "Evacuer les habitants", eff: {cur: -2, lien: {awa: 2}}, tirage: {normal: db_n4p, mauvaise: db_n4p, miracle: db_n4p}}
+      - {l: "Alerter Fatou a la radio", eff: {cur: -1, lien: {fatou: 2}}, vers: db_n4p}
+  - id: db_n4o
+    ch: 4
+    carrefour: C
+    lieu: "Abobo, gare, aube"
+    txt: "Descente. Ton van est fouille. La lieutenante Aya te propose un marche."
+    choix:
+      - {l: "Balancer le Baron", eff: {cur: -3, flag: temoin, faction: {ordre: 2}}, vers: db_n5}
+      - {l: "Te taire", eff: {cur: 1}, vers: db_n5}
+  - id: db_n4p
+    ch: 4
+    carrefour: C
+    lieu: "Abobo, gare, aube"
+    txt: "Aya cherche un temoin des convois de nuit. Tu as vu passer le van."
+    choix:
+      - {l: "Temoigner", eff: {cur: -2, flag: temoin}, vers: db_n5}
+      - {l: "Refuser, par prudence", eff: {}, vers: db_n5}
+  - id: db_n5
+    ch: 5
+    lieu: "Bord de la lagune, premiere pierre"
+    txt: "Ceremonie. Sur le podium, des gens costumes. Dans la foule, ta ligne de gbaka."
+    choix:
+      - {l: "Ouvrir ta propre ligne en regle", si: "cur<=-2 et temoin", vers: db_f_lum}
+      - {l: "Gerer la route du Baron", si: "cur>=6", vers: db_f_ombre}
+      - {l: "Conduire pour le Syndicat sans bruit", si: "toujours", vers: db_f_entre}
+      - {l: "Defier les hommes du Baron", si: "cur>=3", vers: db_f_trag}
+      - {l: "Creer la cooperative des gbakas d'Abobo", si: "sauveur ou (temoin et awa>=3)", vers: db_f_secret}
+fins:
+  - {id: db_f_lum, type: lumiere, titre: "Patron du Carrefour", txt: "Ta ligne est a toi, en regle, et Abobo te salue."}
+  - {id: db_f_ombre, type: ombre, titre: "Le Chauffeur du Baron", txt: "Tu conduis ses convois, riche et surveille."}
+  - {id: db_f_entre, type: entre_deux, titre: "La Ligne et le Silence", txt: "Tu roules honnetement, mais tu sais ce que tu n'as pas dit."}
+  - {id: db_f_trag, type: tragique, titre: "Le Dernier Passage", txt: "Un van ne s'arrete pas pour toi. Fin definitive."}
+  - {id: db_f_secret, type: secrete, titre: "La Cooperative d'Abobo", txt: "Les gbakas deviennent une cooperative, avec des cours de securite et des permis pour tous."}

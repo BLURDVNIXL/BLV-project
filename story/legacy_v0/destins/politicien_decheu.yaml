@@ -1,0 +1,98 @@
+destin: politicien_decheu
+titre: "Le Carnet Noir"
+rarete: legendaire
+depart: {camp: propre, cur: 0, logement: aucun, argent: 0, metier: aucun, ecole: aucune, diplomes: [bac, licence], etoile: 40}
+cercle:
+  - {id: kouadio, nom: "Maitre Kouadio, ancien avocat", rel: allie}
+  - {id: aya, nom: "Lieutenante Aya Coulibaly", rel: rival}
+  - {id: fatou, nom: "Fatou Bamba", rel: allie}
+  - {id: baron, nom: "Le Baron", rel: faction}
+noeuds:
+  - id: pd_n0
+    ch: 0
+    lieu: "Abidjan, hotel borgne"
+    txt: "Ruine apres le scandale, tu dors dans une chambre qu'on te prete. Ton carnet d'adresses, lui, est intact. Maitre Kouadio t'appelle : « On parle d'un grand projet. Ton nom y est lie, ou ton ombre. »"
+    choix:
+      - {l: "Aller voir Maitre Kouadio", eff: {lien: {kouadio: 2}}, vers: pd_n1}
+      - {l: "Appeler un ancien collaborateur", eff: {cur: 1}, vers: pd_n1}
+  - id: pd_n1
+    ch: 1
+    porte: true
+    lieu: "Abidjan, salon feutre"
+    txt: "Un emissaire du Baron s'assoit : « 5 000 000 F pour ton carnet, ou une introduction a tes anciens amis du ministere. »"
+    choix:
+      - {l: "Vendre le carnet", eff: {cur: 3, argent: 5000000, faction: {ombre: 2}}, vers: pd_n2o}
+      - {l: "Refuser et le montrer a Maitre Kouadio", eff: {cur: -1, lien: {kouadio: 2}}, vers: pd_n2p}
+      - {l: "Faire une seule introduction, sans vendre", eff: {cur: 1, argent: 500000}, tirage: {normal: pd_n2g, mauvaise: pd_n2o, miracle: pd_n2p}}
+  - id: pd_n2o
+    ch: 2
+    carrefour: A
+    lieu: "Yopougon, Rue Princesse"
+    txt: "A la soiree, ton carnet fait le tour des tables. Le Baron te serre la main : « Les barrages routiers s'ouvriront pour nous. »"
+    choix:
+      - {l: "Ouvrir les barrages et annuler des mandats", eff: {cur: 3, faction: {ombre: 2}}, vers: pd_n3o}
+      - {l: "Reprendre ton carnet avant qu'il ne tourne trop", eff: {cur: -2}, vers: pd_n3p}
+  - id: pd_n2p
+    ch: 2
+    carrefour: A
+    lieu: "Yopougon, Rue Princesse"
+    txt: "Maitre Kouadio te presente a un juge. Fatou, elle, cherche une source."
+    choix:
+      - {l: "Preparer un dossier pour le juge", eff: {cur: -2, flag: preuve, lien: {kouadio: 1}}, vers: pd_n3p}
+      - {l: "Parler a Fatou, en off", eff: {cur: -2, lien: {fatou: 2}}, vers: pd_n3p}
+  - id: pd_n2g
+    ch: 2
+    carrefour: A
+    lieu: "Yopougon, Rue Princesse"
+    txt: "Ton introduction a fonctionne. Un ancien collegue du ministere te remercie ; Aya te fixe de loin."
+    choix:
+      - {l: "Te retirer", eff: {cur: -1}, vers: pd_n3p}
+      - {l: "Continuer a rendre des services", eff: {cur: 2}, vers: pd_n3o}
+  - id: pd_n3o
+    ch: 3
+    carrefour: B
+    lieu: "Adjame inonde"
+    txt: "Crue. Les caisses du hangar apparaissent. Le Baron te demande d'appeler un prefet pour qu'on n'enquete pas."
+    choix:
+      - {l: "Appeler le prefet", eff: {cur: 3}, vers: pd_n4o}
+      - {l: "Appeler Aya a la place", eff: {cur: -3, flag: preuve, faction: {ordre: 2}}, vers: pd_n4p}
+  - id: pd_n3p
+    ch: 3
+    carrefour: B
+    lieu: "Adjame inonde"
+    txt: "Crue. Ton carnet peut debloquer des aides d'urgence."
+    choix:
+      - {l: "Activer tes anciens reseaux pour les sinistres", eff: {cur: -2}, tirage: {normal: pd_n4p, mauvaise: pd_n4p, miracle: pd_n4p}}
+      - {l: "Garder tes cartes pour plus tard", eff: {cur: 1}, vers: pd_n4p}
+  - id: pd_n4o
+    ch: 4
+    carrefour: C
+    lieu: "Plateau, aube"
+    txt: "Descente. Aya a une liste de noms qui sortent de ton carnet."
+    choix:
+      - {l: "Ouvrir le carnet a la justice", eff: {cur: -3, flag: temoin, faction: {ordre: 2}}, vers: pd_n5}
+      - {l: "Nier avoir jamais fourni ces noms", eff: {cur: 1}, vers: pd_n5}
+  - id: pd_n4p
+    ch: 4
+    carrefour: C
+    lieu: "Plateau, aube"
+    txt: "Le juge veut ton temoignage. Les noms du carnet vont tomber."
+    choix:
+      - {l: "Temoigner en ouvrant le carnet", eff: {cur: -3, flag: temoin}, vers: pd_n5}
+      - {l: "Retarder, par peur des represailles", eff: {}, vers: pd_n5}
+  - id: pd_n5
+    ch: 5
+    lieu: "Bord de la lagune, premiere pierre"
+    txt: "Ceremonie. Dans la foule, des visages que tu connais de tes anciens jours."
+    choix:
+      - {l: "Retrouver une place honnete, sans passe-droit", si: "cur<=-2 et temoin", vers: pd_f_lum}
+      - {l: "Redevenir l'homme de l'ombre", si: "cur>=6", vers: pd_f_ombre}
+      - {l: "Vivre discretement de ce qui te reste", si: "toujours", vers: pd_f_entre}
+      - {l: "Publier le carnet entier", si: "cur>=3", vers: pd_f_trag}
+      - {l: "Ouvrir publiquement le carnet noir", si: "preuve et kouadio>=3", vers: pd_f_secret}
+fins:
+  - {id: pd_f_lum, type: lumiere, titre: "L'Homme Redresse", txt: "Tu retrouves une place honnete, sans protection."}
+  - {id: pd_f_ombre, type: ombre, titre: "L'Eminence Grise", txt: "Tu redeviens puissant, dans l'ombre."}
+  - {id: pd_f_entre, type: entre_deux, titre: "Les Cartes Gardees", txt: "Tu survis avec ce que tu sais, sans l'utiliser."}
+  - {id: pd_f_trag, type: tragique, titre: "Le Carnet Trop Lourd", txt: "Ce que tu as publie t'a coute la vie. Fin definitive."}
+  - {id: pd_f_secret, type: secrete, titre: "Le Carnet Public", txt: "Chaque nom du carnet noir est publie, avec ses liens. Plus personne n'est a l'abri, ni a la merci."}

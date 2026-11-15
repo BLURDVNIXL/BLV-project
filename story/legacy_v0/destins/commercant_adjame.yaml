@@ -1,0 +1,97 @@
+destin: commercant_adjame
+titre: "Le Roi du Grand Marche"
+rarete: commun
+depart: {camp: propre, cur: 0, logement: deux_pieces, argent: 50000, metier: vendeur_etal, ecole: aucune, diplomes: [], etoile: 50}
+cercle:
+  - {id: zephyrine, nom: "Tantie Zephyrine", rel: allie}
+  - {id: gars_quai, nom: "Les Gars du Quai", rel: faction}
+  - {id: fatou, nom: "Fatou Bamba", rel: allie}
+noeuds:
+  - id: cm_n0
+    ch: 0
+    lieu: "Adjame, Grand Marche"
+    txt: "Ton etal de fripes, a deux pas de chez toi. Tantie Zephyrine murmure : « Des hommes passent compter les etals. » La radio vante Cite Lagune-Nord."
+    choix:
+      - {l: "Faire une remise aux voisins", eff: {cur: -1, lien: {zephyrine: 1}}, vers: cm_n1}
+      - {l: "Compter ta caisse et surveiller", eff: {}, vers: cm_n1}
+  - id: cm_n1
+    ch: 1
+    porte: true
+    lieu: "Adjame, allee des etals"
+    txt: "Les Gars du Quai proposent leur « protection » : 10 000 F par semaine, ou rejoindre leur equipe de recouvrement."
+    choix:
+      - {l: "Payer et devenir leur relais", eff: {cur: 3, metier: racketeur, faction: {ombre: 2}}, vers: cm_n2o}
+      - {l: "Refuser et rassembler les commercants", eff: {cur: -1, lien: {zephyrine: 2}}, vers: cm_n2p}
+      - {l: "Payer une fois pour gagner du temps", eff: {cur: 1, argent: -10000}, tirage: {normal: cm_n2g, mauvaise: cm_n2o, miracle: cm_n2p}}
+  - id: cm_n2o
+    ch: 2
+    carrefour: A
+    lieu: "Yopougon, Rue Princesse"
+    txt: "Le Djassaman te presente comme « ami du Quai ». On te propose un stock a revendre."
+    choix:
+      - {l: "Revendre le stock du Quai", eff: {cur: 2, argent: 30000}, vers: cm_n3o}
+      - {l: "Prendre tes distances", eff: {cur: -2}, vers: cm_n3p}
+  - id: cm_n2p
+    ch: 2
+    carrefour: A
+    lieu: "Yopougon, Rue Princesse"
+    txt: "Fatou t'offre l'antenne. Tantie Zephyrine rallie les voisins."
+    choix:
+      - {l: "Creer l'association des etals d'Adjame", eff: {cur: -2, lien: {zephyrine: 2}, flag: association}, vers: cm_n3p}
+      - {l: "Negocier une protection municipale", eff: {faction: {ordre: 1}}, vers: cm_n3p}
+  - id: cm_n2g
+    ch: 2
+    carrefour: A
+    lieu: "Yopougon, Rue Princesse"
+    txt: "Le Quai revient te saluer, un peu trop souriant."
+    choix:
+      - {l: "Dire non cette fois", eff: {cur: -1}, vers: cm_n3p}
+      - {l: "Payer encore", eff: {cur: 2}, vers: cm_n3o}
+  - id: cm_n3o
+    ch: 3
+    carrefour: B
+    lieu: "Adjame inonde"
+    txt: "Crue. Le Quai veut cacher des caisses dans ton etal."
+    choix:
+      - {l: "Preter ton etal comme cachette", eff: {cur: 3, argent: 20000}, vers: cm_n4o}
+      - {l: "Vider ton etal pour sauver la marchandise des autres", eff: {cur: -3}, vers: cm_n4p}
+  - id: cm_n3p
+    ch: 3
+    carrefour: B
+    lieu: "Adjame inonde"
+    txt: "Crue. Le marche est sous l'eau."
+    choix:
+      - {l: "Sauver ton stock", eff: {cur: 0}, tirage: {normal: cm_n4p, mauvaise: cm_n4p, miracle: cm_n4p}}
+      - {l: "Ouvrir ton etal comme refuge", eff: {cur: -2, lien: {zephyrine: 1}}, vers: cm_n4p}
+  - id: cm_n4o
+    ch: 4
+    carrefour: C
+    lieu: "Adjame, aube"
+    txt: "Descente sur le marche. Le commissaire Yao fouille ton etal."
+    choix:
+      - {l: "Denoncer le Quai pour sauver ton etal", eff: {cur: -3, flag: temoin}, vers: cm_n5}
+      - {l: "Tout nier", eff: {cur: 1}, vers: cm_n5}
+  - id: cm_n4p
+    ch: 4
+    carrefour: C
+    lieu: "Adjame, aube"
+    txt: "Les commercants cherchent un porte-parole devant le commissaire Yao."
+    choix:
+      - {l: "Mener la delegation", eff: {cur: -2, faction: {ordre: 2}, flag: temoin}, vers: cm_n5}
+      - {l: "Rester discret", eff: {}, vers: cm_n5}
+  - id: cm_n5
+    ch: 5
+    lieu: "Bord de la lagune, premiere pierre"
+    txt: "Ceremonie. Les etals d'Adjame sont-ils encore la ?"
+    choix:
+      - {l: "Devenir grossiste en toute legalite", si: "cur<=-2 et temoin", vers: cm_f_lum}
+      - {l: "Tenir les etals pour le Quai", si: "cur>=6", vers: cm_f_ombre}
+      - {l: "Payer une taxe et sauver l'etal", si: "toujours", vers: cm_f_entre}
+      - {l: "Defier le Quai en public", si: "cur>=3", vers: cm_f_trag}
+      - {l: "Transformer le marche en cooperative reconnue", si: "association et temoin", vers: cm_f_secret}
+fins:
+  - {id: cm_f_lum, type: lumiere, titre: "Grossiste d'Or d'Adjame", txt: "Ton negoce grandit sans racket, parmi des voisins qui te soutiennent."}
+  - {id: cm_f_ombre, type: ombre, titre: "Le Caid des Etals", txt: "Tu encaisses pour le Quai. Les voisins baissent les yeux."}
+  - {id: cm_f_entre, type: entre_deux, titre: "L'Etal Sauve, la Facture Payee", txt: "Ton etal tient, mais tu paies un prix que tu n'avoues pas."}
+  - {id: cm_f_trag, type: tragique, titre: "Pris entre Deux Feux", txt: "Ton refus public te coute tout. Fin definitive."}
+  - {id: cm_f_secret, type: secrete, titre: "Le Marche des Etoiles", txt: "Le Grand Marche devient cooperative, avec une ecole du soir et un fonds de solidarite."}

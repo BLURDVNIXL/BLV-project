@@ -1,0 +1,512 @@
+destin: baron_ombre
+titre: "Le Parrain et la Première Pierre"
+rarete: legendaire
+genre: m
+resume: "Au sommet de son empire, le Baron perd le contrôle : son bras droit lorgne sa place, sa fille pose des questions, et la crue va mettre ses caisses à nu."
+themes: [pouvoir, paternite, trahison, reparation]
+fonction_dramatique: >-
+  Le Baron ne vit pas une corruption progressive : il est déjà tout en haut. Son arc est une crise
+  de contrôle. Il doit décider, avant la cérémonie qu'il a lui-même financée, s'il garde son empire,
+  le transforme, le livre ou le laisse s'effondrer sur sa fille.
+
+depart:
+  camp: ombre
+  compromission: 9
+  argent_fcfa: 10000000
+  etoile: 35
+  sante: 75
+  energie: 70
+  metier: parrain
+  ecole: aucune
+  diplomes: []
+  charges_mensuelles: 1500000      # hommes, villa, pots-de-vin courants
+  logement_descriptif: "Villa-bunker, Cocody"
+  competences: {negoce: 6, gestion: 5, terrain: 4}
+  actifs: {villa_bunker: intacte, camions_chantier: actifs}
+  preuves: [livre_comptes]
+  relations:
+    sekou: {trust: 4}
+    aicha: {trust: 1}
+    yao: {trust: 2}
+    aya: {trust: -1}
+  factions:
+    ombre: {reputation: 8, alliance: true}
+    ordre: {exposition: 3}          # « trois étoiles de police » : exposition 3 sur 5
+    syndicat: {reputation: 2}
+    jetset: {reputation: 3}
+
+cercle:
+  - {id: sekou, nom: "Sékou, ton bras droit", rel: faction}
+  - {id: aicha, nom: "Aïcha, ta fille", rel: proche}
+  - {id: yao, nom: "Commissaire Yao", rel: faction}
+  - {id: aya, nom: "Lieutenante Aya Coulibaly", rel: rival}
+
+flags: [batisseur, relogement_paye, silence_force, abri, contact_aya, sekou_a_trahi, accord_yao, temoin,
+        aicha_contacte_aya, sekou_complote, treve, rival_etouffe, famille_alertee]
+faits: [sait_societes, verite_dite, promesse_tenue]
+preuves: [livre_comptes]
+actifs: [villa_bunker, camions_chantier]
+
+evenements:
+  - id: ev_aicha_enquete
+    jour: 60
+    si: "relations.aicha.trust <= 1"
+    txt: "Aïcha ne t'a rien demandé. Elle a passé trois semaines aux archives foncières : elle sait maintenant que la SALN appartient à trois sociétés dont tu es le seul bénéficiaire."
+    eff: {relations: {aicha: {trust: -1, fait: sait_societes}}}
+    sinon_txt: "Aïcha vient te voir seule, en pleine nuit : « Papa, les sociétés prête-noms de la Cité Lagune-Nord, c'est toi ? »"
+    sinon_eff: {relations: {aicha: {fait: sait_societes}}}
+  - id: ev_famille_expulsee
+    jour: 120
+    si: "not flags.relogement_paye"
+    txt: "Quarante familles dorment dehors, sur les berges. Aïcha ne te regarde plus à table."
+    eff: {relations: {aicha: {trust: -1}}, compromission: 1}
+    sinon_txt: "Les familles relogées t'envoient des lettres de remerciement. Tu n'oses pas les lire."
+    sinon_eff: {relations: {aicha: {trust: 1}}}
+  - id: ev_aicha_aya
+    jour: 100
+    si: "relations.aicha.trust <= 2"
+    txt: "Sans rien te dire, Aïcha a pris rendez-vous avec la lieutenante Aya Coulibaly. Elle ne t'en parlera jamais."
+    eff: {flags: [aicha_contacte_aya], relations: {aya: {trust: 1}}}
+  - id: ev_sekou_syndicat
+    jour: 150
+    si: "relations.sekou.peur <= 1"
+    txt: "Sékou rencontre discrètement des hommes du Syndicat pour discuter du rachat de tes camions de chantier. Il ne te l'a pas dit."
+    eff: {flags: [sekou_complote], relations: {sekou: {trust: -2}}, factions: {syndicat: {reputation: 1}}}
+  - id: ev_yao_carnet
+    jour: 200
+    txt: "Le commissaire Yao augmente sa « contribution » : ses arrangements lui coûtent cher à cacher, dit-il. Tu paies."
+    eff: {argent: -500000, factions: {ordre: {dette: 1}}}
+
+noeuds:
+  - id: ba_0_diner
+    jalon: 0
+    jour: 1
+    lieu: "Cocody, villa-bunker"
+    moment: "Soirée"
+    objectif: "Montrer le sommet : dix millions en cash, une fille qui doute, un bras droit qui attend."
+    present: [aicha, sekou]
+    savoir: "Tu tiens tout : les convois, les comptes, la police. Tu ne tiens pas ta fille."
+    dialogue:
+      - {narr: "Dix millions de francs dans le coffre, trois étoiles de police au tableau, des comptes officiels gelés. La Cité Lagune-Nord est ta machine à laver. Ce soir, ta fille vient dîner."}
+      - {qui: aicha, dit: "Papa, on a annoncé Cité Lagune-Nord à la radio. Ton nom n'est nulle part. C'est curieux, non ?"}
+      - {qui: sekou, dit: "Patron, le calendrier des convois de la semaine est prêt. Quand vous voulez."}
+    choix:
+      - id: diner
+        l: "Dîner avec Aïcha"
+        intention: "Rester son père"
+        cout: "Le calendrier attendra ; Sékou le notera."
+        eff: {relations: {aicha: {trust: 2}, sekou: {trust: -1}}, compromission: -1}
+        vers: ba_1_fusillade
+      - id: convois
+        l: "Revoir le calendrier des convois avec Sékou"
+        intention: "Garder le contrôle"
+        cout: "Aïcha part avant le dessert."
+        eff: {relations: {sekou: {trust: 1}, aicha: {trust: -1}}, compromission: 1}
+        vers: ba_1_fusillade
+      - id: les_deux
+        l: "Dîner avec Aïcha, puis recevoir Sékou à minuit"
+        intention: "Tout tenir"
+        cout: "Tu t'épuises."
+        eff: {energie: -20, relations: {aicha: {trust: 1}, sekou: {trust: 0}}}
+        vers: ba_1_fusillade
+
+  - id: ba_1_fusillade
+    jalon: 1
+    jour: 40
+    lieu: "Plateau, avenue"
+    moment: "Midi"
+    objectif: "Une fusillade entre tes hommes et un rival blesse une innocente : le contrôle a un prix visible."
+    present: [sekou, aicha]
+    savoir: "Une livreuse est blessée. Aïcha l'a su avant toi."
+    dialogue:
+      - {narr: "Une fusillade entre tes hommes et ceux d'un rival a éclaté devant une banque. Une livreuse à moto est touchée à la jambe. Les caméras de la banque tournent."}
+      - {qui: aicha, dit: "Papa. Arrête."}
+      - {qui: sekou, dit: "Patron, on règle le rival ce soir et on achète la banque. Ou on paie les soins et on perd la face."}
+    choix:
+      - id: regler
+        l: "Régler le rival et étouffer l'affaire (200 000 F pour la banque)"
+        intention: "Rétablir l'autorité"
+        cout: "Aïcha ne te le pardonnera pas."
+        vu_par: [ombre]
+        eff: {compromission: 2, argent: -200000, flags: [rival_etouffe], relations: {aicha: {trust: -2, peur: 1}}, factions: {ombre: {reputation: 1}}}
+        vers: ba_1_expulsions
+      - id: treve
+        l: "Payer les soins et ordonner une trêve (150 000 F)"
+        intention: "Réparer"
+        cout: "Sékou y voit de la faiblesse."
+        vu_par: [ombre]
+        eff: {compromission: -2, argent: -150000, flags: [treve], relations: {aicha: {trust: 2}, sekou: {trust: -1}}, factions: {ombre: {reputation: -1}}}
+        vers: ba_1_expulsions
+      - id: soins_seuls
+        l: "Payer les soins sans rien changer (100 000 F)"
+        intention: "Calmer les caméras"
+        cout: "Ni punir le rival, ni rassurer Aïcha."
+        eff: {compromission: 1, argent: -100000}
+        tirage:
+          difficulte: 2
+          issues:
+            miracle: {vers: ba_1_expulsions, eff: {relations: {aicha: {trust: 1}}}, txt: "La livreuse te remercie par message ; Aïcha le lit à voix haute au dîner."}
+            normal: {vers: ba_1_expulsions, txt: "L'affaire se tasse. Personne n'a oublié."}
+            mauvaise: {vers: ba_1_expulsions, eff: {flags: [rival_etouffe], relations: {aicha: {trust: -1}}}, txt: "Le rival interprète ton geste comme une faiblesse et frappe à nouveau : Sékou règle l'affaire sans t'en parler."}
+
+  - id: ba_1_expulsions
+    jalon: 1
+    jour: 70
+    lieu: "Adjamé-nord, berges"
+    moment: "Matin"
+    objectif: "Le coût humain des expulsions devient chiffré : c'est ton projet, ce sont tes avis."
+    present: [aicha]
+    savoir: "120 familles reçoivent un avis d'expulsion. Seuls les titulaires d'un titre foncier seront indemnisés."
+    dialogue:
+      - {narr: "Des avis d'expulsion collés sur les murs d'Adjamé-nord. Une vieille femme en pleure un dans sa main. Aïcha est venue voir, en cachette."}
+      - {qui: aicha, dit: "Cent vingt familles, papa. Elles n'ont pas de titre. La Cité Lagune-Nord ne les a pas prévues."}
+    choix:
+      - id: reloger
+        l: "Financer le relogement de toutes les familles (1 500 000 F)"
+        intention: "Réparer ce qui peut l'être"
+        cout: "1,5 million de moins, et Sékou y voit une brèche."
+        vu_par: [ombre]
+        eff: {compromission: -2, argent: -1500000, flags: [relogement_paye], relations: {aicha: {trust: 2, fait: verite_dite}, sekou: {trust: -1}}, factions: {ombre: {reputation: -1}}}
+        vers: ba_2_hote
+      - id: partiel
+        l: "Ne reloger que les titulaires (500 000 F)"
+        intention: "Limiter les dégâts"
+        cout: "Les autres dorment dehors."
+        eff: {compromission: 0, argent: -500000, relations: {aicha: {trust: 0}}}
+        vers: ba_2_hote
+      - id: ignorer
+        l: "Laisser faire les huissiers"
+        intention: "Ne pas changer le calendrier"
+        cout: "Aïcha le sait."
+        eff: {compromission: 1, relations: {aicha: {trust: -2}}}
+        vers: ba_2_hote
+
+  - id: ba_2_hote
+    jalon: 2
+    jour: 110
+    carrefour: A
+    lieu: "Yopougon, Rue Princesse"
+    moment: "Nuit de fin d'année"
+    objectif: "Tu offres la soirée : montrer ta force, un visage de bâtisseur ou un arrangement avec l'ennemi."
+    present: [sekou, aicha, aya, yao]
+    savoir: "Syndicat, Ordre et Jet-Set viennent te saluer. Aya t'observe. Aïcha est là aussi."
+    dialogue:
+      - {narr: "Tu es l'hôte. Les maquis de Rue Princesse tournent à plein régime, le champagne est payé d'avance. Syndicat, Ordre et Jet-Set viennent te saluer un à un."}
+      - {qui: yao, dit: "Baron. Belle soirée. Ma présence ici est, disons, institutionnelle."}
+      - {qui: sekou, dit: "Patron, le Syndicat vous regarde. C'est le moment de montrer qui commande."}
+      - {qui: aicha, dit: "Je suis venue voir qui est mon père en public.", si: "relations.aicha.trust >= 1"}
+      - {narr: "Dans un coin, la lieutenante Aya Coulibaly ne boit pas."}
+    choix:
+      - id: imposer
+        l: "Imposer ta loi à tous les clans"
+        intention: "Montrer ta force"
+        cout: "Aïcha te regarde avec dégoût ; Aya prend des notes."
+        vu_par: [ombre, syndicat, ordre, jetset]
+        eff: {compromission: 3, factions: {ombre: {reputation: 2}, syndicat: {reputation: -1}, ordre: {exposition: 1}, jetset: {reputation: -1}}, relations: {aicha: {trust: -2}}}
+        vers: ba_2_yao
+      - id: batisseur
+        l: "Te montrer en bâtisseur, au service du quartier"
+        intention: "Légitimer le projet"
+        cout: "Le Syndicat y voit un mensonge, Sékou une faiblesse."
+        vu_par: [jetset, syndicat]
+        eff: {compromission: -1, flags: [batisseur], factions: {jetset: {reputation: 2}, syndicat: {reputation: -1}}, relations: {sekou: {trust: -1}}}
+        vers: ba_2_yao
+      - id: sonder_aya
+        l: "Sonder discrètement Aya sur un arrangement"
+        intention: "Ouvrir une porte de sortie"
+        cout: "Si Yao l'apprend, il vendra ton secret."
+        vu_par: [ordre]
+        eff: {compromission: -2, flags: [contact_aya], relations: {aya: {trust: 2}, yao: {trust: -1}}, factions: {ordre: {reputation: 1}}}
+        vers: ba_2_yao
+
+  - id: ba_2_yao
+    jalon: 2
+    jour: 200
+    lieu: "Plateau, commissariat central"
+    moment: "Fin d'après-midi"
+    objectif: "Le commissaire Yao augmente son prix : ta protection a un coût qui monte."
+    present: [yao]
+    savoir: "Yao garde un carnet de ses paiements. C'est son assurance-vie, et ta vulnérabilité."
+    dialogue:
+      - {qui: yao, dit: "Baron, mes arrangements me coûtent cher à cacher. Aya Coulibaly fouille. J'ai besoin d'un geste."}
+      - {qui: yao, dit: "Vous savez, je tiens un petit carnet. Pas pour vous nuire. Par prudence."}
+    choix:
+      - id: payer_yao
+        l: "Payer le geste demandé (500 000 F de plus par mois)"
+        intention: "Acheter la paix"
+        cout: "Tu t'enchaînes à lui."
+        vu_par: [ordre]
+        eff: {argent: -500000, compromission: 1, factions: {ordre: {dette: 1}}, relations: {yao: {trust: 1}}}
+        vers: ba_2_sekou
+      - id: menacer_yao
+        l: "Lui faire comprendre que son carnet peut disparaître avec lui"
+        intention: "Reprendre la main"
+        cout: "Yao a désormais peur de toi, donc plus de raisons de te ménager."
+        vu_par: [ordre]
+        eff: {compromission: 2, relations: {yao: {trust: -2, peur: 3}}, factions: {ordre: {exposition: 1}}}
+        vers: ba_2_sekou
+      - id: rompre_yao
+        l: "Cesser de payer : tu n'as plus besoin de lui"
+        intention: "Couper le lien"
+        cout: "Yao te lâchera à la première occasion."
+        vu_par: [ordre]
+        eff: {compromission: -1, relations: {yao: {trust: -3}}, factions: {ordre: {exposition: 2, dette: -1}}}
+        vers: ba_2_sekou
+
+  - id: ba_2_sekou
+    jalon: 2
+    jour: 240
+    lieu: "Cocody, villa-bunker"
+    moment: "Nuit"
+    objectif: "Sékou veut plus de pouvoir : lui donner, le surveiller ou le tester."
+    present: [sekou]
+    savoir: "Sékou a des ambitions. Tu ne sais pas encore qu'il parle au Syndicat."
+    dialogue:
+      - {qui: sekou, dit: "Patron, je vous suis depuis quinze ans. Je gère les convois, je gère les hommes. Je voudrais ma part dans la Cité Lagune-Nord. Officiellement."}
+    choix:
+      - id: part
+        l: "Lui céder une part officielle de la SALN (1 000 000 F de frais)"
+        intention: "Acheter sa fidélité"
+        cout: "Tu partages ton pouvoir."
+        eff: {argent: -1000000, compromission: 1, relations: {sekou: {trust: 3, fait: promesse_tenue}}}
+        vers: ba_3_crue
+      - id: surveiller
+        l: "Le faire surveiller sans lui dire"
+        intention: "Vérifier ses intentions"
+        cout: "S'il le découvre, il te le fera payer."
+        eff: {relations: {sekou: {trust: -2, peur: 2}}, compromission: 1}
+        vers: ba_3_crue
+      - id: refuser_sekou
+        l: "Refuser : tu es le seul maître"
+        intention: "Garder le contrôle"
+        cout: "Sékou le prendra comme un affront."
+        eff: {relations: {sekou: {trust: -3, peur: 1}}, compromission: 1}
+        vers: ba_3_crue
+
+  - id: ba_3_crue
+    jalon: 3
+    jour: 281
+    carrefour: B
+    lieu: "Adjamé, hangar inondé"
+    moment: "Nuit de la crue"
+    objectif: "Le hangar cède, tes caisses flottent : tu décides si la ville le saura par toi ou malgré toi."
+    present: [sekou]
+    savoir: "Les caisses d'armes sont à découvert. Sékou attend tes ordres. Des habitants sont dans l'eau."
+    dialogue:
+      - {narr: "Le hangar cède. L'eau emporte les cloisons et les caisses marquées de ta croix rouge flottent entre les étals. Dans la ruelle, des familles de l'avis d'expulsion pataugent jusqu'aux genoux."}
+      - {qui: sekou, dit: "Patron, les caisses sont à découvert. Je peux faire taire ceux qui ont vu. Ou on évacue tout le monde et on sacrifie le dépôt."}
+    choix:
+      - id: silence
+        l: "Imposer le silence à tout prix (les témoins seront « calmés »)"
+        intention: "Protéger l'empire"
+        cout: "Des innocents paieront ton silence."
+        vu_par: [ombre, ordre]
+        eff: {compromission: 3, flags: [silence_force], relations: {sekou: {trust: 1}, aicha: {trust: -2}}, factions: {ombre: {reputation: 1}}}
+        tirage:
+          difficulte: 4
+          issues:
+            miracle: {vers: ba_3_aicha, txt: "La pluie couvre tout : personne n'a rien vu, et les caisses disparaissent avant l'aube."}
+            normal: {vers: ba_3_aicha, eff: {factions: {ordre: {exposition: 1}}}, txt: "Quelques rumeurs circulent. Rien de prouvé."}
+            mauvaise: {vers: ba_3_aicha, eff: {factions: {ordre: {exposition: 2}}, flags: [famille_alertee]}, txt: "Une journaliste a filmé de loin. La vidéo commence à circuler."}
+      - id: evacuer
+        l: "Payer l'évacuation et exposer toi-même le dépôt (800 000 F)"
+        intention: "Sauver des vies avant de sauver tes caisses"
+        cout: "Tu brûles ta couverture."
+        vu_par: [ombre, ordre]
+        eff: {compromission: -3, argent: -800000, flags: [abri], relations: {aicha: {trust: 3}, sekou: {trust: -2}}, factions: {ordre: {exposition: 1}, ombre: {reputation: -2}}}
+        vers: ba_3_aicha
+      - id: detruire
+        l: "Détruire le dépôt toi-même : tout brûler pour effacer les preuves"
+        intention: "Couper court"
+        cout: "Une partie de ton stock est perdue."
+        vu_par: [ombre]
+        eff: {compromission: -1, argent: -300000, actifs: {camions_chantier: endommages}, relations: {sekou: {trust: -1}}}
+        vers: ba_3_aicha
+
+  - id: ba_3_aicha
+    jalon: 3
+    jour: 282
+    lieu: "Cocody, villa-bunker"
+    moment: "Nuit, après la crue"
+    objectif: "Aïcha affronte son père : choisir entre le mensonge protecteur et la vérité qui coûte."
+    present: [aicha]
+    savoir: "Aïcha sait pour les sociétés. Elle ne sait pas pour les armes."
+    dialogue:
+      - {narr: "Aïcha est dans le salon, encore trempée. Elle a vu les caisses en venant t'aider sur place."}
+      - {qui: aicha, dit: "C'est ça, ta Cité Lagune-Nord ? Des armes sous des étals ? Dis-moi que je me trompe."}
+    choix:
+      - id: verite
+        l: "Lui dire toute la vérité, sans rien cacher"
+        intention: "La traiter en adulte"
+        cout: "Elle peut te quitter pour toujours."
+        eff: {compromission: -1, relations: {aicha: {trust: 3, fait: verite_dite}}}
+        vers: ba_4_sekou_trahit
+      - id: mentir
+        l: "Mentir pour la protéger"
+        intention: "La garder hors de tout"
+        cout: "Si elle l'apprend, tout est fini."
+        eff: {compromission: 1, relations: {aicha: {trust: -3}}}
+        vers: ba_4_sekou_trahit
+      - id: donner_livre
+        l: "Lui confier ton livre de comptes : elle décidera de ce qu'elle en fait"
+        intention: "Remettre ton sort entre ses mains"
+        cout: "Elle peut le remettre à Aya."
+        eff: {compromission: -2, relations: {aicha: {trust: 4, fait: verite_dite}}, preuves: {livre_comptes: {action: transmettre, a: aicha}}}
+        vers: ba_4_sekou_trahit
+
+  - id: ba_4_sekou_trahit
+    jalon: 4
+    jour: 283
+    carrefour: C
+    si: "relations.sekou.trust <= 3"
+    sinon: ba_4_sekou_loyal
+    lieu: "Plateau, aube"
+    moment: "Descente"
+    objectif: "Sékou t'a trahi : négocier, fuir ou te livrer."
+    present: [yao, aya, sekou]
+    savoir: "Sékou a parlé à Yao. Aya a un mandat limité. Le Syndicat ne te couvre plus."
+    dialogue:
+      - {narr: "Les gyrophares sont déjà dans la rue. Sékou est derrière Yao, les mains vides. Il ne te regarde pas."}
+      - {qui: yao, dit: "Baron. On peut encore s'arranger. Un téléphone, quelques paroles, une sortie par le fond. Mais vite."}
+      - {qui: aya, dit: "Vous n'êtes pas obligé de passer par lui, Monsieur. Il existe une voie légale."}
+    choix:
+      - id: fuir
+        l: "Fuir par le fond (3 000 000 F de frais)"
+        intention: "Disparaître"
+        cout: "Tout ton réseau te lâchera."
+        si: "argent >= 3000000"
+        eff: {compromission: 2, argent: -3000000, flags: [sekou_a_trahi]}
+        vers: ba_5_ceremonie
+      - id: negocier
+        l: "Négocier avec Yao (3 000 000 F, ta dette envers lui)"
+        intention: "Sauver l'empire par un arrangement"
+        cout: "Tu appartiens à Yao désormais."
+        si: "argent >= 3000000"
+        vu_par: [ordre]
+        eff: {compromission: 3, argent: -3000000, flags: [sekou_a_trahi, accord_yao], factions: {ordre: {dette: 2}}, relations: {yao: {trust: 2, peur: 1}}}
+        vers: ba_5_ceremonie
+      - id: livrer
+        l: "Te livrer à Aya avec ton livre de comptes"
+        intention: "Briser le cycle"
+        cout: "Tu perds tout : l'empire, la liberté, peut-être la vie."
+        si: "preuves.livre_comptes == 'detenue'"
+        vu_par: [ordre, ombre]
+        eff: {compromission: -4, flags: [temoin, sekou_a_trahi], relations: {aya: {trust: 3}}, factions: {ordre: {reputation: 3}, ombre: {reputation: -4}}, preuves: {livre_comptes: {action: transmettre, a: aya}}}
+        vers: ba_5_ceremonie
+      - id: livrer_par_aicha
+        l: "Laisser Aïcha remettre ton livre à Aya, comme elle l'a décidé"
+        intention: "Accepter le choix de ta fille"
+        cout: "Tu ne maîtrises plus rien."
+        si: "preuves.livre_comptes == 'transmise' and relations.aicha.trust >= 3"
+        vu_par: [ordre, ombre]
+        eff: {compromission: -3, flags: [temoin, sekou_a_trahi], relations: {aya: {trust: 2}, aicha: {trust: 1}}, factions: {ordre: {reputation: 2}, ombre: {reputation: -3}}}
+        vers: ba_5_ceremonie
+
+  - id: ba_4_sekou_loyal
+    jalon: 4
+    jour: 283
+    carrefour: C
+    lieu: "Plateau, aube"
+    moment: "Descente"
+    objectif: "Sékou est resté fidèle : tu peux compter sur lui, mais pas sur le temps."
+    present: [sekou, aya, yao]
+    savoir: "Sékou et ses hommes tiennent l'entrée. Aya attend de l'autre côté."
+    dialogue:
+      - {narr: "Sékou et ses hommes bloquent l'entrée du siège. Yao reste en retrait, mal à l'aise. Aya Coulibaly attend, les mains dans les poches."}
+      - {qui: sekou, dit: "Patron, je tiens la porte. Dites un mot et on brûle le registre, ou on sort par derrière."}
+    choix:
+      - id: bruler
+        l: "Ordonner à Sékou de brûler les registres"
+        intention: "Effacer les preuves"
+        cout: "Tu t'enfonces."
+        eff: {compromission: 3, relations: {sekou: {trust: 1, fait: promesse_tenue}}, preuves: {livre_comptes: {action: perdre}}}
+        vers: ba_5_ceremonie
+      - id: livrer_sekou
+        l: "Te livrer à Aya avec ton livre de comptes, en couvrant la retraite de Sékou"
+        intention: "Briser le cycle sans entraîner les tiens"
+        cout: "Tu perds tout."
+        si: "preuves.livre_comptes == 'detenue'"
+        vu_par: [ordre, ombre]
+        eff: {compromission: -4, flags: [temoin], relations: {aya: {trust: 3}, sekou: {trust: 1}}, factions: {ordre: {reputation: 3}, ombre: {reputation: -3}}, preuves: {livre_comptes: {action: transmettre, a: aya}}}
+        vers: ba_5_ceremonie
+      - id: livrer_par_aicha2
+        l: "Laisser Aïcha remettre ton livre à Aya, comme elle l'a décidé"
+        intention: "Accepter le choix de ta fille"
+        cout: "Tu ne maîtrises plus rien."
+        si: "preuves.livre_comptes == 'transmise' and relations.aicha.trust >= 3"
+        vu_par: [ordre, ombre]
+        eff: {compromission: -3, flags: [temoin], relations: {aya: {trust: 2}, aicha: {trust: 1}}, factions: {ordre: {reputation: 2}, ombre: {reputation: -3}}}
+        vers: ba_5_ceremonie
+      - id: continuer
+        l: "Ne rien changer : tu tiens ton empire et tu continues"
+        intention: "Garder la main"
+        cout: "L'étau se resserre."
+        vu_par: [ombre]
+        eff: {compromission: 2, factions: {ombre: {reputation: 1}}}
+        vers: ba_5_ceremonie
+
+  - id: ba_5_ceremonie
+    jalon: 5
+    jour: 304
+    denouement: true
+    lieu: "Bord de la lagune, première pierre"
+    moment: "Cérémonie d'inauguration"
+    objectif: "C'est ton projet, ton ruban, ton nom caché : dire qui tu es devenu."
+    present: [aicha, aya, yao, sekou]
+    savoir: "Chacun sait ce que tu as fait, ou croit le savoir."
+    dialogue:
+      - {narr: "Le Maire coupe le ruban de ton quartier à moitié vrai. Tu es au dernier rang, dans l'ombre d'un parasol. Aïcha est quelque part dans la foule."}
+
+fins:
+  - id: ba_f_lum
+    type: lumiere
+    priorite: 2
+    si: "flags.temoin and compromission <= 0 and preuves.livre_comptes == 'transmise'"
+    titre: "Le Repenti"
+    resume: "Tu livres ton réseau et tu paies ta dette."
+    epilogue:
+      - {txt: "Ton livre de comptes ouvre quatre enquêtes. Les sociétés prête-noms sont dissoutes devant le tribunal."}
+      - {si: "relations.aicha.faits.verite_dite", txt: "Aïcha vient te voir au parloir, une fois par mois. Elle ne parle pas beaucoup, mais elle vient."}
+      - {si: "flags.relogement_paye", txt: "Les familles relogées sont appelées comme témoins : elles parlent de toi sans haine, ce qui te fait plus mal que tout."}
+      - {txt: "Ce n'est pas un pardon : c'est une dette que tu commences à payer."}
+  - id: ba_f_ombre
+    type: ombre
+    priorite: 3
+    si: "compromission >= 9 and relations.aicha.trust <= 0"
+    titre: "Le Parrain Intouchable"
+    resume: "Tu gardes tout et tu perds ta fille."
+    epilogue:
+      - {txt: "Ton empire est plus solide que jamais. Yao touche sa part, Sékou ne bouge plus."}
+      - {txt: "La ville s'assombrit. Aïcha a quitté le pays ; tu ne sauras jamais si elle a lu ton livre."}
+      - {si: "flags.silence_force", txt: "Les témoins de la crue ne parlent plus. Ils ne parleront plus."}
+  - id: ba_f_entre
+    type: entre_deux
+    priorite: 5
+    si: "true"
+    titre: "Le Bâtisseur"
+    resume: "L'argent sale devient du ciment propre. Pas le passé."
+    epilogue:
+      - {txt: "Tu finances des écoles et des routes avec l'argent des convois. Le quartier te remercie sans savoir pourquoi."}
+      - {si: "flags.accord_yao", txt: "Tu appartiens à Yao désormais. Chaque année, le prix de son silence augmente."}
+      - {si: "relations.aicha.trust >= 1", txt: "Aïcha accepte de te voir de temps en temps. Elle pose toujours la même question : « Et le reste ? »"}
+      - {txt: "Tu dors dans une villa propre, sur des fondations qui ne le sont pas."}
+  - id: ba_f_trag
+    type: tragique
+    priorite: 1
+    imposee: true
+    si: "flags.sekou_a_trahi and not flags.accord_yao and not flags.temoin"
+    titre: "La Chute du Baron"
+    resume: "Sékou et les clans te lâchent."
+    epilogue:
+      - {txt: "Sékou t'avait trahi, tu as fui, et personne ne t'a couvert : ni Yao, ni le Syndicat, ni la loi."}
+      - {txt: "Retrouvé la nuit de l'inauguration au fond d'un canal de Koumassi. Fin définitive."}
+  - id: ba_f_secret
+    type: secrete
+    priorite: 0
+    si: "flags.temoin and relations.aicha.trust >= 3 and flags.relogement_paye and flags.batisseur"
+    titre: "La Dette Réglée"
+    resume: "Tu finances chaque famille expulsée, puis tu disparais."
+    epilogue:
+      - {txt: "Avant de te livrer, tu as signé les actes de relogement de toutes les familles. Aïcha seule sait pourquoi."}
+      - {txt: "Le Bâtisseur et le Repenti sont, au fond, le même homme. Elle le comprend à l'audience."}
+      - {txt: "La Cité Lagune-Nord n'a plus de nom de Baron. Elle porte celui d'Aïcha, comme une fondation."}

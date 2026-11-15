@@ -1,0 +1,97 @@
+destin: djassaman
+titre: "Le Roi du Quai"
+rarete: legendaire
+depart: {camp: ombre, cur: 7, logement: arriere_boutique_treichville, argent: 400000, metier: djassa_contrefacon, ecole: aucune, diplomes: [], etoile: 45}
+cercle:
+  - {id: ange, nom: "Ange, ton second", rel: faction}
+  - {id: zephyrine, nom: "Tantie Zephyrine", rel: allie}
+  - {id: yao, nom: "Commissaire Yao", rel: rival}
+  - {id: baron, nom: "Le Baron", rel: faction}
+noeuds:
+  - id: dj_n0
+    ch: 0
+    lieu: "Treichville, quai"
+    txt: "Fausses plaques, smartphones debloques, objets de contrebande. Tu as de l'argent et une etoile de police sur le dos. Ange te presente les caisses du mois."
+    choix:
+      - {l: "Compter la recette avec Ange", eff: {lien: {ange: 1}, cur: 1}, vers: dj_n1}
+      - {l: "Passer saluer Tantie Zephyrine", eff: {lien: {zephyrine: 1}}, vers: dj_n1}
+  - id: dj_n1
+    ch: 1
+    lieu: "Treichville, marche"
+    txt: "Tantie Zephyrine refuse de payer la « protection ». Ange veut faire un exemple."
+    choix:
+      - {l: "Laisser Ange faire un exemple", eff: {cur: 2, lien: {zephyrine: -2}}, vers: dj_n2o}
+      - {l: "L'epargner et la proteger", eff: {cur: -2, lien: {zephyrine: 2}}, vers: dj_n2p}
+      - {l: "Lui faire payer la moitie", eff: {cur: 1}, tirage: {normal: dj_n2g, mauvaise: dj_n2o, miracle: dj_n2p}}
+  - id: dj_n2o
+    ch: 2
+    carrefour: A
+    lieu: "Yopougon, Rue Princesse"
+    txt: "Le Baron te toise : « Ton quai m'interesse. Tu seras mon douanier. »"
+    choix:
+      - {l: "Accepter d'etre son douanier", eff: {cur: 3, faction: {ombre: 2}}, vers: dj_n3o}
+      - {l: "Refuser et garder ton quai", eff: {cur: -2}, vers: dj_n3p}
+  - id: dj_n2p
+    ch: 2
+    carrefour: A
+    lieu: "Yopougon, Rue Princesse"
+    txt: "Tantie Zephyrine te presente a des commercants. Un marche legal, avec licence, serait possible."
+    choix:
+      - {l: "Demander une licence de negoce", eff: {cur: -2, metier: entrepreneur, lien: {zephyrine: 1}}, vers: dj_n3p}
+      - {l: "Garder les deux activites", eff: {cur: 1}, vers: dj_n3p}
+  - id: dj_n2g
+    ch: 2
+    carrefour: A
+    lieu: "Yopougon, Rue Princesse"
+    txt: "Tantie Zephyrine a paye, mais t'a regarde comme jamais."
+    choix:
+      - {l: "La rembourser en secret", eff: {cur: -1, lien: {zephyrine: 2}}, vers: dj_n3p}
+      - {l: "Continuer ainsi", eff: {cur: 2}, vers: dj_n3o}
+  - id: dj_n3o
+    ch: 3
+    carrefour: B
+    lieu: "Treichville inonde"
+    txt: "Crue. Ton quai est sous l'eau. Le Baron veut que tu sortes ses caisses avant les secours."
+    choix:
+      - {l: "Sortir les caisses", eff: {cur: 3}, vers: dj_n4o}
+      - {l: "Ouvrir ton quai en abri pour les sinistres", eff: {cur: -3, flag: abri}, vers: dj_n4p}
+  - id: dj_n3p
+    ch: 3
+    carrefour: B
+    lieu: "Treichville inonde"
+    txt: "Crue. Ton stock peut nourrir le quartier."
+    choix:
+      - {l: "Distribuer le stock aux sinistres", eff: {cur: -2, lien: {zephyrine: 1}, flag: partage}, tirage: {normal: dj_n4p, mauvaise: dj_n4p, miracle: dj_n4p}}
+      - {l: "Mettre le stock a l'abri", eff: {cur: 1}, vers: dj_n4p}
+  - id: dj_n4o
+    ch: 4
+    carrefour: C
+    lieu: "Treichville, aube"
+    txt: "Descente au port. Le commissaire Yao te chuchote : « On peut s'arranger. »"
+    choix:
+      - {l: "Echanger des preuves contre ta liberte", eff: {cur: -3, flag: temoin, faction: {ordre: 2}}, vers: dj_n5}
+      - {l: "Fuir avec le Baron", eff: {cur: 2}, vers: dj_n5}
+  - id: dj_n4p
+    ch: 4
+    carrefour: C
+    lieu: "Treichville, aube"
+    txt: "Aya a besoin d'un temoin qui connait le port de l'interieur."
+    choix:
+      - {l: "Temoigner", eff: {cur: -3, flag: temoin}, vers: dj_n5}
+      - {l: "Acheter le silence de Yao", eff: {cur: 1, argent: -100000}, vers: dj_n5}
+  - id: dj_n5
+    ch: 5
+    lieu: "Bord de la lagune, premiere pierre"
+    txt: "Ceremonie. Les conteneurs du port sont alignes, comme toujours."
+    choix:
+      - {l: "Tenir un marche legal de Treichville", si: "cur<=0 et temoin", vers: dj_f_lum}
+      - {l: "Etre le douanier du Baron pour de bon", si: "cur>=8", vers: dj_f_ombre}
+      - {l: "Voler les gros, proteger les petits", si: "toujours", vers: dj_f_entre}
+      - {l: "Defier le Baron sur son propre quai", si: "cur>=5", vers: dj_f_trag}
+      - {l: "Reunir les commercants dans un grand marche", si: "(abri ou partage) et zephyrine>=3 et temoin", vers: dj_f_secret}
+fins:
+  - {id: dj_f_lum, type: lumiere, titre: "Roi du Marche Legal", txt: "Ton talent de debrouille sert enfin un commerce en regle."}
+  - {id: dj_f_ombre, type: ombre, titre: "Le Douanier du Baron", txt: "Tu tiens le port pour lui. Le Baron te regarde toujours."}
+  - {id: dj_f_entre, type: entre_deux, titre: "Le Robin des Quais", txt: "Tu voles les gros, tu protèges les petits, la police ne te lache pas."}
+  - {id: dj_f_trag, type: tragique, titre: "La Derniere Cargaison", txt: "Tu as defie le Baron sur son quai. Fin definitive."}
+  - {id: dj_f_secret, type: secrete, titre: "Le Grand Marche Reconcilie", txt: "Le quai devient un marche ouvert a tous, avec Tantie Zephyrine a sa tete."}

@@ -1,0 +1,436 @@
+{
+ "destin": "chauffeur_woro",
+ "formule": "etoile-v1",
+ "fins": {
+  "cw_f_secret": {
+   "chemin": [
+    {
+     "noeud": "cw_0_course",
+     "choix": "offrir_course",
+     "issue": null
+    },
+    {
+     "noeud": "cw_0_gare",
+     "choix": "cotiser",
+     "issue": null
+    },
+    {
+     "noeud": "cw_1_colis",
+     "choix": "livrer",
+     "issue": null
+    },
+    {
+     "noeud": "cw_1_bordereau",
+     "choix": "voir_chantier",
+     "issue": null
+    },
+    {
+     "noeud": "cw_2_princesse_ombre",
+     "choix": "signer",
+     "issue": null
+    },
+    {
+     "noeud": "cw_2_ligne",
+     "choix": "cofinancer",
+     "issue": null
+    },
+    {
+     "noeud": "cw_3_crue_ombre",
+     "choix": "jeter",
+     "issue": "miracle"
+    },
+    {
+     "noeud": "cw_4_descente_ombre",
+     "choix": "trahir",
+     "issue": "miracle"
+    }
+   ],
+   "fin": "cw_f_secret"
+  },
+  "cw_f_entre": {
+   "chemin": [
+    {
+     "noeud": "cw_0_course",
+     "choix": "offrir_course",
+     "issue": null
+    },
+    {
+     "noeud": "cw_0_gare",
+     "choix": "cotiser",
+     "issue": null
+    },
+    {
+     "noeud": "cw_1_colis",
+     "choix": "livrer",
+     "issue": null
+    },
+    {
+     "noeud": "cw_1_bordereau",
+     "choix": "voir_chantier",
+     "issue": null
+    },
+    {
+     "noeud": "cw_2_princesse_ombre",
+     "choix": "signer",
+     "issue": null
+    },
+    {
+     "noeud": "cw_2_ligne",
+     "choix": "cofinancer",
+     "issue": null
+    },
+    {
+     "noeud": "cw_3_crue_ombre",
+     "choix": "jeter",
+     "issue": "miracle"
+    },
+    {
+     "noeud": "cw_4_descente_ombre",
+     "choix": "trahir",
+     "issue": "miracle"
+    }
+   ],
+   "fin": "cw_f_entre"
+  },
+  "cw_f_trag": {
+   "chemin": [
+    {
+     "noeud": "cw_0_course",
+     "choix": "offrir_course",
+     "issue": null
+    },
+    {
+     "noeud": "cw_0_gare",
+     "choix": "cotiser",
+     "issue": null
+    },
+    {
+     "noeud": "cw_1_colis",
+     "choix": "livrer",
+     "issue": null
+    },
+    {
+     "noeud": "cw_1_bordereau",
+     "choix": "voir_chantier",
+     "issue": null
+    },
+    {
+     "noeud": "cw_2_princesse_ombre",
+     "choix": "signer",
+     "issue": null
+    },
+    {
+     "noeud": "cw_2_ligne",
+     "choix": "cofinancer",
+     "issue": null
+    },
+    {
+     "noeud": "cw_3_crue_ombre",
+     "choix": "jeter",
+     "issue": "miracle"
+    },
+    {
+     "noeud": "cw_4_descente_ombre",
+     "choix": "trahir",
+     "issue": "mauvaise"
+    }
+   ],
+   "fin": "cw_f_trag"
+  },
+  "cw_f_lum": {
+   "chemin": [
+    {
+     "noeud": "cw_0_course",
+     "choix": "offrir_course",
+     "issue": null
+    },
+    {
+     "noeud": "cw_0_gare",
+     "choix": "cotiser",
+     "issue": null
+    },
+    {
+     "noeud": "cw_1_colis",
+     "choix": "livrer",
+     "issue": null
+    },
+    {
+     "noeud": "cw_1_bordereau",
+     "choix": "voir_chantier",
+     "issue": null
+    },
+    {
+     "noeud": "cw_2_princesse_ombre",
+     "choix": "signer",
+     "issue": null
+    },
+    {
+     "noeud": "cw_2_ligne",
+     "choix": "cofinancer",
+     "issue": null
+    },
+    {
+     "noeud": "cw_3_crue_ombre",
+     "choix": "jeter",
+     "issue": "miracle"
+    },
+    {
+     "noeud": "cw_4_descente_ombre",
+     "choix": "bordereau",
+     "issue": null
+    }
+   ],
+   "fin": "cw_f_lum"
+  },
+  "cw_f_ombre": {
+   "chemin": [
+    {
+     "noeud": "cw_0_course",
+     "choix": "offrir_course",
+     "issue": null
+    },
+    {
+     "noeud": "cw_0_gare",
+     "choix": "cotiser",
+     "issue": null
+    },
+    {
+     "noeud": "cw_1_colis",
+     "choix": "livrer",
+     "issue": null
+    },
+    {
+     "noeud": "cw_1_bordereau",
+     "choix": "voir_chantier",
+     "issue": null
+    },
+    {
+     "noeud": "cw_2_princesse_ombre",
+     "choix": "signer",
+     "issue": null
+    },
+    {
+     "noeud": "cw_2_ligne",
+     "choix": "cofinancer",
+     "issue": null
+    },
+    {
+     "noeud": "cw_3_crue_ombre",
+     "choix": "garder",
+     "issue": null
+    },
+    {
+     "noeud": "cw_4_descente_ombre",
+     "choix": "loyal",
+     "issue": null
+    }
+   ],
+   "fin": "cw_f_ombre"
+  }
+ },
+ "extremes": {
+  "compromission_max": {
+   "valeur": 10,
+   "chemin": [
+    {
+     "noeud": "cw_0_course",
+     "choix": "offrir_course",
+     "issue": null
+    },
+    {
+     "noeud": "cw_0_gare",
+     "choix": "cotiser",
+     "issue": null
+    },
+    {
+     "noeud": "cw_1_colis",
+     "choix": "livrer",
+     "issue": null
+    },
+    {
+     "noeud": "cw_1_bordereau",
+     "choix": "voir_chantier",
+     "issue": null
+    },
+    {
+     "noeud": "cw_2_princesse_ombre",
+     "choix": "signer",
+     "issue": null
+    },
+    {
+     "noeud": "cw_2_ligne",
+     "choix": "permis_d",
+     "issue": "miracle"
+    },
+    {
+     "noeud": "cw_3_crue_ombre",
+     "choix": "garder",
+     "issue": null
+    },
+    {
+     "noeud": "cw_4_descente_ombre",
+     "choix": "loyal",
+     "issue": null
+    }
+   ]
+  },
+  "compromission_min": {
+   "valeur": -9,
+   "chemin": [
+    {
+     "noeud": "cw_0_course",
+     "choix": "offrir_course",
+     "issue": null
+    },
+    {
+     "noeud": "cw_0_gare",
+     "choix": "cotiser",
+     "issue": null
+    },
+    {
+     "noeud": "cw_1_colis",
+     "choix": "refuser",
+     "issue": null
+    },
+    {
+     "noeud": "cw_1_bordereau",
+     "choix": "voir_chantier",
+     "issue": null
+    },
+    {
+     "noeud": "cw_2_princesse_aya",
+     "choix": "yeux",
+     "issue": null
+    },
+    {
+     "noeud": "cw_2_ligne",
+     "choix": "cofinancer",
+     "issue": null
+    },
+    {
+     "noeud": "cw_3_crue_lassina",
+     "choix": "sauver_lassina",
+     "issue": "miracle"
+    },
+    {
+     "noeud": "cw_4_descente_temoin",
+     "choix": "temoigner",
+     "issue": null
+    }
+   ]
+  },
+  "sante_min": {
+   "valeur": 40,
+   "chemin": [
+    {
+     "noeud": "cw_0_course",
+     "choix": "offrir_course",
+     "issue": null
+    },
+    {
+     "noeud": "cw_0_gare",
+     "choix": "cotiser",
+     "issue": null
+    },
+    {
+     "noeud": "cw_1_colis",
+     "choix": "livrer",
+     "issue": null
+    },
+    {
+     "noeud": "cw_1_bordereau",
+     "choix": "voir_chantier",
+     "issue": null
+    },
+    {
+     "noeud": "cw_2_princesse_ombre",
+     "choix": "signer",
+     "issue": null
+    },
+    {
+     "noeud": "cw_2_ligne",
+     "choix": "permis_d",
+     "issue": "mauvaise"
+    },
+    {
+     "noeud": "cw_3_crue_ombre",
+     "choix": "jeter",
+     "issue": "mauvaise"
+    },
+    {
+     "noeud": "cw_4_descente_ombre",
+     "choix": "trahir",
+     "issue": "mauvaise"
+    }
+   ]
+  },
+  "argent_max": {
+   "valeur": 485000,
+   "chemin": [
+    {
+     "noeud": "cw_0_course",
+     "choix": "tournee",
+     "issue": null
+    },
+    {
+     "noeud": "cw_0_gare",
+     "choix": "marchander",
+     "issue": "mauvaise"
+    },
+    {
+     "noeud": "cw_1_colis",
+     "choix": "livrer",
+     "issue": null
+    },
+    {
+     "noeud": "cw_1_bordereau",
+     "choix": "voir_chantier",
+     "issue": null
+    },
+    {
+     "noeud": "cw_2_princesse_ombre",
+     "choix": "sortir",
+     "issue": null
+    },
+    {
+     "noeud": "cw_2_ligne",
+     "choix": "racheter",
+     "issue": null
+    },
+    {
+     "noeud": "cw_3_crue_lassina",
+     "choix": "sauver_lassina",
+     "issue": "miracle"
+    },
+    {
+     "noeud": "cw_4_descente_temoin",
+     "choix": "temoigner",
+     "issue": null
+    }
+   ]
+  }
+ },
+ "distribution_pct": {
+  "0": {
+   "cw_f_secret": 2.8,
+   "cw_f_entre": 83.0,
+   "cw_f_trag": 6.5,
+   "cw_f_lum": 5.2,
+   "cw_f_ombre": 2.4
+  },
+  "50": {
+   "cw_f_secret": 3.0,
+   "cw_f_entre": 83.0,
+   "cw_f_trag": 6.1,
+   "cw_f_lum": 5.6,
+   "cw_f_ombre": 2.3
+  },
+  "100": {
+   "cw_f_secret": 3.4,
+   "cw_f_entre": 83.0,
+   "cw_f_trag": 5.0,
+   "cw_f_lum": 6.3,
+   "cw_f_ombre": 2.2
+  }
+ }
+}
