@@ -10,6 +10,7 @@
 
 import * as THREE from 'three';
 import { Building, ChunkData, CHUNK } from './city';
+import { isHospitalId } from './hospitals';
 
 export interface ChunkMaterials {
   facade: THREE.MeshStandardMaterial;
@@ -522,7 +523,7 @@ export function buildChunkObjects(
   const facade = new Buf();
   const plain = new Buf();
   data.buildings.forEach((b, i) => {
-    if (b.landmark && HERO_LANDMARKS.has(b.landmark)) return;
+    if (b.landmark && (HERO_LANDMARKS.has(b.landmark) || isHospitalId(b.landmark))) return;
     addBuilding(facade, plain, b, i);
   });
   const fg = facade.geometry();
