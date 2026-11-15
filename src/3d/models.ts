@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import { SapeOutfitId, VehicleModelType } from '../types/game';
 import { SAPE_OUTFITS } from '../core/destinies';
 import { createContactShadow, getSurfaceBumpTexture, getWaxFabricTexture } from './materials';
+import { FadeWall, WallFader } from './wallFader';
+import { HOUSE_D, HOUSE_DOOR_WIDTH, HOUSE_SHELL_WALLS, HOUSE_W, HOUSE_WALL_H } from '../world/houseShell';
 
 /**
  * BLV — High-Craft 3D Procedural Models
@@ -943,12 +945,14 @@ export interface CribZoneHandles {
   bafflesMaquis: THREE.Group;
   tv4k: THREE.Group;
   canapeCuir: THREE.Group;
+  /** Fondu des murs et du toit (voir wallFader.ts) : à mettre à jour à chaque image. */
+  fader: WallFader;
   updateUpgrades: (u: { splitClim: boolean; bafflesMaquis: boolean; tv4k: boolean; canapeCuir: boolean }) => void;
 }
 
 /**
- * Maison de poupée explorable 12 × 9 m alignée à 100% avec HOUSE_COLLIDERS (playerHouse.ts) :
- * - mur arrière z = -4.5, mur gauche x = -6, façade +z ouverte sur la rue
+ * Maison fermée 12 × 9 m alignée à 100% avec HOUSE_COLLIDERS (playerHouse.ts, géométrie dans houseShell.ts) :
+ * - 4 murs, porte de 2,2 m au centre de la façade (+z), toit qui s'efface quand le joueur est dedans
  * - lit (-4, -3), frigo (3, -3.5), douche (4, 2), bureau PC (-4, 2)
  * - piscine extérieure pour villa_ambassade et duplex_mer
  */
@@ -981,27 +985,50 @@ export function createPlayerHouseRig(
   floor.receiveShadow = true;
   group.add(floor);
 
-  // Mur arrière z = -4.5
-  const backWall = new THREE.Mesh(new THREE.BoxGeometry(12, 3.2, 0.3), wallMat);
-  backWall.position.set(0, 1.6, -4.5);
-  backWall.castShadow = true;
-  backWall.receiveShadow = true;
-  group.add(backWall);
+  // Coque fermée : un matériau par face pour que chaque mur s'efface séparément côté caméra.
+  const fadeWalls: FadeWall[] = [];
+  const faceMats = new Map<string, THREE.MeshStandardMaterial>();
+  for (const w of HOUSE_SHELL_WALLS) {
+    const faceKey = `${w.nx},${w.nz}`;
+    let mat = faceMats.get(faceKey);
+    if (!mat) {
+      mat = wallMat.clone();
+      faceMats.set(faceKey, mat);
+      fadeWalls.push({ mats: [mat], lx: w.x, lz: w.z, nx: w.nx, nz: w.nz, mode: 'shell' });
+    }
+    const wall = new THREE.Mesh(new THREE.BoxGeometry(w.hx * 2, HOUSE_WALL_H, w.hz * 2), mat);
+    wall.position.set(w.x, HOUSE_WALL_H / 2, w.z);
+    wall.castShadow = true;
+    wall.receiveShadow = true;
+    group.add(wall);
+  }
+  const frontMat = faceMats.get('0,1')!;
 
-  // Mur gauche x = -6
-  const leftWall = new THREE.Mesh(new THREE.BoxGeometry(0.3, 3.2, 9), wallMat);
-  leftWall.position.set(-6, 1.6, 0);
-  leftWall.castShadow = true;
-  leftWall.receiveShadow = true;
-  group.add(leftWall);
+  // Linteau au-dessus de la porte, cadre en bois et seuil
+  const lintel = new THREE.Mesh(new THREE.BoxGeometry(HOUSE_DOOR_WIDTH + 0.4, 0.7, 0.3), frontMat);
+  lintel.position.set(0, HOUSE_WALL_H - 0.35, HOUSE_D / 2);
+  lintel.castShadow = true;
+  group.add(lintel);
+  const doorWood = new THREE.MeshStandardMaterial({ color: 0x7c4a21, roughness: 0.6 });
+  for (const sx of [-1, 1]) {
+    const post = new THREE.Mesh(new THREE.BoxGeometry(0.14, 2.5, 0.36), doorWood);
+    post.position.set(sx * (HOUSE_DOOR_WIDTH / 2 + 0.07), 1.25, HOUSE_D / 2);
+    post.castShadow = true;
+    group.add(post);
+  }
+  const doorStep = new THREE.Mesh(new THREE.BoxGeometry(HOUSE_DOOR_WIDTH + 0.6, 0.1, 0.9), tileMat);
+  doorStep.position.set(0, 0.05, HOUSE_D / 2 + 0.4);
+  doorStep.receiveShadow = true;
+  group.add(doorStep);
 
-  // Corniche haute extérieure (sans bloquer la vue caméra plongeante)
-  const roofTrim = new THREE.Mesh(
-    new THREE.BoxGeometry(12.4, 0.24, 0.55),
-    new THREE.MeshStandardMaterial({ color: isLuxury ? 0xb45309 : 0x7c2d12, roughness: 0.6 })
-  );
-  roofTrim.position.set(0, 3.25, -4.5);
-  group.add(roofTrim);
+  // Toit (corniche débordante) : visible de l'extérieur, invisible dedans, transparent s'il cache le joueur
+  const roofMat = new THREE.MeshStandardMaterial({ color: isLuxury ? 0xb45309 : 0x7c2d12, roughness: 0.6 });
+  const roof = new THREE.Mesh(new THREE.BoxGeometry(HOUSE_W + 0.8, 0.24, HOUSE_D + 0.8), roofMat);
+  roof.position.set(0, HOUSE_WALL_H + 0.12, 0);
+  roof.castShadow = true;
+  roof.receiveShadow = true;
+  group.add(roof);
+  fadeWalls.push({ mats: [roofMat], lx: 0, lz: 0, nx: 0, nz: 0, mode: 'roof' });
 
   // Tapis Wax central
   const rug = new THREE.Mesh(
@@ -1120,7 +1147,7 @@ export function createPlayerHouseRig(
   };
   updateUpgrades(upgrades);
 
-  return { group, splitClim, bafflesMaquis, tv4k, canapeCuir, updateUpgrades };
+  return { group, splitClim, bafflesMaquis, tv4k, canapeCuir, fader: new WallFader(fadeWalls), updateUpgrades };
 }
 
 export function createCribInteriorZone(): CribZoneHandles {
