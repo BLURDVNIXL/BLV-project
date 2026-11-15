@@ -529,10 +529,10 @@ export class AbidjanSceneManager {
     mairie.position.set(pMai.x, 0, pMai.z);
     this.scene.add(mairie);
 
-    const maquis = createMaquisStructure();
-    const pMaq = project(5.3375, -4.072);
-    maquis.position.set(pMaq.x, 0, pMaq.z);
-    this.scene.add(maquis);
+    const maquisFp = SPECIAL_FOOTPRINTS.find((f) => f.spec.id === 'maquis');
+    if (maquisFp) {
+      placeSpecial('maquis', createMaquisStructure(maquisFp.w, maquisFp.d, maquisFp.spec.h));
+    }
   }
 
   private addBeaconHotspot(h: CityHotspot) {
@@ -578,17 +578,26 @@ export class AbidjanSceneManager {
     }
 
     // 2. Grands lieux interactifs d'Abidjan
-    const pMaquis = project(5.3375, -4.072);
-    this.addBeaconHotspot({
-      id: 'eat_maquis',
-      label: '🍗 Maquis Le Temple · Rue Princesse',
-      district: 'Yopougon',
-      x: pMaquis.x,
-      z: pMaquis.z + 7,
-      radius: 5.5,
-      type: 'eat',
-      color: 0xf97316,
-    });
+    const pMaquis = SPECIAL_FOOTPRINTS.find((f) => f.spec.id === 'maquis');
+    if (pMaquis) {
+      const vx = -Math.sin(pMaquis.angle);
+      const vz = Math.cos(pMaquis.angle);
+      this.registerInteriorDoor({
+        id: 'door_maquis',
+        interiorId: 'maquis',
+        siteId: 'maquis',
+        name: pMaquis.spec.name,
+        label: '🍗 Entrer — Maquis Le Temple · Rue Princesse',
+        district: districtAt({ x: pMaquis.x, z: pMaquis.z }).name,
+        doorX: pMaquis.x + vx * (pMaquis.d / 2 + 2.4),
+        doorZ: pMaquis.z + vz * (pMaquis.d / 2 + 2.4),
+        outX: pMaquis.x + vx * (pMaquis.d / 2 + 3.8),
+        outZ: pMaquis.z + vz * (pMaquis.d / 2 + 3.8),
+        outRotY: -pMaquis.angle,
+        radius: 3.4,
+        color: 0xf97316,
+      });
+    }
 
     const pMarche = SPECIAL_FOOTPRINTS.find((f) => f.spec.id === 'marche_adjame');
     if (pMarche) {

@@ -8,7 +8,7 @@
  * Axes locaux = axes monde (+x est, +z sud). La porte est sur le mur sud (z = +halfD), on entre en regardant le nord.
  */
 
-export type InteriorId = 'hopital';
+export type InteriorId = 'hopital' | 'maquis';
 
 export type InteriorBoxKind = 'wall' | 'partition' | 'prop';
 
@@ -108,7 +108,65 @@ export const HOSPITAL_INTERIOR: InteriorDef = {
   bed: { x: 6.2, z: -2.5, rotY: Math.PI }
 };
 
-export const INTERIORS: Record<InteriorId, InteriorDef> = { hopital: HOSPITAL_INTERIOR };
+/** Maquis Le Temple : salle chaleureuse avec bar au nord, tables conviviales, coin DJ et zone d'action repas. */
+export const MAQUIS_INTERIOR: InteriorDef = {
+  id: 'maquis',
+  label: 'Maquis Le Temple',
+  origin: { x: 2800, z: 2960 },
+  halfW: 9,
+  halfD: 6,
+  wallH: 3.6,
+  doorWidth: 2.4,
+  theme: {
+    floorColor: 0x3f2e26,
+    floorGlow: 0.22,
+    runnerColor: 0xd97706,
+    runnerGlow: 0.28,
+    wallColor: 0x7c2d12,
+    wallGlow: 0.34,
+    partitionColor: 0xb45309,
+    ceilingColor: 0x292524,
+    ceilingGlow: 0.22,
+  },
+  boxes: [
+    // Murs extérieurs (le mur sud est coupé par la porte)
+    { x: 0, z: -6, hx: 9, hz: W, h: 3.6, kind: 'wall' },
+    { x: -9, z: 0, hx: W, hz: 6, h: 3.6, kind: 'wall' },
+    { x: 9, z: 0, hx: W, hz: 6, h: 3.6, kind: 'wall' },
+    { x: -5.1, z: 6, hx: 3.9, hz: W, h: 3.6, kind: 'wall' },
+    { x: 5.1, z: 6, hx: 3.9, hz: W, h: 3.6, kind: 'wall' },
+    // Garde-corps bois séparant le coin salon ouest (laisse un large couloir central et côté mur)
+    { x: -4.2, z: -0.8, hx: 2.4, hz: W, h: 1.1, kind: 'partition' },
+    // Comptoir-bar au nord
+    { x: 0, z: -4.2, hx: 3.4, hz: 0.7, h: 1.15, kind: 'prop' },
+    // 4 tables conviviales avec tabourets
+    { x: -5.5, z: 2.4, hx: 1.1, hz: 0.9, h: 0.8, kind: 'prop' },
+    { x: 5.5, z: 2.4, hx: 1.1, hz: 0.9, h: 0.8, kind: 'prop' },
+    { x: -5.6, z: -3.4, hx: 1.1, hz: 0.9, h: 0.8, kind: 'prop' },
+    { x: 5.6, z: -2.6, hx: 1.1, hz: 0.9, h: 0.8, kind: 'prop' },
+    // Enceintes DJ aux coins nord
+    { x: -8.1, z: -5.1, hx: 0.5, hz: 0.5, h: 1.9, kind: 'prop' },
+    { x: 8.1, z: -5.1, hx: 0.5, hz: 0.5, h: 1.9, kind: 'prop' },
+  ],
+  entry: { x: 0, z: 2.2, rotY: Math.PI },
+  exit: { x: 0, z: 4.7, radius: 1.6 },
+  actions: [
+    {
+      id: 'eat_maquis',
+      label: '🍗 Manger — Alloco & Poisson Braisé (3 000 F)',
+      x: 0,
+      z: -2.4,
+      radius: 2.1,
+      type: 'eat',
+      color: 0xf97316,
+    },
+  ],
+};
+
+export const INTERIORS: Record<InteriorId, InteriorDef> = {
+  hopital: HOSPITAL_INTERIOR,
+  maquis: MAQUIS_INTERIOR,
+};
 
 export const interiorToWorld = (def: InteriorDef, lx: number, lz: number): { x: number; z: number } =>
   ({ x: def.origin.x + lx, z: def.origin.z + lz });

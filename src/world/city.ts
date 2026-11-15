@@ -107,6 +107,8 @@ export const SPECIALS: SpecialSpec[] = [
   { id: 'lycee_caiman', name: 'Lycée Classique', at: { lat: 5.344, lon: -4.000 }, w: 22, d: 14, h: 8, angleDeg: 0, color: 0xe8c07a, snapToBlock: true },
   { id: 'lycee_alysma', name: 'Lycée Sainte-Marie', at: { lat: 5.354, lon: -3.984 }, w: 20, d: 12, h: 8, angleDeg: 0, color: 0xf0a8a0, snapToBlock: true },
   { id: 'lycee_alex', name: "Lycée d'Excellence de Bassam", at: { lat: 5.250, lon: -3.904 }, w: 26, d: 16, h: 10, angleDeg: 0, color: 0x9ec8e8, snapToBlock: true },
+  // Maquis Le Temple (Yopougon · Rue Princesse) : salle + avancée de paillote ouverte
+  { id: 'maquis', name: 'Maquis Le Temple', at: { lat: 5.3375, lon: -4.072 }, w: 18, d: 12, h: 5.2, angleDeg: 0, color: 0xb45309, snapToBlock: true },
   // Hôpitaux : bâtiments à porte d'entrée (intérieur partagé, voir interiors.ts)
   ...HOSPITAL_SITES.map((h): SpecialSpec => ({ id: h.id, name: h.name, at: { lat: h.lat, lon: h.lon }, w: h.w, d: h.d, h: h.h, angleDeg: 0, color: 0xf2efe8, snapToBlock: true }))
 ];

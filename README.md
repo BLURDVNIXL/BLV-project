@@ -7,10 +7,10 @@ Simulation de vie urbaine 3D temps réel à Abidjan (Côte d’Ivoire), construi
 - **Physique & Ville (`physics/`, `src/physics/`, `src/world/`)** :
   - Moteur C++ compilé en WebAssembly (`public/physics.wasm`) gérant véhicules (suspension, dérapage, collisions), personnages, raycasts caméra et trafic routier autonome.
   - Géographie schématique d’Abidjan couvrant la Lagune Ébrié, l’Océan Atlantique, la Baie du Banco, la Baie de Cocody, l’Île Boulay, 5 ponts (FHB, De Gaulle, HKB, ADO, Yopougon) et 14 zones/communes dont Grand-Bassam.
-  - Génération déterministe par chunks 64×64 m (`WorldStreamer`) avec parcelles résidentielles (`playerHouse.ts`), intérieurs hors carte (`src/world/interiors.ts`), architecture différenciée par commune et monuments emblématiques (Stade FHB, Cathédrale Saint-Paul, Hôtel Ivoire, La Pyramide, Tour Postel, Mairie, Lycée d’Excellence de Bassam).
+  - Génération déterministe par chunks 64×64 m (`WorldStreamer`) avec parcelles résidentielles (`playerHouse.ts`), intérieurs hors carte (`src/world/interiors.ts`), architecture différenciée par commune et monuments emblématiques (Stade FHB, Cathédrale Saint-Paul, Hôtel Ivoire, La Pyramide, Tour Postel, Mairie, Maquis Le Temple, Lycée d’Excellence de Bassam).
 - **Rendu & Ambiance (`src/3d/`)** :
   - Ambiance tropicale continue (`ambiance.ts`) : palette chaude interpolée selon l’heure de jeu (aube rosée → matinée dorée → plein jour → heure dorée → coucher → crépuscule → nuit) et soleil qui voyage d’est en ouest, la lune prenant le relais la nuit.
-  - Intérieurs 3D (`src/3d/interiors.ts`, `WallFader`) : registre de constructeurs de mobilier et thèmes par lieu ; les murs côté caméra s’effacent sans solide `BUILDING` (actuellement utilisé par les 4 hôpitaux).
+  - Intérieurs 3D (`src/3d/interiors.ts`, `WallFader`) : registre de constructeurs de mobilier et thèmes par lieu ; les murs côté caméra s’effacent sans solide `BUILDING` (utilisé par les 4 hôpitaux et le Maquis Le Temple).
   - Dôme de ciel (`sky.ts`) : dégradé zénith → horizon, brume chaude collée à l’horizon (même couleur que le brouillard, donc sans couture) et halo/disque solaire.
   - Lagune : reflet de Fresnel vers l’horizon et scintillement du soleil sur les vaguelettes ; arbres balancés par le vent (vertex shader, aucun coût CPU).
   - Qualité : tous ces effets sont désactivés sur rendu logiciel (le fond uni est alors utilisé). `?quality=high` force le chemin complet pour les tests ; `?blvdebug` expose `window.__blvScene`.

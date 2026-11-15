@@ -93,6 +93,7 @@ export type InteriorFurnitureBuilder = (g: THREE.Group, def: InteriorDef) => voi
 
 const FURNITURE_BUILDERS: Record<InteriorId, InteriorFurnitureBuilder> = {
   hopital: buildHospitalFurniture,
+  maquis: buildMaquisFurniture,
 };
 
 export interface InteriorRig {
@@ -234,4 +235,65 @@ function buildHospitalFurniture(g: THREE.Group, def: InteriorDef): void {
   const cross = std(0xdc2626, { emissive: 0xdc2626, glow: 0.4 });
   g.add(box(0.08, 1.5, 0.5, cross, -8.8, 2.0, 2.0, false));
   g.add(box(0.08, 0.5, 1.5, cross, -8.8, 2.0, 2.0, false));
+}
+
+function buildMaquisFurniture(g: THREE.Group, def: InteriorDef): void {
+  const darkWood = std(0x451a03, { rough: 0.78 });
+  const wood = std(0x9a3412, { rough: 0.72 });
+  const amber = std(0xf59e0b, { emissive: 0xd97706, glow: 0.28, rough: 0.4 });
+  const orange = std(0xea580c, { emissive: 0xea580c, glow: 0.16 });
+  const spkBody = std(0x09090b, { rough: 0.55 });
+  const spkCone = std(0x27272a, { rough: 0.4 });
+  const neonPink = std(0xf43f5e, { emissive: 0xf43f5e, glow: 0.85 });
+  const bulbMat = std(0xfde047, { emissive: 0xfbbf24, glow: 0.95 });
+  const glass = std(0xbef264, { emissive: 0x84cc16, glow: 0.25, rough: 0.2 });
+
+  // Comptoir-bar principal au nord (0, -4.2)
+  g.add(box(6.6, 1.05, 1.2, darkWood, 0, 0.57, -4.2));
+  g.add(box(6.9, 0.12, 1.45, amber, 0, 1.15, -4.2));
+  // Étagère à bouteilles contre le mur nord derrière le bar
+  g.add(box(5.4, 0.12, 0.45, wood, 0, 1.65, -def.halfD + 0.42));
+  for (let i = -4; i <= 4; i++) {
+    g.add(box(0.16, 0.42, 0.16, i % 2 === 0 ? glass : orange, i * 0.52, 1.92, -def.halfD + 0.42, false));
+  }
+
+  // Enseignes courtes (lisibles quel que soit le destin)
+  const barSign = sign('BAR', '#7c2d12', '#fde047', 1.6, 0.48, 0.8);
+  barSign.position.set(0, 0.65, -3.56);
+  g.add(barSign);
+
+  const templeSign = sign('TEMPLE', '#451a03', '#fbbf24', 3.4, 0.72, 0.75);
+  templeSign.position.set(0, 2.75, -def.halfD + 0.18);
+  g.add(templeSign);
+
+  // Tables conviviales + 4 tabourets (alignées sur les props de MAQUIS_INTERIOR)
+  const tablePositions: Array<[number, number]> = [
+    [-5.5, 2.4],
+    [5.5, 2.4],
+    [-5.6, -3.4],
+    [5.6, -2.6],
+  ];
+  for (const [tx, tz] of tablePositions) {
+    g.add(box(1.5, 0.1, 1.1, wood, tx, 0.78, tz));
+    g.add(box(0.24, 0.72, 0.24, darkWood, tx, 0.4, tz));
+    for (const [sx, sz] of [[-0.9, 0], [0.9, 0], [0, -0.7], [0, 0.7]]) {
+      g.add(box(0.36, 0.1, 0.36, orange, tx + sx, 0.48, tz + sz, false));
+      g.add(box(0.12, 0.42, 0.12, darkWood, tx + sx, 0.24, tz + sz, false));
+    }
+    // Assiettes / boissons posées sur la table
+    g.add(box(0.32, 0.06, 0.32, amber, tx - 0.3, 0.86, tz, false));
+    g.add(box(0.14, 0.22, 0.14, glass, tx + 0.3, 0.94, tz + 0.1, false));
+  }
+
+  // Deux enceintes DJ dans les coins nord
+  for (const sx of [-8.1, 8.1]) {
+    g.add(box(1.0, 1.9, 1.0, spkBody, sx, 1.0, -5.1));
+    g.add(box(0.62, 0.62, 0.08, spkCone, sx, 1.35, -4.58, false));
+    g.add(box(0.7, 0.08, 0.08, neonPink, sx, 1.85, -4.58, false));
+  }
+
+  // Guirlande festive sous le plafond
+  for (const gx of [-4.5, -1.5, 1.5, 4.5]) {
+    g.add(box(0.18, 0.18, 0.18, bulbMat, gx, def.wallH - 0.28, -0.4, false));
+  }
 }

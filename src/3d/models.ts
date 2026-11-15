@@ -899,41 +899,104 @@ export function createBassamFuturisticSchool(): THREE.Group {
   return g;
 }
 
-export function createMaquisStructure(): THREE.Group {
+export function createMaquisStructure(w = 18, d = 12, h = 5.2): THREE.Group {
   const g = new THREE.Group();
+  const wallMat = new THREE.MeshStandardMaterial({ color: 0x9a3412, roughness: 0.82 });
+  const trimMat = new THREE.MeshStandardMaterial({ color: 0x451a03, roughness: 0.78 });
   const woodMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.85 });
-  const roofMat = new THREE.MeshStandardMaterial({ color: 0xb45309, roughness: 0.78 });
-  const neonMat = new THREE.MeshStandardMaterial({ color: 0xf43f5e, emissive: 0xf43f5e, emissiveIntensity: 1.2 });
+  const roofMat = new THREE.MeshStandardMaterial({ color: 0xb45309, roughness: 0.75 });
+  const warmGlass = new THREE.MeshStandardMaterial({ color: 0xfef3c7, emissive: 0xf59e0b, emissiveIntensity: 0.65, roughness: 0.25 });
+  const neonMat = new THREE.MeshStandardMaterial({ color: 0xf43f5e, emissive: 0xf43f5e, emissiveIntensity: 1.15 });
+  const bulbMat = new THREE.MeshStandardMaterial({ color: 0xfde047, emissive: 0xfbbf24, emissiveIntensity: 1.1 });
+  const spkMat = new THREE.MeshStandardMaterial({ color: 0x09090b, roughness: 0.6 });
+  const deckMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.85 });
 
-  const floor = new THREE.Mesh(new THREE.BoxGeometry(12, 0.25, 10), new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.8 }));
-  floor.position.y = 0.125;
-  g.add(floor);
+  // Corps du bâtiment (aligné sur l'emprise solide w × d, façade avant +z = d/2)
+  const body = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), wallMat);
+  body.position.y = h / 2;
+  body.castShadow = true;
+  body.receiveShadow = true;
+  g.add(body);
 
+  const roofRim = new THREE.Mesh(new THREE.BoxGeometry(w + 0.8, 0.35, d + 0.8), roofMat);
+  roofRim.position.y = h + 0.18;
+  roofRim.castShadow = true;
+  g.add(roofRim);
+
+  const plinth = new THREE.Mesh(new THREE.BoxGeometry(w + 0.3, 0.4, d + 0.3), deckMat);
+  plinth.position.y = 0.2;
+  g.add(plinth);
+
+  // Bandeau lumineux chaleureux sur la façade avant et les côtés
+  const winFrontL = new THREE.Mesh(new THREE.BoxGeometry(w * 0.26, 1.1, 0.08), warmGlass);
+  winFrontL.position.set(-w * 0.28, 2.3, d / 2 + 0.04);
+  const winFrontR = new THREE.Mesh(new THREE.BoxGeometry(w * 0.26, 1.1, 0.08), warmGlass);
+  winFrontR.position.set(w * 0.28, 2.3, d / 2 + 0.04);
+  g.add(winFrontL, winFrontR);
+
+  // Porte vitrée d'entrée au centre (+z = d/2)
+  const doorFrame = new THREE.Mesh(new THREE.BoxGeometry(3.1, 2.9, 0.18), trimMat);
+  doorFrame.position.set(0, 1.45, d / 2 + 0.05);
+  const doorGlass = new THREE.Mesh(new THREE.BoxGeometry(2.5, 2.5, 0.22), warmGlass);
+  doorGlass.position.set(0, 1.35, d / 2 + 0.06);
+  g.add(doorFrame, doorGlass);
+
+  // Avancée en paillote ouverte devant l'entrée (z = +d/2 .. +d/2 + 5.2, passage central libre)
+  const patioD = 5.2;
+  const patioW = Math.min(13.6, w - 2.4);
+  const patioZ = d / 2 + patioD / 2;
+  const deck = new THREE.Mesh(new THREE.BoxGeometry(patioW, 0.04, patioD), deckMat);
+  deck.position.set(0, 0.02, patioZ);
+  deck.receiveShadow = true;
+  g.add(deck);
+
+  // Poteaux de paillote bien écartés de l'axe de la porte (±6 m)
+  const postX = patioW / 2 - 0.6;
   [
-    [-5.5, -4.5],
-    [5.5, -4.5],
-    [-5.5, 4.5],
-    [5.5, 4.5],
+    [-postX, d / 2 + 0.5],
+    [postX, d / 2 + 0.5],
+    [-postX, d / 2 + patioD - 0.5],
+    [postX, d / 2 + patioD - 0.5],
   ].forEach(([px, pz]) => {
-    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 4, 8), woodMat);
-    post.position.set(px, 2, pz);
+    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.18, 3.9, 8), woodMat);
+    post.position.set(px, 1.95, pz);
+    post.castShadow = true;
     g.add(post);
   });
 
-  const roof = new THREE.Mesh(new THREE.ConeGeometry(8.5, 2.2, 4), roofMat);
-  roof.rotation.y = Math.PI / 4;
-  roof.position.y = 5.1;
-  g.add(roof);
+  // Grand toit de paillote pyramidal au-dessus de la terrasse ouverte
+  const pailloteRoof = new THREE.Mesh(new THREE.ConeGeometry(patioW * 0.68, 2.0, 4), roofMat);
+  pailloteRoof.rotation.y = Math.PI / 4;
+  pailloteRoof.position.set(0, 4.9, patioZ);
+  pailloteRoof.castShadow = true;
+  g.add(pailloteRoof);
 
-  const sign = new THREE.Mesh(new THREE.BoxGeometry(5.5, 0.9, 0.2), neonMat);
-  sign.position.set(0, 3.8, 4.8);
+  // Enseigne néon au fronton de la paillote + guirlande ambre
+  const sign = new THREE.Mesh(new THREE.BoxGeometry(5.6, 0.78, 0.22), neonMat);
+  sign.position.set(0, 3.35, d / 2 + patioD + 0.04);
   g.add(sign);
 
-  // Two giant speakers outside
-  [-4.2, 4.2].forEach((sx) => {
-    const spk = new THREE.Mesh(new THREE.BoxGeometry(1.1, 2.1, 0.9), new THREE.MeshStandardMaterial({ color: 0x09090b, roughness: 0.6 }));
-    spk.position.set(sx, 1.2, 4.4);
+  for (let i = -2; i <= 2; i++) {
+    const bulb = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.22, 0.22), bulbMat);
+    bulb.position.set(i * 2.2, 3.72, d / 2 + patioD - 0.15);
+    g.add(bulb);
+  }
+
+  // Deux baffles géantes encadrant la façade du maquis
+  [-4.4, 4.4].forEach((sx) => {
+    const spk = new THREE.Mesh(new THREE.BoxGeometry(1.1, 2.1, 0.9), spkMat);
+    spk.position.set(sx, 1.25, d / 2 + 0.48);
+    spk.castShadow = true;
     g.add(spk);
+  });
+
+  // Deux mange-debout décoratifs sur les bords de la terrasse (hors du passage central)
+  [-4.6, 4.6].forEach((tx) => {
+    const table = new THREE.Mesh(new THREE.CylinderGeometry(0.65, 0.65, 0.08, 12), woodMat);
+    table.position.set(tx, 0.95, d / 2 + 3.2);
+    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.14, 0.9, 8), trimMat);
+    leg.position.set(tx, 0.45, d / 2 + 3.2);
+    g.add(table, leg);
   });
 
   return g;
