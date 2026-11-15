@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   X,
+  Search,
   CreditCard,
   UtensilsCrossed,
   MapPin,
@@ -32,7 +33,6 @@ import {
   HomeAccessMode,
 } from '../types/game';
 import {
-  ABIDJAN_GPS_ZONES,
   IVORIAN_FOODS,
   RADIO_STATIONS,
   ACADEMIC_BADGES,
@@ -41,6 +41,13 @@ import {
   CRIB_UPGRADE_PRICES,
 } from '../core/destinies';
 import { getMissionForDestiny } from '../core/missions';
+import {
+  buildGpsDestinations,
+  searchGpsDestinations,
+  type GpsDestination,
+  type GpsKind,
+  type GpsSource,
+} from '../core/gpsDestinations';
 import { formatGameTime } from '../core/simulation';
 import { t } from '../core/i18n';
 import { ChatMessage, ServerTontineSnapshot } from '../network/multiplayerClient';
@@ -61,6 +68,8 @@ interface BabiOSPhoneProps {
   } | null;
   visitingNeighbor: string | null;
   isSenderMuted: (senderId: string) => boolean;
+  /** Lieux et perron de la maison, relevés à l'ouverture de l'application GPS. */
+  getGpsSource: () => GpsSource;
   onClose: () => void;
   onEatFood: (foodId: string) => void;
   onDepositBank: (amount: number) => void;
@@ -117,6 +126,7 @@ export const BabiOSPhone: React.FC<BabiOSPhoneProps> = ({
   pendingOutgoingConsent,
   visitingNeighbor,
   isSenderMuted,
+  getGpsSource,
   onClose,
   onEatFood,
   onDepositBank,
@@ -153,6 +163,16 @@ export const BabiOSPhone: React.FC<BabiOSPhoneProps> = ({
   const [chatInput, setChatInput] = useState('');
   const [reportedIds, setReportedIds] = useState<Record<string, boolean>>({});
   const [, setMuteTick] = useState(0);
+  // GPS : la liste est relevée à chaque ouverture de l'application (la maison peut avoir été posée entre-temps).
+  const [gpsList, setGpsList] = useState<GpsDestination[]>([]);
+  const [gpsQuery, setGpsQuery] = useState('');
+  useEffect(() => {
+    if (activeApp !== 'gps') return;
+    setGpsList(buildGpsDestinations(getGpsSource()));
+    setGpsQuery('');
+    // getGpsSource est volontairement hors des dépendances : on relève la liste à l'ouverture seulement.
+  }, [activeApp]);
+  const gpsShown = useMemo(() => searchGpsDestinations(gpsList, gpsQuery), [gpsList, gpsQuery]);
 
   const s = t(playerState.language);
   const mission = getMissionForDestiny(playerState.destiny.id);
@@ -405,29 +425,68 @@ export const BabiOSPhone: React.FC<BabiOSPhoneProps> = ({
             </div>
           )}
 
-          {/* GPS ABIDJAN (COMMUNES PROJETÉES RÉELLES, 1500 FCFA) */}
+          {/* GPS ABIDJAN : Chez moi, lieux, repères, communes (taxi express 1 500 FCFA) */}
           {activeApp === 'gps' && (
             <div className="flex flex-col gap-2">
               <AppHeader title={s.gps} onBack={() => setActiveApp('home')} />
               <div className="text-xs text-ink-600">
-                Taxi Express Inter-Communes : <strong className="text-sun-600">1 500 FCFA</strong>
+                Taxi Express : <strong className="text-sun-600">1 500 FCFA</strong>, déposé devant l'entrée du lieu.
               </div>
-              {ABIDJAN_GPS_ZONES.map((loc) => (
-                <button
-                  key={loc.id}
-                  type="button"
-                  onClick={() => onFastTravel(loc.x, loc.z, loc.name, loc.id)}
-                  className="flex items-center justify-between rounded-xl bg-cream-100 p-2.5 border border-cream-200 hover:border-lagoon-400/60 text-left cursor-pointer"
-                >
-                  <div className="min-w-0 pr-2">
-                    <div className="font-bold text-xs text-ink-800 truncate">{loc.name}</div>
-                    <div className="text-xs text-ink-600 truncate">{loc.desc}</div>
+              <label className="flex items-center gap-2 rounded-xl bg-cream-100 border border-cream-200 px-2.5 py-2 focus-within:border-lagoon-400/60">
+                <Search className="h-3.5 w-3.5 shrink-0 text-ink-400" aria-hidden="true" />
+                <input
+                  type="search"
+                  value={gpsQuery}
+                  onChange={(e) => setGpsQuery(e.target.value)}
+                  placeholder="Chercher un lieu, une commune…"
+                  aria-label="Chercher une destination"
+                  maxLength={40}
+                  autoComplete="off"
+                  className="min-w-0 flex-1 bg-transparent text-xs text-ink-800 placeholder:text-ink-400 outline-none"
+                />
+              </label>
+              {gpsShown.length === 0 && (
+                <div className="rounded-xl bg-cream-100 p-3 text-center text-xs text-ink-600">
+                  Aucune destination ne correspond à « {gpsQuery.trim()} ».
+                </div>
+              )}
+              {(
+                [
+                  ['home', 'Chez moi'],
+                  ['place', 'Lieux'],
+                  ['landmark', 'Repères de la ville'],
+                  ['district', 'Communes'],
+                ] as Array<[GpsKind, string]>
+              ).map(([kind, title]) => {
+                const rows = gpsShown.filter((d) => d.kind === kind);
+                if (rows.length === 0) return null;
+                return (
+                  <div key={kind} className="flex flex-col gap-1.5">
+                    {kind !== 'home' && (
+                      <div className="pt-1 text-[11px] font-bold uppercase tracking-wide text-ink-600">{title}</div>
+                    )}
+                    {rows.map((loc) => (
+                      <button
+                        key={loc.id}
+                        type="button"
+                        onClick={() => onFastTravel(loc.x, loc.z, loc.name, loc.districtId)}
+                        className="flex items-center justify-between rounded-xl bg-cream-100 p-2.5 border border-cream-200 hover:border-lagoon-400/60 text-left cursor-pointer"
+                      >
+                        <div className="flex min-w-0 items-center gap-2 pr-2">
+                          <span className="shrink-0 text-base leading-none" aria-hidden="true">{loc.icon}</span>
+                          <div className="min-w-0">
+                            <div className="font-bold text-xs text-ink-800 truncate">{loc.name}</div>
+                            <div className="text-xs text-ink-600 truncate">{loc.desc}</div>
+                          </div>
+                        </div>
+                        <span className="shrink-0 rounded-lg bg-lagoon-400/20 px-2 py-1 text-xs font-bold text-lagoon-600">
+                          1 500 F
+                        </span>
+                      </button>
+                    ))}
                   </div>
-                  <span className="shrink-0 rounded-lg bg-lagoon-400/20 px-2 py-1 text-xs font-bold text-lagoon-600">
-                    1 500 F
-                  </span>
-                </button>
-              ))}
+                );
+              })}
             </div>
           )}
 

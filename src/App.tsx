@@ -69,6 +69,8 @@ import { NewLifeScreen } from './components/NewLifeScreen';
 import { loadProfile, saveProfile } from './core/profile';
 import { AdminModal } from './components/AdminModal';
 import { FullMapModal } from './components/FullMapModal';
+import type { GpsSource } from './core/gpsDestinations';
+import { districtAt } from './world/abidjanGeography';
 import type { Route } from './world/routing';
 import { SettingsModal } from './components/SettingsModal';
 import { GameOverModal } from './components/GameOverModal';
@@ -705,6 +707,15 @@ export default function App() {
     return sceneRef.current ? sceneRef.current.getRadarSnapshot() : null;
   }, []);
 
+  /** Lieux fixes et perron de la maison pour l'application GPS du téléphone. */
+  const getGpsSource = useCallback((): GpsSource => {
+    const snap = sceneRef.current ? sceneRef.current.getRadarSnapshot() : null;
+    return {
+      places: snap ? snap.places : [],
+      homePorch: snap ? snap.homePorch : null,
+    };
+  }, []);
+
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-cream-50 font-sans text-ink-800">
       {/* DEDICATED ISOLATED 3D WEBGL MOUNT */}
@@ -829,6 +840,7 @@ export default function App() {
           pendingOutgoingConsent={pendingOutgoingConsent}
           visitingNeighbor={visitingNeighbor}
           isSenderMuted={(id) => mpRef.current?.isSenderMuted(id) ?? false}
+          getGpsSource={getGpsSource}
           onClose={() => setIsPhoneOpen(false)}
           onEatFood={(foodId) => {
             const f = IVORIAN_FOODS.find((x) => x.id === foodId);
@@ -876,8 +888,11 @@ export default function App() {
             setPlayerState(nextSt);
             syncEconomy('fast_travel', { districtName, districtId });
             if (res.ok) {
+              // Depuis un intérieur (hôpital), on en sort d'abord : sinon le joueur serait déposé dehors
+              // alors que la salle partagée resterait active.
+              if (sceneRef.current?.isInsideInterior()) sceneRef.current.exitInterior();
               sceneRef.current?.teleportPlayer(x, z);
-              setCurrentDistrict(districtName);
+              setCurrentDistrict(districtAt({ x, z }).name);
               setIsPhoneOpen(false);
             }
           }}

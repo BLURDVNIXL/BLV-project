@@ -115,6 +115,8 @@ export interface RadarSnapshot {
   places: Array<{ id: string; label: string; x: number; z: number; color: number }>;
   /** Position de ta maison (parcelle), null tant qu'elle n'est pas posée. */
   home: { x: number; z: number } | null;
+  /** Perron de ta maison (là où le GPS te dépose), null tant qu'elle n'est pas posée. */
+  homePorch: { x: number; z: number } | null;
   remotes: Array<{ name: string; x: number; z: number; color: string }>;
 }
 
@@ -1416,6 +1418,9 @@ export class AbidjanSceneManager {
       hotspots: allHotspots.map((h) => ({ id: h.id, label: h.label, x: h.x, z: h.z, color: h.color })),
       places: this.staticHotspots.map((h) => ({ id: h.id, label: h.label, x: h.x, z: h.z, color: h.color })),
       home: this.ownHouseLot ? { x: this.ownHouseLot.x, z: this.ownHouseLot.z } : null,
+      homePorch: this.ownHouseLot
+        ? houseToWorld(this.ownHouseLot.x, this.ownHouseLot.z, this.ownHouseLot.rotationY, 0, 5.2)
+        : null,
       remotes: Array.from(this.remoteRigs.values()).map((r) => ({
         name: r.name,
         x: r.rig.group.position.x,
