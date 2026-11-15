@@ -48,6 +48,7 @@ interface GameHUDProps {
   onInteractClick: () => void;
   onRepairEngine: () => void;
   onOpenPhone: () => void;
+  onOpenMap: () => void;
   onOpenSettings: () => void;
   onOpenAdmin: () => void;
   onOpenRoulette: () => void;
@@ -118,6 +119,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({
   onInteractClick,
   onRepairEngine,
   onOpenPhone,
+  onOpenMap,
   onOpenSettings,
   onOpenAdmin,
   onOpenRoulette,
@@ -161,7 +163,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({
       <div className="relative z-10 flex w-full items-start justify-between gap-3">
         {/* Haut gauche : radar, pastilles destin et mission, besoins */}
         <div className="flex items-start gap-2">
-          <MinimapRadar getSnapshot={getRadarSnapshot} district={currentDistrict} />
+          <MinimapRadar getSnapshot={getRadarSnapshot} district={currentDistrict} onOpen={onOpenMap} />
 
           <div className="relative flex flex-col gap-2 short:gap-1">
             <div className="flex items-center gap-2 short:gap-1.5">
