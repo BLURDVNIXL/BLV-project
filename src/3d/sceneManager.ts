@@ -17,6 +17,7 @@ import {
   createCashPickupMesh,
   createCathedralLandmark,
   createCharacterModel,
+  createClassicLyceeStructure,
   createFloatingNameplate,
   createHotelIvoireLandmark,
   createLaPyramideLandmark,
@@ -496,6 +497,14 @@ export class AbidjanSceneManager {
     placeSpecial('cathedrale', createCathedralLandmark());
     placeSpecial('hotel_ivoire', createHotelIvoireLandmark());
     placeSpecial('lycee_alex', createBassamFuturisticSchool());
+    const caimanFp = SPECIAL_FOOTPRINTS.find((f) => f.spec.id === 'lycee_caiman');
+    if (caimanFp) {
+      placeSpecial('lycee_caiman', createClassicLyceeStructure(caimanFp.w, caimanFp.d, caimanFp.spec.h, 0xfef3c7, 0xb45309));
+    }
+    const alysmaFp = SPECIAL_FOOTPRINTS.find((f) => f.spec.id === 'lycee_alysma');
+    if (alysmaFp) {
+      placeSpecial('lycee_alysma', createClassicLyceeStructure(alysmaFp.w, alysmaFp.d, alysmaFp.spec.h, 0xfff1f2, 0xbe123c));
+    }
     const marcheFp = SPECIAL_FOOTPRINTS.find((f) => f.spec.id === 'marche_adjame');
     if (marcheFp) {
       placeSpecial('marche_adjame', createMarketStallCluster(marcheFp.w, marcheFp.d, marcheFp.spec.h));
@@ -651,6 +660,33 @@ export class AbidjanSceneManager {
         outRotY: -pMairie.angle,
         radius: 3.4,
         color: 0x0f766e,
+      });
+    }
+
+    const lyceeDoors: Array<{ id: 'lycee_caiman' | 'lycee_alysma' | 'lycee_alex'; label: string; color: number }> = [
+      { id: 'lycee_caiman', label: '🐊 Entrer — Lycée Classique', color: 0xd97706 },
+      { id: 'lycee_alysma', label: '🌸 Entrer — Lycée Sainte-Marie', color: 0xe11d48 },
+      { id: 'lycee_alex', label: "🎓 Entrer — Lycée d'Excellence de Bassam", color: 0x0284c7 },
+    ];
+    for (const ld of lyceeDoors) {
+      const fp = SPECIAL_FOOTPRINTS.find((f) => f.spec.id === ld.id);
+      if (!fp) continue;
+      const vx = -Math.sin(fp.angle);
+      const vz = Math.cos(fp.angle);
+      this.registerInteriorDoor({
+        id: `door_${ld.id}`,
+        interiorId: ld.id,
+        siteId: ld.id,
+        name: fp.spec.name,
+        label: ld.label,
+        district: districtAt({ x: fp.x, z: fp.z }).name,
+        doorX: fp.x + vx * (fp.d / 2 + 2.4),
+        doorZ: fp.z + vz * (fp.d / 2 + 2.4),
+        outX: fp.x + vx * (fp.d / 2 + 3.8),
+        outZ: fp.z + vz * (fp.d / 2 + 3.8),
+        outRotY: -fp.angle,
+        radius: 3.4,
+        color: ld.color,
       });
     }
 

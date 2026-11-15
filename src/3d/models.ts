@@ -897,6 +897,7 @@ export function createBassamFuturisticSchool(): THREE.Group {
   const whiteMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.35 });
   const goldMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.25, metalness: 0.25 });
   const glassMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.12, metalness: 0.22 });
+  const doorGlow = new THREE.MeshStandardMaterial({ color: 0x0ea5e9, emissive: 0x38bdf8, emissiveIntensity: 0.45, roughness: 0.2 });
 
   const arch = new THREE.Mesh(new THREE.TorusGeometry(9, 1.3, 8, 24, Math.PI), goldMat);
   arch.position.set(0, 1, 0);
@@ -908,7 +909,63 @@ export function createBassamFuturisticSchool(): THREE.Group {
   wingR.position.set(10, 3.5, 0);
   const centerGlass = new THREE.Mesh(new THREE.BoxGeometry(10, 8, 8), glassMat);
   centerGlass.position.set(0, 4, -2);
-  g.add(wingL, wingR, centerGlass);
+  // Hall d'entrée avancé (+z = 8) avec porte vitrée et auvent doré
+  const lobby = new THREE.Mesh(new THREE.BoxGeometry(6.8, 3.8, 6.2), whiteMat);
+  lobby.position.set(0, 1.9, 4.9);
+  lobby.castShadow = true;
+  const canopy = new THREE.Mesh(new THREE.BoxGeometry(7.6, 0.3, 2.2), goldMat);
+  canopy.position.set(0, 3.9, 8.0);
+  const door = new THREE.Mesh(new THREE.BoxGeometry(3.2, 2.9, 0.2), doorGlow);
+  door.position.set(0, 1.45, 8.02);
+  g.add(wingL, wingR, centerGlass, lobby, canopy, door);
+
+  return g;
+}
+
+export function createClassicLyceeStructure(w = 22, d = 14, h = 8, wallHex = 0xfef3c7, roofHex = 0xb45309): THREE.Group {
+  const g = new THREE.Group();
+  const wallMat = new THREE.MeshStandardMaterial({ color: wallHex, roughness: 0.78 });
+  const trimMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.7 });
+  const roofMat = new THREE.MeshStandardMaterial({ color: roofHex, roughness: 0.62 });
+  const glassMat = new THREE.MeshStandardMaterial({ color: 0x334e68, emissive: 0xfef08a, emissiveIntensity: 0.16, roughness: 0.25 });
+
+  const plinth = new THREE.Mesh(new THREE.BoxGeometry(w + 0.4, 0.5, d + 0.4), trimMat);
+  plinth.position.y = 0.25;
+  g.add(plinth);
+
+  const body = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), wallMat);
+  body.position.y = h / 2 + 0.25;
+  body.castShadow = true;
+  body.receiveShadow = true;
+  g.add(body);
+
+  const cornice = new THREE.Mesh(new THREE.BoxGeometry(w + 1.0, 0.55, d + 1.0), roofMat);
+  cornice.position.y = h + 0.45;
+  cornice.castShadow = true;
+  g.add(cornice);
+
+  // Deux rangées de baies vitrées sur la façade et les côtés
+  for (const wy of [h * 0.36, h * 0.74]) {
+    const wf = new THREE.Mesh(new THREE.BoxGeometry(w * 0.78, 1.3, 0.12), glassMat);
+    wf.position.set(0, wy, d / 2 + 0.05);
+    const wb = new THREE.Mesh(new THREE.BoxGeometry(w * 0.78, 1.3, 0.12), glassMat);
+    wb.position.set(0, wy, -d / 2 - 0.05);
+    g.add(wf, wb);
+  }
+
+  // Portique central (+z = d/2) avec piliers, auvent et porte vitrée
+  const porchCanopy = new THREE.Mesh(new THREE.BoxGeometry(5.8, 0.35, 2.4), roofMat);
+  porchCanopy.position.set(0, 3.6, d / 2 + 1.1);
+  for (const px of [-2.4, 2.4]) {
+    const col = new THREE.Mesh(new THREE.BoxGeometry(0.36, 3.5, 0.36), trimMat);
+    col.position.set(px, 1.75, d / 2 + 2.0);
+    g.add(col);
+  }
+  const doorFrame = new THREE.Mesh(new THREE.BoxGeometry(3.1, 3.0, 0.18), roofMat);
+  doorFrame.position.set(0, 1.55, d / 2 + 0.06);
+  const doorGlass = new THREE.Mesh(new THREE.BoxGeometry(2.6, 2.6, 0.22), glassMat);
+  doorGlass.position.set(0, 1.45, d / 2 + 0.07);
+  g.add(porchCanopy, doorFrame, doorGlass);
 
   return g;
 }

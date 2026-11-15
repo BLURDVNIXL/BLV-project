@@ -30,6 +30,9 @@ test('splitPlaceLabel : icône, nom sans « Entrer — » ni précision entre pa
   assert.deepEqual(splitPlaceLabel('🍗 Entrer — Maquis Le Temple · Rue Princesse'), { icon: '🍗', name: 'Maquis Le Temple · Rue Princesse' });
   assert.deepEqual(splitPlaceLabel("🛒 Entrer — Marché d'Adjamé"), { icon: '🛒', name: "Marché d'Adjamé" });
   assert.deepEqual(splitPlaceLabel('🏛️ Entrer — Mairie du Plateau'), { icon: '🏛️', name: 'Mairie du Plateau' });
+  assert.deepEqual(splitPlaceLabel('🐊 Entrer — Lycée Classique'), { icon: '🐊', name: 'Lycée Classique' });
+  assert.deepEqual(splitPlaceLabel('🌸 Entrer — Lycée Sainte-Marie'), { icon: '🌸', name: 'Lycée Sainte-Marie' });
+  assert.deepEqual(splitPlaceLabel("🎓 Entrer — Lycée d'Excellence de Bassam"), { icon: '🎓', name: "Lycée d'Excellence de Bassam" });
   assert.deepEqual(splitPlaceLabel('🐊 Lycée Classique (Concours Caïman)'), { icon: '🐊', name: 'Lycée Classique' });
   assert.equal(splitPlaceLabel('Sans icône').icon, '📍');
 });

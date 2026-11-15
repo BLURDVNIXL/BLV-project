@@ -98,6 +98,9 @@ const FURNITURE_BUILDERS: Record<InteriorId, InteriorFurnitureBuilder> = {
   maquis: buildMaquisFurniture,
   marche_adjame: buildMarcheFurniture,
   mairie: buildMairieFurniture,
+  lycee_caiman: buildLyceeCaimanFurniture,
+  lycee_alysma: buildLyceeAlysmaFurniture,
+  lycee_alex: buildLyceeAlexFurniture,
 };
 
 export interface InteriorRig {
@@ -471,5 +474,258 @@ function buildMairieFurniture(g: THREE.Group, def: InteriorDef): (nowSec: number
     clerk.animateGait(nowSec * 1.8, 0.06, dt);
     mayorStaff.group.rotation.y = Math.sin(nowSec * 0.9 + 1.4) * 0.16;
     mayorStaff.animateGait(nowSec * 1.8 + 1.4, 0.06, dt);
+  };
+}
+
+function addBookcase(
+  g: THREE.Group,
+  x: number,
+  z: number,
+  w: number,
+  d: number,
+  h: number,
+  wood: THREE.Material,
+  bookPalette: THREE.Material[]
+): void {
+  const inward = x < 0 ? 1 : -1;
+  g.add(box(w * 0.72, h, d, wood, x - inward * (w * 0.14), h / 2 + 0.05, z));
+  const shelves = [0.65, 1.25, 1.85];
+  shelves.forEach((sy, rowIdx) => {
+    g.add(box(w * 0.96, 0.06, d * 0.96, wood, x, sy - 0.18, z, false));
+    for (let k = -1; k <= 1; k++) {
+      g.add(box(w * 0.36, 0.34, d * 0.25, bookPalette[(rowIdx + k + 4) % bookPalette.length], x + inward * (w * 0.24), sy, z + k * (d * 0.28), false));
+    }
+  });
+}
+
+function buildLyceeCaimanFurniture(g: THREE.Group, def: InteriorDef): (nowSec: number, dt: number) => void {
+  const oak = std(0x92400e, { rough: 0.72 });
+  const deskTop = std(0xd97706, { rough: 0.58 });
+  const darkWood = std(0x451a03, { rough: 0.78 });
+  const boardMat = std(0x14532d, { emissive: 0x166534, glow: 0.18, rough: 0.55 });
+  const chalkMat = std(0xfefce8, { emissive: 0xfefce8, glow: 0.25, rough: 0.6 });
+  const brass = std(0xf59e0b, { emissive: 0xd97706, glow: 0.25, rough: 0.35 });
+  const books = [0xdc2626, 0x2563eb, 0x16a34a, 0xd97706].map((c) => std(c, { rough: 0.65 }));
+
+  // Tableau noir encadré de bois au mur nord
+  g.add(box(6.4, 1.65, 0.12, darkWood, 0, 1.95, -def.halfD + 0.18, false));
+  g.add(box(6.0, 1.38, 0.14, boardMat, 0, 1.95, -def.halfD + 0.2, false));
+  g.add(box(2.8, 0.06, 0.16, chalkMat, -0.8, 2.2, -def.halfD + 0.22, false));
+  g.add(box(3.4, 0.06, 0.16, chalkMat, 0.4, 1.85, -def.halfD + 0.22, false));
+
+  const caimanSign = sign('CAÏMAN', '#78350f', '#fef08a', 3.4, 0.7, 0.7);
+  caimanSign.position.set(0, 3.22, -def.halfD + 0.22);
+  g.add(caimanSign);
+
+  // Bureau du professeur au nord (0, -4.6)
+  g.add(box(5.4, 0.96, 1.35, oak, 0, 0.53, -4.6));
+  g.add(box(5.7, 0.1, 1.55, deskTop, 0, 1.06, -4.6));
+  g.add(box(0.85, 0.24, 0.6, chalkMat, -1.4, 1.22, -4.6, false));
+  const classeSign = sign('CLASSE', '#92400e', '#fffbeb', 1.9, 0.44, 0.65);
+  classeSign.position.set(0, 0.58, -3.89);
+  g.add(classeSign);
+
+  // 6 rangées de pupitres en bois (ailes ouest et est)
+  for (const dx of [-4.6, 4.6]) {
+    for (const dz of [-2.2, -0.2, 1.8]) {
+      g.add(box(2.9, 0.08, 0.95, deskTop, dx, 0.76, dz));
+      g.add(box(2.7, 0.55, 0.12, oak, dx, 0.45, dz - 0.35));
+      for (const lx of [-1.25, 1.25]) g.add(box(0.12, 0.7, 0.8, darkWood, dx + lx, 0.38, dz, false));
+      g.add(box(2.7, 0.08, 0.4, oak, dx, 0.46, dz + 0.42, false));
+      g.add(box(0.55, 0.06, 0.4, chalkMat, dx - 0.65, 0.83, dz - 0.05, false));
+      g.add(box(0.55, 0.06, 0.4, chalkMat, dx + 0.65, 0.83, dz - 0.05, false));
+    }
+  }
+
+  // Armoires à livres aux coins nord
+  addBookcase(g, -8.6, -4.8, 1.3, 2.3, 2.2, darkWood, books);
+  addBookcase(g, 8.6, -4.8, 1.3, 2.3, 2.2, darkWood, books);
+
+  // Appliques chaudes sur les murs latéraux
+  for (const wx of [-def.halfW + 0.22, def.halfW - 0.22]) {
+    for (const lz of [-3.0, 0.5, 4.0]) {
+      g.add(box(0.12, 0.5, 0.22, brass, wx, 2.55, lz, false));
+    }
+  }
+
+  // Professeur + 2 élèves animés
+  const prof = createCharacterModel(0x4a2c1d, 'wax_bazin', false);
+  prof.group.position.set(0, 0.1, -5.85);
+  prof.group.rotation.y = 0;
+  g.add(prof.group);
+
+  const studentA = createCharacterModel(0x6b422a, 'standard', false);
+  studentA.group.position.set(-4.6, 0.1, 0.85);
+  studentA.group.rotation.y = Math.PI;
+  g.add(studentA.group);
+
+  const studentB = createCharacterModel(0x5c3824, 'madrid_25', false);
+  studentB.group.position.set(4.6, 0.1, -1.15);
+  studentB.group.rotation.y = Math.PI;
+  g.add(studentB.group);
+
+  return (nowSec: number, dt: number) => {
+    prof.group.rotation.y = Math.sin(nowSec * 1.0) * 0.2;
+    prof.animateGait(nowSec * 1.7, 0.06, dt);
+    studentA.group.rotation.y = Math.PI + Math.sin(nowSec * 1.2 + 0.8) * 0.16;
+    studentA.animateGait(nowSec * 1.8 + 0.8, 0.05, dt);
+    studentB.group.rotation.y = Math.PI + Math.sin(nowSec * 1.1 + 2.1) * 0.16;
+    studentB.animateGait(nowSec * 1.8 + 2.1, 0.05, dt);
+  };
+}
+
+function buildLyceeAlysmaFurniture(g: THREE.Group, def: InteriorDef): (nowSec: number, dt: number) => void {
+  const cherry = std(0x881337, { rough: 0.62 });
+  const ivory = std(0xfff1f2, { rough: 0.48 });
+  const wood = std(0x5c2c16, { rough: 0.68 });
+  const rose = std(0xbe123c, { emissive: 0xbe123c, glow: 0.18 });
+  const gold = std(0xfbbf24, { emissive: 0xd97706, glow: 0.25, rough: 0.3 });
+  const pages = std(0xfefce8, { rough: 0.7 });
+  const metal = std(0xcbd5e1, { metal: 0.4, rough: 0.35 });
+  const books = [0xbe123c, 0xf59e0b, 0x0f766e, 0x1d4ed8].map((c) => std(c, { rough: 0.6 }));
+
+  // Panneau académique bordeaux + pilastres sur le mur nord
+  g.add(box(6.4, 1.8, 0.14, cherry, 0, 1.95, -def.halfD + 0.18, false));
+  for (const px of [-3.6, 3.6]) {
+    g.add(box(0.45, 3.4, 0.3, ivory, px, 1.75, -def.halfD + 0.22, false));
+  }
+  const alysmaSign = sign('ALYSMA', '#9f1239', '#fff1f2', 3.4, 0.72, 0.72);
+  alysmaSign.position.set(0, 3.22, -def.halfD + 0.22);
+  g.add(alysmaSign);
+
+  // Chaire du professeur au nord (0, -4.8)
+  g.add(box(5.4, 0.98, 1.35, cherry, 0, 0.54, -4.8));
+  g.add(box(5.7, 0.1, 1.55, ivory, 0, 1.08, -4.8));
+  g.add(box(0.75, 0.24, 0.55, pages, 0.8, 1.24, -4.8, false));
+  const lettresSign = sign('LETTRES', '#881337', '#fef08a', 2.0, 0.46, 0.65);
+  lettresSign.position.set(0, 0.6, -4.09);
+  g.add(lettresSign);
+
+  // Deux grandes tables de séminaire (ouest et est) avec livres et lampes dorées
+  for (const tx of [-5.2, 5.2]) {
+    g.add(box(2.6, 0.12, 4.4, wood, tx, 0.76, -1.4));
+    for (const sz of [-1.7, 1.7]) g.add(box(2.1, 0.66, 0.2, cherry, tx, 0.4, -1.4 + sz));
+    for (const lz of [-2.4, 0, 2.4]) {
+      g.add(box(0.24, 0.32, 0.24, gold, tx, 0.98, -1.4 + lz * 0.6, false));
+      g.add(box(0.6, 0.14, 0.46, pages, tx + (tx < 0 ? 0.5 : -0.5), 0.88, -1.4 + lz * 0.55, false));
+    }
+  }
+
+  // Bibliothèques et bancs d'étude
+  addBookcase(g, -8.6, -4.8, 1.3, 2.6, 2.3, wood, books);
+  addBookcase(g, 8.6, -4.8, 1.3, 2.6, 2.3, wood, books);
+  for (const bx of [-6.2, 6.2]) {
+    g.add(box(2.9, 0.14, 0.9, rose, bx, 0.48, 4.0));
+    g.add(box(2.9, 0.44, 0.12, wood, bx, 0.74, 4.4));
+    for (const lx of [-1.2, 1.2]) g.add(box(0.12, 0.42, 0.75, metal, bx + lx, 0.24, 4.0, false));
+  }
+
+  // Appliques sur les murs latéraux
+  for (const wx of [-def.halfW + 0.22, def.halfW - 0.22]) {
+    for (const lz of [-3.0, 0.5, 4.0]) {
+      g.add(box(0.12, 0.52, 0.22, gold, wx, 2.55, lz, false));
+    }
+  }
+
+  // Professeure + 2 élèves dans les allées libres près des tables
+  const teacher = createCharacterModel(0x5c3824, 'wax_bazin', false);
+  teacher.group.position.set(0, 0.1, -6.0);
+  teacher.group.rotation.y = 0;
+  g.add(teacher.group);
+
+  const girlA = createCharacterModel(0x4a2c1d, 'wax_bazin', false);
+  girlA.group.position.set(-3.2, 0.1, -1.2);
+  girlA.group.rotation.y = -Math.PI / 2;
+  g.add(girlA.group);
+
+  const girlB = createCharacterModel(0x6b422a, 'standard', false);
+  girlB.group.position.set(3.2, 0.1, -1.6);
+  girlB.group.rotation.y = Math.PI / 2;
+  g.add(girlB.group);
+
+  return (nowSec: number, dt: number) => {
+    teacher.group.rotation.y = Math.sin(nowSec * 0.95) * 0.18;
+    teacher.animateGait(nowSec * 1.7, 0.06, dt);
+    girlA.group.rotation.y = -Math.PI / 2 + Math.sin(nowSec * 1.15 + 1.0) * 0.18;
+    girlA.animateGait(nowSec * 1.8 + 1.0, 0.05, dt);
+    girlB.group.rotation.y = Math.PI / 2 + Math.sin(nowSec * 1.1 + 2.3) * 0.18;
+    girlB.animateGait(nowSec * 1.8 + 2.3, 0.05, dt);
+  };
+}
+
+function buildLyceeAlexFurniture(g: THREE.Group, def: InteriorDef): (nowSec: number, dt: number) => void {
+  const whiteLab = std(0xf8fafc, { rough: 0.35 });
+  const silver = std(0x94a3b8, { metal: 0.45, rough: 0.3 });
+  const slate = std(0x1e293b, { rough: 0.55 });
+  const azure = std(0x0284c7, { emissive: 0x0284c7, glow: 0.28, rough: 0.25 });
+  const cyanScreen = std(0x38bdf8, { emissive: 0x0ea5e9, glow: 0.72, rough: 0.15 });
+  const emeraldLed = std(0x4ade80, { emissive: 0x22c55e, glow: 0.75 });
+
+  // Écran interactif géant au mur nord
+  g.add(box(7.2, 2.0, 0.14, slate, 0, 2.15, -def.halfD + 0.18, false));
+  g.add(box(6.7, 1.65, 0.16, cyanScreen, 0, 2.15, -def.halfD + 0.2, false));
+
+  const bassamSign = sign('BASSAM', '#0369a1', '#ffffff', 3.6, 0.74, 0.75);
+  bassamSign.position.set(0, 3.55, -def.halfD + 0.22);
+  g.add(bassamSign);
+
+  // Estrade numérique au nord (0, -5.6)
+  g.add(box(6.2, 0.98, 1.55, slate, 0, 0.54, -5.6));
+  g.add(box(6.5, 0.12, 1.75, whiteLab, 0, 1.09, -5.6));
+  g.add(box(6.3, 0.14, 0.12, azure, 0, 0.95, -4.78, false));
+  const laboSign = sign('SCIENCES', '#0284c7', '#ffffff', 2.2, 0.48, 0.7);
+  laboSign.position.set(0, 0.58, -4.75);
+  g.add(laboSign);
+
+  // 4 paillasses / stations informatiques avec écrans lumineux
+  for (const bx of [-5.8, 5.8]) {
+    for (const bz of [-2.0, 1.0]) {
+      g.add(box(3.8, 0.1, 1.65, whiteLab, bx, 0.85, bz));
+      g.add(box(3.5, 0.65, 1.25, silver, bx, 0.45, bz));
+      for (const mx of [-1.15, 0, 1.15]) {
+        g.add(box(0.68, 0.44, 0.08, cyanScreen, bx + mx, 1.16, bz - 0.18, false));
+        g.add(box(0.14, 0.2, 0.12, slate, bx + mx, 0.94, bz - 0.18, false));
+        g.add(box(0.45, 0.04, 0.2, slate, bx + mx, 0.92, bz + 0.25, false));
+      }
+    }
+  }
+
+  // Bornes serveurs / robotique aux coins nord (±9.2, -5.6)
+  for (const sx of [-9.2, 9.2]) {
+    g.add(box(1.3, 2.35, 1.3, slate, sx, 1.22, -5.6));
+    g.add(box(0.14, 1.85, 0.08, cyanScreen, sx - 0.32, 1.25, -4.92, false));
+    g.add(box(0.14, 1.85, 0.08, emeraldLed, sx + 0.32, 1.25, -4.92, false));
+  }
+
+  // Bandeaux lumineux sur les murs est et ouest
+  for (const wx of [-def.halfW + 0.22, def.halfW - 0.22]) {
+    for (const lz of [-3.4, 0.4, 4.2]) {
+      g.add(box(0.12, 0.55, 0.24, cyanScreen, wx, 2.7, lz, false));
+    }
+  }
+
+  // Enseignant + 2 étudiants du campus numérique
+  const mentor = createCharacterModel(0x4a2c1d, 'costume_italien', true);
+  mentor.group.position.set(0, 0.1, -6.9);
+  mentor.group.rotation.y = 0;
+  g.add(mentor.group);
+
+  const scholarA = createCharacterModel(0x6b422a, 'standard', false);
+  scholarA.group.position.set(-5.8, 0.1, -0.4);
+  scholarA.group.rotation.y = Math.PI;
+  g.add(scholarA.group);
+
+  const scholarB = createCharacterModel(0x3b2316, 'wax_bazin', false);
+  scholarB.group.position.set(5.8, 0.1, 2.5);
+  scholarB.group.rotation.y = Math.PI;
+  g.add(scholarB.group);
+
+  return (nowSec: number, dt: number) => {
+    mentor.group.rotation.y = Math.sin(nowSec * 1.05) * 0.2;
+    mentor.animateGait(nowSec * 1.8, 0.06, dt);
+    scholarA.group.rotation.y = Math.PI + Math.sin(nowSec * 1.25 + 0.7) * 0.15;
+    scholarA.animateGait(nowSec * 1.8 + 0.7, 0.05, dt);
+    scholarB.group.rotation.y = Math.PI + Math.sin(nowSec * 1.15 + 1.9) * 0.15;
+    scholarB.animateGait(nowSec * 1.8 + 1.9, 0.05, dt);
   };
 }

@@ -8,7 +8,14 @@
  * Axes locaux = axes monde (+x est, +z sud). La porte est sur le mur sud (z = +halfD), on entre en regardant le nord.
  */
 
-export type InteriorId = 'hopital' | 'maquis' | 'marche_adjame' | 'mairie';
+export type InteriorId =
+  | 'hopital'
+  | 'maquis'
+  | 'marche_adjame'
+  | 'mairie'
+  | 'lycee_caiman'
+  | 'lycee_alysma'
+  | 'lycee_alex';
 
 export type InteriorBoxKind = 'wall' | 'partition' | 'prop';
 
@@ -263,11 +270,146 @@ export const MAIRIE_INTERIOR: InteriorDef = {
   exit: { x: 0, z: 5.7, radius: 1.6 },
 };
 
+/** Lycée Classique (Cocody) : grande salle d'étude classique, pupitres bois et bureau magistral. */
+export const LYCEE_CAIMAN_INTERIOR: InteriorDef = {
+  id: 'lycee_caiman',
+  label: 'Lycée Classique',
+  origin: { x: 2620, z: 2960 },
+  halfW: 10,
+  halfD: 7,
+  wallH: 4.0,
+  doorWidth: 2.4,
+  theme: {
+    floorColor: 0xe7e0d0,
+    floorGlow: 0.18,
+    runnerColor: 0xb45309,
+    runnerGlow: 0.2,
+    wallColor: 0xfdf6e3,
+    wallGlow: 0.28,
+    partitionColor: 0x92400e,
+    ceilingColor: 0xfffbeb,
+    ceilingGlow: 0.25,
+  },
+  boxes: [
+    { x: 0, z: -7, hx: 10, hz: W, h: 4.0, kind: 'wall' },
+    { x: -10, z: 0, hx: W, hz: 7, h: 4.0, kind: 'wall' },
+    { x: 10, z: 0, hx: W, hz: 7, h: 4.0, kind: 'wall' },
+    { x: -5.6, z: 7, hx: 4.4, hz: W, h: 4.0, kind: 'wall' },
+    { x: 5.6, z: 7, hx: 4.4, hz: W, h: 4.0, kind: 'wall' },
+    // Cloisons basses encadrant l'entrée
+    { x: -6.4, z: 3.4, hx: 2.2, hz: W, h: 1.0, kind: 'partition' },
+    { x: 6.4, z: 3.4, hx: 2.2, hz: W, h: 1.0, kind: 'partition' },
+    // Bureau du professeur au nord
+    { x: 0, z: -4.6, hx: 2.8, hz: 0.75, h: 1.05, kind: 'prop' },
+    // 6 rangées de pupitres (ailes ouest et est, allée centrale dégagée)
+    { x: -4.6, z: -2.2, hx: 1.5, hz: 0.6, h: 0.8, kind: 'prop' },
+    { x: -4.6, z: -0.2, hx: 1.5, hz: 0.6, h: 0.8, kind: 'prop' },
+    { x: -4.6, z: 1.8, hx: 1.5, hz: 0.6, h: 0.8, kind: 'prop' },
+    { x: 4.6, z: -2.2, hx: 1.5, hz: 0.6, h: 0.8, kind: 'prop' },
+    { x: 4.6, z: -0.2, hx: 1.5, hz: 0.6, h: 0.8, kind: 'prop' },
+    { x: 4.6, z: 1.8, hx: 1.5, hz: 0.6, h: 0.8, kind: 'prop' },
+    // Armoires à livres au fond
+    { x: -8.6, z: -4.8, hx: 0.7, hz: 1.2, h: 2.2, kind: 'prop' },
+    { x: 8.6, z: -4.8, hx: 0.7, hz: 1.2, h: 2.2, kind: 'prop' },
+  ],
+  entry: { x: 0, z: 3.4, rotY: Math.PI },
+  exit: { x: 0, z: 5.7, radius: 1.6 },
+};
+
+/** Lycée Sainte-Marie (Cocody) : amphithéâtre littéraire, grandes tables de séminaire et bibliothèque. */
+export const LYCEE_ALYSMA_INTERIOR: InteriorDef = {
+  id: 'lycee_alysma',
+  label: 'Lycée Sainte-Marie',
+  origin: { x: 2560, z: 2960 },
+  halfW: 10,
+  halfD: 7,
+  wallH: 4.0,
+  doorWidth: 2.4,
+  theme: {
+    floorColor: 0xf1e8ec,
+    floorGlow: 0.18,
+    runnerColor: 0xbe123c,
+    runnerGlow: 0.2,
+    wallColor: 0xfff1f2,
+    wallGlow: 0.28,
+    partitionColor: 0x9f1239,
+    ceilingColor: 0xffffff,
+    ceilingGlow: 0.25,
+  },
+  boxes: [
+    { x: 0, z: -7, hx: 10, hz: W, h: 4.0, kind: 'wall' },
+    { x: -10, z: 0, hx: W, hz: 7, h: 4.0, kind: 'wall' },
+    { x: 10, z: 0, hx: W, hz: 7, h: 4.0, kind: 'wall' },
+    { x: -5.6, z: 7, hx: 4.4, hz: W, h: 4.0, kind: 'wall' },
+    { x: 5.6, z: 7, hx: 4.4, hz: W, h: 4.0, kind: 'wall' },
+    { x: -6.4, z: 1.8, hx: 2.2, hz: W, h: 1.0, kind: 'partition' },
+    { x: 6.4, z: 1.8, hx: 2.2, hz: W, h: 1.0, kind: 'partition' },
+    // Chaire du professeur au nord
+    { x: 0, z: -4.8, hx: 2.8, hz: 0.75, h: 1.05, kind: 'prop' },
+    // Deux longues tables de séminaire (ouest et est)
+    { x: -5.2, z: -1.4, hx: 1.4, hz: 2.3, h: 0.8, kind: 'prop' },
+    { x: 5.2, z: -1.4, hx: 1.4, hz: 2.3, h: 0.8, kind: 'prop' },
+    // Bibliothèques et bancs d'étude
+    { x: -8.6, z: -4.8, hx: 0.7, hz: 1.4, h: 2.3, kind: 'prop' },
+    { x: 8.6, z: -4.8, hx: 0.7, hz: 1.4, h: 2.3, kind: 'prop' },
+    { x: -6.2, z: 4.0, hx: 1.5, hz: 0.5, h: 0.5, kind: 'prop' },
+    { x: 6.2, z: 4.0, hx: 1.5, hz: 0.5, h: 0.5, kind: 'prop' },
+  ],
+  entry: { x: 0, z: 3.4, rotY: Math.PI },
+  exit: { x: 0, z: 5.7, radius: 1.6 },
+};
+
+/** Lycée d'Excellence de Bassam : campus sciences & numérique, écrans bleus et îlots de labo. */
+export const LYCEE_ALEX_INTERIOR: InteriorDef = {
+  id: 'lycee_alex',
+  label: "Lycée d'Excellence de Bassam",
+  origin: { x: 2500, z: 2960 },
+  halfW: 11,
+  halfD: 8,
+  wallH: 4.4,
+  doorWidth: 2.6,
+  theme: {
+    floorColor: 0xdbeafe,
+    floorGlow: 0.2,
+    runnerColor: 0x0284c7,
+    runnerGlow: 0.24,
+    wallColor: 0xf0f9ff,
+    wallGlow: 0.3,
+    partitionColor: 0x0369a1,
+    ceilingColor: 0xffffff,
+    ceilingGlow: 0.28,
+  },
+  boxes: [
+    { x: 0, z: -8, hx: 11, hz: W, h: 4.4, kind: 'wall' },
+    { x: -11, z: 0, hx: W, hz: 8, h: 4.4, kind: 'wall' },
+    { x: 11, z: 0, hx: W, hz: 8, h: 4.4, kind: 'wall' },
+    { x: -6.15, z: 8, hx: 4.85, hz: W, h: 4.4, kind: 'wall' },
+    { x: 6.15, z: 8, hx: 4.85, hz: W, h: 4.4, kind: 'wall' },
+    { x: -6.8, z: 3.6, hx: 2.4, hz: W, h: 1.05, kind: 'partition' },
+    { x: 6.8, z: 3.6, hx: 2.4, hz: W, h: 1.05, kind: 'partition' },
+    // Estrade numérique au nord
+    { x: 0, z: -5.6, hx: 3.2, hz: 0.85, h: 1.1, kind: 'prop' },
+    // 4 paillasses / stations informatiques
+    { x: -5.8, z: -2.0, hx: 2.0, hz: 0.9, h: 0.9, kind: 'prop' },
+    { x: 5.8, z: -2.0, hx: 2.0, hz: 0.9, h: 0.9, kind: 'prop' },
+    { x: -5.8, z: 1.0, hx: 2.0, hz: 0.9, h: 0.9, kind: 'prop' },
+    { x: 5.8, z: 1.0, hx: 2.0, hz: 0.9, h: 0.9, kind: 'prop' },
+    // Bornes serveurs / robotique aux coins nord
+    { x: -9.2, z: -5.6, hx: 0.7, hz: 0.7, h: 2.4, kind: 'prop' },
+    { x: 9.2, z: -5.6, hx: 0.7, hz: 0.7, h: 2.4, kind: 'prop' },
+  ],
+  entry: { x: 0, z: 4.0, rotY: Math.PI },
+  exit: { x: 0, z: 6.6, radius: 1.6 },
+};
+
 export const INTERIORS: Record<InteriorId, InteriorDef> = {
   hopital: HOSPITAL_INTERIOR,
   maquis: MAQUIS_INTERIOR,
   marche_adjame: MARCHE_INTERIOR,
   mairie: MAIRIE_INTERIOR,
+  lycee_caiman: LYCEE_CAIMAN_INTERIOR,
+  lycee_alysma: LYCEE_ALYSMA_INTERIOR,
+  lycee_alex: LYCEE_ALEX_INTERIOR,
 };
 
 export const interiorToWorld = (def: InteriorDef, lx: number, lz: number): { x: number; z: number } =>
