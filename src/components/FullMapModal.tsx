@@ -1,12 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Crosshair, Map as MapIcon, Minus, Plus, X } from 'lucide-react';
+import { Crosshair, Map as MapIcon, Minus, Navigation, Plus, X } from 'lucide-react';
 import type { RadarSnapshot } from '../3d/sceneManager';
 import { districtAt, projected } from '../world/abidjanGeography';
 import { ARTERIALS } from '../world/roads';
+import { findRoute, type Route } from '../world/routing';
 import { RoundIconButton } from './ui/Jelly';
 
 interface FullMapModalProps {
   getSnapshot: () => RadarSnapshot | null;
+  /** Itinéraire en cours (gardé par l'application pour qu'il survive à la fermeture de la carte). */
+  route: Route | null;
+  onRouteChange: (route: Route | null) => void;
   onClose: () => void;
 }
 
@@ -44,7 +48,10 @@ const MAP_CX = (bounds.se.x + bounds.nw.x) / 2;
 const MAP_CZ = (bounds.se.z + bounds.nw.z) / 2;
 
 /** Carte plein écran d'Abidjan : toute la ville, lieux, maison, position ; déplacement et zoom au doigt. */
-export function FullMapModal({ getSnapshot, onClose }: FullMapModalProps) {
+export function FullMapModal({ getSnapshot, route, onRouteChange, onClose }: FullMapModalProps) {
+  const routeRef = useRef<Route | null>(route);
+  routeRef.current = route;
+  const [noRoute, setNoRoute] = useState(false);
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const view = useRef({ cx: MAP_CX, cz: MAP_CZ, k: 0.05, kMin: 0.03, kMax: 0.6, w: 300, h: 200, fitted: false });
@@ -142,6 +149,29 @@ export function FullMapModal({ getSnapshot, onClose }: FullMapModalProps) {
       const t = shortDistrict(pd.d.name).toUpperCase();
       ctx.strokeText(t, sx(pd.c.x), sy(pd.c.z));
       ctx.fillText(t, sx(pd.c.x), sy(pd.c.z));
+    }
+
+    // Itinéraire : trait surligné de toi à la destination
+    const rt = routeRef.current;
+    if (rt && rt.points.length > 1) {
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      const trace = () => {
+        ctx.beginPath();
+        rt.points.forEach((p, i) => (i === 0 ? ctx.moveTo(sx(p.x), sy(p.z)) : ctx.lineTo(sx(p.x), sy(p.z))));
+        ctx.stroke();
+      };
+      ctx.strokeStyle = 'rgba(9,13,22,0.85)';
+      ctx.lineWidth = 9;
+      trace();
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 5;
+      trace();
+      ctx.setLineDash([2, 10]);
+      ctx.strokeStyle = '#fff7e0';
+      ctx.lineWidth = 2;
+      trace();
+      ctx.setLineDash([]);
     }
 
     // Marqueurs : maison, lieux d'action, repères
@@ -245,6 +275,27 @@ export function FullMapModal({ getSnapshot, onClose }: FullMapModalProps) {
     requestDraw();
   };
 
+  const goTo = (m: Marker) => {
+    const snap = getSnapshot();
+    if (!snap) return;
+    const r = findRoute({ x: snap.playerX, z: snap.playerZ }, { x: m.x, z: m.z });
+    setNoRoute(!r);
+    onRouteChange(r ? { ...r, destName: m.name, destIcon: m.icon } : null);
+    if (r) {
+      // Cadre tout le trajet
+      const xs = r.points.map((p) => p.x);
+      const zs = r.points.map((p) => p.z);
+      const v = view.current;
+      const w = Math.max(...xs) - Math.min(...xs) + 400;
+      const h = Math.max(...zs) - Math.min(...zs) + 400;
+      v.cx = (Math.max(...xs) + Math.min(...xs)) / 2;
+      v.cz = (Math.max(...zs) + Math.min(...zs)) / 2;
+      v.k = Math.min(v.w / w, v.h / h);
+      clampView();
+      requestDraw();
+    }
+  };
+
   const recenter = () => {
     const snap = getSnapshot();
     if (!snap) return;
@@ -303,7 +354,7 @@ export function FullMapModal({ getSnapshot, onClose }: FullMapModalProps) {
 
   useEffect(() => {
     requestDraw();
-  }, [selected, requestDraw]);
+  }, [selected, route, requestDraw]);
 
   // Gestes : un doigt déplace, deux doigts zooment, un appui court choisit un lieu
   const pointers = useRef(new Map<number, { x: number; y: number }>());
@@ -417,8 +468,36 @@ export function FullMapModal({ getSnapshot, onClose }: FullMapModalProps) {
                 <div className="truncate text-sm font-bold text-ink-800">{selected.name}</div>
                 <div className="truncate text-xs text-ink-600">{shortDistrict(districtAt({ x: selected.x, z: selected.z }).name)}</div>
               </div>
+              <button
+                  type="button"
+                  className="flex items-center gap-1 rounded-full bg-sun-300 px-3 py-1.5 text-xs font-bold text-ink-900"
+                  onClick={() => goTo(selected)}
+                >
+                  <Navigation className="h-3.5 w-3.5" /> Y aller
+                </button>
               <button type="button" className="text-xs font-bold text-ink-400" onClick={() => setSelected(null)}>
                 OK
+              </button>
+            </div>
+          )}
+
+          {noRoute && !route && (
+            <div className="absolute inset-x-2 top-2 mx-auto max-w-xs rounded-2xl border-2 border-coral-300 bg-cream-50 px-3 py-1.5 text-center text-xs font-bold text-ink-800 shadow-lg">
+              Pas de chemin trouvé vers ce lieu
+            </div>
+          )}
+          {route && (
+            <div className="absolute inset-x-2 top-2 mx-auto flex max-w-xs items-center gap-2 rounded-2xl border-2 border-sun-300 bg-cream-50 px-3 py-1.5 shadow-lg">
+              <span className="text-xl">{route.destIcon ?? '📍'}</span>
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-bold text-ink-800">{route.destName ?? 'Destination'}</div>
+                <div className="truncate text-xs text-ink-600">
+                  {route.distanceM >= 1000 ? `${(route.distanceM / 1000).toFixed(1)} km` : `${Math.round(route.distanceM)} m`}
+                  {route.via.length > 0 ? ` · ${route.via.slice(0, 2).join(', ')}` : ''}
+                </div>
+              </div>
+              <button type="button" className="text-xs font-bold text-coral-600" onClick={() => { onRouteChange(null); setNoRoute(false); }}>
+                Annuler
               </button>
             </div>
           )}
