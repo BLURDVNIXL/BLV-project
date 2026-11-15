@@ -6,6 +6,7 @@ import {
   SapeOutfitId,
   RemotePlayer,
   CribUpgrades,
+  PlayerGender,
 } from '../types/game';
 import {
   CharacterRig,
@@ -36,6 +37,7 @@ import {
   getLightingMood,
 } from './materials';
 import { NpcSystem } from './npcSystem';
+import { loadAvatar } from './avatars';
 import { getWasmCore } from '../wasm/wasmBridge';
 import {
   CharacterState,
@@ -168,6 +170,10 @@ export class AbidjanSceneManager {
   private cashPickups: Array<{ mesh: THREE.Group; active: boolean; x: number; z: number }> = [];
 
   private playerRig!: CharacterRig;
+  /** Avatar GLB du joueur (genre choisi) ; l'ancien petit personnage sert de repli. */
+  private playerAvatar: THREE.Object3D | null = null;
+  private playerAvatarGender: PlayerGender | null = null;
+  private avatarRequestId = 0;
   private playerCharId = -1;
   private charState: CharacterState = createCharacterState();
   private carState: VehicleState = createVehicleState();
@@ -930,6 +936,28 @@ export class AbidjanSceneManager {
 
   public setOutfit(outfit: SapeOutfitId) {
     this.playerRig.applyOutfit(outfit);
+  }
+
+  /**
+   * Affiche l'avatar 3D du genre choisi (Homme → garçon, Femme → fille).
+   * Sans genre (ancienne sauvegarde) ou si le chargement échoue, le petit
+   * personnage procédural reste affiché.
+   */
+  public setPlayerGender(gender?: PlayerGender) {
+    if (!gender || gender === this.playerAvatarGender) return;
+    const requestId = ++this.avatarRequestId;
+    loadAvatar(gender)
+      .then(({ root }) => {
+        if (this.disposed || requestId !== this.avatarRequestId) return;
+        if (this.playerAvatar) this.playerRig.group.remove(this.playerAvatar);
+        this.playerAvatar = root;
+        this.playerAvatarGender = gender;
+        this.playerRig.group.add(root);
+        this.playerRig.bodyPivot.visible = false;
+      })
+      .catch((err) => {
+        console.warn('[BLV] Avatar 3D indisponible, repli sur le personnage simple', err);
+      });
   }
 
   public syncCribUpgrades(u: CribUpgrades) {

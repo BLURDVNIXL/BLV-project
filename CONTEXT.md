@@ -323,7 +323,4 @@ Tuner radio officiel diffusant de vrais flux audio streaming HTTPS en direct :
 ---
 
 *Ce document est la mémoire vivante de BLV. Tout agent qui intervient doit s'y conformer et le mettre à jour à chaque livraison (RÈGLE 3).*
-
-
-
-
+* **15/11/2026** : avatars 3D selon le genre, étape 1/3 (branche `feat/sexe`, depuis `main`). Modèles fournis par le créateur dans `public/models/` (`avatar_homme.glb`, `avatar_femme.glb`) : 7 827 / 8 999 triangles, 6 maillages, 6 matériaux nommés (`peau, cheveux, haut, bas, chaussures, accessoires`), atlas 1 024², squelette Mixamo identique (22 os), animations `Idle/Walk/Run/Jump/Wave`, 1,50 m, pieds à y = 0. `src/3d/avatars.ts` : chargement paresseux du seul modèle utile, cache, copie indépendante (`SkeletonUtils.clone`). `AbidjanSceneManager.setPlayerGender(genre)` (appelé par `App.tsx` au montage et à chaque changement de `playerState.gender`) ajoute l'avatar au joueur et masque le petit personnage procédural, qui reste le repli (genre absent des anciennes sauvegardes, chargement en cours ou échec). **Pas encore fait** : animations (étape 2, avatar statique pour l'instant), teinte des tenues de sape, genre dans le multijoueur (étape 3). 4 tests (`avatars.test.ts`) vérifient le cahier des charges des GLB ; lint, tests et build OK. À vérifier en jeu par le créateur : sens du regard (+Z, déduit des données et vu de dos seulement), cheveux de la femme (±0,5 m de large), rendu de nuit.
