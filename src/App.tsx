@@ -518,6 +518,7 @@ export default function App() {
         vehicleType: p.destiny.vehicle,
         sapeOutfit: p.sapeOutfit,
         homeType: p.destiny.homeType,
+        gender: p.gender,
       });
     }
   }, [screenState, playerState.sessionToken, remotePlayers, showToast]);

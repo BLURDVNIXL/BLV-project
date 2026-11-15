@@ -73,3 +73,16 @@ test('teinte des tenues : standard = modèle d\'origine, les autres colorent hau
   const t = avatarOutfitTint('wax_bazin');
   assert.ok(t && typeof t.shirt === 'number' && typeof t.pants === 'number');
 });
+
+import { parseGender } from '../core/profile';
+
+test('parseGender : seules les deux valeurs valides passent (message réseau, ancienne sauvegarde)', () => {
+  assert.equal(parseGender('homme'), 'homme');
+  assert.equal(parseGender('femme'), 'femme');
+  assert.equal(parseGender(undefined), undefined);
+  assert.equal(parseGender(null), undefined);
+  assert.equal(parseGender(''), undefined);
+  assert.equal(parseGender('Homme'), undefined);
+  assert.equal(parseGender('<script>'), undefined);
+  assert.equal(parseGender(42), undefined);
+});

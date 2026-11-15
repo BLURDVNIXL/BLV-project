@@ -207,6 +207,12 @@ export class AbidjanSceneManager {
       prevZ: number;
       lastNetTime: number;
       rotY: number;
+      /** Avatar 3D du joueur distant (genre reçu à la connexion) ; sinon petit personnage de repli. */
+      gender: PlayerGender | null;
+      avatar: THREE.Object3D | null;
+      avatarCtl: AvatarController | null;
+      outfit: SapeOutfitId;
+      speed: number;
     }
   > = new Map();
 
@@ -1061,8 +1067,14 @@ export class AbidjanSceneManager {
           prevZ: p.z,
           lastNetTime: nowMs,
           rotY: p.rotY,
+          gender: null,
+          avatar: null,
+          avatarCtl: null,
+          outfit: p.sapeOutfit || 'standard',
+          speed: 0,
         };
         this.remoteRigs.set(p.id, entry);
+        this.attachRemoteAvatar(p.id, entry, p.gender);
       } else {
         entry.prevX = entry.rig.group.position.x;
         entry.prevZ = entry.rig.group.position.z;
@@ -1070,9 +1082,33 @@ export class AbidjanSceneManager {
         entry.targetZ = p.z;
         entry.lastNetTime = nowMs;
         entry.rotY = p.rotY;
-        entry.rig.applyOutfit(p.sapeOutfit || 'standard');
+        entry.outfit = p.sapeOutfit || 'standard';
+        entry.rig.applyOutfit(entry.outfit);
+        entry.avatarCtl?.applyOutfit(entry.outfit);
+        this.attachRemoteAvatar(p.id, entry, p.gender);
       }
     }
+  }
+
+  /** Remplace le petit personnage d'un joueur distant par l'avatar de son genre (sans effet si absent ou déjà fait). */
+  private attachRemoteAvatar(id: string, entry: { rig: CharacterRig; gender: PlayerGender | null; avatar: THREE.Object3D | null; avatarCtl: AvatarController | null; outfit: SapeOutfitId }, gender?: PlayerGender) {
+    if (!gender || gender === entry.gender) return;
+    entry.gender = gender; // évite de relancer le chargement à chaque message réseau
+    loadAvatar(gender)
+      .then(({ root, animations }) => {
+        // Le joueur a pu partir (ou la scène être détruite) pendant le chargement.
+        if (this.disposed || this.remoteRigs.get(id) !== entry || entry.gender !== gender) return;
+        if (entry.avatar) entry.rig.group.remove(entry.avatar);
+        entry.avatar = root;
+        entry.rig.group.add(root);
+        entry.avatarCtl = new AvatarController(root, animations);
+        entry.avatarCtl.applyOutfit(entry.outfit);
+        entry.rig.bodyPivot.visible = false;
+      })
+      .catch((err) => {
+        // On ne retente pas à chaque message réseau : le repli reste affiché jusqu'à la prochaine connexion.
+        console.warn('[BLV] Avatar 3D distant indisponible, repli sur le personnage simple', err);
+      });
   }
 
   public teleportPlayer(x: number, z: number) {
@@ -1366,6 +1402,11 @@ export class AbidjanSceneManager {
       entry.rig.group.position.set(nx, 0, nz);
       entry.rig.group.rotation.y = entry.rotY;
       entry.rig.animateGait(nowSec * 6, moved > 0.015 ? 1 : 0, dt);
+      if (entry.avatarCtl) {
+        // Vitesse lissée : les positions réseau arrivent par à-coups (≥ 100 ms).
+        entry.speed += (moved / Math.max(dt, 1e-3) - entry.speed) * Math.min(1, dt * 8);
+        entry.avatarCtl.update(dt, entry.speed, true, false);
+      }
     }
 
     // 4. Title / Roulette Flyover Mode over Le Plateau & Lagune Ébrié
