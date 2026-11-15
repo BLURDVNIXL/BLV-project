@@ -721,12 +721,14 @@ export default function App() {
   const cancelTaxi = useCallback((message?: string) => {
     taxiCallRef.current = null;
     setTaxiCall(null);
+    sceneRef.current?.stopTaxiApproach();
     if (message) showToast(message);
   }, [showToast]);
 
   /** Montée dans le taxi : paie la course (une seule fois), puis téléporte comme avant. */
   const arriveTaxiRef = useRef<(call: { x: number; z: number; districtName: string; districtId: string }) => void>(() => {});
   arriveTaxiRef.current = (call) => {
+    sceneRef.current?.stopTaxiApproach();
     const snap = sceneRef.current?.getRadarSnapshot();
     const fromDistrictId = snap ? districtAt({ x: snap.playerX, z: snap.playerZ }).id : null;
     const cur = playerStateRef.current;
@@ -971,6 +973,7 @@ export default function App() {
             const call = { x, z, districtName, districtId, endsAt: Date.now() + waitS * 1000, remainingS: waitS };
             taxiCallRef.current = call;
             setTaxiCall(call);
+            sceneRef.current?.startTaxiApproach(waitS);
             setIsPhoneOpen(false);
           }}
           onWooHoo={(partner) => {
