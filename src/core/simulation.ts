@@ -645,6 +645,31 @@ export function fastTravelFare(fromDistrictId: string | null | undefined, toDist
   return from !== null && from === to ? FARE_SAME_COMMUNE : FARE_BETWEEN_COMMUNES;
 }
 
+/**
+ * Temps de jeu passé dans le taxi (étape B4) : environ 3 min de jeu par km de trajet réel (circulation d'Abidjan),
+ * au moins 5 min et au plus 90 min.
+ */
+export const TAXI_GAME_MIN_PER_KM = 3;
+export const TAXI_GAME_MIN_MIN = 5;
+export const TAXI_GAME_MIN_MAX = 90;
+
+export function taxiRideGameMinutes(distanceM: number): number {
+  const d = Number.isFinite(distanceM) ? Math.max(0, distanceM) : 30000;
+  const raw = Math.round((d / 1000) * TAXI_GAME_MIN_PER_KM);
+  return Math.min(TAXI_GAME_MIN_MAX, Math.max(TAXI_GAME_MIN_MIN, raw));
+}
+
+/**
+ * Fait passer le temps du trajet : l'heure de jeu avance (minuit, loyer et intérêts compris, comme le temps normal)
+ * et la faim, l'énergie, l'hygiène et la vessie baissent d'autant. 1 h réelle = 4 h de jeu, soit 900 s réelles par heure de jeu.
+ */
+export function applyTaxiRideTime(state: PlayerState, distanceM: number): PlayerState {
+  if (state.isGameOver) return state;
+  const minutes = taxiRideGameMinutes(distanceM);
+  const next = advanceGameTime(state, (minutes / 60) * 900, 1);
+  return addLog(next, `🚖 Trajet en taxi : ${minutes} min de jeu.`, 'neutral');
+}
+
 /** Attente du taxi appelé : 10 s au minimum, 20 s au maximum, plus longue quand la destination est loin. */
 export const TAXI_WAIT_MIN_S = 10;
 export const TAXI_WAIT_MAX_S = 20;

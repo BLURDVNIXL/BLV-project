@@ -151,6 +151,8 @@ export interface SceneCallbacks {
   onPauseKey?: () => void;
   /** Cinématique du taxi (B3) : true = l'écran doit passer au noir, false = revenir à l'image. */
   onTaxiFade?: (dark: boolean) => void;
+  /** Écran noir à l'arrivée : le joueur vient d'être déposé (le temps du trajet peut passer). */
+  onTaxiRideArrived?: () => void;
   /** Cinématique terminée : le joueur est arrivé et peut de nouveau jouer. */
   onTaxiRideEnd?: () => void;
 }
@@ -1413,20 +1415,20 @@ export class AbidjanSceneManager {
   /**
    * Étape B3 : fondu au noir, le taxi roule sur l'itinéraire jusqu'à la route la plus proche de la destination
    * (15 à 30 s selon la distance, caméra qui le suit), nouveau fondu au noir, puis le joueur est déposé en `dest`.
-   * Reprend le woro-woro de B2 s'il est là. Renvoie false si le trajet est impossible : l'appelant téléporte alors comme avant.
+   * Reprend le woro-woro de B2 s'il est là. Renvoie la distance réelle du trajet, ou null s'il est impossible : l'appelant téléporte alors comme avant.
    */
-  public startTaxiRide(dest: { x: number; z: number }): boolean {
-    if (this.taxiRide) return false;
+  public startTaxiRide(dest: { x: number; z: number }): { distanceM: number } | null {
+    if (this.taxiRide) return null;
     const ap = this.taxiApproach;
     const from = ap
       ? { x: ap.rig.group.position.x, z: ap.rig.group.position.z }
       : nearestRoadPoint(this.taxiPickupPoint()).at;
     const route = findRoute(from, dest);
-    if (!route) return false;
+    if (!route) return null;
     // On s'arrête sur la route : pas de dernier tronçon en ligne droite à travers les bâtiments.
     const points = route.points.length > 2 ? route.points.slice(0, -1) : route.points;
     const length = pathLength(points);
-    if (length < 5) return false;
+    if (length < 5) return null;
     let rig: VehicleRig;
     let heading: number;
     if (ap) {
@@ -1455,7 +1457,7 @@ export class AbidjanSceneManager {
       endFade: false,
     };
     this.callbacks.onTaxiFade?.(true);
-    return true;
+    return { distanceM: route.distanceM };
   }
 
   private static readonly TAXI_FADE_S = 0.75;
@@ -1517,6 +1519,7 @@ export class AbidjanSceneManager {
           phase: 'unfade',
           t: 0,
         };
+        this.callbacks.onTaxiRideArrived?.();
         this.callbacks.onTaxiFade?.(false);
       }
       return;

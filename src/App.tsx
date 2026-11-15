@@ -31,6 +31,8 @@ import {
   evaluateMissionProgress,
   payFastTravel,
   fastTravelFare,
+  applyTaxiRideTime,
+  taxiRideGameMinutes,
   taxiWaitSeconds,
   taxiCallRefusal,
   performCareerJob,
@@ -403,6 +405,13 @@ export default function App() {
         if (stalled) showToast('🌊 Moteur noyé par l’inondation !');
       },
       onTaxiFade: (dark) => setTaxiFadeDark(dark),
+      onTaxiRideArrived: () => {
+        // Écran noir : le temps du trajet passe (heure de jeu, faim, énergie).
+        const ride = taxiRideRef.current;
+        if (!ride) return;
+        setPlayerState((prev) => applyTaxiRideTime(prev, ride.distanceM));
+        showToast(`🚖 Trajet : ${taxiRideGameMinutes(ride.distanceM)} min de jeu`);
+      },
       onTaxiRideEnd: () => {
         const dest = taxiRideRef.current;
         taxiRideRef.current = null;
@@ -725,7 +734,7 @@ export default function App() {
   taxiCallRef.current = taxiCall;
   // Cinématique du trajet (B3) : écran noir et destination de la course en cours.
   const [taxiFadeDark, setTaxiFadeDark] = useState(false);
-  const taxiRideRef = useRef<{ x: number; z: number } | null>(null);
+  const taxiRideRef = useRef<{ x: number; z: number; distanceM: number } | null>(null);
   useEffect(() => {
     // Hors du jeu (menu, fin de partie), plus de cinématique ni d'écran noir.
     if (screenState !== 'playing') {
@@ -761,8 +770,9 @@ export default function App() {
     if (sceneRef.current?.isInsideInterior()) sceneRef.current.exitInterior();
     setIsPhoneOpen(false);
     // B3 : cinématique du trajet ; si aucun trajet n'existe, on dépose le joueur directement (comme en B1/B2).
-    if (sceneRef.current?.startTaxiRide({ x: call.x, z: call.z })) {
-      taxiRideRef.current = { x: call.x, z: call.z };
+    const ride = sceneRef.current?.startTaxiRide({ x: call.x, z: call.z });
+    if (ride) {
+      taxiRideRef.current = { x: call.x, z: call.z, distanceM: ride.distanceM };
       return;
     }
     sceneRef.current?.stopTaxiApproach();

@@ -26,6 +26,10 @@ import {
   fastTravelFare,
   taxiWaitSeconds,
   taxiCallRefusal,
+  taxiRideGameMinutes,
+  applyTaxiRideTime,
+  TAXI_GAME_MIN_MIN,
+  TAXI_GAME_MIN_MAX,
   TAXI_WAIT_MIN_S,
   TAXI_WAIT_MAX_S,
   FARE_SAME_COMMUNE,
@@ -360,4 +364,37 @@ test('Taxi appelé (B1) : refusé en conduisant, si une course est déjà appel�
   assert.equal(state.cash, 2000);
   const trip = payFastTravel(state, 'Le Plateau', fastTravelFare('plateau', 'cocody'));
   assert.equal(trip.nextState.cash, 1000);
+});
+
+test('Taxi (B4) : minutes de jeu selon la distance, entre 5 et 90', () => {
+  assert.equal(TAXI_GAME_MIN_MIN, 5);
+  assert.equal(TAXI_GAME_MIN_MAX, 90);
+  assert.equal(taxiRideGameMinutes(0), 5);
+  assert.equal(taxiRideGameMinutes(500), 5);
+  assert.equal(taxiRideGameMinutes(4000), 12);
+  assert.equal(taxiRideGameMinutes(10000), 30);
+  assert.equal(taxiRideGameMinutes(500000), 90);
+  assert.equal(taxiRideGameMinutes(Infinity), 90);
+  assert.equal(taxiRideGameMinutes(NaN), 90);
+  assert.ok(taxiRideGameMinutes(8000) > taxiRideGameMinutes(2000));
+});
+
+test('Taxi (B4) : le trajet fait avancer l’heure et baisser un peu la faim et l’énergie', () => {
+  const state = createInitialPlayerState(rollDestiny('poignon'));
+  const before = { ...state, gameTimeHours: 8.0 };
+  const after = applyTaxiRideTime(before, 10000); // 30 min de jeu
+  assert.ok(Math.abs(after.gameTimeHours - 8.5) < 1e-6, `${after.gameTimeHours}`);
+  assert.equal(after.daysLived, before.daysLived);
+  assert.ok(after.needs.hunger < before.needs.hunger);
+  assert.ok(after.needs.energy < before.needs.energy);
+  assert.ok(before.needs.hunger - after.needs.hunger < 5, 'effet léger');
+  assert.equal(after.cash, before.cash, 'le temps ne coûte rien de plus');
+  assert.ok(after.logs[0].message.includes('30 min'));
+  // Passage de minuit
+  const late = applyTaxiRideTime({ ...state, gameTimeHours: 23.8 }, 10000);
+  assert.equal(late.daysLived, state.daysLived + 1);
+  assert.ok(late.gameTimeHours < 1);
+  // Partie terminée : rien ne bouge
+  const over = { ...state, isGameOver: true };
+  assert.equal(applyTaxiRideTime(over, 10000), over);
 });
