@@ -24,6 +24,10 @@ import {
   evaluateMissionProgress,
   payFastTravel,
   fastTravelFare,
+  taxiWaitSeconds,
+  taxiCallRefusal,
+  TAXI_WAIT_MIN_S,
+  TAXI_WAIT_MAX_S,
   FARE_SAME_COMMUNE,
   FARE_BETWEEN_COMMUNES,
   performCareerJob,
@@ -331,4 +335,29 @@ test('Every Destiny spawns in a HouseLot belonging to its own signature district
       `Destiny ${d.id} (${d.name}) spawned in ${lot.district} instead of ${d.districtId}`
     );
   }
+});
+
+test('Taxi appelé (B1) : attente de 10 à 20 s selon la distance', () => {
+  assert.equal(TAXI_WAIT_MIN_S, 10);
+  assert.equal(TAXI_WAIT_MAX_S, 20);
+  assert.equal(taxiWaitSeconds(0), 10);
+  assert.equal(taxiWaitSeconds(3000), 15);
+  assert.equal(taxiWaitSeconds(6000), 20);
+  assert.equal(taxiWaitSeconds(50000), 20);
+  assert.equal(taxiWaitSeconds(-5), 10);
+  assert.equal(taxiWaitSeconds(Infinity), 20);
+  assert.equal(taxiWaitSeconds(NaN), 20);
+});
+
+test('Taxi appelé (B1) : refusé en conduisant, si une course est déjà appelée ou sans assez d\u2019argent', () => {
+  const state = createInitialPlayerState(rollDestiny('poignon')); // 2 000 F
+  assert.equal(taxiCallRefusal(state, 1000, false), null);
+  assert.ok(taxiCallRefusal({ ...state, isDriving: true }, 1000, false));
+  assert.ok(taxiCallRefusal(state, 1000, true));
+  assert.ok(taxiCallRefusal({ ...state, cash: 999 }, 1000, false));
+  assert.equal(taxiCallRefusal({ ...state, cash: 500 }, 500, false), null);
+  // L'appel ne débite rien : seul payFastTravel (à la montée) retire l'argent, une seule fois.
+  assert.equal(state.cash, 2000);
+  const trip = payFastTravel(state, 'Le Plateau', fastTravelFare('plateau', 'cocody'));
+  assert.equal(trip.nextState.cash, 1000);
 });
