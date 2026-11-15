@@ -92,6 +92,11 @@ interface SpecialSpec {
   /** Place l'objet au centre du bloc de rues qui contient le point (petits bâtiments). */
   snapToBlock: boolean;
   containers?: { cols: number; rows: number; levels: number };
+  /** Rayon (m) dégagé de tout bâtiment/parcelle autour du repère (par défaut hypot(w, d)/2). */
+  clearRadius?: number;
+  /** Emprise (m) peinte en esplanade et sans arbre autour du repère (par défaut w × d). */
+  plazaW?: number;
+  plazaD?: number;
 }
 
 const landmark = (id: string): LatLon => LANDMARKS.find((l) => l.id === id)!.at;
@@ -99,7 +104,7 @@ export const SPECIALS: SpecialSpec[] = [
   { id: 'stade', name: 'Stade Félix Houphouët-Boigny', at: landmark('stade'), w: 90, d: 64, h: 24, angleDeg: 8, color: 0xdedbd2, snapToBlock: false },
   { id: 'cathedrale', name: 'Cathédrale Saint-Paul', at: landmark('cathedrale'), w: 26, d: 44, h: 52, angleDeg: 8, color: 0xd2cbbb, snapToBlock: false },
   { id: 'hotel_ivoire', name: 'Hôtel Ivoire', at: landmark('hotel_ivoire'), w: 46, d: 30, h: 72, angleDeg: -12, color: 0xe5e0d0, snapToBlock: false },
-  { id: 'marche_adjame', name: "Marché d'Adjamé", at: landmark('marche_adjame'), w: 80, d: 56, h: 10, angleDeg: 0, color: 0xb85c38, snapToBlock: false },
+  { id: 'marche_adjame', name: "Marché d'Adjamé", at: landmark('marche_adjame'), w: 36, d: 18, h: 9.5, angleDeg: 0, color: 0xb85c38, snapToBlock: false, clearRadius: 50, plazaW: 70, plazaD: 50 },
   { id: 'palais_culture', name: 'Palais de la Culture', at: landmark('palais_sports'), w: 60, d: 40, h: 20, angleDeg: 0, color: 0xd8d4c8, snapToBlock: false },
   { id: 'aeroport', name: 'Aéroport Félix Houphouët-Boigny', at: landmark('airport'), w: 130, d: 44, h: 18, angleDeg: 12, color: 0xc9d1d8, snapToBlock: false },
   { id: 'port', name: "Port Autonome d'Abidjan", at: landmark('port'), w: 70, d: 40, h: 8, angleDeg: 0, color: 0x7a8a99, snapToBlock: false, containers: { cols: 10, rows: 5, levels: 3 } },
@@ -107,6 +112,10 @@ export const SPECIALS: SpecialSpec[] = [
   { id: 'lycee_caiman', name: 'Lycée Classique', at: { lat: 5.344, lon: -4.000 }, w: 22, d: 14, h: 8, angleDeg: 0, color: 0xe8c07a, snapToBlock: true },
   { id: 'lycee_alysma', name: 'Lycée Sainte-Marie', at: { lat: 5.354, lon: -3.984 }, w: 20, d: 12, h: 8, angleDeg: 0, color: 0xf0a8a0, snapToBlock: true },
   { id: 'lycee_alex', name: "Lycée d'Excellence de Bassam", at: { lat: 5.250, lon: -3.904 }, w: 26, d: 16, h: 10, angleDeg: 0, color: 0x9ec8e8, snapToBlock: true },
+  // Maquis Le Temple (Yopougon · Rue Princesse) : salle + avancée de paillote ouverte
+  { id: 'maquis', name: 'Maquis Le Temple', at: { lat: 5.3375, lon: -4.072 }, w: 18, d: 12, h: 5.2, angleDeg: 0, color: 0xb45309, snapToBlock: true },
+  // Mairie du Plateau : hôtel de ville visitable (hall d'honneur hors carte)
+  { id: 'mairie', name: 'Mairie du Plateau', at: { lat: 5.3275, lon: -4.0188 }, w: 18, d: 12, h: 11, angleDeg: 0, color: 0xf8fafc, snapToBlock: true, clearRadius: 16, plazaW: 24, plazaD: 22 },
   // Hôpitaux : bâtiments à porte d'entrée (intérieur partagé, voir interiors.ts)
   ...HOSPITAL_SITES.map((h): SpecialSpec => ({ id: h.id, name: h.name, at: { lat: h.lat, lon: h.lon }, w: h.w, d: h.d, h: h.h, angleDeg: 0, color: 0xf2efe8, snapToBlock: true }))
 ];
@@ -141,9 +150,9 @@ function resolveSpecial(spec: SpecialSpec): SpecialFootprint {
 
 export const SPECIAL_FOOTPRINTS: SpecialFootprint[] = SPECIALS.map(resolveSpecial);
 
-const specialRadius = (s: SpecialFootprint): number => Math.hypot(s.w, s.d) / 2;
+const specialRadius = (s: SpecialFootprint): number => s.spec.clearRadius ?? Math.hypot(s.w, s.d) / 2;
 
-/** Vrai si le point est sous l'emprise (agrandie de `margin`) d'un repère : pas de rue peinte dessous. */
+/** Vrai si le point est sous l'emprise (agrandie de `margin`) d'un repère : esplanade peinte, pas de rue/arbre dessous. */
 export function insideSpecial(p: Vec2, margin = 0): SpecialFootprint | null {
   for (const s of SPECIAL_FOOTPRINTS) {
     const dx = p.x - s.x;
@@ -152,7 +161,9 @@ export function insideSpecial(p: Vec2, margin = 0): SpecialFootprint | null {
     const sn = Math.sin(s.angle);
     const lu = dx * c + dz * sn;
     const lv = -dx * sn + dz * c;
-    if (Math.abs(lu) < s.w / 2 + margin && Math.abs(lv) < s.d / 2 + margin) return s;
+    const hw = (s.spec.plazaW ?? s.w) / 2 + margin;
+    const hd = (s.spec.plazaD ?? s.d) / 2 + margin;
+    if (Math.abs(lu) < hw && Math.abs(lv) < hd) return s;
   }
   return null;
 }

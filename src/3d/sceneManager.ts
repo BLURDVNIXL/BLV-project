@@ -17,6 +17,7 @@ import {
   createCashPickupMesh,
   createCathedralLandmark,
   createCharacterModel,
+  createClassicLyceeStructure,
   createFloatingNameplate,
   createHotelIvoireLandmark,
   createLaPyramideLandmark,
@@ -106,7 +107,7 @@ export interface CityHotspot {
     | 'sleep'
     | 'black_market'
     | 'yannis_academy'
-    | 'hospital_door'
+    | 'interior_door'
     | 'interior_exit';
   color: number;
 }
@@ -282,15 +283,22 @@ export class AbidjanSceneManager {
 
   private staticHotspots: CityHotspot[] = [];
   private homeHotspots: CityHotspot[] = [];
-  /** Portes d'hôpitaux (id de zone d'action → site et point de retour devant la porte). */
-  private hospitalDoors = new Map<string, { siteId: string; name: string; outX: number; outZ: number; outRotY: number }>();
+  /** Portes des intérieurs (id de zone d'action → type d'intérieur, nom et point de retour devant la porte). */
+  private interiorDoors = new Map<string, {
+    interiorId: InteriorId;
+    siteId: string;
+    name: string;
+    outX: number;
+    outZ: number;
+    outRotY: number;
+  }>();
   /** Intérieur actuellement occupé par le joueur (téléportation dans une salle fermée hors carte). */
   private activeInterior: {
     id: InteriorId;
     def: InteriorDef;
     rig: InteriorRig;
     colliderIds: number[];
-    hotspot: CityHotspot;
+    hotspots: CityHotspot[];
     label: string;
     returnX: number;
     returnZ: number;
@@ -489,7 +497,18 @@ export class AbidjanSceneManager {
     placeSpecial('cathedrale', createCathedralLandmark());
     placeSpecial('hotel_ivoire', createHotelIvoireLandmark());
     placeSpecial('lycee_alex', createBassamFuturisticSchool());
-    placeSpecial('marche_adjame', createMarketStallCluster());
+    const caimanFp = SPECIAL_FOOTPRINTS.find((f) => f.spec.id === 'lycee_caiman');
+    if (caimanFp) {
+      placeSpecial('lycee_caiman', createClassicLyceeStructure(caimanFp.w, caimanFp.d, caimanFp.spec.h, 0xfef3c7, 0xb45309));
+    }
+    const alysmaFp = SPECIAL_FOOTPRINTS.find((f) => f.spec.id === 'lycee_alysma');
+    if (alysmaFp) {
+      placeSpecial('lycee_alysma', createClassicLyceeStructure(alysmaFp.w, alysmaFp.d, alysmaFp.spec.h, 0xfff1f2, 0xbe123c));
+    }
+    const marcheFp = SPECIAL_FOOTPRINTS.find((f) => f.spec.id === 'marche_adjame');
+    if (marcheFp) {
+      placeSpecial('marche_adjame', createMarketStallCluster(marcheFp.w, marcheFp.d, marcheFp.spec.h));
+    }
 
     // Hôpitaux : bâtiments héros à porte d'entrée (intérieur partagé)
     for (const site of HOSPITAL_SITES) {
@@ -517,15 +536,15 @@ export class AbidjanSceneManager {
     postel.position.set(pPos.x, 0, pPos.z);
     this.scene.add(postel);
 
-    const mairie = createMairiePlateauLandmark();
-    const pMai = project(5.3266, -4.0205);
-    mairie.position.set(pMai.x, 0, pMai.z);
-    this.scene.add(mairie);
+    const mairieFp = SPECIAL_FOOTPRINTS.find((f) => f.spec.id === 'mairie');
+    if (mairieFp) {
+      placeSpecial('mairie', createMairiePlateauLandmark());
+    }
 
-    const maquis = createMaquisStructure();
-    const pMaq = project(5.3375, -4.072);
-    maquis.position.set(pMaq.x, 0, pMaq.z);
-    this.scene.add(maquis);
+    const maquisFp = SPECIAL_FOOTPRINTS.find((f) => f.spec.id === 'maquis');
+    if (maquisFp) {
+      placeSpecial('maquis', createMaquisStructure(maquisFp.w, maquisFp.d, maquisFp.spec.h));
+    }
   }
 
   private addBeaconHotspot(h: CityHotspot) {
@@ -544,8 +563,8 @@ export class AbidjanSceneManager {
     this.staticHotspots = [];
     this.beaconRings = [];
 
-    // Portes des hôpitaux : zone d'action devant l'entrée (la façade est du côté +z local de l'emprise)
-    this.hospitalDoors.clear();
+    // Portes d'intérieurs : zone d'action devant l'entrée (la façade est du côté +z local de l'emprise)
+    this.interiorDoors.clear();
     for (const site of HOSPITAL_SITES) {
       const fp = SPECIAL_FOOTPRINTS.find((f) => f.spec.id === site.id);
       if (!fp) continue;
@@ -553,44 +572,121 @@ export class AbidjanSceneManager {
       const vz = Math.cos(fp.angle);
       const hx = fp.x + vx * (fp.d / 2 + 2.2);
       const hz = fp.z + vz * (fp.d / 2 + 2.2);
-      const id = `door_${site.id}`;
-      this.hospitalDoors.set(id, { siteId: site.id, name: site.name, outX: fp.x + vx * (fp.d / 2 + 3.6), outZ: fp.z + vz * (fp.d / 2 + 3.6), outRotY: -fp.angle });
-      this.addBeaconHotspot({
-        id,
+      this.registerInteriorDoor({
+        id: `door_${site.id}`,
+        interiorId: 'hopital',
+        siteId: site.id,
+        name: site.name,
         label: `🏥 Entrer — ${site.name}`,
         district: districtAt({ x: fp.x, z: fp.z }).name,
-        x: hx,
-        z: hz,
+        doorX: hx,
+        doorZ: hz,
+        outX: fp.x + vx * (fp.d / 2 + 3.6),
+        outZ: fp.z + vz * (fp.d / 2 + 3.6),
+        outRotY: -fp.angle,
         radius: 3.4,
-        type: 'hospital_door',
         color: 0xef4444,
       });
     }
 
     // 2. Grands lieux interactifs d'Abidjan
-    const pMaquis = project(5.3375, -4.072);
-    this.addBeaconHotspot({
-      id: 'eat_maquis',
-      label: '🍗 Maquis Le Temple · Rue Princesse',
-      district: 'Yopougon',
-      x: pMaquis.x,
-      z: pMaquis.z + 7,
-      radius: 5.5,
-      type: 'eat',
-      color: 0xf97316,
-    });
+    const pMaquis = SPECIAL_FOOTPRINTS.find((f) => f.spec.id === 'maquis');
+    if (pMaquis) {
+      const vx = -Math.sin(pMaquis.angle);
+      const vz = Math.cos(pMaquis.angle);
+      this.registerInteriorDoor({
+        id: 'door_maquis',
+        interiorId: 'maquis',
+        siteId: 'maquis',
+        name: pMaquis.spec.name,
+        label: '🍗 Entrer — Maquis Le Temple · Rue Princesse',
+        district: districtAt({ x: pMaquis.x, z: pMaquis.z }).name,
+        doorX: pMaquis.x + vx * (pMaquis.d / 2 + 2.4),
+        doorZ: pMaquis.z + vz * (pMaquis.d / 2 + 2.4),
+        outX: pMaquis.x + vx * (pMaquis.d / 2 + 3.8),
+        outZ: pMaquis.z + vz * (pMaquis.d / 2 + 3.8),
+        outRotY: -pMaquis.angle,
+        radius: 3.4,
+        color: 0xf97316,
+      });
+    }
 
     const pMarche = SPECIAL_FOOTPRINTS.find((f) => f.spec.id === 'marche_adjame');
     if (pMarche) {
+      const vx = -Math.sin(pMarche.angle);
+      const vz = Math.cos(pMarche.angle);
+      this.registerInteriorDoor({
+        id: 'door_adjame',
+        interiorId: 'marche_adjame',
+        siteId: 'marche_adjame',
+        name: pMarche.spec.name,
+        label: "🛒 Entrer — Marché d'Adjamé",
+        district: districtAt({ x: pMarche.x, z: pMarche.z }).name,
+        doorX: pMarche.x + vx * (pMarche.d / 2 + 2.4),
+        doorZ: pMarche.z + vz * (pMarche.d / 2 + 2.4),
+        outX: pMarche.x + vx * (pMarche.d / 2 + 3.8),
+        outZ: pMarche.z + vz * (pMarche.d / 2 + 3.8),
+        outRotY: -pMarche.angle,
+        radius: 3.4,
+        color: 0xf97316,
+      });
       this.addBeaconHotspot({
         id: 'work_adjame',
         label: '💼 Grand Marché d’Adjamé (Commerce)',
         district: 'Adjamé',
-        x: pMarche.x,
-        z: pMarche.z + 18,
-        radius: 6,
+        x: pMarche.x + vx * (pMarche.d / 2 + 10.5),
+        z: pMarche.z + vz * (pMarche.d / 2 + 10.5),
+        radius: 4.5,
         type: 'work',
         color: 0x10b981,
+      });
+    }
+
+    const pMairie = SPECIAL_FOOTPRINTS.find((f) => f.spec.id === 'mairie');
+    if (pMairie) {
+      const vx = -Math.sin(pMairie.angle);
+      const vz = Math.cos(pMairie.angle);
+      this.registerInteriorDoor({
+        id: 'door_mairie',
+        interiorId: 'mairie',
+        siteId: 'mairie',
+        name: pMairie.spec.name,
+        label: '🏛️ Entrer — Mairie du Plateau',
+        district: districtAt({ x: pMairie.x, z: pMairie.z }).name,
+        doorX: pMairie.x + vx * (pMairie.d / 2 + 2.4),
+        doorZ: pMairie.z + vz * (pMairie.d / 2 + 2.4),
+        outX: pMairie.x + vx * (pMairie.d / 2 + 3.8),
+        outZ: pMairie.z + vz * (pMairie.d / 2 + 3.8),
+        outRotY: -pMairie.angle,
+        radius: 3.4,
+        color: 0x0f766e,
+      });
+    }
+
+    const lyceeDoors: Array<{ id: 'lycee_caiman' | 'lycee_alysma' | 'lycee_alex'; label: string; color: number }> = [
+      { id: 'lycee_caiman', label: '🐊 Entrer — Lycée Classique', color: 0xd97706 },
+      { id: 'lycee_alysma', label: '🌸 Entrer — Lycée Sainte-Marie', color: 0xe11d48 },
+      { id: 'lycee_alex', label: "🎓 Entrer — Lycée d'Excellence de Bassam", color: 0x0284c7 },
+    ];
+    for (const ld of lyceeDoors) {
+      const fp = SPECIAL_FOOTPRINTS.find((f) => f.spec.id === ld.id);
+      if (!fp) continue;
+      const vx = -Math.sin(fp.angle);
+      const vz = Math.cos(fp.angle);
+      this.registerInteriorDoor({
+        id: `door_${ld.id}`,
+        interiorId: ld.id,
+        siteId: ld.id,
+        name: fp.spec.name,
+        label: ld.label,
+        district: districtAt({ x: fp.x, z: fp.z }).name,
+        doorX: fp.x + vx * (fp.d / 2 + 2.4),
+        doorZ: fp.z + vz * (fp.d / 2 + 2.4),
+        outX: fp.x + vx * (fp.d / 2 + 3.8),
+        outZ: fp.z + vz * (fp.d / 2 + 3.8),
+        outRotY: -fp.angle,
+        radius: 3.4,
+        color: ld.color,
       });
     }
 
@@ -1187,18 +1283,53 @@ export class AbidjanSceneManager {
     return this.activeInterior !== null;
   }
 
+  private registerInteriorDoor(opts: {
+    id: string;
+    interiorId: InteriorId;
+    siteId: string;
+    name: string;
+    label: string;
+    district: string;
+    doorX: number;
+    doorZ: number;
+    outX: number;
+    outZ: number;
+    outRotY: number;
+    radius: number;
+    color: number;
+  }) {
+    this.interiorDoors.set(opts.id, {
+      interiorId: opts.interiorId,
+      siteId: opts.siteId,
+      name: opts.name,
+      outX: opts.outX,
+      outZ: opts.outZ,
+      outRotY: opts.outRotY,
+    });
+    this.addBeaconHotspot({
+      id: opts.id,
+      label: opts.label,
+      district: opts.district,
+      x: opts.doorX,
+      z: opts.doorZ,
+      radius: opts.radius,
+      type: 'interior_door',
+      color: opts.color,
+    });
+  }
+
   /**
-   * Entre dans l'hôpital par la porte `doorId` : fondu géré par l'interface ; ici on construit la salle,
+   * Entre dans un intérieur par la porte `doorId` : fondu géré par l'interface ; ici on construit la salle,
    * on enregistre ses collisions, on téléporte le joueur et on fige la ville (elle reste chargée).
    */
   public enterInterior(doorId: string, spawn: 'door' | 'bed' = 'door'): { ok: boolean; reason?: 'driving' | 'unknown' } {
-    const door = this.hospitalDoors.get(doorId);
+    const door = this.interiorDoors.get(doorId);
     const core = this.physics;
-    if (!door || !core || this.playerCharId < 0) return { ok: false, reason: 'unknown' };
+    const def = door ? INTERIORS[door.interiorId] : undefined;
+    if (!door || !def || !core || this.playerCharId < 0) return { ok: false, reason: 'unknown' };
     if (this.activeInterior) return { ok: false };
     if (this.drivingVehicle) return { ok: false, reason: 'driving' };
 
-    const def = INTERIORS.hopital;
     const rig = createInteriorRig(def);
     this.scene.add(rig.group);
     const colliderIds: number[] = [];
@@ -1208,7 +1339,7 @@ export class AbidjanSceneManager {
       if (id >= 0) colliderIds.push(id);
     }
     const ex = interiorToWorld(def, def.exit.x, def.exit.z);
-    const hotspot: CityHotspot = {
+    const exitHotspot: CityHotspot = {
       id: `exit_${def.id}`,
       label: `🚪 Sortir — ${door.name}`,
       district: def.label,
@@ -1218,13 +1349,26 @@ export class AbidjanSceneManager {
       type: 'interior_exit',
       color: 0xef4444,
     };
+    const actionHotspots: CityHotspot[] = (def.actions ?? []).map((act) => {
+      const p = interiorToWorld(def, act.x, act.z);
+      return {
+        id: act.id,
+        label: act.label,
+        district: def.label,
+        x: p.x,
+        z: p.z,
+        radius: act.radius,
+        type: act.type,
+        color: act.color,
+      };
+    });
     this.activeInterior = {
-      id: def.id, def, rig, colliderIds, hotspot, label: door.name,
+      id: def.id, def, rig, colliderIds, hotspots: [exitHotspot, ...actionHotspots], label: door.name,
       returnX: door.outX, returnZ: door.outZ, returnRotY: door.outRotY,
       prevPitch: this.camPitch, prevDist: this.camDist,
     };
 
-    const at = spawn === 'bed' ? def.bed : def.entry;
+    const at = spawn === 'bed' && def.bed ? def.bed : def.entry;
     const w = interiorToWorld(def, at.x, at.z);
     core.placeCharacter(this.playerCharId, w.x, w.z);
     core.faceCharacter(this.playerCharId, at.rotY, true);
@@ -1264,12 +1408,15 @@ export class AbidjanSceneManager {
     return true;
   }
 
-  /** Murs de l'intérieur occupé : transparents côté caméra ; l'anneau « Sortir » pulse. */
+  /** Murs de l'intérieur occupé : transparents côté caméra ; les anneaux d'action pulsent. */
   private updateInteriorShell(dt: number, nowSec: number) {
     const a = this.activeInterior;
     if (!a) return;
     a.rig.fader.update(this.camPos.x - a.def.origin.x, this.camPos.z - a.def.origin.z, true, dt);
-    (a.rig.exitRing.material as THREE.MeshBasicMaterial).opacity = 0.6 + 0.25 * Math.sin(nowSec * 4);
+    const pulse = 0.6 + 0.25 * Math.sin(nowSec * 4);
+    (a.rig.exitRing.material as THREE.MeshBasicMaterial).opacity = pulse;
+    for (const r of a.rig.actionRings) (r.material as THREE.MeshBasicMaterial).opacity = pulse;
+    a.rig.animate?.(nowSec, dt);
   }
 
   /** Position du joueur à pied ou, depuis un intérieur, devant l'entrée (là où le taxi le prendrait). */
@@ -1765,7 +1912,7 @@ export class AbidjanSceneManager {
     if (this.taxiRide) return null;
     let best: CityHotspot | null = null;
     let bestD = Infinity;
-    const pool = this.activeInterior ? [this.activeInterior.hotspot] : [...this.homeHotspots, ...this.staticHotspots];
+    const pool = this.activeInterior ? this.activeInterior.hotspots : [...this.homeHotspots, ...this.staticHotspots];
     for (const h of pool) {
       const d = Math.hypot(this.playerX - h.x, this.playerZ - h.z);
       if (d <= h.radius && d < bestD) {

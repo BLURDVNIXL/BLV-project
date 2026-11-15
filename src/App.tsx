@@ -315,7 +315,7 @@ export default function App() {
         setPlayerState((prev) => donateYannisAcademy(prev));
         syncEconomy('yannis_academy');
         soundEngine.playJingle();
-      } else if (h.type === 'hospital_door') {
+      } else if (h.type === 'interior_door') {
         if (cur.isDriving) {
           showToast('🚗 Descends de ton véhicule pour entrer.');
         } else {

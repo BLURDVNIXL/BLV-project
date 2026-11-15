@@ -813,15 +813,29 @@ export function createMairiePlateauLandmark(): THREE.Group {
   const g = new THREE.Group();
   const wallMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.68 });
   const roofMat = new THREE.MeshStandardMaterial({ color: 0x0f766e, roughness: 0.55 });
+  const trimMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.8 });
+  const glassMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, emissive: 0xfef08a, emissiveIntensity: 0.16, roughness: 0.25 });
 
-  const base = new THREE.Mesh(new THREE.BoxGeometry(18, 0.8, 12), new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.8 }));
+  const base = new THREE.Mesh(new THREE.BoxGeometry(18, 0.8, 12), trimMat);
   base.position.y = 0.4;
   g.add(base);
+
+  const steps = new THREE.Mesh(new THREE.BoxGeometry(4.6, 0.44, 1.3), trimMat);
+  steps.position.set(0, 0.22, 6.45);
+  g.add(steps);
 
   const hall = new THREE.Mesh(new THREE.BoxGeometry(16, 7, 10), wallMat);
   hall.position.y = 4.3;
   hall.castShadow = true;
   g.add(hall);
+
+  const doorFrame = new THREE.Mesh(new THREE.BoxGeometry(3.2, 3.6, 0.22), roofMat);
+  doorFrame.position.set(0, 2.6, 5.06);
+  g.add(doorFrame);
+
+  const doorGlass = new THREE.Mesh(new THREE.BoxGeometry(2.7, 3.2, 0.26), glassMat);
+  doorGlass.position.set(0, 2.45, 5.08);
+  g.add(doorGlass);
 
   const pediment = new THREE.Mesh(new THREE.ConeGeometry(11.5, 3.2, 4), roofMat);
   pediment.rotation.y = Math.PI / 4;
@@ -835,14 +849,14 @@ export function createMairiePlateauLandmark(): THREE.Group {
     g.add(col);
   });
 
-  // Côte d'Ivoire tricolor banner (Orange - White - Green)
+  // Côte d'Ivoire tricolor banner (Orange - White - Green), décalée à droite du perron
   const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 11, 6), chromeMaterialShared);
-  pole.position.set(0, 6, 6.4);
+  pole.position.set(7.2, 5.5, 6.2);
   g.add(pole);
 
   [0xf97316, 0xffffff, 0x16a34a].forEach((c, idx) => {
     const strip = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.6, 0.08), new THREE.MeshStandardMaterial({ color: c, roughness: 0.5 }));
-    strip.position.set(-0.9 + idx * 0.9, 10.6, 6.45);
+    strip.position.set(6.3 + idx * 0.9, 10.1, 6.25);
     g.add(strip);
   });
 
@@ -883,6 +897,7 @@ export function createBassamFuturisticSchool(): THREE.Group {
   const whiteMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.35 });
   const goldMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.25, metalness: 0.25 });
   const glassMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.12, metalness: 0.22 });
+  const doorGlow = new THREE.MeshStandardMaterial({ color: 0x0ea5e9, emissive: 0x38bdf8, emissiveIntensity: 0.45, roughness: 0.2 });
 
   const arch = new THREE.Mesh(new THREE.TorusGeometry(9, 1.3, 8, 24, Math.PI), goldMat);
   arch.position.set(0, 1, 0);
@@ -894,46 +909,165 @@ export function createBassamFuturisticSchool(): THREE.Group {
   wingR.position.set(10, 3.5, 0);
   const centerGlass = new THREE.Mesh(new THREE.BoxGeometry(10, 8, 8), glassMat);
   centerGlass.position.set(0, 4, -2);
-  g.add(wingL, wingR, centerGlass);
+  // Hall d'entrée avancé (+z = 8) avec porte vitrée et auvent doré
+  const lobby = new THREE.Mesh(new THREE.BoxGeometry(6.8, 3.8, 6.2), whiteMat);
+  lobby.position.set(0, 1.9, 4.9);
+  lobby.castShadow = true;
+  const canopy = new THREE.Mesh(new THREE.BoxGeometry(7.6, 0.3, 2.2), goldMat);
+  canopy.position.set(0, 3.9, 8.0);
+  const door = new THREE.Mesh(new THREE.BoxGeometry(3.2, 2.9, 0.2), doorGlow);
+  door.position.set(0, 1.45, 8.02);
+  g.add(wingL, wingR, centerGlass, lobby, canopy, door);
 
   return g;
 }
 
-export function createMaquisStructure(): THREE.Group {
+export function createClassicLyceeStructure(w = 22, d = 14, h = 8, wallHex = 0xfef3c7, roofHex = 0xb45309): THREE.Group {
   const g = new THREE.Group();
+  const wallMat = new THREE.MeshStandardMaterial({ color: wallHex, roughness: 0.78 });
+  const trimMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.7 });
+  const roofMat = new THREE.MeshStandardMaterial({ color: roofHex, roughness: 0.62 });
+  const glassMat = new THREE.MeshStandardMaterial({ color: 0x334e68, emissive: 0xfef08a, emissiveIntensity: 0.16, roughness: 0.25 });
+
+  const plinth = new THREE.Mesh(new THREE.BoxGeometry(w + 0.4, 0.5, d + 0.4), trimMat);
+  plinth.position.y = 0.25;
+  g.add(plinth);
+
+  const body = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), wallMat);
+  body.position.y = h / 2 + 0.25;
+  body.castShadow = true;
+  body.receiveShadow = true;
+  g.add(body);
+
+  const cornice = new THREE.Mesh(new THREE.BoxGeometry(w + 1.0, 0.55, d + 1.0), roofMat);
+  cornice.position.y = h + 0.45;
+  cornice.castShadow = true;
+  g.add(cornice);
+
+  // Deux rangées de baies vitrées sur la façade et les côtés
+  for (const wy of [h * 0.36, h * 0.74]) {
+    const wf = new THREE.Mesh(new THREE.BoxGeometry(w * 0.78, 1.3, 0.12), glassMat);
+    wf.position.set(0, wy, d / 2 + 0.05);
+    const wb = new THREE.Mesh(new THREE.BoxGeometry(w * 0.78, 1.3, 0.12), glassMat);
+    wb.position.set(0, wy, -d / 2 - 0.05);
+    g.add(wf, wb);
+  }
+
+  // Portique central (+z = d/2) avec piliers, auvent et porte vitrée
+  const porchCanopy = new THREE.Mesh(new THREE.BoxGeometry(5.8, 0.35, 2.4), roofMat);
+  porchCanopy.position.set(0, 3.6, d / 2 + 1.1);
+  for (const px of [-2.4, 2.4]) {
+    const col = new THREE.Mesh(new THREE.BoxGeometry(0.36, 3.5, 0.36), trimMat);
+    col.position.set(px, 1.75, d / 2 + 2.0);
+    g.add(col);
+  }
+  const doorFrame = new THREE.Mesh(new THREE.BoxGeometry(3.1, 3.0, 0.18), roofMat);
+  doorFrame.position.set(0, 1.55, d / 2 + 0.06);
+  const doorGlass = new THREE.Mesh(new THREE.BoxGeometry(2.6, 2.6, 0.22), glassMat);
+  doorGlass.position.set(0, 1.45, d / 2 + 0.07);
+  g.add(porchCanopy, doorFrame, doorGlass);
+
+  return g;
+}
+
+export function createMaquisStructure(w = 18, d = 12, h = 5.2): THREE.Group {
+  const g = new THREE.Group();
+  const wallMat = new THREE.MeshStandardMaterial({ color: 0x9a3412, roughness: 0.82 });
+  const trimMat = new THREE.MeshStandardMaterial({ color: 0x451a03, roughness: 0.78 });
   const woodMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.85 });
-  const roofMat = new THREE.MeshStandardMaterial({ color: 0xb45309, roughness: 0.78 });
-  const neonMat = new THREE.MeshStandardMaterial({ color: 0xf43f5e, emissive: 0xf43f5e, emissiveIntensity: 1.2 });
+  const roofMat = new THREE.MeshStandardMaterial({ color: 0xb45309, roughness: 0.75 });
+  const warmGlass = new THREE.MeshStandardMaterial({ color: 0xfef3c7, emissive: 0xf59e0b, emissiveIntensity: 0.65, roughness: 0.25 });
+  const neonMat = new THREE.MeshStandardMaterial({ color: 0xf43f5e, emissive: 0xf43f5e, emissiveIntensity: 1.15 });
+  const bulbMat = new THREE.MeshStandardMaterial({ color: 0xfde047, emissive: 0xfbbf24, emissiveIntensity: 1.1 });
+  const spkMat = new THREE.MeshStandardMaterial({ color: 0x09090b, roughness: 0.6 });
+  const deckMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.85 });
 
-  const floor = new THREE.Mesh(new THREE.BoxGeometry(12, 0.25, 10), new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.8 }));
-  floor.position.y = 0.125;
-  g.add(floor);
+  // Corps du bâtiment (aligné sur l'emprise solide w × d, façade avant +z = d/2)
+  const body = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), wallMat);
+  body.position.y = h / 2;
+  body.castShadow = true;
+  body.receiveShadow = true;
+  g.add(body);
 
+  const roofRim = new THREE.Mesh(new THREE.BoxGeometry(w + 0.8, 0.35, d + 0.8), roofMat);
+  roofRim.position.y = h + 0.18;
+  roofRim.castShadow = true;
+  g.add(roofRim);
+
+  const plinth = new THREE.Mesh(new THREE.BoxGeometry(w + 0.3, 0.4, d + 0.3), deckMat);
+  plinth.position.y = 0.2;
+  g.add(plinth);
+
+  // Bandeau lumineux chaleureux sur la façade avant et les côtés
+  const winFrontL = new THREE.Mesh(new THREE.BoxGeometry(w * 0.26, 1.1, 0.08), warmGlass);
+  winFrontL.position.set(-w * 0.28, 2.3, d / 2 + 0.04);
+  const winFrontR = new THREE.Mesh(new THREE.BoxGeometry(w * 0.26, 1.1, 0.08), warmGlass);
+  winFrontR.position.set(w * 0.28, 2.3, d / 2 + 0.04);
+  g.add(winFrontL, winFrontR);
+
+  // Porte vitrée d'entrée au centre (+z = d/2)
+  const doorFrame = new THREE.Mesh(new THREE.BoxGeometry(3.1, 2.9, 0.18), trimMat);
+  doorFrame.position.set(0, 1.45, d / 2 + 0.05);
+  const doorGlass = new THREE.Mesh(new THREE.BoxGeometry(2.5, 2.5, 0.22), warmGlass);
+  doorGlass.position.set(0, 1.35, d / 2 + 0.06);
+  g.add(doorFrame, doorGlass);
+
+  // Avancée en paillote ouverte devant l'entrée (z = +d/2 .. +d/2 + 5.2, passage central libre)
+  const patioD = 5.2;
+  const patioW = Math.min(13.6, w - 2.4);
+  const patioZ = d / 2 + patioD / 2;
+  const deck = new THREE.Mesh(new THREE.BoxGeometry(patioW, 0.04, patioD), deckMat);
+  deck.position.set(0, 0.02, patioZ);
+  deck.receiveShadow = true;
+  g.add(deck);
+
+  // Poteaux de paillote bien écartés de l'axe de la porte (±6 m)
+  const postX = patioW / 2 - 0.6;
   [
-    [-5.5, -4.5],
-    [5.5, -4.5],
-    [-5.5, 4.5],
-    [5.5, 4.5],
+    [-postX, d / 2 + 0.5],
+    [postX, d / 2 + 0.5],
+    [-postX, d / 2 + patioD - 0.5],
+    [postX, d / 2 + patioD - 0.5],
   ].forEach(([px, pz]) => {
-    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 4, 8), woodMat);
-    post.position.set(px, 2, pz);
+    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.18, 3.9, 8), woodMat);
+    post.position.set(px, 1.95, pz);
+    post.castShadow = true;
     g.add(post);
   });
 
-  const roof = new THREE.Mesh(new THREE.ConeGeometry(8.5, 2.2, 4), roofMat);
-  roof.rotation.y = Math.PI / 4;
-  roof.position.y = 5.1;
-  g.add(roof);
+  // Grand toit de paillote pyramidal au-dessus de la terrasse ouverte
+  const pailloteRoof = new THREE.Mesh(new THREE.ConeGeometry(patioW * 0.68, 2.0, 4), roofMat);
+  pailloteRoof.rotation.y = Math.PI / 4;
+  pailloteRoof.position.set(0, 4.9, patioZ);
+  pailloteRoof.castShadow = true;
+  g.add(pailloteRoof);
 
-  const sign = new THREE.Mesh(new THREE.BoxGeometry(5.5, 0.9, 0.2), neonMat);
-  sign.position.set(0, 3.8, 4.8);
+  // Enseigne néon au fronton de la paillote + guirlande ambre
+  const sign = new THREE.Mesh(new THREE.BoxGeometry(5.6, 0.78, 0.22), neonMat);
+  sign.position.set(0, 3.35, d / 2 + patioD + 0.04);
   g.add(sign);
 
-  // Two giant speakers outside
-  [-4.2, 4.2].forEach((sx) => {
-    const spk = new THREE.Mesh(new THREE.BoxGeometry(1.1, 2.1, 0.9), new THREE.MeshStandardMaterial({ color: 0x09090b, roughness: 0.6 }));
-    spk.position.set(sx, 1.2, 4.4);
+  for (let i = -2; i <= 2; i++) {
+    const bulb = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.22, 0.22), bulbMat);
+    bulb.position.set(i * 2.2, 3.72, d / 2 + patioD - 0.15);
+    g.add(bulb);
+  }
+
+  // Deux baffles géantes encadrant la façade du maquis
+  [-4.4, 4.4].forEach((sx) => {
+    const spk = new THREE.Mesh(new THREE.BoxGeometry(1.1, 2.1, 0.9), spkMat);
+    spk.position.set(sx, 1.25, d / 2 + 0.48);
+    spk.castShadow = true;
     g.add(spk);
+  });
+
+  // Deux mange-debout décoratifs sur les bords de la terrasse (hors du passage central)
+  [-4.6, 4.6].forEach((tx) => {
+    const table = new THREE.Mesh(new THREE.CylinderGeometry(0.65, 0.65, 0.08, 12), woodMat);
+    table.position.set(tx, 0.95, d / 2 + 3.2);
+    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.14, 0.9, 8), trimMat);
+    leg.position.set(tx, 0.45, d / 2 + 3.2);
+    g.add(table, leg);
   });
 
   return g;
@@ -1168,27 +1302,106 @@ export function createCashPickupMesh(): THREE.Group {
   return g;
 }
 
-export function createMarketStallCluster(): THREE.Group {
+export function createMarketStallCluster(w = 36, d = 18, h = 9.5): THREE.Group {
   const g = new THREE.Group();
-  const colors = [0xf97316, 0x16a34a, 0x2563eb, 0xeab308];
+  const wallMat = new THREE.MeshStandardMaterial({ color: 0xb85c38, roughness: 0.8 });
+  const trimMat = new THREE.MeshStandardMaterial({ color: 0xfef3c7, roughness: 0.72 });
+  const plinthMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.85 });
+  const roofMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.68 });
+  const skyGlass = new THREE.MeshStandardMaterial({ color: 0xfef08a, emissive: 0xf59e0b, emissiveIntensity: 0.5, roughness: 0.25 });
+  const woodMat = new THREE.MeshStandardMaterial({ color: 0x92400e, roughness: 0.85 });
   const poleMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.85 });
-  for (let i = 0; i < 3; i++) {
-    const ox = (i - 1) * 4.2;
-    const table = new THREE.Mesh(
-      new THREE.BoxGeometry(2.8, 0.9, 1.8),
-      new THREE.MeshStandardMaterial({ color: 0x92400e, roughness: 0.85 })
-    );
-    table.position.set(ox, 0.45, 0);
-    const canopy = new THREE.Mesh(
-      new THREE.ConeGeometry(2.1, 0.8, 4),
-      new THREE.MeshStandardMaterial({ color: colors[i % colors.length], roughness: 0.72 })
-    );
+  const crateMat = new THREE.MeshStandardMaterial({ color: 0xb45309, roughness: 0.85 });
+  const canopyMats = [0xf97316, 0x16a34a, 0x2563eb, 0xeab308, 0xdc2626, 0x9333ea].map(
+    (c) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.72 })
+  );
+  const goodsMats = [0xef4444, 0xfacc15, 0x22c55e, 0x3b82f6, 0xec4899].map(
+    (c) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.65 })
+  );
+
+  // 1. Grande Halle couverte centrale (alignée sur l'emprise solide w × d)
+  const hall = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), wallMat);
+  hall.position.y = h / 2;
+  hall.castShadow = true;
+  hall.receiveShadow = true;
+  g.add(hall);
+
+  const plinth = new THREE.Mesh(new THREE.BoxGeometry(w + 0.5, 0.5, d + 0.5), plinthMat);
+  plinth.position.y = 0.25;
+  g.add(plinth);
+
+  const roofBase = new THREE.Mesh(new THREE.BoxGeometry(w + 1.4, 0.55, d + 1.4), roofMat);
+  roofBase.position.y = h + 0.25;
+  roofBase.castShadow = true;
+  const roofMonitor = new THREE.Mesh(new THREE.BoxGeometry(w * 0.72, 1.4, d * 0.48), trimMat);
+  roofMonitor.position.y = h + 1.1;
+  const roofCap = new THREE.Mesh(new THREE.BoxGeometry(w * 0.76, 0.35, d * 0.54), roofMat);
+  roofCap.position.y = h + 1.95;
+  g.add(roofBase, roofMonitor, roofCap);
+
+  // Bandeaux vitrés en hauteur sur les 4 faces
+  const clereFront = new THREE.Mesh(new THREE.BoxGeometry(w * 0.84, 1.3, 0.1), skyGlass);
+  clereFront.position.set(0, h * 0.68, d / 2 + 0.05);
+  const clereBack = new THREE.Mesh(new THREE.BoxGeometry(w * 0.84, 1.3, 0.1), skyGlass);
+  clereBack.position.set(0, h * 0.68, -d / 2 - 0.05);
+  g.add(clereFront, clereBack);
+
+  // Portique et double porte vitrée sur la façade sud (+z = d/2)
+  const portal = new THREE.Mesh(new THREE.BoxGeometry(5.6, 3.8, 0.4), trimMat);
+  portal.position.set(0, 1.9, d / 2 + 0.12);
+  const doorGlass = new THREE.Mesh(new THREE.BoxGeometry(3.4, 2.8, 0.45), skyGlass);
+  doorGlass.position.set(0, 1.4, d / 2 + 0.15);
+  const awning = new THREE.Mesh(new THREE.BoxGeometry(7.2, 0.3, 2.2), roofMat);
+  awning.position.set(0, 3.7, d / 2 + 1.1);
+  g.add(portal, doorGlass, awning);
+
+  // Enseigne courte frontale
+  const marquee = new THREE.Mesh(
+    new THREE.BoxGeometry(6.8, 1.0, 0.22),
+    new THREE.MeshStandardMaterial({ color: 0x7c2d12, emissive: 0xd97706, emissiveIntensity: 0.7 })
+  );
+  marquee.position.set(0, 4.9, d / 2 + 0.15);
+  g.add(marquee);
+
+  // 2. Grand marché ouvert autour de la Halle : 16 étals colorés avec allée centrale dégagée (|x| >= 8.5)
+  const addStall = (sx: number, sz: number, idx: number, rotY = 0) => {
+    const s = new THREE.Group();
+    s.position.set(sx, 0, sz);
+    s.rotation.y = rotY;
+    const table = new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.88, 1.7), woodMat);
+    table.position.set(0, 0.44, 0);
+    table.castShadow = true;
+    const canopy = new THREE.Mesh(new THREE.ConeGeometry(2.5, 0.9, 4), canopyMats[idx % canopyMats.length]);
     canopy.rotation.y = Math.PI / 4;
-    canopy.position.set(ox, 2.7, 0);
-    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 2.5, 6), poleMat);
-    pole.position.set(ox, 1.35, 0);
-    g.add(table, canopy, pole);
+    canopy.position.set(0, 2.85, 0);
+    canopy.castShadow = true;
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.09, 2.6, 6), poleMat);
+    pole.position.set(0, 1.3, 0);
+    // Paniers & rouleaux de pagne colorés sur l'étal
+    const g1 = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.28, 0.65), goodsMats[idx % goodsMats.length]);
+    g1.position.set(-0.9, 1.02, 0.1);
+    const g2 = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.34, 0.65), goodsMats[(idx + 2) % goodsMats.length]);
+    g2.position.set(0.85, 1.05, -0.05);
+    const crate = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.45, 0.55), crateMat);
+    crate.position.set(1.15, 0.22, 1.05);
+    s.add(table, canopy, pole, g1, g2, crate);
+    g.add(s);
+  };
+
+  let idx = 0;
+  // Parvis sud (2 rangées de part et d'autre de l'allée centrale et du point commerce)
+  for (const sz of [d / 2 + 6.8, d / 2 + 12.8]) {
+    for (const sx of [-26, -18, -10.5, 10.5, 18, 26]) {
+      addStall(sx, sz, idx++);
+    }
   }
+  // Ailes ouest et est de la halle (étals perpendiculaires)
+  for (const sx of [-(w / 2 + 5.8), w / 2 + 5.8]) {
+    for (const sz of [-4.2, 3.8]) {
+      addStall(sx, sz, idx++, Math.PI / 2);
+    }
+  }
+
   return g;
 }
 
