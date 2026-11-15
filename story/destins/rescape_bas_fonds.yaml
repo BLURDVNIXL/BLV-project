@@ -1,0 +1,634 @@
+destin: rescape_bas_fonds
+titre: "Sept Jours vers la Lumière"
+rarete: legendaire
+genre: libre
+resume: "Ancien revendeur de rue à Koumassi, tu entames un sevrage avec ta sœur Léa à tes côtés. Sékou t'offre de quoi tenir, le docteur Sanogo t'offre un groupe de parole, et un jeune du quartier, Moussa, dépend de ce que tu feras. Il n'y a pas de guérison en sept jours : il y a des jours, un à la fois."
+themes: [sevrage, reduction_des_risques, fraternite, temoignage]
+fonction_dramatique: >-
+  Le Rescapé est le seul protagoniste qui voit la Cité Lagune-Nord depuis le corps : une santé
+  fragile, une chambre à Koumassi, un réseau qui sait où il dort. Il connaît les fournisseurs, donc
+  les noms. Son arc n'est pas de « guérir » mais de tenir, de rechuter peut-être, et de décider
+  ce qu'il fait de ce qu'il sait pour que Moussa, lui, s'en sorte.
+
+depart:
+  camp: ombre
+  compromission: 5
+  argent_fcfa: 20000
+  etoile: 40
+  sante: 45
+  energie: 50
+  metier: dealer_rue
+  echelon: revendeur
+  ecole: aucune
+  diplomes: []
+  charges_mensuelles: 80000      # chambre, repas, remboursements de petites dettes
+  logement_descriptif: "Une chambre à Koumassi"
+  competences: {terrain: 4, negoce: 2}
+  relations:
+    lea: {trust: 2}
+    sanogo: {trust: 1}
+    sekou: {trust: 1}
+  factions:
+    ombre: {reputation: 1}
+    ordre: {exposition: 1}
+
+cercle:
+  - {id: lea, nom: "Léa, ta sœur", rel: proche}
+  - {id: sanogo, nom: "Docteur Sanogo", rel: allie}
+  - {id: moussa, nom: "Moussa, un jeune du quartier", rel: neutre}
+  - {id: sekou, nom: "Sékou, ton ancien fournisseur", rel: rival}
+  - {id: aya, nom: "Lieutenante Aya Coulibaly", rel: neutre}
+  - {id: fatou, nom: "Fatou Bamba", rel: allie}
+
+flags: [sevrage_accompagne, groupe, suivi_clinique, tenu_seul, rechute, poste_sekou, moussa_sauve, moussa_perdu,
+        parole_publique, pair_aidant, coupe_sekou, lea_vue, temoin, trahi_sekou, sans_protection, protection_aya,
+        loyal_sekou, silence, lea_evacuee, lea_laissee, aide_voisins]
+faits: [veillee, tenu]
+preuves: [cahier_moussa]
+actifs: []
+
+# --------------------------------------------------------------------------- événements
+evenements:
+  - id: re_ev_rechute
+    jour: 60
+    si: "not flags.groupe"
+    txt: "Une nuit, tu retombes. Léa te retrouve au matin, ne dit rien, ouvre la fenêtre, fait chauffer de l'eau et reste. Ce n'est pas la fin : c'est un jour de plus à reprendre."
+    eff: {flags: [rechute], sante: -5, relations: {lea: {peur: 1}}}
+    sinon_txt: "Le groupe organise une veillée. Le docteur Sanogo te dit : « Une rechute n'est pas une fin. Ce qui compte, c'est que tu viennes demain. »"
+    sinon_eff: {relations: {sanogo: {trust: 1}}}
+  - id: re_ev_sekou
+    jour: 120
+    si: "flags.poste_sekou"
+    txt: "Sékou augmente tes quotas : « Les temps sont durs, mon frère. » Il sait que tu ne peux pas refuser sans perdre ton toit."
+    eff: {compromission: 1, relations: {sekou: {trust: 1}}}
+    sinon_txt: "Deux hommes de Sékou passent devant la clinique de Sanogo, à pied, trois jours de suite. Ils ne s'arrêtent pas. Léa les a vus."
+    sinon_eff: {relations: {lea: {peur: 1}}}
+  - id: re_ev_lea
+    jour: 170
+    si: "relations.lea.trust <= 1"
+    txt: "Léa a trouvé une place chez sa tante, à Bouaké. Elle t'a laissé un mot sur la table : « Je reviens quand tu seras là, vraiment. »"
+    eff: {relations: {lea: {trust: -1}}}
+    sinon_txt: "Léa te confie la clé de l'étal de leur mère : « Tu m'aides le matin, et on verra le reste. »"
+    sinon_eff: {relations: {lea: {trust: 1}}}
+  - id: re_ev_moussa
+    jour: 230
+    si: "flags.moussa_sauve"
+    txt: "Moussa, sorti de l'hôpital, passe te voir avec un cahier d'écolier : « Les noms de ceux qui m'ont vendu, avec les dates. Je ne sais pas à qui le donner. Toi, tu sauras. »"
+    eff: {preuves: {cahier_moussa: {action: obtenir}}, relations: {moussa: {trust: 1}}}
+    sinon_txt: "La mère de Moussa te cherche dans le quartier. Elle ne crie pas. Elle demande seulement si tu sais où est son fils."
+    sinon_eff: {flags: [moussa_perdu], relations: {sanogo: {trust: -1}}}
+  - id: re_ev_clinique
+    jour: 283
+    si: "relations.sanogo.trust >= 2"
+    txt: "À l'aube, Sanogo ouvre la clinique à tous les sinistrés de Koumassi, y compris à ceux que le quartier regardait de travers. Il t'attend avec une blouse en trop : « Viens, si tu veux aider. »"
+    eff: {etoile_mod: {valeur: 5, jours: 30}, relations: {sanogo: {trust: 1}}}
+    sinon_txt: "La clinique est débordée. Sanogo, seul, n'a plus de temps pour personne."
+    sinon_eff: {relations: {sanogo: {trust: -1}}}
+
+# --------------------------------------------------------------------------- nœuds
+noeuds:
+  - id: re_0_chambre
+    jalon: 0
+    jour: 1
+    lieu: "Koumassi, chambre"
+    moment: "Matin, premier jour sans"
+    objectif: "Installer le sevrage sans l'esthétiser : un corps fragile, une sœur qui reste, un téléphone qui sonne."
+    present: [lea]
+    savoir: "Tu tiens depuis hier soir. Ton corps proteste. Tu sais que d'autres ont essayé et ont lâché."
+    dialogue:
+      - {narr: "La chambre sent la sueur froide et le savon. Léa pose sur la table un bol de riz, une bouteille d'eau, une vieille couverture."}
+      - {qui: lea, dit: "Tiens bon, grand frère. Je reste. Je ne te demande pas de promettre, juste de manger."}
+      - {qui: radio, dit: "… la future Cité Lagune-Nord offrira des milliers d'emplois aux jeunes de la ville …"}
+    choix:
+      - id: manger
+        l: "Manger ce que Léa t'apporte et rester allongé"
+        intention: "Tenir d'abord avec ce que tu as"
+        cout: "Une journée vide, et le téléphone qui vibre sans toi."
+        eff: {relations: {lea: {trust: 2}}, energie: 5}
+        vers: re_0_septjours
+      - id: appeler_sanogo
+        l: "Appeler le docteur Sanogo, dont Léa t'a laissé le numéro"
+        intention: "Ne pas tenir seul"
+        cout: "Admettre que tu as besoin de quelqu'un."
+        eff: {flags: [sevrage_accompagne], relations: {sanogo: {trust: 2}}}
+        vers: re_0_septjours
+      - id: voir_sekou
+        l: "Aller voir Sékou, « juste pour lui dire que tu arrêtes »"
+        intention: "Régler ça face à face"
+        cout: "Une ruelle de Koumassi n'a jamais aidé personne à tenir."
+        vu_par: [ombre]
+        eff: {compromission: 1, relations: {sekou: {trust: 1}, lea: {trust: -1}}, factions: {ombre: {reputation: 1}}}
+        vers: re_0_septjours
+
+  - id: re_0_septjours
+    jalon: 0
+    jour: 8
+    lieu: "Koumassi, clinique du docteur Sanogo"
+    moment: "Septième jour"
+    objectif: "Le septième jour : ni victoire, ni catastrophe. Une porte, que tu peux ouvrir ou laisser."
+    present: [sanogo, lea]
+    savoir: "Sanogo ne te promet rien. Il te propose un suivi, un groupe de parole, des gestes pour limiter les risques."
+    dialogue:
+      - {narr: "Une salle claire, des chaises disposées en cercle, un ventilateur qui grince. Sanogo pose une trousse sur la table et te laisse la regarder."}
+      - {qui: sanogo, dit: "Sept jours, c'est un début, pas une fin. Je ne te demande pas d'être parfait. Je te propose un suivi, et un groupe. Et si tu retombes, tu reviens, c'est tout."}
+      - {qui: sanogo, dit: "Un jour tu pourras peut-être aider quelqu'un d'autre à passer ce même cap. Pas aujourd'hui."}
+    choix:
+      - id: groupe
+        l: "Entrer dans le groupe de parole"
+        intention: "Ne plus être le seul à savoir ce que c'est"
+        cout: "Parler à voix haute devant des inconnus."
+        eff: {flags: [groupe, suivi_clinique], energie: -5, relations: {sanogo: {trust: 2}, lea: {trust: 1}}}
+        vers: re_1_sekou
+      - id: suivi
+        l: "Accepter seulement le suivi médical, sans le groupe"
+        intention: "Une aide sans t'exposer"
+        cout: "Tu portes le reste seul."
+        eff: {flags: [suivi_clinique], relations: {sanogo: {trust: 1}}}
+        vers: re_1_sekou
+      - id: seul
+        l: "Remercier et tenir vingt-quatre heures seul"
+        intention: "Prouver que tu peux"
+        cout: "Prouver quoi, et à qui ?"
+        eff: {flags: [tenu_seul]}
+        tirage:
+          difficulte: 4
+          issues:
+            miracle: {vers: re_1_sekou, eff: {relations: {lea: {trust: 1, fait: tenu}}}, txt: "Tu tiens. Léa pleure sans bruit, et ne dit rien pour ne pas casser ça."}
+            normal: {vers: re_1_sekou, eff: {sante: -5}, txt: "Tu tiens à moitié. Tu trembles toute la nuit, mais tu es encore là le matin."}
+            mauvaise: {vers: re_1_sekou, eff: {flags: [rechute], sante: -10, relations: {lea: {peur: 1}}}, txt: "Tu retombes. Léa te retrouve, ne dit rien, et reste. Ce n'est pas une fin, c'est un jour à reprendre."}
+
+  - id: re_1_sekou
+    jalon: 1
+    jour: 40
+    lieu: "Koumassi, ruelle"
+    moment: "Soir"
+    objectif: "Sékou te propose de quoi tenir : un poste, une avance, et un toit que tu risques de perdre."
+    present: [sekou]
+    savoir: "Sékou connaît ta chambre, ta sœur, ta santé. Il ne menace pas : il offre."
+    dialogue:
+      - {narr: "Sékou t'attend sous le lampadaire cassé, les mains dans les poches, sans un geste brusque."}
+      - {qui: sekou, dit: "Mon frère. Tu connais le terrain mieux que personne. Un poste, trente mille francs d'avance, et on oublie le reste. Tu n'as pas à choisir entre ta sœur et nous."}
+      - {qui: sekou, dit: "Je ne dis pas que tu dois dire oui. Je dis que la porte est ouverte."}
+    choix:
+      - id: accepter_poste
+        l: "Accepter le poste et l'avance de 30 000 F"
+        intention: "Un toit, un revenu, une protection"
+        cout: "Tu retournes là où tu es tombé."
+        vu_par: [ombre]
+        eff: {compromission: 3, argent: 30000, flags: [poste_sekou], factions: {ombre: {reputation: 2}}, relations: {sekou: {trust: 2}, lea: {trust: -1}}}
+        vers: re_1_moussa
+      - id: refuser_poste
+        l: "Refuser, même si ça te laisse sans revenu"
+        intention: "Ne pas retourner là-dedans"
+        cout: "Un loyer à payer et personne pour t'avancer quoi que ce soit."
+        vu_par: [ombre]
+        eff: {compromission: -1, flags: [coupe_sekou], factions: {ombre: {exposition: 1}}, relations: {sekou: {peur: 1}, lea: {trust: 1}}}
+        vers: re_1_moussa
+      - id: reflechir
+        l: "Dire que tu y penses, sans promettre"
+        intention: "Gagner du temps"
+        cout: "Sékou n'aime pas attendre."
+        vu_par: [ombre]
+        tirage:
+          difficulte: 4
+          issues:
+            miracle: {vers: re_1_moussa, eff: {relations: {sekou: {trust: 1}}}, txt: "Sékou hoche la tête : « Pense, mon frère. La porte reste ouverte. »"}
+            normal: {vers: re_1_moussa, eff: {compromission: 1}, txt: "Sékou te serre l'épaule : « Je repasse la semaine prochaine. »"}
+            mauvaise: {vers: re_1_moussa, eff: {compromission: 2, flags: [poste_sekou], argent: 30000}, txt: "Sékou glisse l'avance dans ta poche avant que tu ne protestes : « Je prends ton silence pour un oui. »"}
+
+  - id: re_1_moussa
+    jalon: 1
+    jour: 75
+    lieu: "Koumassi, coin de la ruelle"
+    moment: "Nuit"
+    objectif: "Moussa, un jeune du quartier que tu as déjà vu chez toi, s'effondre devant toi. Que fais-tu de ce que tu sais ?"
+    present: [moussa, sanogo]
+    savoir: "Moussa a 24 ans. Il ne répond plus quand tu l'appelles. Le dispensaire de Sanogo est à cinq minutes."
+    dialogue:
+      - {narr: "Moussa est assis contre un mur, la tête penchée, la respiration lente et irrégulière. Personne dans la ruelle. Ton téléphone sonne dans ta poche."}
+      - {qui: sanogo, dit: "Si tu es là, ne le laisse pas seul. Reste avec lui, parle-lui, appelle-moi. Les gestes de base, tu les connais.", si: "flags.suivi_clinique"}
+    choix:
+      - id: rester_appeler
+        l: "Rester avec Moussa, le mettre sur le côté, appeler le docteur Sanogo et les secours"
+        intention: "Ne pas laisser quelqu'un mourir seul"
+        cout: "Tu seras vu, et on te posera des questions."
+        eff: {compromission: -2, flags: [moussa_sauve], relations: {moussa: {trust: 2}, sanogo: {trust: 1}}}
+        vers: re_2_princesse_poste
+      - id: gestes
+        l: "Appliquer les gestes que tu as appris à la clinique, en attendant les secours"
+        intention: "Faire tout ce que tu peux, toi-même"
+        cout: "Si tu te trompes, tu le vivras longtemps."
+        si: "flags.suivi_clinique"
+        eff: {compromission: -2, energie: -10}
+        tirage:
+          difficulte: 4
+          issues:
+            miracle: {vers: re_2_princesse_poste, eff: {flags: [moussa_sauve], relations: {moussa: {trust: 3}, sanogo: {trust: 2}}}, txt: "Moussa reprend son souffle avant l'arrivée des secours. Sanogo te regarde longtemps, sans rien dire."}
+            normal: {vers: re_2_princesse_poste, eff: {flags: [moussa_sauve], relations: {moussa: {trust: 1}}}, txt: "Les secours arrivent à temps. Moussa est emmené, vivant, et tu restes dans la ruelle les mains vides."}
+            mauvaise: {vers: re_2_princesse_poste, eff: {flags: [moussa_sauve], sante: -5, relations: {moussa: {trust: 1}}}, txt: "Tu perds du temps à chercher ton téléphone. Les secours arrivent tard, mais Moussa est sauvé. Tu n'oublieras pas ces minutes."}
+      - id: partir
+        l: "Partir : tu ne peux pas être vu ici"
+        intention: "Te protéger"
+        cout: "Tu devras le savoir, toute ta vie."
+        eff: {compromission: 2, flags: [moussa_perdu], relations: {sanogo: {trust: -2}}}
+        vers: re_2_princesse_poste
+
+  - id: re_2_princesse_poste
+    jalon: 2
+    jour: 110
+    carrefour: A
+    si: "flags.poste_sekou"
+    sinon: re_2_princesse_parole
+    lieu: "Yopougon, Rue Princesse"
+    moment: "Nuit de fin d'année"
+    objectif: "Sékou te met à un poste de revente pendant la grande soirée. Léa apparaît dans la foule."
+    present: [sekou, lea]
+    savoir: "Léa ne sait pas que tu es là. Si les hommes de Sékou la voient, elle devient un visage qu'ils connaissent."
+    dialogue:
+      - {narr: "Champagne, sono, poisson braisé. Sékou te place derrière un étal, à la limite de la lumière. Au loin, une silhouette que tu reconnais entre mille, mal à l'aise."}
+      - {qui: sekou, dit: "Reste ici. Tu surveilles, tu ne bouges pas. C'est une soirée tranquille, mon frère."}
+      - {qui: lea, dit: "Grand frère. Je savais que je te trouverais. Viens, on rentre."}
+    choix:
+      - id: rester
+        l: "Rester à ton poste : tu ne peux pas partir devant Sékou"
+        intention: "Ne pas te fâcher avec ceux qui te logent"
+        cout: "Léa repart seule, et les hommes de Sékou l'ont vue."
+        vu_par: [ombre]
+        eff: {compromission: 3, flags: [lea_vue], relations: {lea: {trust: -2}}, factions: {ombre: {reputation: 1}}}
+        vers: re_2_travail
+      - id: partir_lea
+        l: "Partir avec Léa devant tout le monde"
+        intention: "Choisir ta sœur"
+        cout: "Sékou notera que tu es parti sans lui dire."
+        vu_par: [ombre]
+        eff: {compromission: -2, flags: [lea_vue], relations: {lea: {trust: 2}, sekou: {peur: 1}}, factions: {ombre: {exposition: 1}}}
+        vers: re_2_travail
+      - id: expliquer
+        l: "Dire à Sékou que tu pars « un quart d'heure », sans promettre de revenir"
+        intention: "Sauver la face de tous"
+        cout: "Une demi-vérité se vérifie."
+        vu_par: [ombre]
+        tirage:
+          difficulte: 4
+          issues:
+            miracle: {vers: re_2_travail, eff: {flags: [lea_vue], relations: {lea: {trust: 1}}}, txt: "Sékou sourit, te laisse partir. Léa te prend le bras sans un mot."}
+            normal: {vers: re_2_travail, eff: {compromission: 1, flags: [lea_vue]}, txt: "Sékou hausse les épaules : « Reviens vite. » Léa et toi marchez en silence."}
+            mauvaise: {vers: re_2_travail, eff: {compromission: 2, flags: [lea_vue], relations: {lea: {trust: -1}}}, txt: "Sékou te retient par la manche : « Ta sœur, elle est mignonne. » Léa le regarde, sans comprendre."}
+
+  - id: re_2_princesse_parole
+    jalon: 2
+    jour: 110
+    carrefour: A
+    si: "flags.groupe"
+    sinon: re_2_princesse_entre
+    lieu: "Yopougon, Rue Princesse"
+    moment: "Nuit de fin d'année"
+    objectif: "Le groupe de parole est venu à la soirée : Fatou y est avec un micro. Tu peux dire ou ne pas dire."
+    present: [sanogo, fatou, lea]
+    savoir: "Fatou ne cherche pas ton histoire pour la vendre. Elle cherche des voix de quartier."
+    dialogue:
+      - {narr: "Dans un coin du maquis, une table longue, des chaises dépareillées. Le groupe de parole est venu en groupe, sans bruit. Fatou, un micro éteint à la main, s'assoit près de toi."}
+      - {qui: fatou, dit: "Pas besoin de dire ton nom. Mais si tu as quelque chose à dire, la radio l'entendra."}
+      - {qui: sanogo, dit: "Tu n'as pas à le faire. Tu peux aussi seulement écouter ce soir."}
+    choix:
+      - id: parole
+        l: "Raconter ton histoire à la radio, sous un autre nom"
+        intention: "Que d'autres sachent qu'on peut s'en sortir"
+        cout: "Ceux qui te connaissent reconnaîtront ta voix."
+        eff: {compromission: -2, flags: [parole_publique], relations: {fatou: {trust: 2}, sanogo: {trust: 1}, lea: {trust: 1}}}
+        vers: re_2_travail
+      - id: ecouter
+        l: "Écouter seulement, ce soir"
+        intention: "Prendre ta place sans te dévoiler"
+        cout: "Tu portes encore ton histoire seul."
+        eff: {relations: {sanogo: {trust: 1}}}
+        vers: re_2_travail
+      - id: partir_soiree
+        l: "Quitter la soirée : trop de monde, trop de bruit"
+        intention: "Te protéger"
+        cout: "Léa te regarde partir."
+        eff: {relations: {lea: {trust: -1}}}
+        vers: re_2_travail
+
+  - id: re_2_princesse_entre
+    jalon: 2
+    jour: 110
+    carrefour: A
+    lieu: "Yopougon, Rue Princesse"
+    moment: "Nuit de fin d'année"
+    objectif: "Tu as tenu quelques semaines. Léa en est heureuse. Sékou t'envoie un message."
+    present: [lea]
+    savoir: "Tu as tenu. Un message de Sékou vibre dans ta poche : « On a besoin de toi. »"
+    dialogue:
+      - {narr: "Lumières, sono, odeur de poisson braisé. Léa te serre le bras, fière, sans le dire. Dans ta poche, le téléphone vibre."}
+      - {qui: lea, dit: "Tu vois ? Tu as tenu. Tu n'as pas besoin de lui."}
+    choix:
+      - id: ignorer
+        l: "Ignorer le message et aller voir le docteur Sanogo demain"
+        intention: "Rester sur ta ligne"
+        cout: "Sékou aura noté ton silence."
+        vu_par: [ombre]
+        eff: {compromission: -2, flags: [suivi_clinique], relations: {sanogo: {trust: 1}, lea: {trust: 1}}, factions: {ombre: {exposition: 1}}}
+        vers: re_2_travail
+      - id: repondre
+        l: "Répondre à Sékou : « Je t'appelle demain »"
+        intention: "Ne pas te fâcher"
+        cout: "Tu ouvres une porte que tu avais fermée."
+        vu_par: [ombre]
+        eff: {compromission: 2, relations: {sekou: {trust: 1}, lea: {trust: -1}}}
+        vers: re_2_travail
+      - id: montrer_lea
+        l: "Montrer le message à Léa et décider avec elle"
+        intention: "Ne plus rien cacher"
+        cout: "Léa pourrait te dire des choses que tu ne veux pas entendre."
+        eff: {relations: {lea: {trust: 2}}, compromission: -1}
+        vers: re_2_travail
+
+  - id: re_2_travail
+    jalon: 2
+    jour: 190
+    lieu: "Koumassi, étal de la famille et clinique"
+    moment: "Saison sèche, matin"
+    objectif: "Gagner de quoi vivre sans retomber : un relais auprès des anciens clients, un travail, ou la même route."
+    present: [lea, sanogo]
+    savoir: "Sanogo cherche quelqu'un qui connaisse le quartier, sans juger. Léa a besoin d'aide à l'étal."
+    dialogue:
+      - {qui: sanogo, dit: "Je cherche quelqu'un qui connaisse les gens, qui n'a pas honte de s'asseoir à côté d'eux. Je ne peux pas payer beaucoup. Mais je peux payer."}
+      - {qui: lea, dit: "L'étal a besoin d'un bras le matin. C'est peu, mais c'est honnête."}
+    choix:
+      - id: relais
+        l: "Devenir relais auprès des anciens clients, à la clinique de Sanogo"
+        intention: "Utiliser ce que tu connais pour limiter les dégâts"
+        cout: "Revoir ceux que tu as vus à tes pires moments."
+        eff: {compromission: -2, flags: [pair_aidant], energie: -10, relations: {sanogo: {trust: 2}, moussa: {trust: 1}}}
+        vers: re_3_crue_poste
+      - id: etal
+        l: "Aider Léa à l'étal de leur mère, le matin"
+        intention: "Un travail modeste, pour tenir"
+        cout: "Peu de revenu, et pas de gloire."
+        eff: {argent: 30000, relations: {lea: {trust: 2}}}
+        vers: re_3_crue_poste
+      - id: continuer
+        l: "Continuer le poste de Sékou, en attendant mieux"
+        intention: "Ne pas perdre ton revenu"
+        cout: "Chaque jour là-dedans est un jour où tu risques de retomber."
+        si: "flags.poste_sekou"
+        vu_par: [ombre]
+        eff: {compromission: 2, relations: {sekou: {trust: 1}, lea: {trust: -1}}, factions: {ombre: {reputation: 1}}}
+        vers: re_3_crue_poste
+      - id: attendre
+        l: "Ne rien décider et voir venir"
+        intention: "Gagner du temps"
+        cout: "Le temps ne t'attend pas."
+        eff: {relations: {lea: {trust: -1}}}
+        vers: re_3_crue_poste
+
+  - id: re_3_crue_poste
+    jalon: 3
+    jour: 281
+    carrefour: B
+    si: "flags.poste_sekou"
+    sinon: re_3_crue_quartier
+    lieu: "Koumassi inondé"
+    moment: "Nuit de la crue"
+    objectif: "Léa a de la fièvre, un paludisme probable ; Sékou t'ordonne de livrer le stock avant les secours."
+    present: [lea, sekou]
+    savoir: "Le stock est dans la remise, sous l'eau. Léa est chez toi, au premier étage. L'hôpital est à vingt minutes à pied."
+    dialogue:
+      - {narr: "L'eau monte dans la ruelle. Léa, brûlante, grelotte sous deux couvertures. Sur ton téléphone, Sékou répète le même message : « Le stock. Maintenant. »"}
+      - {qui: lea, dit: "Grand frère, vas-y. Je vais bien. Va faire ce qu'on te demande.", si: "relations.lea.trust >= 2"}
+    choix:
+      - id: emmener_lea
+        l: "Emmener Léa à l'hôpital dans l'eau, et laisser le stock"
+        intention: "Choisir ta sœur"
+        cout: "Sékou le saura, et le stock sera perdu."
+        vu_par: [ombre]
+        eff: {compromission: -3, flags: [lea_evacuee], energie: -20, relations: {lea: {trust: 3}, sekou: {peur: 2}}, factions: {ombre: {exposition: 1}}}
+        tirage:
+          difficulte: 4
+          issues:
+            miracle: {vers: re_4_descente_ombre, eff: {etoile_mod: {valeur: 5, jours: 30}}, txt: "Un chauffeur de gbaka vous charge tous les deux. Léa est soignée avant l'aube."}
+            normal: {vers: re_4_descente_ombre, eff: {sante: -10}, txt: "Vous arrivez trempés, vous soignez Léa, vous attendez le matin."}
+            mauvaise: {vers: re_4_descente_ombre, eff: {sante: -20, relations: {sekou: {peur: 1}}}, txt: "Tu tombes dans le courant. Léa est sauvée, mais tu as perdu des forces que tu n'avais pas."}
+      - id: livrer_stock
+        l: "Livrer le stock d'abord : Léa attendra un peu"
+        intention: "Obéir pour garder ton toit"
+        cout: "Léa le saura, et sa fièvre ne t'attendra pas."
+        vu_par: [ombre]
+        eff: {compromission: 2, flags: [lea_laissee], relations: {lea: {trust: -3}, sekou: {trust: 1}}, factions: {ombre: {reputation: 1}}}
+        vers: re_4_descente_ombre
+      - id: appeler_sanogo
+        l: "Appeler Sanogo pour qu'il envoie quelqu'un chercher Léa, et aller livrer le stock"
+        intention: "Les deux, si possible"
+        cout: "Tu ne seras pas là, et Sanogo non plus peut-être."
+        eff: {compromission: 1, relations: {sanogo: {trust: 1}, lea: {trust: -1}}}
+        vers: re_4_descente_ombre
+
+  - id: re_3_crue_quartier
+    jalon: 3
+    jour: 281
+    carrefour: B
+    lieu: "Koumassi inondé"
+    moment: "Nuit de la crue"
+    objectif: "Tu aides à évacuer les voisins. Un ancien client te tend de quoi te « remercier »."
+    present: [lea, moussa]
+    savoir: "Tu sais où dorment les familles, qui peut marcher, qui ne le peut pas. Tu es épuisé."
+    dialogue:
+      - {narr: "L'eau marron monte jusqu'aux genoux. Léa dirige une chaîne de voisins, une couverture sur les épaules. Un ancien client te serre la main, puis, dans la paume, glisse quelque chose."}
+      - {qui: moussa, dit: "Frère. Je ne sais pas ce que tu fais, mais merci. Prends-le, pour la nuit. Je ne te juge pas.", si: "flags.moussa_sauve"}
+    choix:
+      - id: refuser
+        l: "Refuser et continuer à aider, avec Léa"
+        intention: "Tenir cette nuit-là aussi"
+        cout: "Tu portes tout seul ce que d'autres s'autoriseraient."
+        eff: {compromission: -2, flags: [aide_voisins], energie: -15, relations: {lea: {trust: 1}}}
+        tirage:
+          difficulte: 4
+          issues:
+            miracle: {vers: re_4_descente_temoin, eff: {etoile_mod: {valeur: 5, jours: 30}, relations: {lea: {trust: 1}}}, txt: "Vingt familles sont évacuées avant l'aube. Léa te regarde longtemps sous la lumière grise."}
+            normal: {vers: re_4_descente_temoin, eff: {sante: -10}, txt: "Tu tiens jusqu'à l'aube, les jambes en coton, la tête vide mais debout."}
+            mauvaise: {vers: re_4_descente_temoin, eff: {sante: -20}, txt: "Tu t'effondres au petit matin. Léa t'allonge, et reste. Tu n'as pas cédé."}
+      - id: prendre
+        l: "Prendre, une seule fois, pour tenir jusqu'à l'aube"
+        intention: "Passer la nuit"
+        cout: "Ce n'est jamais « une seule fois »."
+        eff: {flags: [rechute, aide_voisins], sante: -5, relations: {lea: {peur: 1}}}
+        vers: re_4_descente_temoin
+      - id: demander_aide
+        l: "Appeler Sanogo : « Je risque de céder, j'ai besoin de quelqu'un »"
+        intention: "Ne pas tenir seul"
+        cout: "Admettre que tu risques de tomber."
+        eff: {flags: [aide_voisins], relations: {sanogo: {trust: 2}, lea: {trust: 1}}}
+        vers: re_4_descente_temoin
+
+  - id: re_4_descente_ombre
+    jalon: 4
+    jour: 283
+    carrefour: C
+    si: "compromission >= 4"
+    sinon: re_4_descente_temoin
+    lieu: "Koumassi, ruelle de la remise"
+    moment: "Descente de police, à l'aube"
+    objectif: "Aya te trouve près du stock : elle te tend une chance."
+    present: [aya, sekou]
+    savoir: "Aya n'a pas de mandat pour te protéger. Sékou sait que tu es là."
+    dialogue:
+      - {narr: "Les gyrophares bleus balaient la ruelle inondée. Des policiers fouillent la remise. Aya s'approche de toi, sans uniforme, les mains visibles."}
+      - {qui: aya, dit: "Lieutenante Coulibaly. Je sais qui tu es, et pour qui tu travailles. Je n'ai pas de mandat pour te protéger. Mais si tu parles, tu seras entendu."}
+    choix:
+      - id: trahir
+        l: "Tout dire à Aya sur le réseau de Sékou (elle n'a pas de mandat : sans protection, Sékou saura que c'est toi)"
+        intention: "Briser ta dette"
+        cout: "Sékou connaît ta chambre, ta sœur, ta santé."
+        vu_par: [ordre, ombre]
+        eff:
+          compromission: -4
+          flags: [temoin, trahi_sekou]
+          relations: {aya: {trust: 3}, sekou: {trust: -5, peur: 3}}
+          factions: {ordre: {reputation: 2}, ombre: {reputation: -3}}
+        tirage:
+          difficulte: 6
+          issues:
+            miracle: {vers: re_5_ceremonie, eff: {flags: [protection_aya]}, txt: "Aya intercède : un magistrat, qu'elle avait prévenu en secret, accepte de te placer sous protection."}
+            normal: {vers: re_5_ceremonie, eff: {flags: [sans_protection]}, txt: "Aya note ton témoignage. Elle n'a pas de mandat pour te protéger, et le dit avec honnêteté."}
+            mauvaise: {vers: re_5_ceremonie, eff: {flags: [sans_protection], sante: -10, relations: {sekou: {peur: 2}}}, txt: "Un policier prévient discrètement Sékou avant même que tu sois sorti."}
+      - id: cahier
+        l: "Remettre le cahier de Moussa à Aya (les noms et les dates, mais Sékou saura qui l'a donné)"
+        intention: "Une preuve qui ne dépend pas de ta parole"
+        cout: "Tu romps définitivement avec Sékou, et tu exposes Moussa."
+        si: "preuves.cahier_moussa == 'detenue'"
+        vu_par: [ordre, ombre]
+        eff:
+          compromission: -4
+          flags: [temoin, trahi_sekou, protection_aya]
+          relations: {aya: {trust: 2}, moussa: {trust: 1}, sekou: {trust: -5, peur: 2}}
+          factions: {ordre: {reputation: 2}, ombre: {reputation: -3}}
+          preuves: {cahier_moussa: {action: transmettre, a: aya}}
+        vers: re_5_ceremonie
+      - id: loyal
+        l: "Rester muet et loyal à Sékou"
+        intention: "Garder ton toit"
+        cout: "Léa ne te regardera plus pareil."
+        vu_par: [ombre]
+        eff: {compromission: 2, flags: [loyal_sekou], relations: {sekou: {trust: 2}, lea: {trust: -2}}, factions: {ombre: {reputation: 1}}}
+        vers: re_5_ceremonie
+      - id: se_taire
+        l: "Te taire par peur, sans choisir de camp"
+        intention: "Survivre"
+        cout: "Tu portes ça longtemps."
+        eff: {flags: [silence], relations: {aya: {trust: -1}}}
+        vers: re_5_ceremonie
+
+  - id: re_4_descente_temoin
+    jalon: 4
+    jour: 283
+    carrefour: C
+    lieu: "Koumassi, devant la clinique"
+    moment: "Aube, après la crue"
+    objectif: "Aya a besoin d'un témoin qui connaît les fournisseurs. Ta santé est fragile : Sanogo veut être là."
+    present: [aya, sanogo, lea]
+    savoir: "Aya ne peut pas te protéger sans mandat. Sanogo peut t'accompagner, pas te couvrir."
+    dialogue:
+      - {narr: "Les gyrophares éclairent l'eau sale. Sanogo, en blouse trempée, te tient par l'épaule. Léa est derrière toi, silencieuse."}
+      - {qui: aya, dit: "Lieutenante Coulibaly. Je cherche un témoin qui connaisse les fournisseurs. Je ne te promets pas de protection. Je te promets que tu seras entendu."}
+      - {qui: sanogo, dit: "Si tu parles, je viens avec toi. Si tu ne parles pas, je viens aussi. C'est ta décision."}
+    choix:
+      - id: temoigner
+        l: "Témoigner devant Aya, avec Sanogo à côté de toi"
+        intention: "Dire ce que tu sais"
+        cout: "Aya ne peut pas te protéger sans mandat."
+        vu_par: [ordre]
+        eff: {compromission: -3, flags: [temoin], relations: {aya: {trust: 3}, sanogo: {trust: 1}}, factions: {ordre: {reputation: 2}}}
+        vers: re_5_ceremonie
+      - id: cahier_temoin
+        l: "Remettre le cahier de Moussa à Aya"
+        intention: "Une preuve que personne ne pourra nier"
+        cout: "Moussa sera exposé comme source."
+        si: "preuves.cahier_moussa == 'detenue'"
+        vu_par: [ordre]
+        eff:
+          compromission: -3
+          flags: [temoin, protection_aya]
+          relations: {aya: {trust: 2}, moussa: {trust: 1}}
+          factions: {ordre: {reputation: 2}}
+          preuves: {cahier_moussa: {action: transmettre, a: aya}}
+        vers: re_5_ceremonie
+      - id: refuser_temoin
+        l: "Refuser : tu n'as pas la force, ni la sécurité"
+        intention: "Te protéger toi et Léa"
+        cout: "Moussa et d'autres resteront sans voix."
+        eff: {flags: [silence], relations: {aya: {trust: -1}, sanogo: {trust: -1}}}
+        vers: re_5_ceremonie
+
+  - id: re_5_ceremonie
+    jalon: 5
+    jour: 304
+    denouement: true
+    lieu: "Bord de la lagune, première pierre"
+    moment: "Cérémonie d'inauguration"
+    objectif: "Dire ce que ces jours t'ont fait : le septième, ou le premier d'une autre vie."
+    present: [lea, sanogo, moussa, fatou, aya]
+    savoir: "Tu sais ce que tu as pris, ce que tu as rendu, et ce qu'il te reste à tenir demain."
+    dialogue:
+      - {narr: "Le Maire coupe le ruban d'un quartier à moitié vrai. Tu es là, debout, avec Léa. Ce n'est pas la fin : c'est un jour de plus."}
+      - {qui: sanogo, dit: "Je ne te félicite pas d'être guéri. Je te félicite d'être venu à chaque rendez-vous.", si: "flags.suivi_clinique"}
+      - {qui: lea, dit: "Grand frère. Tu es là. Ça me suffit pour aujourd'hui.", si: "relations.lea.trust >= 1"}
+
+fins:
+  - id: re_f_lum
+    type: lumiere
+    priorite: 2
+    si: "flags.temoin and compromission <= 0 and flags.moussa_sauve and preuves.cahier_moussa == 'transmise'"
+    titre: "Le Témoin Libéré"
+    resume: "Ton témoignage fait tomber des noms, et tu restes debout."
+    epilogue:
+      - {txt: "Le cahier de Moussa ouvre trois enquêtes : les noms, les dates, les fournisseurs sont devant le juge. Ceux qui vendaient à Koumassi ne vendent plus."}
+      - {si: "flags.rechute", txt: "Tu as rechuté, au moins une fois. Tu es revenu. Sanogo ne l'a jamais compté contre toi."}
+      - {si: "flags.pair_aidant", txt: "Tu es relais à la clinique de Sanogo, deux matins par semaine. Tu t'assois à côté de ceux que le quartier évite."}
+      - {si: "relations.lea.trust >= 3", txt: "Léa a ouvert son propre étal à côté de celui de leur mère. Elle a gardé la couverture de la première nuit."}
+      - {txt: "Ce n'est pas gratuit : Sékou n'a pas fini de te chercher, et tu comptes tes jours un à un."}
+  - id: re_f_ombre
+    type: ombre
+    priorite: 3
+    si: "flags.poste_sekou and compromission >= 8"
+    titre: "Le Lieutenant de Rue"
+    resume: "Tu tiens ton poste. Léa ne te rend plus visite."
+    epilogue:
+      - {txt: "Tu tiens ton poste pour Sékou : un toit, des quotas, des nuits sans fin. Tu as l'argent. Tu n'as plus de chambre à toi."}
+      - {si: "flags.lea_laissee", txt: "Léa a guéri sans toi, à l'hôpital, sous la fièvre. Elle ne t'a pas pardonné de n'avoir pas été là."}
+      - {si: "flags.moussa_perdu", txt: "La mère de Moussa ne cherche plus son fils. Tu sais pourquoi, tu ne le dis à personne."}
+      - {txt: "Les jours passent. Aucun n'est le septième."}
+  - id: re_f_entre
+    type: entre_deux
+    priorite: 5
+    si: "true"
+    titre: "Les Jours qui Restent"
+    resume: "Tu tombes, tu te relèves. Un jour à la fois."
+    epilogue:
+      - {txt: "Tu tombes, tu te relèves. Il y a des semaines où tu tiens, d'autres où tu ne tiens pas. Léa est là pour les deux."}
+      - {si: "flags.suivi_clinique", txt: "Tu retournes à la clinique chaque fois que tu en as besoin, sans te dire que tu as échoué."}
+      - {si: "flags.rechute", txt: "Tu as rechuté, et Sanogo ne t'a jamais fermé la porte."}
+      - {si: "flags.silence", txt: "Tu n'as rien dit à Aya. Chaque matin, tu te demandes si les noms que tu connais appartiennent à ta vie ou à celle des autres."}
+      - {si: "flags.moussa_perdu", txt: "Tu ne sais pas ce qu'est devenu Moussa. Tu le cherches parfois dans la foule."}
+  - id: re_f_trag
+    type: tragique
+    priorite: 1
+    imposee: true
+    si: "flags.trahi_sekou and flags.sans_protection and flags.lea_vue"
+    titre: "Le Témoin Réduit au Silence"
+    resume: "Tu as parlé, sans protection, et ils savaient déjà où te trouver."
+    epilogue:
+      - {txt: "Les hommes de Sékou avaient vu Léa à Rue Princesse : ils savaient où elle habitait, donc où tu dormais."}
+      - {txt: "Tu as parlé à Aya sans mandat, sans protection, devant des hommes qui connaissaient ta chambre."}
+      - {txt: "Le jour de la cérémonie, la chambre de Koumassi est vide. Sékou n'avait plus besoin de toi, et te savait plus dangereux vivant. Léa, elle, vit. Fin définitive."}
+  - id: re_f_secret
+    type: secrete
+    priorite: 0
+    si: "flags.pair_aidant and flags.temoin and flags.moussa_sauve and relations.lea.trust >= 3 and relations.sanogo.trust >= 3"
+    titre: "Le Phénix de Koumassi"
+    resume: "Tu aides d'autres à sortir comme tu es sorti."
+    epilogue:
+      - {txt: "La clinique de Sanogo a une deuxième salle. Tu y animes le groupe du jeudi, une chaise en cercle pour chacun."}
+      - {txt: "Moussa vient quand il peut. Léa tient l'étal à côté, et sert du bissap aux visiteurs."}
+      - {si: "flags.rechute", txt: "Tu dis aux nouveaux que tu as rechuté, et que tu es revenu. C'est la seule chose que tu leur promets."}
+      - {txt: "Tu n'es pas guéri. Tu es là, aujourd'hui, pour que d'autres le soient demain."}

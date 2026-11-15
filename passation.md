@@ -17,7 +17,7 @@ Un lycée au choix (Caïman, Alysma filles seulement, Alex) : concours, 3 trimes
 | chauffeur_woro | **V1 terminé** (validé ; simulation : 0 impasse, 5 fins ; fiches Mariam/Lassina/Kader dans `story/fiches/`) |
 | djassaman | **V1 terminé** (validé ; simulation : 163 207 états, 0 impasse, 5 fins ; fiche d'Ange). Équilibrage : fin lumière très rare (~0,1 %), à revoir |
 | brouteur | **V1 terminé** (validé ; simulation : 140 432 états, 0 impasse, 5 fins ; fiches Mimi/Jo/Madeleine). Équilibrage : lumière ~0,1 %, secrète ~1 %, entre-deux ~90 % |
-| rescape_bas_fonds | V0 à migrer (camp illégal ; Rescapé : réduction des risques, charte) |
+| rescape_bas_fonds | **V1 terminé** (validé ; simulation : 88 576 états, 0 impasse, 5 fins ; fiches Léa/Moussa ; charte respectée : sevrage non esthétisé, rechute possible, pas de score moral). Tragique ~12 % à surveiller |
 | debrouillard_abobo | V0 à migrer ; brouillon de fiches dans `story/fiches_brouillons/` |
 | cadre_plateau, classe_moyenne_angre, commercant_adjame, eleve_inpolytec, etudiant_ufhb, gerant_maquis, golden_boy, late_cocody, mecanicien_treichville, politicien_decheu, yannis_diomande | V0 à migrer |
 

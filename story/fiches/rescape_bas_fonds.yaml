@@ -1,0 +1,26 @@
+# Fiches des personnages propres au destin « Sept Jours vers la Lumière » (sans fiche maître dans personnages.yaml).
+lea:
+  nom: "Léa"
+  age: 27
+  role: "Ta sœur ; aide à l'étal de leur mère à Koumassi. Elle est la seule à être restée."
+  objectif: "Que son frère tienne, et qu'il ne disparaisse pas comme d'autres du quartier."
+  methode: "Présente sans insister ; apporte à manger, ouvre la fenêtre, ne pose pas de question de trop."
+  tics: ["« Grand frère »", "« Tiens bon »"]
+  limites: ["Aucun pouvoir sur Sékou", "Ne peut pas te forcer, seulement rester", "Épuisée de porter seule"]
+  savoir: ["Où tu dors et comment tu vas", "Le numéro du docteur Sanogo"]
+  secret: "Elle a déjà préparé une place chez leur tante à Bouaké, au cas où il faudrait partir vite."
+  offre: ["Un toit stable", "Un regard honnête", "L'étal de leur mère comme travail"]
+  evolution: "Soutenue et écoutée → elle reste et t'aide à tenir. Abandonnée dans une urgence → elle part chez leur tante, et revient seulement quand tu seras là, vraiment."
+
+moussa:
+  nom: "Moussa"
+  age: 24
+  role: "Jeune du quartier de Koumassi ; un de tes anciens clients."
+  objectif: "Survivre, trouver un travail, éviter les mêmes erreurs."
+  methode: "Silencieux, poli, ne demande rien ; se débrouille seul jusqu'à l'impasse."
+  tics: ["« Frère »"]
+  limites: ["Peur de la police", "Dépend de ceux qui lui ont vendu"]
+  savoir: ["Qui lui a vendu, quand, combien", "Le quartier, les ruelles, les horaires"]
+  secret: "Il tient un petit cahier des noms et des dates de ceux qui lui ont vendu, depuis le début."
+  offre: ["Un cahier de noms et de dates (preuve écrite)", "Un témoignage de client à fournisseur"]
+  evolution: "Sauvé et soutenu → il te remet le cahier et rejoint le groupe de Sanogo. Laissé seul → il disparaît du quartier, et sa mère te cherche."

@@ -1,0 +1,436 @@
+{
+ "destin": "rescape_bas_fonds",
+ "formule": "etoile-v1",
+ "fins": {
+  "re_f_secret": {
+   "chemin": [
+    {
+     "noeud": "re_0_chambre",
+     "choix": "manger",
+     "issue": null
+    },
+    {
+     "noeud": "re_0_septjours",
+     "choix": "groupe",
+     "issue": null
+    },
+    {
+     "noeud": "re_1_sekou",
+     "choix": "accepter_poste",
+     "issue": null
+    },
+    {
+     "noeud": "re_1_moussa",
+     "choix": "rester_appeler",
+     "issue": null
+    },
+    {
+     "noeud": "re_2_princesse_poste",
+     "choix": "rester",
+     "issue": null
+    },
+    {
+     "noeud": "re_2_travail",
+     "choix": "relais",
+     "issue": null
+    },
+    {
+     "noeud": "re_3_crue_poste",
+     "choix": "emmener_lea",
+     "issue": "miracle"
+    },
+    {
+     "noeud": "re_4_descente_ombre",
+     "choix": "trahir",
+     "issue": "miracle"
+    }
+   ],
+   "fin": "re_f_secret"
+  },
+  "re_f_entre": {
+   "chemin": [
+    {
+     "noeud": "re_0_chambre",
+     "choix": "manger",
+     "issue": null
+    },
+    {
+     "noeud": "re_0_septjours",
+     "choix": "groupe",
+     "issue": null
+    },
+    {
+     "noeud": "re_1_sekou",
+     "choix": "accepter_poste",
+     "issue": null
+    },
+    {
+     "noeud": "re_1_moussa",
+     "choix": "rester_appeler",
+     "issue": null
+    },
+    {
+     "noeud": "re_2_princesse_poste",
+     "choix": "rester",
+     "issue": null
+    },
+    {
+     "noeud": "re_2_travail",
+     "choix": "relais",
+     "issue": null
+    },
+    {
+     "noeud": "re_3_crue_poste",
+     "choix": "emmener_lea",
+     "issue": "miracle"
+    },
+    {
+     "noeud": "re_4_descente_ombre",
+     "choix": "trahir",
+     "issue": "miracle"
+    }
+   ],
+   "fin": "re_f_entre"
+  },
+  "re_f_trag": {
+   "chemin": [
+    {
+     "noeud": "re_0_chambre",
+     "choix": "manger",
+     "issue": null
+    },
+    {
+     "noeud": "re_0_septjours",
+     "choix": "groupe",
+     "issue": null
+    },
+    {
+     "noeud": "re_1_sekou",
+     "choix": "accepter_poste",
+     "issue": null
+    },
+    {
+     "noeud": "re_1_moussa",
+     "choix": "rester_appeler",
+     "issue": null
+    },
+    {
+     "noeud": "re_2_princesse_poste",
+     "choix": "rester",
+     "issue": null
+    },
+    {
+     "noeud": "re_2_travail",
+     "choix": "relais",
+     "issue": null
+    },
+    {
+     "noeud": "re_3_crue_poste",
+     "choix": "emmener_lea",
+     "issue": "miracle"
+    },
+    {
+     "noeud": "re_4_descente_ombre",
+     "choix": "trahir",
+     "issue": "mauvaise"
+    }
+   ],
+   "fin": "re_f_trag"
+  },
+  "re_f_ombre": {
+   "chemin": [
+    {
+     "noeud": "re_0_chambre",
+     "choix": "manger",
+     "issue": null
+    },
+    {
+     "noeud": "re_0_septjours",
+     "choix": "groupe",
+     "issue": null
+    },
+    {
+     "noeud": "re_1_sekou",
+     "choix": "accepter_poste",
+     "issue": null
+    },
+    {
+     "noeud": "re_1_moussa",
+     "choix": "rester_appeler",
+     "issue": null
+    },
+    {
+     "noeud": "re_2_princesse_poste",
+     "choix": "rester",
+     "issue": null
+    },
+    {
+     "noeud": "re_2_travail",
+     "choix": "relais",
+     "issue": null
+    },
+    {
+     "noeud": "re_3_crue_poste",
+     "choix": "livrer_stock",
+     "issue": null
+    },
+    {
+     "noeud": "re_4_descente_ombre",
+     "choix": "loyal",
+     "issue": null
+    }
+   ],
+   "fin": "re_f_ombre"
+  },
+  "re_f_lum": {
+   "chemin": [
+    {
+     "noeud": "re_0_chambre",
+     "choix": "manger",
+     "issue": null
+    },
+    {
+     "noeud": "re_0_septjours",
+     "choix": "groupe",
+     "issue": null
+    },
+    {
+     "noeud": "re_1_sekou",
+     "choix": "accepter_poste",
+     "issue": null
+    },
+    {
+     "noeud": "re_1_moussa",
+     "choix": "rester_appeler",
+     "issue": null
+    },
+    {
+     "noeud": "re_2_princesse_poste",
+     "choix": "partir_lea",
+     "issue": null
+    },
+    {
+     "noeud": "re_2_travail",
+     "choix": "relais",
+     "issue": null
+    },
+    {
+     "noeud": "re_3_crue_poste",
+     "choix": "emmener_lea",
+     "issue": "miracle"
+    },
+    {
+     "noeud": "re_4_descente_temoin",
+     "choix": "cahier_temoin",
+     "issue": null
+    }
+   ],
+   "fin": "re_f_lum"
+  }
+ },
+ "extremes": {
+  "compromission_max": {
+   "valeur": 10,
+   "chemin": [
+    {
+     "noeud": "re_0_chambre",
+     "choix": "manger",
+     "issue": null
+    },
+    {
+     "noeud": "re_0_septjours",
+     "choix": "groupe",
+     "issue": null
+    },
+    {
+     "noeud": "re_1_sekou",
+     "choix": "accepter_poste",
+     "issue": null
+    },
+    {
+     "noeud": "re_1_moussa",
+     "choix": "rester_appeler",
+     "issue": null
+    },
+    {
+     "noeud": "re_2_princesse_poste",
+     "choix": "rester",
+     "issue": null
+    },
+    {
+     "noeud": "re_2_travail",
+     "choix": "relais",
+     "issue": null
+    },
+    {
+     "noeud": "re_3_crue_poste",
+     "choix": "livrer_stock",
+     "issue": null
+    },
+    {
+     "noeud": "re_4_descente_ombre",
+     "choix": "loyal",
+     "issue": null
+    }
+   ]
+  },
+  "compromission_min": {
+   "valeur": -7,
+   "chemin": [
+    {
+     "noeud": "re_0_chambre",
+     "choix": "manger",
+     "issue": null
+    },
+    {
+     "noeud": "re_0_septjours",
+     "choix": "groupe",
+     "issue": null
+    },
+    {
+     "noeud": "re_1_sekou",
+     "choix": "refuser_poste",
+     "issue": null
+    },
+    {
+     "noeud": "re_1_moussa",
+     "choix": "rester_appeler",
+     "issue": null
+    },
+    {
+     "noeud": "re_2_princesse_parole",
+     "choix": "parole",
+     "issue": null
+    },
+    {
+     "noeud": "re_2_travail",
+     "choix": "relais",
+     "issue": null
+    },
+    {
+     "noeud": "re_3_crue_quartier",
+     "choix": "refuser",
+     "issue": "miracle"
+    },
+    {
+     "noeud": "re_4_descente_temoin",
+     "choix": "temoigner",
+     "issue": null
+    }
+   ]
+  },
+  "sante_min": {
+   "valeur": 0,
+   "chemin": [
+    {
+     "noeud": "re_0_chambre",
+     "choix": "manger",
+     "issue": null
+    },
+    {
+     "noeud": "re_0_septjours",
+     "choix": "seul",
+     "issue": "mauvaise"
+    },
+    {
+     "noeud": "re_1_sekou",
+     "choix": "accepter_poste",
+     "issue": null
+    },
+    {
+     "noeud": "re_1_moussa",
+     "choix": "rester_appeler",
+     "issue": null
+    },
+    {
+     "noeud": "re_2_princesse_poste",
+     "choix": "rester",
+     "issue": null
+    },
+    {
+     "noeud": "re_2_travail",
+     "choix": "relais",
+     "issue": null
+    },
+    {
+     "noeud": "re_3_crue_poste",
+     "choix": "emmener_lea",
+     "issue": "mauvaise"
+    },
+    {
+     "noeud": "re_4_descente_ombre",
+     "choix": "trahir",
+     "issue": "mauvaise"
+    }
+   ]
+  },
+  "argent_max": {
+   "valeur": 480000,
+   "chemin": [
+    {
+     "noeud": "re_0_chambre",
+     "choix": "manger",
+     "issue": null
+    },
+    {
+     "noeud": "re_0_septjours",
+     "choix": "groupe",
+     "issue": null
+    },
+    {
+     "noeud": "re_1_sekou",
+     "choix": "accepter_poste",
+     "issue": null
+    },
+    {
+     "noeud": "re_1_moussa",
+     "choix": "rester_appeler",
+     "issue": null
+    },
+    {
+     "noeud": "re_2_princesse_poste",
+     "choix": "rester",
+     "issue": null
+    },
+    {
+     "noeud": "re_2_travail",
+     "choix": "etal",
+     "issue": null
+    },
+    {
+     "noeud": "re_3_crue_poste",
+     "choix": "emmener_lea",
+     "issue": "miracle"
+    },
+    {
+     "noeud": "re_4_descente_ombre",
+     "choix": "trahir",
+     "issue": "miracle"
+    }
+   ]
+  }
+ },
+ "distribution_pct": {
+  "0": {
+   "re_f_secret": 3.2,
+   "re_f_entre": 71.0,
+   "re_f_trag": 12.1,
+   "re_f_ombre": 9.1,
+   "re_f_lum": 4.5
+  },
+  "50": {
+   "re_f_secret": 3.4,
+   "re_f_entre": 73.0,
+   "re_f_trag": 10.4,
+   "re_f_ombre": 8.4,
+   "re_f_lum": 4.8
+  },
+  "100": {
+   "re_f_secret": 3.7,
+   "re_f_entre": 76.4,
+   "re_f_trag": 7.6,
+   "re_f_ombre": 7.2,
+   "re_f_lum": 5.1
+  }
+ }
+}
