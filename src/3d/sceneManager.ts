@@ -69,6 +69,8 @@ import {
 } from '../world/abidjanGeography';
 import { project, WORLD_SCALE } from '../world/geo';
 import { bridgeAt } from '../world/roads';
+import { nearestRoadPoint } from '../world/routing';
+import { planTaxiApproach, pointAlongPath, taxiProgress, taxiRouteTo, TaxiPath } from '../world/taxiApproach';
 import { houseToWorld, registerPlayerHouse } from '../world/playerHouse';
 import { HOUSE_D, insideHouse, segmentCrossesRect, worldToHouse } from '../world/houseShell';
 import { HOSPITAL_SITES } from '../world/hospitals';
@@ -163,6 +165,20 @@ export class AbidjanSceneManager {
   private renderer!: THREE.WebGLRenderer;
   private scene!: THREE.Scene;
   private routeGuide: THREE.Group | null = null;
+  /** Woro-woro appelé (étape B2) : visible seulement chez le joueur, jamais envoyé aux autres joueurs. */
+  private taxiApproach: {
+    rig: VehicleRig;
+    path: TaxiPath;
+    /** Instant (s, horloge de la boucle) du départ du trajet courant. */
+    t0: number;
+    /** Durée (s) du trajet courant : le taxi s'arrête quelques secondes avant la montée. */
+    arriveInS: number;
+    /** Instant (s) de la montée : fin de l'attente annoncée au joueur. */
+    boardAt: number;
+    heading: number;
+    lastS: number;
+    nextCheck: number;
+  } | null = null;
   private camera!: THREE.PerspectiveCamera;
   private dirLight!: THREE.DirectionalLight;
   private hemiLight!: THREE.HemisphereLight;
@@ -1278,6 +1294,89 @@ export class AbidjanSceneManager {
     (a.rig.exitRing.material as THREE.MeshBasicMaterial).opacity = 0.6 + 0.25 * Math.sin(nowSec * 4);
   }
 
+  /** Position du joueur à pied ou, depuis un intérieur, devant l'entrée (là où le taxi le prendrait). */
+  private taxiPickupPoint(): { x: number; z: number } {
+    return this.activeInterior
+      ? { x: this.activeInterior.returnX, z: this.activeInterior.returnZ }
+      : { x: this.playerX, z: this.playerZ };
+  }
+
+  /**
+   * Étape B2 : un woro-woro jaune apparaît à environ 120 m sur le grand axe le plus proche, roule jusqu'au point
+   * de route le plus proche du joueur et s'y arrête avant la fin de l'attente. Renvoie false si aucun trajet n'existe
+   * (le joueur est alors simplement déposé à la fin de l'attente, comme en B1).
+   */
+  public startTaxiApproach(waitS: number): boolean {
+    this.stopTaxiApproach();
+    const plan = planTaxiApproach(this.taxiPickupPoint());
+    if (!plan) return false;
+    const rig = createVehicleModel('woro_woro');
+    rig.group.rotation.order = 'YXZ';
+    const first = pointAlongPath(plan.points, 0);
+    rig.group.position.set(first.x, 0, first.z);
+    rig.group.rotation.y = first.heading;
+    this.scene.add(rig.group);
+    const now = performance.now() / 1000;
+    this.taxiApproach = {
+      rig,
+      path: plan,
+      t0: now,
+      arriveInS: Math.max(1, waitS - 1.5),
+      boardAt: now + waitS,
+      heading: first.heading,
+      lastS: 0,
+      nextCheck: now + 0.5,
+    };
+    return true;
+  }
+
+  /** Le taxi disparaît (le joueur monte, annule ou la course est abandonnée). */
+  public stopTaxiApproach() {
+    const t = this.taxiApproach;
+    if (!t) return;
+    this.taxiApproach = null;
+    this.scene.remove(t.rig.group);
+    t.rig.group.traverse((o) => {
+      const mesh = o as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      mesh.geometry.dispose();
+      const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+      for (const m of mats) m.dispose();
+    });
+  }
+
+  private updateTaxiApproach(nowSec: number, dt: number) {
+    const t = this.taxiApproach;
+    if (!t) return;
+    // Si le joueur s'éloigne, le taxi le rejoint là où il est : nouveau trajet depuis sa position actuelle.
+    if (nowSec >= t.nextCheck) {
+      t.nextCheck = nowSec + 0.5;
+      const stop = nearestRoadPoint(this.taxiPickupPoint()).at;
+      if (Math.hypot(stop.x - t.path.stop.x, stop.z - t.path.stop.z) > 15) {
+        const cur = pointAlongPath(t.path.points, t.lastS);
+        const re = taxiRouteTo({ x: cur.x, z: cur.z }, stop);
+        if (re) {
+          t.path = re;
+          t.t0 = nowSec;
+          t.arriveInS = Math.max(1, t.boardAt - nowSec - 1.5);
+          t.lastS = 0;
+        }
+      }
+    }
+    const s = t.path.length * taxiProgress(nowSec - t.t0, t.arriveInS);
+    const pos = pointAlongPath(t.path.points, s);
+    if (s > t.lastS + 1e-4) {
+      // Cap lissé : pas de rotation brusque dans les virages.
+      let d = pos.heading - t.heading;
+      d = Math.atan2(Math.sin(d), Math.cos(d));
+      t.heading += d * (1 - Math.exp(-8 * dt));
+    }
+    t.rig.group.position.set(pos.x, 0, pos.z);
+    t.rig.group.rotation.set(0, t.heading, 0);
+    t.rig.setWheelSpin(s - t.lastS);
+    t.lastS = s;
+  }
+
   public teleportPlayer(x: number, z: number) {
     if (this.drivingVehicle && this.physics) {
       this.physics.placeVehicle(this.drivingVehicle.vehId, x, z, this.playerRotY);
@@ -1577,6 +1676,9 @@ export class AbidjanSceneManager {
       1 - Math.exp(-2 * dt)
     );
 
+    // 1bis. Taxi appelé (étape B2)
+    this.updateTaxiApproach(nowSec, dt);
+
     // 2. Beacon rings & pickups
     for (let i = 0; i < this.beaconRings.length; i++) {
       const r = this.beaconRings[i];
@@ -1875,6 +1977,7 @@ export class AbidjanSceneManager {
     dom.removeEventListener('pointerdown', this.onPointerDown);
     dom.removeEventListener('wheel', this.onWheel);
 
+    this.stopTaxiApproach();
     this.streamer?.dispose();
     this.skyDome?.dispose();
     this.chunkMats.dispose();
