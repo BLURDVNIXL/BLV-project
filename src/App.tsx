@@ -256,6 +256,22 @@ export default function App() {
     };
   }, [isAutostart]);
 
+  // Fondu au noir pour entrer / sortir d'un intérieur (la scène bascule pendant que l'écran est noir)
+  const [fadeBlack, setFadeBlack] = useState(false);
+  const transitionBusyRef = useRef(false);
+  const runTransition = useCallback((action: () => void) => {
+    if (transitionBusyRef.current) return;
+    transitionBusyRef.current = true;
+    setFadeBlack(true);
+    window.setTimeout(() => {
+      action();
+      window.setTimeout(() => {
+        setFadeBlack(false);
+        transitionBusyRef.current = false;
+      }, 180);
+    }, 280);
+  }, []);
+
   // Hotspot Interaction Handler
   const handleHotspotAction = useCallback(
     (h: CityHotspot) => {
@@ -313,9 +329,21 @@ export default function App() {
         setPlayerState((prev) => donateYannisAcademy(prev));
         syncEconomy('yannis_academy');
         soundEngine.playWooHooJingle();
+      } else if (h.type === 'hospital_door') {
+        if (cur.isDriving) {
+          showToast('🚗 Descends de ton véhicule pour entrer.');
+        } else {
+          runTransition(() => {
+            sceneRef.current?.enterInterior(h.id);
+          });
+        }
+      } else if (h.type === 'interior_exit') {
+        runTransition(() => {
+          sceneRef.current?.exitInterior();
+        });
       }
     },
-    [showToast, syncEconomy]
+    [showToast, syncEconomy, runTransition]
   );
 
   // Mount Three.js AbidjanSceneManager ONCE
@@ -677,6 +705,12 @@ export default function App() {
           }}
         />
       )}
+
+      {/* Fondu au noir des entrées / sorties d'intérieurs */}
+      <div
+        aria-hidden="true"
+        className={`pointer-events-none fixed inset-0 z-[90] bg-black transition-opacity duration-300 ${fadeBlack ? 'opacity-100' : 'opacity-0'}`}
+      />
 
       {/* STAGE 3: ACTIVE ABIDJAN HUD & OPTIONAL MOBILE GAMEPAD */}
       {screenState === 'playing' && (
