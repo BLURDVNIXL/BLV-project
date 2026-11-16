@@ -1365,6 +1365,7 @@ export class AbidjanSceneManager {
       const id = core.addBox(p.x, p.z, b.hx, b.hz, 0, b.h, SolidFlag.PROP);
       if (id >= 0) colliderIds.push(id);
     }
+    this.npcSystem.enterInterior(def); // PNJ de la salle (après ses solides : positions de départ libres)
     const ex = interiorToWorld(def, def.exit.x, def.exit.z);
     const exitHotspot: CityHotspot = {
       id: `exit_${def.id}`,
@@ -2056,6 +2057,8 @@ export class AbidjanSceneManager {
     // 6. Walking Pedestrians
     if (!this.activeInterior) {
       this.npcSystem.update(dt, this.playerX, this.playerZ, this.isSuperstar, this.camYaw, this.streamer?.isReady(this.playerX, this.playerZ, 2) ?? false);
+    } else {
+      this.npcSystem.updateIndoor(dt, this.playerX, this.playerZ);
     }
 
     // 7. Player Input -> C++/WASM PhysicsCore

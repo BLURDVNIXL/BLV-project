@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
-    "test": "tsx --test src/core/simulation.test.ts src/3d/ambiance.test.ts src/3d/avatars.test.ts src/world/houseShell.test.ts src/world/interiors.test.ts src/world/npcAppearance.test.ts src/3d/interiorsCollision.test.ts src/world/routing.test.ts src/core/gpsDestinations.test.ts src/world/taxiApproach.test.ts",
+    "test": "tsx --test src/core/simulation.test.ts src/3d/ambiance.test.ts src/3d/avatars.test.ts src/world/houseShell.test.ts src/world/interiors.test.ts src/world/npcAppearance.test.ts src/world/interiorNpcs.test.ts src/3d/interiorsCollision.test.ts src/world/routing.test.ts src/core/gpsDestinations.test.ts src/world/taxiApproach.test.ts",
     "test:physics": "node physics/test.mjs && npx tsx physics/integration.test.ts",
     "test:world": "npx tsx physics/world.test.ts",
     "test:city": "npx tsx physics/city.test.ts",

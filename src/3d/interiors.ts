@@ -7,9 +7,7 @@
  * Les murs sont de simples boîtes ; seul un nombre fixe de matériaux est utilisé (pas de coût par bâtiment).
  */
 import * as THREE from 'three';
-import { SapeOutfitId } from '../types/game';
 import { InteriorDef, InteriorId } from '../world/interiors';
-import { createCharacterModel } from './models';
 import { FadeWall, WallFader } from './wallFader';
 
 // ───────────── Aides de construction ─────────────
@@ -306,7 +304,7 @@ function buildMaquisFurniture(g: THREE.Group, def: InteriorDef): void {
   }
 }
 
-function buildMarcheFurniture(g: THREE.Group, def: InteriorDef): (nowSec: number, dt: number) => void {
+function buildMarcheFurniture(g: THREE.Group, def: InteriorDef): void {
   const wood = std(0x92400e, { rough: 0.82 });
   const darkWood = std(0x451a03, { rough: 0.78 });
   const ochre = std(0xf59e0b, { emissive: 0xd97706, glow: 0.18, rough: 0.55 });
@@ -352,58 +350,10 @@ function buildMarcheFurniture(g: THREE.Group, def: InteriorDef): (nowSec: number
     g.add(box(0.75, 0.42, 0.65, cream, sx + inward * 0.9, 0.25, sz + 1.2, false));
   });
 
-  // Beaucoup de PNJ à l'intérieur : 7 marchands + 4 clients animés dans les allées libres
-  const skins = [0x4a2c1d, 0x6b422a, 0x3b2316, 0x7c4f33, 0x5c3824];
-  const outfits: SapeOutfitId[] = ['wax_bazin', 'standard', 'wax_bazin', 'costume_italien', 'madrid_25'];
-
-  const vendors: Array<{ rig: ReturnType<typeof createCharacterModel>; baseRot: number; phase: number }> = [];
-  stalls.forEach(([sx, sz], i) => {
-    const side = sx < 0 ? -1 : 1;
-    const rig = createCharacterModel(skins[i % skins.length], outfits[i % outfits.length], i % 3 === 0);
-    rig.group.position.set(sx + side * 2.4, 0.1, sz);
-    const baseRot = sx < 0 ? Math.PI / 2 : -Math.PI / 2;
-    rig.group.rotation.y = baseRot;
-    g.add(rig.group);
-    vendors.push({ rig, baseRot, phase: i * 1.1 });
-  });
-  // Grossiste derrière le comptoir nord
-  const boss = createCharacterModel(skins[2], 'costume_italien', true);
-  boss.group.position.set(0, 0.1, -7.8);
-  boss.group.rotation.y = 0;
-  g.add(boss.group);
-  vendors.push({ rig: boss, baseRot: 0, phase: 2.4 });
-
-  // 4 clients flânant le long des allées libres (x = ±3.1 et ±6.2)
-  const walkers: Array<{ rig: ReturnType<typeof createCharacterModel>; x: number; zMin: number; zMax: number; speed: number; phase: number }> = [
-    { rig: createCharacterModel(skins[0], 'wax_bazin', false), x: -3.0, zMin: -3.2, zMax: 4.5, speed: 0.45, phase: 0.2 },
-    { rig: createCharacterModel(skins[3], 'standard', true), x: 3.0, zMin: -3.2, zMax: 4.5, speed: 0.42, phase: 1.9 },
-    { rig: createCharacterModel(skins[1], 'madrid_25', false), x: -6.1, zMin: -4.2, zMax: 3.6, speed: 0.38, phase: 3.1 },
-    { rig: createCharacterModel(skins[4], 'wax_bazin', false), x: 6.1, zMin: -4.2, zMax: 3.6, speed: 0.4, phase: 4.4 },
-  ];
-  for (const w of walkers) {
-    w.rig.group.position.set(w.x, 0.1, (w.zMin + w.zMax) / 2);
-    g.add(w.rig.group);
-  }
-
-  return (nowSec: number, dt: number) => {
-    for (const v of vendors) {
-      v.rig.group.rotation.y = v.baseRot + Math.sin(nowSec * 1.4 + v.phase) * 0.24;
-      v.rig.animateGait(nowSec * 2.1 + v.phase, 0.08, dt);
-    }
-    for (const w of walkers) {
-      const mid = (w.zMin + w.zMax) / 2;
-      const amp = (w.zMax - w.zMin) / 2;
-      const t = nowSec * w.speed + w.phase;
-      const z = mid + Math.sin(t) * amp;
-      const dir = Math.cos(t) >= 0 ? 0 : Math.PI;
-      w.rig.group.position.set(w.x, 0.1, z);
-      w.rig.group.rotation.y = dir;
-      w.rig.animateGait(nowSec * 3.0 + w.phase, 0.72, dt);
-    }
-  };
+  // Les vendeurs et les clients sont déclarés dans `InteriorDef.npcs` (animés par `NpcSystem`).
 }
 
-function buildMairieFurniture(g: THREE.Group, def: InteriorDef): (nowSec: number, dt: number) => void {
+function buildMairieFurniture(g: THREE.Group, def: InteriorDef): void {
   const marble = std(0xf1f5f9, { rough: 0.45 });
   const mahogany = std(0x5c2c16, { rough: 0.65 });
   const brass = std(0xfbbf24, { emissive: 0xd97706, glow: 0.22, rough: 0.35, metal: 0.3 });
@@ -458,23 +408,7 @@ function buildMairieFurniture(g: THREE.Group, def: InteriorDef): (nowSec: number
     }
   }
 
-  // Deux agents municipaux discrets (accueil et tribune nord)
-  const clerk = createCharacterModel(0x4a2c1d, 'costume_italien', true);
-  clerk.group.position.set(-6.8, 0.1, 0.9);
-  clerk.group.rotation.y = 0;
-  g.add(clerk.group);
-
-  const mayorStaff = createCharacterModel(0x6b422a, 'wax_bazin', false);
-  mayorStaff.group.position.set(0, 0.1, -6.3);
-  mayorStaff.group.rotation.y = 0;
-  g.add(mayorStaff.group);
-
-  return (nowSec: number, dt: number) => {
-    clerk.group.rotation.y = Math.sin(nowSec * 1.1) * 0.18;
-    clerk.animateGait(nowSec * 1.8, 0.06, dt);
-    mayorStaff.group.rotation.y = Math.sin(nowSec * 0.9 + 1.4) * 0.16;
-    mayorStaff.animateGait(nowSec * 1.8 + 1.4, 0.06, dt);
-  };
+  // Les agents et les administrés sont déclarés dans `InteriorDef.npcs` (animés par `NpcSystem`).
 }
 
 function addBookcase(
@@ -498,7 +432,7 @@ function addBookcase(
   });
 }
 
-function buildLyceeCaimanFurniture(g: THREE.Group, def: InteriorDef): (nowSec: number, dt: number) => void {
+function buildLyceeCaimanFurniture(g: THREE.Group, def: InteriorDef): void {
   const oak = std(0x92400e, { rough: 0.72 });
   const deskTop = std(0xd97706, { rough: 0.58 });
   const darkWood = std(0x451a03, { rough: 0.78 });
@@ -548,33 +482,10 @@ function buildLyceeCaimanFurniture(g: THREE.Group, def: InteriorDef): (nowSec: n
     }
   }
 
-  // Professeur + 2 élèves animés
-  const prof = createCharacterModel(0x4a2c1d, 'wax_bazin', false);
-  prof.group.position.set(0, 0.1, -5.85);
-  prof.group.rotation.y = 0;
-  g.add(prof.group);
-
-  const studentA = createCharacterModel(0x6b422a, 'standard', false);
-  studentA.group.position.set(-4.6, 0.1, 0.85);
-  studentA.group.rotation.y = Math.PI;
-  g.add(studentA.group);
-
-  const studentB = createCharacterModel(0x5c3824, 'madrid_25', false);
-  studentB.group.position.set(4.6, 0.1, -1.15);
-  studentB.group.rotation.y = Math.PI;
-  g.add(studentB.group);
-
-  return (nowSec: number, dt: number) => {
-    prof.group.rotation.y = Math.sin(nowSec * 1.0) * 0.2;
-    prof.animateGait(nowSec * 1.7, 0.06, dt);
-    studentA.group.rotation.y = Math.PI + Math.sin(nowSec * 1.2 + 0.8) * 0.16;
-    studentA.animateGait(nowSec * 1.8 + 0.8, 0.05, dt);
-    studentB.group.rotation.y = Math.PI + Math.sin(nowSec * 1.1 + 2.1) * 0.16;
-    studentB.animateGait(nowSec * 1.8 + 2.1, 0.05, dt);
-  };
+  // Enseignant et élèves : déclarés dans `InteriorDef.npcs` (animés par `NpcSystem`).
 }
 
-function buildLyceeAlysmaFurniture(g: THREE.Group, def: InteriorDef): (nowSec: number, dt: number) => void {
+function buildLyceeAlysmaFurniture(g: THREE.Group, def: InteriorDef): void {
   const cherry = std(0x881337, { rough: 0.62 });
   const ivory = std(0xfff1f2, { rough: 0.48 });
   const wood = std(0x5c2c16, { rough: 0.68 });
@@ -627,33 +538,10 @@ function buildLyceeAlysmaFurniture(g: THREE.Group, def: InteriorDef): (nowSec: n
     }
   }
 
-  // Professeure + 2 élèves dans les allées libres près des tables
-  const teacher = createCharacterModel(0x5c3824, 'wax_bazin', false);
-  teacher.group.position.set(0, 0.1, -6.0);
-  teacher.group.rotation.y = 0;
-  g.add(teacher.group);
-
-  const girlA = createCharacterModel(0x4a2c1d, 'wax_bazin', false);
-  girlA.group.position.set(-3.2, 0.1, -1.2);
-  girlA.group.rotation.y = -Math.PI / 2;
-  g.add(girlA.group);
-
-  const girlB = createCharacterModel(0x6b422a, 'standard', false);
-  girlB.group.position.set(3.2, 0.1, -1.6);
-  girlB.group.rotation.y = Math.PI / 2;
-  g.add(girlB.group);
-
-  return (nowSec: number, dt: number) => {
-    teacher.group.rotation.y = Math.sin(nowSec * 0.95) * 0.18;
-    teacher.animateGait(nowSec * 1.7, 0.06, dt);
-    girlA.group.rotation.y = -Math.PI / 2 + Math.sin(nowSec * 1.15 + 1.0) * 0.18;
-    girlA.animateGait(nowSec * 1.8 + 1.0, 0.05, dt);
-    girlB.group.rotation.y = Math.PI / 2 + Math.sin(nowSec * 1.1 + 2.3) * 0.18;
-    girlB.animateGait(nowSec * 1.8 + 2.3, 0.05, dt);
-  };
+  // Enseignante et élèves : déclarés dans `InteriorDef.npcs` (animés par `NpcSystem`).
 }
 
-function buildLyceeAlexFurniture(g: THREE.Group, def: InteriorDef): (nowSec: number, dt: number) => void {
+function buildLyceeAlexFurniture(g: THREE.Group, def: InteriorDef): void {
   const whiteLab = std(0xf8fafc, { rough: 0.35 });
   const silver = std(0x94a3b8, { metal: 0.45, rough: 0.3 });
   const slate = std(0x1e293b, { rough: 0.55 });
@@ -704,28 +592,5 @@ function buildLyceeAlexFurniture(g: THREE.Group, def: InteriorDef): (nowSec: num
     }
   }
 
-  // Enseignant + 2 étudiants du campus numérique
-  const mentor = createCharacterModel(0x4a2c1d, 'costume_italien', true);
-  mentor.group.position.set(0, 0.1, -6.9);
-  mentor.group.rotation.y = 0;
-  g.add(mentor.group);
-
-  const scholarA = createCharacterModel(0x6b422a, 'standard', false);
-  scholarA.group.position.set(-5.8, 0.1, -0.4);
-  scholarA.group.rotation.y = Math.PI;
-  g.add(scholarA.group);
-
-  const scholarB = createCharacterModel(0x3b2316, 'wax_bazin', false);
-  scholarB.group.position.set(5.8, 0.1, 2.5);
-  scholarB.group.rotation.y = Math.PI;
-  g.add(scholarB.group);
-
-  return (nowSec: number, dt: number) => {
-    mentor.group.rotation.y = Math.sin(nowSec * 1.05) * 0.2;
-    mentor.animateGait(nowSec * 1.8, 0.06, dt);
-    scholarA.group.rotation.y = Math.PI + Math.sin(nowSec * 1.25 + 0.7) * 0.15;
-    scholarA.animateGait(nowSec * 1.8 + 0.7, 0.05, dt);
-    scholarB.group.rotation.y = Math.PI + Math.sin(nowSec * 1.15 + 1.9) * 0.15;
-    scholarB.animateGait(nowSec * 1.8 + 1.9, 0.05, dt);
-  };
+  // Enseignant et étudiants : déclarés dans `InteriorDef.npcs` (animés par `NpcSystem`).
 }
