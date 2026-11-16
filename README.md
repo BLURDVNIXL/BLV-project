@@ -11,6 +11,9 @@ Simulation de vie urbaine 3D temps réel à Abidjan (Côte d’Ivoire), construi
 - **Rendu & Ambiance (`src/3d/`)** :
   - Ambiance tropicale continue (`ambiance.ts`) : palette chaude interpolée selon l’heure de jeu (aube rosée → matinée dorée → plein jour → heure dorée → coucher → crépuscule → nuit) et soleil qui voyage d’est en ouest, la lune prenant le relais la nuit.
   - Intérieurs 3D (`src/3d/interiors.ts`, `WallFader`) : registre de constructeurs de mobilier et thèmes par lieu ; les murs côté caméra s’effacent sans solide `BUILDING` (utilisé par les 4 hôpitaux, le Maquis Le Temple, la Grande Halle du Marché d’Adjamé avec foule PNJ animée, la Mairie du Plateau et les 3 lycées : Classique, Sainte-Marie et Bassam). Chaque meuble visible qui occupe le sol y a son solide, garanti par un test automatique (`src/3d/interiorsCollision.test.ts`).
+  - Pack de composants PNJ (`src/world/npcAppearance.ts`, module pur et déterministe) : une graine et un contexte (rôle, quartier, âge) donnent un PNJ varié (âge, taille, corpulence, peau, coiffure, tenue, accessoires), avec des rôles à tenue imposée (blouse, uniforme, tablier, costume).
+  - Rendu instancié des PNJ (`src/3d/npcInstances.ts`, classe `NpcCrowd`) : piétons et foule du marché d'Adjamé partagent une trentaine d'`InstancedMesh` (environ 25 appels de dessin visibles quel que soit le nombre de PNJ, capacité 80), couleurs par instance, marche calculée dans les matrices, ombre de contact au sol à la place des ombres portées. `?blvdebug=1` affiche appels de dessin, triangles et PNJ actifs (rien sans ce paramètre).
+  - PNJ physiques en extérieur (`src/3d/npcSystem.ts`) : un pool de 30 personnages du moteur physique (constante `NPC_POOL_SIZE`) marche réellement dans la ville, bloqué par les murs, les étals, les autres PNJ et le joueur (il cède), renversé par les véhicules (effet visuel seulement), évitant l'eau ; vendeurs du marché en cercles statiques ; PNJ désactivés dans les intérieurs et replacés à la sortie. Locaux, rien n'est envoyé au serveur.
   - Structures extérieures solides (`src/world/exteriorSolids.ts`) : étals du marché d’Adjamé, poteaux et baffles du maquis, piliers des lycées et des hôpitaux, mât de la mairie, Pyramide et tour Postel bloquent piétons et véhicules ; portes d’entrée et allée centrale du marché restent libres.
   - Dôme de ciel (`sky.ts`) : dégradé zénith → horizon, brume chaude collée à l’horizon (même couleur que le brouillard, donc sans couture) et halo/disque solaire.
   - Lagune : reflet de Fresnel vers l’horizon et scintillement du soleil sur les vaguelettes ; arbres balancés par le vent (vertex shader, aucun coût CPU).
@@ -48,7 +51,7 @@ npm run test:world   # Tests de la géographie lagunaire et du streaming
 npm run test:city    # Tests de non-chevauchement routier/lagunaire de la ville
 npm run build:wasm   # Recompile physics/physics.cpp vers public/physics.wasm (clang + lld requis)
 npm run test:e2e     # Test navigateur Chromium de bout en bout (Playwright, python3)
-npm test             # Tests des 19 destins, 19 missions, économie, RGPD et collisions d'intérieur
+npm test             # Tests des 19 destins, 19 missions, économie, RGPD, collisions d'intérieur et apparence des PNJ
 npm run lint         # Vérification TypeScript (tsc --noEmit)
 npm run build        # Build production Vite
 ```
