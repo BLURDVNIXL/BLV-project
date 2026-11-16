@@ -82,6 +82,7 @@ import {
   TaxiPath,
 } from '../world/taxiApproach';
 import { houseToWorld, registerPlayerHouse } from '../world/playerHouse';
+import { exteriorSolidsFor, type ExteriorSolid, type ExteriorSolidId } from '../world/exteriorSolids';
 import { HOUSE_D, insideHouse, segmentCrossesRect, worldToHouse } from '../world/houseShell';
 import { HOSPITAL_SITES } from '../world/hospitals';
 import { INTERIORS, InteriorDef, InteriorId, interiorToWorld } from '../world/interiors';
@@ -275,6 +276,9 @@ export class AbidjanSceneManager {
   private ownHouseLot: HouseLot | null = null;
   private ownHouseRig: CribZoneHandles | null = null;
   private ownHouseColliderIds: number[] = [];
+  /** Solides des structures extérieures (étals, poteaux…) : calculés à la construction, enregistrés quand la physique est prête. */
+  private exteriorSolidDefs: ExteriorSolid[] = [];
+  private exteriorColliderIds: number[] = [];
   private visitedHouseLot: HouseLot | null = null;
   private visitedHouseRig: CribZoneHandles | null = null;
   private visitedHouseColliderIds: number[] = [];
@@ -485,12 +489,14 @@ export class AbidjanSceneManager {
   }
 
   private buildStaticHeroLandmarks() {
-    const placeSpecial = (specId: string, mesh: THREE.Group) => {
+    this.exteriorSolidDefs = [];
+    const placeSpecial = (specId: string, mesh: THREE.Group, solidId?: ExteriorSolidId) => {
       const fp = SPECIAL_FOOTPRINTS.find((f) => f.spec.id === specId);
       if (!fp) return;
       mesh.position.set(fp.x, 0, fp.z);
       mesh.rotation.y = -fp.angle;
       this.scene.add(mesh);
+      if (solidId) this.exteriorSolidDefs.push(...exteriorSolidsFor(solidId, fp.x, fp.z, mesh.rotation.y, fp.w, fp.d));
     };
 
     placeSpecial('stade', createStadeFhbLandmark());
@@ -499,22 +505,22 @@ export class AbidjanSceneManager {
     placeSpecial('lycee_alex', createBassamFuturisticSchool());
     const caimanFp = SPECIAL_FOOTPRINTS.find((f) => f.spec.id === 'lycee_caiman');
     if (caimanFp) {
-      placeSpecial('lycee_caiman', createClassicLyceeStructure(caimanFp.w, caimanFp.d, caimanFp.spec.h, 0xfef3c7, 0xb45309));
+      placeSpecial('lycee_caiman', createClassicLyceeStructure(caimanFp.w, caimanFp.d, caimanFp.spec.h, 0xfef3c7, 0xb45309), 'lycee');
     }
     const alysmaFp = SPECIAL_FOOTPRINTS.find((f) => f.spec.id === 'lycee_alysma');
     if (alysmaFp) {
-      placeSpecial('lycee_alysma', createClassicLyceeStructure(alysmaFp.w, alysmaFp.d, alysmaFp.spec.h, 0xfff1f2, 0xbe123c));
+      placeSpecial('lycee_alysma', createClassicLyceeStructure(alysmaFp.w, alysmaFp.d, alysmaFp.spec.h, 0xfff1f2, 0xbe123c), 'lycee');
     }
     const marcheFp = SPECIAL_FOOTPRINTS.find((f) => f.spec.id === 'marche_adjame');
     if (marcheFp) {
-      placeSpecial('marche_adjame', createMarketStallCluster(marcheFp.w, marcheFp.d, marcheFp.spec.h));
+      placeSpecial('marche_adjame', createMarketStallCluster(marcheFp.w, marcheFp.d, marcheFp.spec.h), 'marche_adjame');
     }
 
     // Hôpitaux : bâtiments héros à porte d'entrée (intérieur partagé)
     for (const site of HOSPITAL_SITES) {
       const fp = SPECIAL_FOOTPRINTS.find((f) => f.spec.id === site.id);
       if (!fp) continue;
-      placeSpecial(site.id, createHospitalExterior(fp.w, fp.d, fp.spec.h, site.name));
+      placeSpecial(site.id, createHospitalExterior(fp.w, fp.d, fp.spec.h, site.name), 'hopital');
     }
 
     const portFp = SPECIAL_FOOTPRINTS.find((f) => f.spec.id === 'port');
@@ -530,20 +536,22 @@ export class AbidjanSceneManager {
     const pPyr = project(5.3258, -4.0185);
     pyramide.position.set(pPyr.x, 0, pPyr.z);
     this.scene.add(pyramide);
+    this.exteriorSolidDefs.push(...exteriorSolidsFor('pyramide', pPyr.x, pPyr.z, 0, 16, 16));
 
     const postel = createTourPostelLandmark();
     const pPos = project(5.3242, -4.0195);
     postel.position.set(pPos.x, 0, pPos.z);
     this.scene.add(postel);
+    this.exteriorSolidDefs.push(...exteriorSolidsFor('postel', pPos.x, pPos.z, 0, 12, 12));
 
     const mairieFp = SPECIAL_FOOTPRINTS.find((f) => f.spec.id === 'mairie');
     if (mairieFp) {
-      placeSpecial('mairie', createMairiePlateauLandmark());
+      placeSpecial('mairie', createMairiePlateauLandmark(), 'mairie');
     }
 
     const maquisFp = SPECIAL_FOOTPRINTS.find((f) => f.spec.id === 'maquis');
     if (maquisFp) {
-      placeSpecial('maquis', createMaquisStructure(maquisFp.w, maquisFp.d, maquisFp.spec.h));
+      placeSpecial('maquis', createMaquisStructure(maquisFp.w, maquisFp.d, maquisFp.spec.h), 'maquis');
     }
   }
 
@@ -763,6 +771,7 @@ export class AbidjanSceneManager {
       if (this.disposed) return;
       this.physics = core;
       this.physics.reset();
+      this.registerExteriorSolids(core);
 
       const lowEnd =
         this.isSoftwareGl ||
@@ -808,6 +817,18 @@ export class AbidjanSceneManager {
       }
     } catch (err) {
       console.error('Physics WASM failed to initialize:', err);
+    }
+  }
+
+  /** Enregistre les solides des structures extérieures (une fois : la scène statique n'est jamais rechargée). */
+  private registerExteriorSolids(core: PhysicsCore) {
+    for (const id of this.exteriorColliderIds) core.removeSolid(id);
+    this.exteriorColliderIds = [];
+    for (const s of this.exteriorSolidDefs) {
+      const id = s.shape === 'box'
+        ? core.addBox(s.x, s.z, s.hx, s.hz, s.angle, s.h, SolidFlag.PROP)
+        : core.addCircle(s.x, s.z, s.r, s.h, SolidFlag.PROP);
+      if (id >= 0) this.exteriorColliderIds.push(id);
     }
   }
 
@@ -2270,6 +2291,8 @@ export class AbidjanSceneManager {
     this.stopTaxiApproach();
     this.taxiRide = null;
     this.streamer?.dispose();
+    if (this.physics) for (const id of this.exteriorColliderIds) this.physics.removeSolid(id);
+    this.exteriorColliderIds = [];
     this.skyDome?.dispose();
     this.chunkMats.dispose();
     this.activeInterior?.rig.dispose();
