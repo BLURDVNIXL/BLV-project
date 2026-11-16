@@ -37,7 +37,7 @@ import {
   createAnimatedWaterMaterial,
   getLightingMood,
 } from './materials';
-import { NpcSystem } from './npcSystem';
+import { NPC_POOL_SIZE, NpcSystem } from './npcSystem';
 import { AvatarController, loadAvatar } from './avatars';
 import { getWasmCore } from '../wasm/wasmBridge';
 import {
@@ -469,7 +469,7 @@ export class AbidjanSceneManager {
     this.buildStaticHeroLandmarks();
     this.buildStaticHotspotsAndPickups();
 
-    this.npcSystem = new NpcSystem(this.scene, this.isSoftwareGl ? 8 : 14);
+    this.npcSystem = new NpcSystem(this.scene, this.isSoftwareGl ? 12 : NPC_POOL_SIZE);
     this.initDebugOverlay();
 
     // 3. Player Character Rig
@@ -775,6 +775,7 @@ export class AbidjanSceneManager {
       if (this.disposed) return;
       this.physics = core;
       this.physics.reset();
+      this.npcSystem.setPhysics(core); // pool de personnages des PNJ (après reset, qui efface les personnages)
       this.registerExteriorSolids(core);
 
       const lowEnd =
@@ -1355,6 +1356,7 @@ export class AbidjanSceneManager {
     if (this.activeInterior) return { ok: false };
     if (this.drivingVehicle) return { ok: false, reason: 'driving' };
 
+    this.npcSystem.setIndoor(true); // les PNJ extérieurs sont désactivés tant qu'on est dedans
     const rig = createInteriorRig(def);
     this.scene.add(rig.group);
     const colliderIds: number[] = [];
@@ -1430,6 +1432,7 @@ export class AbidjanSceneManager {
     this.physics.faceCharacter(this.playerCharId, a.returnRotY, true);
     this.teleportPlayer(a.returnX, a.returnZ);
     this.playerRig.group.rotation.y = a.returnRotY;
+    this.npcSystem.setIndoor(false); // les PNJ réapparaissent autour du joueur (hors champ de préférence)
     return true;
   }
 
@@ -2051,7 +2054,9 @@ export class AbidjanSceneManager {
     }
 
     // 6. Walking Pedestrians
-    if (!this.activeInterior) this.npcSystem.update(dt, this.playerX, this.playerZ, this.isSuperstar);
+    if (!this.activeInterior) {
+      this.npcSystem.update(dt, this.playerX, this.playerZ, this.isSuperstar, this.camYaw, this.streamer?.isReady(this.playerX, this.playerZ, 2) ?? false);
+    }
 
     // 7. Player Input -> C++/WASM PhysicsCore
     let fwd = 0;

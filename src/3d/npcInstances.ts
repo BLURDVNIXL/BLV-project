@@ -132,6 +132,8 @@ export class NpcHandle {
   index = -1;
   visible = true;
   x = 0; z = 0; cap = 0; phase = 0; amp = 0;
+  /** Basculement vers l'avant en radians (0 = debout, ≈ 1,35 = à terre) : PNJ renversé par un véhicule. */
+  tilt = 0;
   /** Décalage de la respiration à l'arrêt (pour que les PNJ ne respirent pas tous ensemble). */
   readonly idle: number;
   readonly look: Look;
@@ -174,6 +176,7 @@ const _p = new THREE.Vector3();
 const _s = new THREE.Vector3();
 const _q = new THREE.Quaternion();
 const _qi = new THREE.Quaternion();
+const _qt = new THREE.Quaternion();
 const _col = new THREE.Color();
 const _root = new THREE.Matrix4();
 const _body = new THREE.Matrix4();
@@ -293,8 +296,8 @@ export class NpcCrowd {
     h.index = -1;
   }
 
-  setPose(h: NpcHandle, x: number, z: number, capRad: number, phase: number, amplitude: number): void {
-    h.x = x; h.z = z; h.cap = capRad; h.phase = phase; h.amp = amplitude;
+  setPose(h: NpcHandle, x: number, z: number, capRad: number, phase: number, amplitude: number, tilt = 0): void {
+    h.x = x; h.z = z; h.cap = capRad; h.phase = phase; h.amp = amplitude; h.tilt = tilt;
   }
 
   setVisible(h: NpcHandle, visible: boolean): void { h.visible = visible; }
@@ -334,7 +337,10 @@ export class NpcCrowd {
     const ba = a.build.arms;
     const bh = a.build.hips;
 
-    _root.compose(_p.set(h.x, bob * s, h.z), _q.setFromAxisAngle(Y_AXIS, h.cap), _s.set(s, s, s));
+    _q.setFromAxisAngle(Y_AXIS, h.cap);
+    // Renversé : lacet puis bascule vers l'avant (même convention que le joueur : rotation 'YXZ')
+    if (h.tilt > 0.01) _q.multiply(_qt.setFromAxisAngle(X_AXIS, -h.tilt));
+    _root.compose(_p.set(h.x, bob * s, h.z), _q, _s.set(s, s, s));
 
     // Ombre de contact (au sol, sans le rebond)
     const r = a.collisionRadius * 1.6;
