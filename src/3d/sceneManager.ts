@@ -37,6 +37,7 @@ import {
   createAnimatedWaterMaterial,
   getLightingMood,
 } from './materials';
+import { AnimalSystem } from './animalSystem';
 import { NPC_POOL_SIZE, NpcSystem } from './npcSystem';
 import { AvatarController, loadAvatar } from './avatars';
 import { getWasmCore } from '../wasm/wasmBridge';
@@ -214,6 +215,7 @@ export class AbidjanSceneManager {
   private streamer: WorldStreamer | null = null;
   private chunkMats!: ChunkMaterials;
   private npcSystem!: NpcSystem;
+  private animalSystem!: AnimalSystem;
 
   private lagoonWaterHandle!: AnimatedWaterHandle;
   /** Dôme de ciel (null sur rendu logiciel : le fond uni est alors utilisé). */
@@ -470,6 +472,7 @@ export class AbidjanSceneManager {
     this.buildStaticHotspotsAndPickups();
 
     this.npcSystem = new NpcSystem(this.scene, this.isSoftwareGl ? 12 : NPC_POOL_SIZE);
+    this.animalSystem = new AnimalSystem(this.scene, this.isSoftwareGl);
     this.initDebugOverlay();
 
     // 3. Player Character Rig
@@ -776,6 +779,7 @@ export class AbidjanSceneManager {
       this.physics = core;
       this.physics.reset();
       this.npcSystem.setPhysics(core); // pool de personnages des PNJ (après reset, qui efface les personnages)
+      this.animalSystem.setPhysics(core); // personnages des animaux (même raison)
       this.registerExteriorSolids(core);
 
       const lowEnd =
@@ -1357,6 +1361,7 @@ export class AbidjanSceneManager {
     if (this.drivingVehicle) return { ok: false, reason: 'driving' };
 
     this.npcSystem.setIndoor(true); // les PNJ extérieurs sont désactivés tant qu'on est dedans
+    this.animalSystem.setIndoor(true); // les animaux aussi
     const rig = createInteriorRig(def);
     this.scene.add(rig.group);
     const colliderIds: number[] = [];
@@ -1434,6 +1439,7 @@ export class AbidjanSceneManager {
     this.teleportPlayer(a.returnX, a.returnZ);
     this.playerRig.group.rotation.y = a.returnRotY;
     this.npcSystem.setIndoor(false); // les PNJ réapparaissent autour du joueur (hors champ de préférence)
+    this.animalSystem.setIndoor(false);
     return true;
   }
 
@@ -2056,7 +2062,9 @@ export class AbidjanSceneManager {
 
     // 6. Walking Pedestrians
     if (!this.activeInterior) {
-      this.npcSystem.update(dt, this.playerX, this.playerZ, this.isSuperstar, this.camYaw, this.streamer?.isReady(this.playerX, this.playerZ, 2) ?? false);
+      const worldReady = this.streamer?.isReady(this.playerX, this.playerZ, 2) ?? false;
+      this.npcSystem.update(dt, this.playerX, this.playerZ, this.isSuperstar, this.camYaw, worldReady);
+      this.animalSystem.update(dt, this.playerX, this.playerZ, this.camYaw, worldReady);
     } else {
       this.npcSystem.updateIndoor(dt, this.playerX, this.playerZ);
     }
@@ -2280,7 +2288,7 @@ export class AbidjanSceneManager {
     if (this.debugAcc < 0.5) return;
     this.debugAcc = 0;
     const info = this.renderer.info.render;
-    this.debugEl.textContent = `appels de dessin : ${info.calls}\ntriangles : ${info.triangles}\nPNJ actifs : ${this.npcSystem.activeCount} (${this.npcSystem.drawnMeshCount} instanced meshes)`;
+    this.debugEl.textContent = `appels de dessin : ${info.calls}\ntriangles : ${info.triangles}\nPNJ actifs : ${this.npcSystem.activeCount} (${this.npcSystem.drawnMeshCount} instanced meshes)\nanimaux actifs : ${this.animalSystem.activeCount}`;
   }
 
   private startLoop() {
@@ -2332,6 +2340,7 @@ export class AbidjanSceneManager {
     this.chunkMats.dispose();
     this.activeInterior?.rig.dispose();
     this.npcSystem.dispose();
+    this.animalSystem.dispose();
     this.debugEl?.remove();
     this.debugEl = null;
     this.renderer.dispose();
