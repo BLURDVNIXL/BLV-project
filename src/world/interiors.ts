@@ -209,6 +209,13 @@ export const MARCHE_INTERIOR: InteriorDef = {
     { x: 8.6, z: 3.0, hx: 1.8, hz: 1.0, h: 0.9, kind: 'prop' },
     { x: 8.6, z: -1.4, hx: 1.8, hz: 1.0, h: 0.9, kind: 'prop' },
     { x: 8.6, z: -5.6, hx: 1.8, hz: 1.0, h: 0.9, kind: 'prop' },
+    // Caisses posées devant chaque étal (alignées sur buildMarcheFurniture : étal ± 0,9 en x, + 1,2 en z)
+    { x: -7.7, z: 4.2, hx: 0.375, hz: 0.325, h: 0.46, kind: 'prop' },
+    { x: -7.7, z: -0.2, hx: 0.375, hz: 0.325, h: 0.46, kind: 'prop' },
+    { x: -7.7, z: -4.4, hx: 0.375, hz: 0.325, h: 0.46, kind: 'prop' },
+    { x: 7.7, z: 4.2, hx: 0.375, hz: 0.325, h: 0.46, kind: 'prop' },
+    { x: 7.7, z: -0.2, hx: 0.375, hz: 0.325, h: 0.46, kind: 'prop' },
+    { x: 7.7, z: -4.4, hx: 0.375, hz: 0.325, h: 0.46, kind: 'prop' },
   ],
   entry: { x: 0, z: 5.2, rotY: Math.PI },
   exit: { x: 0, z: 7.5, radius: 1.7 },
@@ -354,6 +361,9 @@ export const LYCEE_ALYSMA_INTERIOR: InteriorDef = {
     { x: 8.6, z: -4.8, hx: 0.7, hz: 1.4, h: 2.3, kind: 'prop' },
     { x: -6.2, z: 4.0, hx: 1.5, hz: 0.5, h: 0.5, kind: 'prop' },
     { x: 6.2, z: 4.0, hx: 1.5, hz: 0.5, h: 0.5, kind: 'prop' },
+    // Pilastres ivoire du mur nord (alignés sur buildLyceeAlysmaFurniture : x ± 3,6, z = −halfD + 0,22)
+    { x: -3.6, z: -6.78, hx: 0.225, hz: 0.15, h: 3.45, kind: 'prop' },
+    { x: 3.6, z: -6.78, hx: 0.225, hz: 0.15, h: 3.45, kind: 'prop' },
   ],
   entry: { x: 0, z: 3.4, rotY: Math.PI },
   exit: { x: 0, z: 5.7, radius: 1.6 },

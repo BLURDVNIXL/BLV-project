@@ -10,7 +10,7 @@ Simulation de vie urbaine 3D temps réel à Abidjan (Côte d’Ivoire), construi
   - Génération déterministe par chunks 64×64 m (`WorldStreamer`) avec parcelles résidentielles (`playerHouse.ts`), intérieurs hors carte (`src/world/interiors.ts`), architecture différenciée par commune et monuments emblématiques (Stade FHB, Cathédrale Saint-Paul, Hôtel Ivoire, La Pyramide, Tour Postel, Mairie, Maquis Le Temple, Lycée Classique, Lycée Sainte-Marie, Lycée d’Excellence de Bassam).
 - **Rendu & Ambiance (`src/3d/`)** :
   - Ambiance tropicale continue (`ambiance.ts`) : palette chaude interpolée selon l’heure de jeu (aube rosée → matinée dorée → plein jour → heure dorée → coucher → crépuscule → nuit) et soleil qui voyage d’est en ouest, la lune prenant le relais la nuit.
-  - Intérieurs 3D (`src/3d/interiors.ts`, `WallFader`) : registre de constructeurs de mobilier et thèmes par lieu ; les murs côté caméra s’effacent sans solide `BUILDING` (utilisé par les 4 hôpitaux, le Maquis Le Temple, la Grande Halle du Marché d’Adjamé avec foule PNJ animée, la Mairie du Plateau et les 3 lycées : Classique, Sainte-Marie et Bassam).
+  - Intérieurs 3D (`src/3d/interiors.ts`, `WallFader`) : registre de constructeurs de mobilier et thèmes par lieu ; les murs côté caméra s’effacent sans solide `BUILDING` (utilisé par les 4 hôpitaux, le Maquis Le Temple, la Grande Halle du Marché d’Adjamé avec foule PNJ animée, la Mairie du Plateau et les 3 lycées : Classique, Sainte-Marie et Bassam). Chaque meuble visible qui occupe le sol y a son solide, garanti par un test automatique (`src/3d/interiorsCollision.test.ts`).
   - Dôme de ciel (`sky.ts`) : dégradé zénith → horizon, brume chaude collée à l’horizon (même couleur que le brouillard, donc sans couture) et halo/disque solaire.
   - Lagune : reflet de Fresnel vers l’horizon et scintillement du soleil sur les vaguelettes ; arbres balancés par le vent (vertex shader, aucun coût CPU).
   - Qualité : tous ces effets sont désactivés sur rendu logiciel (le fond uni est alors utilisé). `?quality=high` force le chemin complet pour les tests ; `?blvdebug` expose `window.__blvScene`.
@@ -47,7 +47,7 @@ npm run test:world   # Tests de la géographie lagunaire et du streaming
 npm run test:city    # Tests de non-chevauchement routier/lagunaire de la ville
 npm run build:wasm   # Recompile physics/physics.cpp vers public/physics.wasm (clang + lld requis)
 npm run test:e2e     # Test navigateur Chromium de bout en bout (Playwright, python3)
-npm test             # Tests des 19 destins, 19 missions, économie et RGPD
+npm test             # Tests des 19 destins, 19 missions, économie, RGPD et collisions d'intérieur
 npm run lint         # Vérification TypeScript (tsc --noEmit)
 npm run build        # Build production Vite
 ```
