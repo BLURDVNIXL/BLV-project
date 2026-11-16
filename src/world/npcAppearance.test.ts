@@ -57,6 +57,7 @@ test('variété : tous les âges, coiffures et hauts libres apparaissent', () =>
   const all = sample('passant', 'adjame');
   for (const g of NPC_AGE_GROUPS) assert.ok(all.some((a) => a.ageGroup === g), g);
   for (const s of NPC_HAIR_STYLES) assert.ok(all.some((a) => a.hair === s), s);
-  assert.ok(new Set(all.map((a) => a.top.id)).size >= 8);
-  assert.ok(all.some((a) => a.top.patternId?.startsWith('wax_')));
+  assert.ok(new Set(all.map((a) => a.top.id)).size >= 10);
+  for (const id of ['blouson', 'veste_legere', 'gilet', 'chemise_courte', 'chemise_rayee']) assert.ok(all.some((a) => a.top.id === id), id);
+  assert.ok(all.some((a) => a.top.patternId?.startsWith('motif_')));
 });

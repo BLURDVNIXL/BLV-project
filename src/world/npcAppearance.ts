@@ -28,15 +28,17 @@ export type NpcRole =
 
 export type HairStyleId = 'rase' | 'court' | 'afro' | 'tresses' | 'foulard' | 'casquette' | 'bonnet' | 'chauve';
 export type TopId =
-  | 'tshirt' | 'polo' | 'chemise' | 'chemise_bazin' | 'boubou_wax' | 'haut_wax' | 'debardeur'
-  | 'pull' | 'veste_costume' | 'maillot_foot' | 'blouse' | 'tablier' | 'uniforme_haut';
+  | 'tshirt' | 'polo' | 'chemise' | 'chemise_courte' | 'chemise_rayee' | 'chemise_motifs' | 'debardeur'
+  | 'pull' | 'sweat' | 'maillot_foot' | 'tunique'
+  | 'veste_costume' | 'blouson' | 'veste_legere' | 'gilet'
+  | 'blouse' | 'tablier' | 'uniforme_haut';
 export type BottomId =
-  | 'jean' | 'pantalon_toile' | 'pantalon_costume' | 'short' | 'jupe' | 'pagne_wax'
-  | 'pantalon_bazin' | 'jogging' | 'uniforme_bas' | 'pantalon_blanc';
+  | 'jean' | 'pantalon_toile' | 'pantalon_costume' | 'short' | 'jupe' | 'pagne'
+  | 'pantalon_clair' | 'jogging' | 'uniforme_bas' | 'pantalon_blanc';
 export type ShoeId = 'sandales' | 'baskets' | 'mocassins' | 'tongs' | 'claquettes';
 export type AccessoryId = 'lunettes' | 'sac' | 'panier_tete' | 'chapeau' | 'telephone' | 'canne';
 
-/** Pièce de vêtement : id de forme, couleur de base et motif éventuel (id `wax_1`…`wax_6` ou `bazin_riche`, sans texture ici). */
+/** Pièce de vêtement : id de forme, couleur de base et motif éventuel (id `motif_1`…`motif_4`, sans texture ici). */
 export interface NpcGarment<Id extends string> {
   id: Id;
   hex: number;
@@ -82,8 +84,7 @@ export const NPC_HAIR_STYLES: readonly HairStyleId[] = ['rase', 'court', 'afro',
 export const NPC_AGE_GROUPS: readonly AgeGroup[] = ['enfant', 'ado', 'adulte', 'aine'];
 export const NPC_ROLES: readonly NpcRole[] = ['passant', 'vendeur', 'client', 'eleve', 'enseignant', 'soignant', 'agent_mairie', 'serveur_maquis'];
 export const NPC_ACCESSORIES: readonly AccessoryId[] = ['lunettes', 'sac', 'panier_tete', 'chapeau', 'telephone', 'canne'];
-export const WAX_PATTERN_IDS: readonly string[] = ['wax_1', 'wax_2', 'wax_3', 'wax_4', 'wax_5', 'wax_6'];
-export const BAZIN_PATTERN_ID = 'bazin_riche';
+export const MOTIF_PATTERN_IDS: readonly string[] = ['motif_1', 'motif_2', 'motif_3', 'motif_4'];
 
 export const HEIGHT_RANGE: Record<AgeGroup, readonly [number, number]> = {
   enfant: [0.66, 0.74],
@@ -140,19 +141,24 @@ const W = (lux: number, mid: number, pop: number, inf: number): Weights => ({
   luxury: lux, middle: mid, popular: pop, informal: inf, industrial: pop, nature: mid,
 });
 
-interface TopDef { id: TopId; weights: Weights; colors: readonly number[]; pattern?: 'wax' | 'bazin'; work?: boolean; noKids?: boolean }
-interface BottomDef { id: BottomId; weights: Weights; colors: readonly number[]; pattern?: 'wax' | 'bazin'; work?: boolean; noKids?: boolean }
+interface TopDef { id: TopId; weights: Weights; colors: readonly number[]; pattern?: 'motif'; work?: boolean; noKids?: boolean }
+interface BottomDef { id: BottomId; weights: Weights; colors: readonly number[]; pattern?: 'motif'; work?: boolean; noKids?: boolean }
 interface ShoeDef { id: ShoeId; weights: Weights; colors: readonly number[] }
 
-const WAX_COLORS = [0xd97706, 0x0e7490, 0xbe123c, 0x15803d, 0x7e22ce, 0x1d4ed8];
+const MOTIF_COLORS = [0xd97706, 0x0e7490, 0xbe123c, 0x7e22ce];
 
 const TOPS: readonly TopDef[] = [
   { id: 'tshirt', weights: W(2, 5, 6, 6), colors: [0x2563eb, 0xdc2626, 0x16a34a, 0xf8fafc, 0x111827, 0xf59e0b, 0x7c3aed] },
   { id: 'polo', weights: W(5, 4, 3, 2), colors: [0x0f766e, 0x1d4ed8, 0xf8fafc, 0x991b1b, 0x374151] },
   { id: 'chemise', weights: W(5, 4, 3, 2), colors: [0xe2e8f0, 0x93c5fd, 0xfef3c7, 0x9ca3af, 0x1e3a8a] },
-  { id: 'chemise_bazin', weights: W(3, 4, 4, 2), colors: [0xfef3c7, 0xe2e8f0, 0xbfdbfe, 0xfde68a], pattern: 'bazin' },
-  { id: 'boubou_wax', weights: W(2, 4, 6, 3), colors: WAX_COLORS, pattern: 'wax' },
-  { id: 'haut_wax', weights: W(3, 5, 6, 3), colors: WAX_COLORS, pattern: 'wax' },
+  { id: 'chemise_courte', weights: W(4, 5, 5, 3), colors: [0xf8fafc, 0x93c5fd, 0xfef3c7, 0x86efac] },
+  { id: 'chemise_rayee', weights: W(4, 4, 3, 2), colors: [0x93c5fd, 0xe2e8f0, 0xfca5a5, 0x1e3a8a] },
+  { id: 'chemise_motifs', weights: W(3, 5, 6, 3), colors: MOTIF_COLORS, pattern: 'motif' },
+  { id: 'tunique', weights: W(2, 4, 6, 3), colors: MOTIF_COLORS, pattern: 'motif' },
+  { id: 'sweat', weights: W(2, 4, 4, 4), colors: [0x475569, 0x1e3a8a, 0x111827, 0x7f1d1d] },
+  { id: 'blouson', weights: W(2, 4, 4, 3), colors: [0x1f2937, 0x78350f, 0x1e3a8a, 0x14532d] },
+  { id: 'veste_legere', weights: W(4, 4, 2, 1), colors: [0xd6c7a1, 0x6b7280, 0x1e3a8a, 0x78716c] },
+  { id: 'gilet', weights: W(3, 3, 2, 1), colors: [0x374151, 0x7f1d1d, 0x1e293b] },
   { id: 'debardeur', weights: W(1, 3, 4, 5), colors: [0xf8fafc, 0x111827, 0xdb2777, 0xeab308] },
   { id: 'pull', weights: W(3, 3, 2, 1), colors: [0x475569, 0x7f1d1d, 0x1e3a8a, 0x14532d], noKids: false },
   { id: 'veste_costume', weights: W(8, 2, 1, 0.2), colors: [0x0f172a, 0x1f2937, 0x374151, 0x1e3a8a], noKids: true },
@@ -168,8 +174,8 @@ const BOTTOMS: readonly BottomDef[] = [
   { id: 'pantalon_costume', weights: W(8, 2, 1, 0.2), colors: [0x0f172a, 0x1f2937, 0x374151], noKids: true },
   { id: 'short', weights: W(1, 3, 4, 5), colors: [0x1e293b, 0xd6c7a1, 0x1e3a8a, 0x15803d] },
   { id: 'jupe', weights: W(3, 4, 4, 3), colors: [0x111827, 0xbe123c, 0x1d4ed8, 0x7c3aed] },
-  { id: 'pagne_wax', weights: W(1, 3, 6, 4), colors: WAX_COLORS, pattern: 'wax' },
-  { id: 'pantalon_bazin', weights: W(2, 3, 4, 2), colors: [0xfef3c7, 0xe2e8f0, 0xbfdbfe], pattern: 'bazin' },
+  { id: 'pagne', weights: W(1, 3, 6, 4), colors: MOTIF_COLORS, pattern: 'motif' },
+  { id: 'pantalon_clair', weights: W(2, 3, 4, 2), colors: [0xfef3c7, 0xe2e8f0, 0xbfdbfe] },
   { id: 'jogging', weights: W(1, 3, 4, 5), colors: [0x111827, 0x475569, 0x1e3a8a] },
   { id: 'uniforme_bas', weights: W(0, 0, 0, 0), colors: [0x1e3a8a, 0x44403c, 0x1f2937], work: true },
   { id: 'pantalon_blanc', weights: W(0, 0, 0, 0), colors: [0xf8fafc], work: true, noKids: true },
@@ -213,10 +219,10 @@ const ALL_AGES: readonly AgeGroup[] = NPC_AGE_GROUPS;
 
 export const ROLE_RULES: Record<NpcRole, RoleRule> = {
   passant: { ages: ALL_AGES, ageWeights: { enfant: 12, ado: 15, adulte: 58, aine: 15 }, accessories: ['lunettes', 'sac', 'panier_tete', 'chapeau', 'telephone', 'canne'] },
-  vendeur: { ages: ['adulte', 'aine'], ageWeights: { enfant: 0, ado: 0, adulte: 80, aine: 20 }, top: ['tablier'], bottom: ['jean', 'pantalon_toile', 'jupe', 'pagne_wax', 'short'], shoes: ['sandales', 'tongs', 'baskets', 'claquettes'], accessories: ['panier_tete', 'telephone', 'lunettes'] },
+  vendeur: { ages: ['adulte', 'aine'], ageWeights: { enfant: 0, ado: 0, adulte: 80, aine: 20 }, top: ['tablier'], bottom: ['jean', 'pantalon_toile', 'jupe', 'pagne', 'short'], shoes: ['sandales', 'tongs', 'baskets', 'claquettes'], accessories: ['panier_tete', 'telephone', 'lunettes'] },
   client: { ages: ['ado', 'adulte', 'aine'], ageWeights: { enfant: 0, ado: 12, adulte: 68, aine: 20 }, accessories: ['lunettes', 'sac', 'panier_tete', 'chapeau', 'telephone', 'canne'] },
   eleve: { ages: ['enfant', 'ado'], ageWeights: { enfant: 50, ado: 50, adulte: 0, aine: 0 }, top: ['uniforme_haut'], bottom: ['uniforme_bas'], shoes: ['baskets', 'sandales'], noHair: ['bonnet', 'chauve'], accessories: ['sac'] },
-  enseignant: { ages: ['adulte', 'aine'], ageWeights: { enfant: 0, ado: 0, adulte: 80, aine: 20 }, top: ['chemise', 'polo', 'chemise_bazin'], bottom: ['pantalon_toile', 'jupe', 'pantalon_bazin'], shoes: ['mocassins', 'baskets', 'sandales'], noHair: ['bonnet', 'casquette'], accessories: ['lunettes', 'sac'] },
+  enseignant: { ages: ['adulte', 'aine'], ageWeights: { enfant: 0, ado: 0, adulte: 80, aine: 20 }, top: ['chemise', 'chemise_courte', 'chemise_rayee', 'polo', 'veste_legere'], bottom: ['pantalon_toile', 'jupe', 'pantalon_clair'], shoes: ['mocassins', 'baskets', 'sandales'], noHair: ['bonnet', 'casquette'], accessories: ['lunettes', 'sac'] },
   soignant: { ages: ['adulte'], ageWeights: { enfant: 0, ado: 0, adulte: 100, aine: 0 }, top: ['blouse'], bottom: ['pantalon_blanc'], shoes: ['baskets', 'mocassins'], noHair: ['bonnet'], accessories: ['lunettes', 'telephone'] },
   agent_mairie: { ages: ['adulte', 'aine'], ageWeights: { enfant: 0, ado: 0, adulte: 85, aine: 15 }, top: ['veste_costume'], bottom: ['pantalon_costume'], shoes: ['mocassins'], noHair: ['bonnet', 'casquette'], accessories: ['lunettes', 'sac'] },
   serveur_maquis: { ages: ['adulte'], ageWeights: { enfant: 0, ado: 0, adulte: 100, aine: 0 }, top: ['tablier'], bottom: ['jean', 'pantalon_toile'], shoes: ['baskets'], accessories: ['telephone'] },
@@ -229,7 +235,7 @@ export function socialOf(districtId?: string): SocialClass {
   return DISTRICTS.find((d) => d.id === districtId)?.social ?? 'middle';
 }
 
-function pickGarment<Def extends { id: string; weights: Weights; colors: readonly number[]; pattern?: 'wax' | 'bazin'; work?: boolean; noKids?: boolean }>(
+function pickGarment<Def extends { id: string; weights: Weights; colors: readonly number[]; pattern?: 'motif'; work?: boolean; noKids?: boolean }>(
   rng: Rng, defs: readonly Def[], allowed: readonly string[] | undefined, social: SocialClass, age: AgeGroup
 ): { def: Def; hex: number; patternId: string | null } {
   const isKid = age === 'enfant' || age === 'ado';
@@ -239,13 +245,13 @@ function pickGarment<Def extends { id: string; weights: Weights; colors: readonl
   // Pièce imposée par le rôle : poids égaux (les poids « travail » sont nuls)
   const def = rng.weighted(pool, (d) => (allowed ? 1 : d.weights[social]));
   const hex = rng.pick(def.colors);
-  const patternId = def.pattern === 'wax' ? rng.pick(WAX_PATTERN_IDS) : def.pattern === 'bazin' ? BAZIN_PATTERN_ID : null;
+  const patternId = def.pattern === 'motif' ? rng.pick(MOTIF_PATTERN_IDS) : null;
   return { def, hex, patternId };
 }
 
 function legacyOutfitOf(top: TopId): SapeOutfitId {
   if (top === 'veste_costume') return 'costume_italien';
-  if (top === 'boubou_wax' || top === 'haut_wax' || top === 'chemise_bazin') return 'wax_bazin';
+  if (top === 'tunique' || top === 'chemise_motifs') return 'wax_bazin'; // id historique de `SapeOutfitId`
   if (top === 'maillot_foot') return 'madrid_25';
   return 'standard';
 }

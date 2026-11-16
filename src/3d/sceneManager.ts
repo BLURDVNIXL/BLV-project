@@ -332,6 +332,9 @@ export class AbidjanSceneManager {
   private keys = new Set<string>();
   private joystickVec = { x: 0, y: 0 };
   private isSoftwareGl = false;
+  /** Compteur de performance (`?blvdebug=1`) : absent sans le paramètre. */
+  private debugEl: HTMLDivElement | null = null;
+  private debugAcc = 0;
   private animFrameId: number | null = null;
   private softwareTimeoutId: number | null = null;
   private disposed = false;
@@ -467,6 +470,7 @@ export class AbidjanSceneManager {
     this.buildStaticHotspotsAndPickups();
 
     this.npcSystem = new NpcSystem(this.scene, this.isSoftwareGl ? 8 : 14);
+    this.initDebugOverlay();
 
     // 3. Player Character Rig
     this.playerRig = createCharacterModel(0x5c3824, 'standard', true);
@@ -2249,6 +2253,28 @@ export class AbidjanSceneManager {
     }
   }
 
+  /** Compteur de performance en haut à gauche, créé seulement avec `?blvdebug=1` (texte seul, jamais d'HTML). */
+  private initDebugOverlay(): void {
+    if (this.debugEl || typeof document === 'undefined') return;
+    if (new URLSearchParams(window.location.search).get('blvdebug') !== '1') return;
+    const el = document.createElement('div');
+    el.style.cssText = 'position:fixed;top:4px;left:4px;z-index:9999;padding:3px 6px;border-radius:4px;'
+      + 'background:rgba(0,0,0,0.6);color:#e5e7eb;font:11px/1.3 monospace;white-space:pre;pointer-events:none';
+    el.textContent = '…';
+    document.body.appendChild(el);
+    this.debugEl = el;
+  }
+
+  /** Met à jour le compteur deux fois par seconde (appels de dessin, triangles, PNJ actifs). */
+  private updateDebugOverlay(dt: number): void {
+    if (!this.debugEl) return;
+    this.debugAcc += dt;
+    if (this.debugAcc < 0.5) return;
+    this.debugAcc = 0;
+    const info = this.renderer.info.render;
+    this.debugEl.textContent = `appels de dessin : ${info.calls}\ntriangles : ${info.triangles}\nPNJ actifs : ${this.npcSystem.activeCount} (${this.npcSystem.drawnMeshCount} instanced meshes)`;
+  }
+
   private startLoop() {
     const tick = () => {
       if (this.disposed) return;
@@ -2259,6 +2285,7 @@ export class AbidjanSceneManager {
       this.stepSimulation(dt, now / 1000);
       this.skyDome?.followCamera(this.camera);
       this.renderer.render(this.scene, this.camera);
+      this.updateDebugOverlay(dt);
 
       if (this.isSoftwareGl) {
         this.softwareTimeoutId = window.setTimeout(() => {
@@ -2297,6 +2324,8 @@ export class AbidjanSceneManager {
     this.chunkMats.dispose();
     this.activeInterior?.rig.dispose();
     this.npcSystem.dispose();
+    this.debugEl?.remove();
+    this.debugEl = null;
     this.renderer.dispose();
   }
 }
