@@ -33,7 +33,7 @@ export const OrientationGuard: React.FC = () => {
         Tourne ton écran en Paysage
       </h2>
       <p className="max-w-xs text-sm text-ink-600 leading-relaxed mb-6">
-        Pour profiter de la manette PlayStation (Joystick + ✕ □ △ ◯) et de la vue panoramique d’Abidjan, bascule ton appareil à l’horizontale.
+        Pour profiter d'une meilleure expérience, bascule ton appareil à l’horizontale.
       </p>
 
       <button
