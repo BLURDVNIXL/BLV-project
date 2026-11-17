@@ -864,38 +864,6 @@ export default function App() {
               syncEconomy('eat', { foodId });
             }
           }}
-          onDepositBank={(amt) => {
-            setPlayerState((prev) => depositToBank(prev, amt));
-            syncEconomy('deposit', { amount: amt });
-          }}
-          onWithdrawBank={(amt) => {
-            setPlayerState((prev) => withdrawFromBank(prev, amt));
-            syncEconomy('withdraw', { amount: amt });
-          }}
-          onTakeLoan={(amt) => {
-            soundEngine.playCashSound();
-            setPlayerState((prev) => takeBankLoan(prev, amt));
-            syncEconomy('loan', { amount: amt });
-          }}
-          onRepayDebt={(amt) => {
-            setPlayerState((prev) => repayDebt(prev, amt));
-            syncEconomy('repay', { amount: amt });
-          }}
-          onJoinTontine={() => mpRef.current?.joinTontine()}
-          onContributeTontine={() => {
-            if (!playerState.sessionToken) {
-              showToast('⚠️ Connexion serveur requise pour cotiser à la Tontine.');
-              return;
-            }
-            const pay = spendCash(playerState, 50000);
-            if (!pay.ok) {
-              showToast('❌ 50 000 FCFA requis pour cotiser à la Tontine.');
-              return;
-            }
-            setPlayerState((prev) => addLog({ ...prev, cash: pay.nextCash }, '🤝 Cotisation Tontine versée (-50 000 F).', 'work'));
-            mpRef.current?.contributeTontine();
-          }}
-          onFleeTontine={() => mpRef.current?.fleeTontine()}
           onFastTravel={(x, z, districtName, districtId) => {
             // Étape B1 : on appelle le taxi, il arrive après 10 à 20 s ; le prix (500 F dans la commune,
             // 1 000 F entre communes, recalculé par le serveur) n'est débité qu'à la montée.
@@ -926,26 +894,6 @@ export default function App() {
               return next;
             });
             syncEconomy('buy_outfit', { outfitId: outfit });
-          }}
-          onUpgradeCrib={(key) => {
-            setPlayerState((prev) => {
-              const next = buyCribUpgrade(prev, key);
-              sceneRef.current?.syncCribUpgrades(next.cribUpgrades);
-              return next;
-            });
-            syncEconomy('buy_crib', { key });
-          }}
-          onSleepHome={() => {
-            setPlayerState((prev) => sleepAtHome(prev));
-            syncEconomy('sleep');
-          }}
-          onShowerHome={() => {
-            setPlayerState((prev) => takeShower(prev));
-            syncEconomy('shower');
-          }}
-          onToiletHome={() => {
-            setPlayerState((prev) => useToilet(prev));
-            syncEconomy('toilet');
           }}
           onDonateYannis={() => {
             soundEngine.playJingle();

@@ -2,11 +2,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   X,
   Search,
-  CreditCard,
   UtensilsCrossed,
   MapPin,
   Shirt,
-  Home,
   CheckCircle,
   Wifi,
   Battery,
@@ -21,7 +19,6 @@ import {
 import {
   IVORIAN_FOODS,
   SAPE_OUTFITS,
-  CRIB_UPGRADE_PRICES,
 } from '../core/destinies';
 import { getMissionForDestiny } from '../core/missions';
 import {
@@ -44,24 +41,13 @@ interface BabiOSPhoneProps {
   getGpsSource: () => GpsSource;
   onClose: () => void;
   onEatFood: (foodId: string) => void;
-  onDepositBank: (amount: number) => void;
-  onWithdrawBank: (amount: number) => void;
-  onTakeLoan: (amount: number) => void;
-  onRepayDebt: (amount: number) => void;
-  onJoinTontine: () => void;
-  onContributeTontine: () => void;
-  onFleeTontine: () => void;
   onFastTravel: (x: number, z: number, districtName: string, districtId: string) => void;
   onBuyOrEquipOutfit: (outfit: SapeOutfitId) => void;
-  onUpgradeCrib: (upgradeKey: 'splitClim' | 'bafflesMaquis' | 'tv4k' | 'canapeCuir') => void;
-  onSleepHome: () => void;
-  onShowerHome: () => void;
-  onToiletHome: () => void;
   onDonateYannis: () => void;
   onClearPoliceNetwork: (isBlackMarket: boolean) => void;
 }
 
-type PhoneApp = 'home' | 'missions' | 'bank' | 'eats' | 'gps' | 'sape' | 'crib';
+type PhoneApp = 'home' | 'missions' | 'eats' | 'gps' | 'sape';
 
 export const BabiOSPhone: React.FC<BabiOSPhoneProps> = ({
   playerState,
@@ -71,19 +57,8 @@ export const BabiOSPhone: React.FC<BabiOSPhoneProps> = ({
   getGpsSource,
   onClose,
   onEatFood,
-  onDepositBank,
-  onWithdrawBank,
-  onTakeLoan,
-  onRepayDebt,
-  onJoinTontine,
-  onContributeTontine,
-  onFleeTontine,
   onFastTravel,
   onBuyOrEquipOutfit,
-  onUpgradeCrib,
-  onSleepHome,
-  onShowerHome,
-  onToiletHome,
   onDonateYannis,
   onClearPoliceNetwork,
 }) => {
@@ -161,11 +136,9 @@ export const BabiOSPhone: React.FC<BabiOSPhoneProps> = ({
 
               <div className="grid grid-cols-4 gap-2.5">
                 <AppIcon label="Missions" icon={<Target className="h-6 w-6" />} tone="sun" onClick={() => setActiveApp('missions')} />
-                <AppIcon label={s.bank} icon={<CreditCard className="h-6 w-6" />} tone="palm" onClick={() => setActiveApp('bank')} />
                 <AppIcon label={s.eats} icon={<UtensilsCrossed className="h-6 w-6" />} tone="sun" onClick={() => setActiveApp('eats')} />
                 <AppIcon label={s.gps} icon={<MapPin className="h-6 w-6" />} tone="lagoon" onClick={() => setActiveApp('gps')} />
                 <AppIcon label={s.sape} icon={<Shirt className="h-6 w-6" />} tone="plum" onClick={() => setActiveApp('sape')} />
-                <AppIcon label={s.crib} icon={<Home className="h-6 w-6" />} tone="sun" onClick={() => setActiveApp('crib')} />
               </div>
 
               {/* RECENT LOGS */}
@@ -254,81 +227,6 @@ export const BabiOSPhone: React.FC<BabiOSPhoneProps> = ({
                   🕶️ Marché Noir : Fausses Plaques (35 000 F)
                 </button>
               )}
-            </div>
-          )}
-
-          {/* BANQUE, PRÊTS & TONTINE MULTIJOUEUR */}
-          {activeApp === 'bank' && (
-            <div className="flex flex-col gap-3">
-              <AppHeader title={s.bank} onBack={() => setActiveApp('home')} />
-
-              <div className="rounded-xl bg-cream-100 p-3.5 border border-palm-400/40 space-y-1">
-                <div className="flex justify-between text-xs">
-                  <span className="text-ink-600">{s.cash} :</span>
-                  <span className="tabular-nums font-bold text-palm-600">{Math.round(playerState.cash).toLocaleString('fr-FR')} F</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-ink-600">{s.bankBalance} :</span>
-                  <span className="tabular-nums font-bold text-lagoon-600">{Math.round(playerState.bankCash).toLocaleString('fr-FR')} F</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-ink-600">{s.debtLabel} :</span>
-                  <span className="tabular-nums font-bold text-coral-600">{Math.round(playerState.debt).toLocaleString('fr-FR')} F</span>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <button type="button" onClick={() => onDepositBank(25000)} className="rounded-lg bg-palm-600 hover:bg-palm-600 py-2 text-xs font-bold cursor-pointer">
-                  Déposer 25 000 F
-                </button>
-                <button type="button" onClick={() => onWithdrawBank(25000)} className="rounded-lg bg-lagoon-600 hover:bg-lagoon-600 py-2 text-xs font-bold cursor-pointer">
-                  Retirer 25 000 F
-                </button>
-                <button type="button" onClick={() => onTakeLoan(100000)} className="rounded-lg bg-sun-600 hover:bg-sun-500 py-2 text-xs font-bold text-white cursor-pointer">
-                  Emprunter 100 000 F
-                </button>
-                <button type="button" onClick={() => onRepayDebt(50000)} className="rounded-lg bg-cream-200 hover:bg-cream-200 border border-cream-200 py-2 text-xs font-bold cursor-pointer">
-                  Rembourser 50k Dette
-                </button>
-              </div>
-
-              {/* SERVER-AUTHORITATIVE NON-NPC TONTINE */}
-              <div className="rounded-xl bg-cream-100 p-3.5 border border-cream-200 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-xs text-ink-800">🤝 Tontine Live d’Abidjan</span>
-                  <span className="text-xs tabular-nums text-sun-600">
-                    Pot: {(tontineSnapshot?.currentPot ?? 0).toLocaleString('fr-FR')} F
-                  </span>
-                </div>
-                <div className="text-xs text-ink-600">
-                  Tour #{tontineSnapshot?.roundNumber ?? 1} · {tontineSnapshot?.participants.length ?? 0} joueur(s) réel(s) · Mise : 50 000 F
-                </div>
-                <div className="text-xs text-ink-600">
-                  Minimum 2 joueurs connectés requis pour déclencher le versement (0 faux PNJ).
-                </div>
-                {tontineError && (
-                  <div className="rounded-lg bg-coral-400/15 border border-coral-400/40 px-2.5 py-1 text-xs text-coral-600 font-semibold">
-                    {tontineError}
-                  </div>
-                )}
-                <div className="flex gap-2">
-                  <button type="button" onClick={onJoinTontine} className="flex-1 rounded-lg bg-cream-200 hover:bg-cream-200 py-1.5 text-xs font-bold cursor-pointer">
-                    Rejoindre
-                  </button>
-                  <button type="button" onClick={onContributeTontine} className="flex-1 rounded-lg bg-palm-600 hover:bg-palm-500 py-1.5 text-xs font-bold cursor-pointer">
-                    Cotiser 50 000 F
-                  </button>
-                </div>
-                {(tontineSnapshot?.currentPot ?? 0) > 0 && (
-                  <button
-                    type="button"
-                    onClick={onFleeTontine}
-                    className="w-full rounded-lg bg-coral-600 hover:bg-coral-600 py-1.5 text-xs font-bold uppercase cursor-pointer"
-                  >
-                    🚨 Fuir avec la caisse (Scandale +3 ★ Police)
-                  </button>
-                )}
-              </div>
             </div>
           )}
 
@@ -456,50 +354,6 @@ export const BabiOSPhone: React.FC<BabiOSPhoneProps> = ({
                       </span>
                     )}
                   </button>
-                );
-              })}
-            </div>
-          )}
-
-          {/* BABI CRIBS + CONTRÔLE D'ACCÈS MAISON */}
-          {activeApp === 'crib' && (
-            <div className="flex flex-col gap-2.5">
-              <AppHeader title={s.crib} onBack={() => setActiveApp('home')} />
-              <div className="text-xs text-ink-600">{playerState.destiny.housing}</div>
-
-              <div className="grid grid-cols-3 gap-1.5">
-                <button type="button" onClick={onSleepHome} className="rounded-lg bg-plum-500 hover:bg-plum-500 py-1.5 text-xs font-bold cursor-pointer">
-                  🛏️ Dormir
-                </button>
-                <button type="button" onClick={onShowerHome} className="rounded-lg bg-lagoon-600 hover:bg-lagoon-600 py-1.5 text-xs font-bold cursor-pointer">
-                  🚿 Douche
-                </button>
-                <button type="button" onClick={onToiletHome} className="rounded-lg bg-cream-200 hover:bg-cream-200 py-1.5 text-xs font-bold cursor-pointer">
-                  🚽 Toilettes
-                </button>
-              </div>
-
-              {(Object.keys(CRIB_UPGRADE_PRICES) as Array<'splitClim' | 'bafflesMaquis' | 'tv4k' | 'canapeCuir'>).map((key) => {
-                const up = CRIB_UPGRADE_PRICES[key];
-                const isOwned = playerState.cribUpgrades[key];
-                return (
-                  <div key={key} className="flex items-center justify-between rounded-xl bg-cream-100 p-2.5 border border-cream-200">
-                    <div className="min-w-0 pr-2">
-                      <div className="text-xs font-bold text-ink-800 truncate">{up.name}</div>
-                      <div className="text-xs text-ink-600">{up.desc}</div>
-                    </div>
-                    {isOwned ? (
-                      <span className="text-xs font-bold text-palm-600 shrink-0">Installé</span>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => onUpgradeCrib(key)}
-                        className="shrink-0 rounded-lg bg-plum-500 hover:bg-plum-500 px-2 py-1 text-xs font-bold text-white cursor-pointer"
-                      >
-                        {up.cost.toLocaleString('fr-FR')} F
-                      </button>
-                    )}
-                  </div>
                 );
               })}
             </div>
