@@ -1,0 +1,238 @@
+/* Écran titre « borne d'arcade » BLV — le menu s'affiche sur l'écran CRT de la borne. */
+.ts-root {
+  --ts-cream: #fff4ff;
+  position: fixed; inset: 0; z-index: 40; overflow: hidden; background: #05030a;
+  font-family: "Trebuchet MS", Arial, sans-serif; color: var(--ts-cream);
+}
+.ts-root *, .ts-root *::before, .ts-root *::after { box-sizing: border-box; }
+
+.ts-stage {
+  position: relative; width: 100%; height: 100%; overflow: hidden; isolation: isolate;
+  background: #08040d url("../assets/arcade-cabinet.jpeg") center center / 100% 100% no-repeat;
+  filter: brightness(.32) saturate(.82);
+  animation: tsCabinetWake 1.5s ease 2.25s forwards;
+}
+@keyframes tsCabinetWake { to { filter: brightness(1) saturate(1); } }
+.ts-vignette {
+  position: absolute; inset: 0; pointer-events: none; z-index: 1;
+  background: radial-gradient(ellipse at 50% 48%, transparent 38%, rgba(0,0,0,.42) 100%);
+}
+
+/* Écran CRT */
+.ts-crt {
+  position: absolute; z-index: 3; left: 32.2%; top: 29.3%; width: 35.8%; height: 42.2%;
+  border-radius: 9% / 10%; overflow: hidden; display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(ellipse at center, rgba(232,0,255,.14), rgba(80,0,120,.10) 75%, transparent);
+  box-shadow: inset 0 0 22px rgba(255,90,255,.14);
+  opacity: 0;
+  animation: tsScreenOn .8s ease 2.4s forwards, tsCrtPulse 5.5s linear 3.2s infinite;
+}
+@keyframes tsScreenOn { to { opacity: 1; } }
+@keyframes tsCrtPulse {
+  0%, 97%, 100% { filter: brightness(1) contrast(1.06); }
+  98% { filter: brightness(1.14) contrast(1.18); }
+  99% { filter: brightness(.94) contrast(1.1); }
+}
+.ts-crt::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 5;
+  background:
+    repeating-linear-gradient(to bottom, rgba(255,255,255,.13) 0, rgba(255,255,255,.13) 1px, rgba(0,0,0,.18) 2px, transparent 3px, transparent 4px),
+    repeating-linear-gradient(to right, rgba(255,255,255,.018) 0, rgba(255,255,255,.018) 1px, transparent 2px, transparent 4px);
+  mix-blend-mode: screen; opacity: .82; animation: tsScanFlicker .095s steps(2, end) infinite;
+}
+.ts-crt::after {
+  content: ""; position: absolute; inset: -20%; z-index: 4; pointer-events: none;
+  background:
+    linear-gradient(to bottom, transparent 0%, rgba(255,255,255,.02) 42%, rgba(255,255,255,.24) 50%, rgba(255,255,255,.035) 53%, transparent 61%),
+    linear-gradient(110deg, transparent 28%, rgba(255,255,255,.075) 48%, transparent 63%);
+  transform: translateY(-130%) translateX(-100%);
+  animation: tsCrtBeam 4.8s linear 2s infinite;
+}
+@keyframes tsScanFlicker { 0%, 100% { opacity: .76; } 50% { opacity: .9; } }
+@keyframes tsCrtBeam {
+  0% { transform: translateY(-130%) translateX(-100%); }
+  70%, 100% { transform: translateY(130%) translateX(100%); }
+}
+
+/* Menu principal */
+.ts-menu-view {
+  position: relative; z-index: 2; width: 100%; height: 100%; padding: 5.5% 7%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+  opacity: 0; transform: scale(.97); animation: tsMenuBoot .65s ease 2.8s forwards;
+}
+@keyframes tsMenuBoot { to { opacity: 1; transform: scale(1); } }
+.ts-menu-list { width: min(76%, 390px); display: grid; gap: clamp(3px, .72vh, 9px); }
+.ts-choice {
+  position: relative; border: 1px solid rgba(255,172,255,.42); border-radius: 4px;
+  padding: clamp(5px, 1.05vh, 12px) 12px;
+  background: linear-gradient(90deg, rgba(31,0,48,.82), rgba(89,0,112,.68), rgba(31,0,48,.82));
+  color: #fceaff; text-transform: uppercase; font: inherit; font-size: clamp(9px, 1.15vw, 16px);
+  font-weight: 900; letter-spacing: .13em; cursor: pointer; text-shadow: 0 0 7px rgba(255,95,255,.65);
+  box-shadow: inset 0 0 10px rgba(239,0,255,.13), 0 0 8px rgba(190,0,255,.1);
+  transition: transform .14s ease, background .14s ease, box-shadow .14s ease, color .14s ease;
+}
+.ts-choice::before {
+  content: "▶"; position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+  color: #ff8aff; font-size: .72em; opacity: 0; text-shadow: 0 0 8px #ff40ff;
+}
+.ts-choice:hover, .ts-choice:focus-visible, .ts-choice.active {
+  outline: none; color: #fff; transform: scale(1.045);
+  background: linear-gradient(90deg, rgba(116,0,146,.96), rgba(231,0,255,.86), rgba(116,0,146,.96));
+  border-color: #ffd6ff;
+  box-shadow: 0 0 8px #f000ff, 0 0 20px rgba(227,0,255,.75), inset 0 0 13px rgba(255,255,255,.22);
+}
+.ts-choice:hover::before, .ts-choice:focus-visible::before, .ts-choice.active::before { opacity: 1; }
+
+/* Sous-panneaux (paramètres, trophées) */
+.ts-sub {
+  width: 82%; max-width: 440px; padding: 4%;
+  border: 1px solid rgba(255,185,255,.7); border-radius: 5px; background: rgba(24,0,38,.88);
+  box-shadow: 0 0 18px rgba(222,0,255,.5), inset 0 0 20px rgba(222,0,255,.16);
+  font-size: clamp(9px, 1.05vw, 14px); line-height: 1.5;
+}
+.ts-sub h2 { margin: 0 0 10px; color: #fff; font-size: 1.15em; letter-spacing: .2em; text-transform: uppercase; text-shadow: 0 0 10px #f000ff; }
+.ts-soon {
+  margin: 0 0 12px; color: #fff; font-weight: 900; text-transform: uppercase; letter-spacing: .16em;
+  text-shadow: 0 0 5px #fff, 0 0 12px #f000ff, 0 0 22px #b000ff;
+}
+.ts-sub button {
+  margin-top: 10px; padding: 7px 20px; border: 1px solid #f6baff; border-radius: 3px; color: #fff;
+  background: #72008c; font: inherit; font-weight: 900; letter-spacing: .12em; cursor: pointer;
+  box-shadow: 0 0 12px rgba(232,0,255,.45);
+}
+
+/* Message temporaire */
+.ts-toast {
+  position: absolute; z-index: 8; left: 50%; bottom: 5%; transform: translate(-50%, 12px);
+  opacity: 0; pointer-events: none; padding: 9px 16px; border: 1px solid rgba(255,180,255,.65); border-radius: 4px;
+  background: rgba(20,0,32,.92); color: #fff; font-size: 12px; letter-spacing: .1em; text-align: center;
+  box-shadow: 0 0 18px rgba(220,0,255,.5); transition: opacity .2s, transform .2s;
+  max-width: 90vw; width: max-content;
+}
+.ts-toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* Bouton « Installer l'App » (ordinateur, quand la PWA est installable) */
+.ts-pwa { position: absolute; z-index: 9; right: 12px; bottom: 12px; }
+
+/* Écran des sauvegardes */
+.ts-save {
+  position: fixed; inset: 0; z-index: 15; overflow: hidden; isolation: isolate;
+  background: #120400 url("../assets/save-background.jpeg") center center / cover no-repeat;
+  animation: tsSaveReveal .65s ease both;
+}
+@keyframes tsSaveReveal {
+  from { opacity: 0; filter: brightness(.45) saturate(1.5); }
+  to { opacity: 1; filter: brightness(1) saturate(1); }
+}
+.ts-save::before {
+  content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: linear-gradient(90deg, transparent 0%, rgba(20,3,0,.05) 48%, rgba(13,2,4,.42) 68%, rgba(5,1,8,.82) 100%);
+}
+.ts-save-art {
+  position: absolute; inset: -2%; width: 104%; height: 104%; object-fit: cover; object-position: center; z-index: 0;
+  filter: url(#blvHeatWarp) saturate(1.08); transform-origin: 50% 50%;
+  animation: tsSlowBreathe 9s ease-in-out infinite alternate;
+}
+@keyframes tsSlowBreathe {
+  0% { transform: scale(1.015) translate3d(-.3%, .2%, 0); }
+  100% { transform: scale(1.06) translate3d(.35%, -.25%, 0); }
+}
+.ts-save-list {
+  position: absolute; z-index: 2; right: clamp(5%, 8vw, 12%); top: 50%; transform: translateY(-50%);
+  display: flex; flex-direction: column; align-items: flex-start; gap: clamp(17px, 3.2vh, 34px); min-width: 220px;
+}
+.ts-save-option {
+  appearance: none; border: 0; padding: 0; margin: 0; background: transparent;
+  color: rgba(255,239,220,.76); font: 900 clamp(17px, 2.15vw, 29px)/1.15 "Trebuchet MS", Arial, sans-serif;
+  letter-spacing: .12em; text-transform: uppercase; text-align: left; cursor: pointer;
+  text-shadow: 0 2px 12px rgba(0,0,0,.85);
+  transition: color .18s ease, transform .18s ease, text-shadow .18s ease;
+}
+.ts-save-option small {
+  display: block; margin-top: 3px; font-size: .45em; font-weight: 700; letter-spacing: .1em; opacity: .85;
+}
+.ts-save-option.empty { color: rgba(255,239,220,.55); }
+.ts-save-option::before {
+  content: ""; display: inline-block; width: 0; height: 2px; margin: 0; vertical-align: middle;
+  background: #fff0d0; box-shadow: 0 0 12px #ff6b00; transition: width .18s ease, margin .18s ease;
+}
+.ts-save-option:hover, .ts-save-option:focus-visible, .ts-save-option.active {
+  outline: none; color: #fff8ed; transform: translateX(-7px);
+  text-shadow: 0 0 7px #fff, 0 0 18px #ff6500, 0 0 34px #ff2a00, 0 3px 14px #000;
+}
+.ts-save-option:hover::before, .ts-save-option:focus-visible::before, .ts-save-option.active::before {
+  width: 19px; margin-right: 12px;
+}
+.ts-crt-overlay {
+  position: absolute; inset: 0; z-index: 3; pointer-events: none; opacity: .22;
+  background: repeating-linear-gradient(to bottom, rgba(255,255,255,.1) 0 1px, transparent 2px 4px);
+  mix-blend-mode: screen;
+}
+.ts-save-back {
+  position: absolute; z-index: 4; left: clamp(18px, 3vw, 40px); bottom: clamp(18px, 4vh, 40px);
+  width: clamp(44px, 4.2vw, 58px); height: clamp(44px, 4.2vw, 58px);
+  display: grid; place-items: center; padding: 0; cursor: pointer; color: #fff4e2; background: rgba(22,4,0,.5);
+  border: 1.5px solid rgba(255,240,214,.8); border-radius: 50%;
+  box-shadow: 0 0 14px rgba(255,100,0,.45), 0 4px 16px rgba(0,0,0,.4); backdrop-filter: blur(3px);
+  transition: transform .18s ease, background .18s ease, box-shadow .18s ease;
+}
+.ts-save-back svg { width: 52%; height: 52%; display: block; }
+.ts-save-back:hover, .ts-save-back:focus-visible {
+  outline: none; transform: translateX(-4px); background: rgba(22,4,0,.75);
+  box-shadow: 0 0 8px #fff0d0, 0 0 22px #ff6500, 0 4px 16px rgba(0,0,0,.5);
+}
+
+/* Intro : le logo ne se rejoue que la première fois */
+.ts-intro {
+  position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; pointer-events: none;
+  background: radial-gradient(ellipse at center, #270035 0%, #09020f 58%, #020105 100%);
+  animation: tsIntroFade 2.8s cubic-bezier(.7, 0, .25, 1) forwards;
+}
+.ts-intro::after {
+  content: ""; position: absolute; inset: 0; opacity: .17; pointer-events: none;
+  background: repeating-linear-gradient(to bottom, transparent 0 3px, rgba(255,255,255,.12) 4px);
+}
+.ts-intro img {
+  width: min(78vw, 950px); max-height: 80vh; object-fit: contain; filter: drop-shadow(0 0 24px rgba(242,0,255,.7));
+  transform: scale(2.25); opacity: 0; animation: tsLogoReveal 2.75s cubic-bezier(.18, .75, .25, 1) forwards;
+}
+@keyframes tsLogoReveal {
+  0% { transform: scale(2.25); opacity: 0; }
+  12% { opacity: 1; }
+  68% { transform: scale(1); opacity: 1; }
+  88% { transform: scale(.92); opacity: 1; }
+  100% { transform: scale(.86); opacity: 0; }
+}
+@keyframes tsIntroFade { 0%, 78% { opacity: 1; visibility: visible; } 100% { opacity: 0; visibility: hidden; } }
+
+/* Retour à l'écran (sans intro) */
+.ts-quick .ts-intro { display: none; }
+.ts-quick .ts-stage { filter: none; animation: none; }
+.ts-quick .ts-menu-view { opacity: 1; transform: none; animation: none; }
+.ts-quick .ts-crt { opacity: 1; animation: tsCrtPulse 5.5s linear infinite; }
+
+@media (max-width: 700px) {
+  .ts-stage { background-size: 100% 100%; }
+  .ts-crt { left: 30.5%; top: 29.1%; width: 39%; height: 42.6%; }
+  .ts-menu-view { padding: 4% 3%; }
+  .ts-menu-list { width: 82%; gap: 5px; }
+  .ts-choice { font-size: clamp(8px, 2vw, 12px); padding: 6px 8px; letter-spacing: .08em; }
+  .ts-choice::before { left: 6px; }
+  .ts-sub { width: 90%; font-size: 9px; }
+  .ts-save { background-position: 43% center; }
+  .ts-save::before { background: linear-gradient(90deg, rgba(10,1,4,.04), rgba(8,1,5,.25) 38%, rgba(5,1,8,.82) 100%); }
+  .ts-save-list { right: 5%; min-width: 0; gap: clamp(18px, 3vh, 28px); }
+  .ts-save-option { font-size: clamp(13px, 3.2vw, 21px); letter-spacing: .08em; }
+  .ts-save-option:hover::before, .ts-save-option:focus-visible::before, .ts-save-option.active::before { width: 12px; margin-right: 7px; }
+}
+/* Téléphone en paysage : écran peu haut */
+@media (max-height: 480px) {
+  .ts-save-list { gap: clamp(8px, 2.6vh, 16px); }
+  .ts-save-option { font-size: clamp(12px, 3.4vh, 20px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ts-root *, .ts-root *::before, .ts-root *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition: none !important; }
+  .ts-intro { display: none; }
+  .ts-stage { filter: none; }
+  .ts-crt, .ts-menu-view { opacity: 1; transform: none; }
+}

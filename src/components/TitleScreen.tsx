@@ -1,74 +1,235 @@
-import { Play, RotateCcw } from 'lucide-react';
-import { PWAInstallButton } from './PWAInstallPrompt';
-import { JellyButton } from './ui/Jelly';
-import titleArt from '../assets/title-art.webp';
+import { useEffect, useRef, useState } from 'react';
+import { PWAInstallButton, usePWAInstall } from './PWAInstallPrompt';
+import { useMediaQuery } from './useMediaQuery';
+import './titleScreen.css';
+import logo from '../assets/blv-logo.png';
+import saveArt from '../assets/save-background.jpeg';
 
 interface TitleScreenProps {
   hasSavedGame: boolean;
   savedDestinyName?: string;
   onStartNewGame: () => void;
   onContinueGame: () => void;
+  language?: 'fr' | 'en';
 }
 
-/** Touche de clavier dans l'aide en bas d'écran. */
-function Key({ children }: { children: string }) {
+type Action = 'new' | 'continue' | 'settings' | 'trophies' | 'last';
+const ACTIONS: Action[] = ['new', 'continue', 'settings', 'trophies', 'last'];
+const SLOT_COUNT = 5;
+
+/** Textes affichés (le jeu doit pouvoir passer en anglais : jamais de texte dans les images). */
+const TEXT = {
+  fr: {
+    new: 'Nouvelle partie', continue: 'Continuer', settings: 'Paramètres', trophies: 'Trophées', quit: 'Quitter', install: 'Installer',
+    soon: 'Option bientôt disponible', back: 'Retour', backToMenu: 'Retour au menu principal',
+    save: (n: number) => `Sauvegarde ${n}`, empty: 'Emplacement vide',
+    quitHint: 'Tu peux fermer cette fenêtre pour quitter le jeu',
+    quitApp: 'Ferme l’app depuis ton téléphone (glisse vers le haut)',
+    installHint: 'Menu du navigateur → « Ajouter à l’écran d’accueil »',
+    installed: 'App installée : ouvre-la depuis ton écran d’accueil',
+    menuLabel: 'Menu principal',
+    screenLabel: 'Menu du jeu sur l’écran de la borne arcade', saveLabel: 'Sélection des sauvegardes',
+  },
+  en: {
+    new: 'New game', continue: 'Continue', settings: 'Settings', trophies: 'Trophies', quit: 'Quit', install: 'Install',
+    soon: 'Option coming soon', back: 'Back', backToMenu: 'Back to main menu',
+    save: (n: number) => `Save ${n}`, empty: 'Empty slot',
+    quitHint: 'You can close this window to quit the game',
+    quitApp: 'Close the app from your phone (swipe up)',
+    installHint: 'Browser menu → “Add to Home screen”',
+    installed: 'App installed: open it from your home screen',
+    menuLabel: 'Main menu',
+    screenLabel: 'Game menu on the arcade cabinet screen', saveLabel: 'Save selection',
+  },
+} as const;
+
+/** L'intro (logo) ne se rejoue pas quand on revient à l'écran depuis la création du personnage. */
+let introPlayed = false;
+
+/** Vrai quand le jeu tourne dans la PWA installée (Android/bureau : display-mode, iOS : navigator.standalone). */
+function isStandaloneApp(): boolean {
+  if (typeof window === 'undefined') return false;
+  const nav = window.navigator as Navigator & { standalone?: boolean };
   return (
-    <kbd className="mx-0.5 rounded-lg border-2 border-white bg-cream-50 px-2 py-0.5 font-sans text-xs font-bold text-ink-800 shadow-[0_2px_0_#c99a52]">
-      {children}
-    </kbd>
+    nav.standalone === true ||
+    window.matchMedia('(display-mode: standalone)').matches ||
+    window.matchMedia('(display-mode: fullscreen)').matches
   );
 }
 
-/** Texte clair avec contour sombre : lisible sur le coucher de soleil comme sur le noir. */
-const OUTLINED = { WebkitTextStroke: '3px #1a0b2e', paintOrder: 'stroke fill' } as const;
-
 /**
- * Écran de démarrage : l'affiche BLV (coucher de soleil, palmiers, couronne) en pleine page.
- * L'affiche est toujours entière (jamais rognée) : un flou de la même image prolonge les bords.
- * Grand écran : affiche en haut, boutons dessous. Téléphone en paysage : affiche à gauche, boutons à droite.
+ * Écran de démarrage « borne d'arcade » : le menu s'affiche sur l'écran CRT de la borne.
+ * « Continuer » ouvre l'écran des sauvegardes (5 emplacements ; seul le 1 est relié à la sauvegarde unique du jeu).
+ * Dernière entrée : sur mobile dans le navigateur « Installer » (installe la PWA) ; dans la PWA installée, et sur ordinateur, « Quitter ».
+ * Clavier : ↑/↓ choisir, Entrée valider, Échap ou Retour arrière revenir.
  */
-export function TitleScreen({ hasSavedGame, savedDestinyName, onStartNewGame, onContinueGame }: TitleScreenProps) {
+export function TitleScreen({ hasSavedGame, savedDestinyName, onStartNewGame, onContinueGame, language = 'fr' }: TitleScreenProps) {
+  const t = TEXT[language];
+  const isMobile = useMediaQuery('(pointer: coarse)');
+  const { canInstall, promptInstall } = usePWAInstall();
+  const [standalone] = useState(isStandaloneApp);
+  const [justInstalled, setJustInstalled] = useState(false);
+  const installMode = isMobile && !standalone && !justInstalled;
+
+  const [quick] = useState(() => introPlayed);
+  const [selected, setSelected] = useState(0);
+  const [panel, setPanel] = useState<'menu' | 'settings' | 'trophies'>('menu');
+  const [saveOpen, setSaveOpen] = useState(false);
+  const [selectedSave, setSelectedSave] = useState(0);
+  const [toast, setToast] = useState('');
+  const [toastVisible, setToastVisible] = useState(false);
+  const toastTimer = useRef<number | undefined>(undefined);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => { introPlayed = true; }, 2800);
+    return () => window.clearTimeout(timer);
+  }, []);
+  useEffect(() => () => window.clearTimeout(toastTimer.current), []);
+
+  const showToast = (message: string) => {
+    setToast(message);
+    setToastVisible(true);
+    window.clearTimeout(toastTimer.current);
+    toastTimer.current = window.setTimeout(() => setToastVisible(false), 2600);
+  };
+
+  useEffect(() => {
+    const onInstalled = () => { setJustInstalled(true); showToast(t.installed); };
+    window.addEventListener('appinstalled', onInstalled);
+    return () => window.removeEventListener('appinstalled', onInstalled);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [language]);
+
+  const labelOf = (action: Action) => (action === 'last' ? (installMode ? t.install : t.quit) : t[action]);
+
+  const handleLast = () => {
+    if (installMode) {
+      if (canInstall) void promptInstall();
+      else showToast(t.installHint);
+      return;
+    }
+    if (standalone) {
+      // Ferme la fenêtre de la PWA ; certains systèmes (iOS) l'interdisent : on indique alors quoi faire.
+      window.close();
+      window.setTimeout(() => showToast(t.quitApp), 350);
+      return;
+    }
+    showToast(t.quitHint);
+  };
+
+  const activate = (action: Action) => {
+    if (action === 'new') onStartNewGame();
+    else if (action === 'continue') { setSelectedSave(0); setSaveOpen(true); }
+    else if (action === 'settings' || action === 'trophies') setPanel(action);
+    else handleLast();
+  };
+
+  const confirmSave = (slot: number) => {
+    if (slot === 1 && hasSavedGame) onContinueGame();
+    else showToast(t.empty);
+  };
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      const down = event.key === 'ArrowDown';
+      const up = event.key === 'ArrowUp';
+      const back = event.key === 'Escape' || event.key === 'Backspace';
+      if (saveOpen) {
+        if (down || up) { event.preventDefault(); setSelectedSave((i) => (i + (down ? 1 : -1) + SLOT_COUNT) % SLOT_COUNT); }
+        else if (event.key === 'Enter') { event.preventDefault(); confirmSave(selectedSave + 1); }
+        else if (back) setSaveOpen(false);
+        return;
+      }
+      if (panel !== 'menu') {
+        if (event.key === 'Enter' || back) { event.preventDefault(); setPanel('menu'); }
+        return;
+      }
+      if (down || up) { event.preventDefault(); setSelected((i) => (i + (down ? 1 : -1) + ACTIONS.length) % ACTIONS.length); }
+      else if (event.key === 'Enter') { event.preventDefault(); activate(ACTIONS[selected]); }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [saveOpen, panel, selected, selectedSave, hasSavedGame, onContinueGame, onStartNewGame, language, installMode, canInstall, standalone]);
+
   return (
-    <div className="pointer-events-auto fixed inset-0 z-40 overflow-hidden bg-[#2a1040]">
-      <img src={titleArt} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full scale-110 object-cover blur-3xl brightness-75 saturate-150" />
-      <div className="absolute inset-0 bg-gradient-to-t from-[#1a0b2e]/70 via-transparent to-[#1a0b2e]/25" />
-
-      <div className="relative flex h-full flex-col items-center gap-3 p-3 md:gap-5 md:p-6 short:flex-row short:gap-4 short:p-3">
-        <h1 className="sr-only">BLV — Babi Life Vibes</h1>
-
-        <div className="flex min-h-0 w-full flex-1 items-center justify-center short:h-full short:w-[56%] short:flex-none">
-          <img
-            src={titleArt}
-            alt="BLV — Babi Life Vibes : une couronne dorée au-dessus du logo, des palmiers et la ville au coucher du soleil"
-            className="max-h-full max-w-full rounded-2xl object-contain shadow-[0_12px_36px_rgba(0,0,0,0.55)] ring-4 ring-[#1a0b2e]"
-          />
-        </div>
-
-        <div className="flex w-full max-w-md flex-col items-stretch gap-2.5 pb-1 short:max-w-none short:flex-1 short:justify-center short:gap-2 short:pb-0">
-          <p
-            className="text-center font-display text-base font-semibold leading-snug text-cream-50 md:text-lg short:text-sm"
-            style={OUTLINED}
-          >
-            Babi Life Vibes · Une vie à Abidjan, d’Abobo à Assinie
-          </p>
-
-          <JellyButton tone="sun" size="lg" data-start="true" className="short:!py-2.5 short:!text-base" onClick={onStartNewGame} icon={<Play className="h-6 w-6 fill-white" />}>
-            Commencer une Nouvelle Vie
-          </JellyButton>
-
-          {hasSavedGame && (
-            <JellyButton tone="palm" size="md" onClick={onContinueGame} icon={<RotateCcw className="h-5 w-5" />}>
-              Continuer{savedDestinyName ? ` (${savedDestinyName})` : ''}
-            </JellyButton>
-          )}
-
-          <PWAInstallButton lang="fr" />
-
-          <div className="hidden text-center text-xs text-cream-50/90 md:block short:hidden">
-            <Key>WASD</Key>/<Key>Flèches</Key> se déplacer · <Key>Souris</Key> caméra · <Key>E</Key> interagir · <Key>Espace</Key> sauter · <Key>P</Key> pause
+    <div className={`ts-root${quick ? ' ts-quick' : ''}`}>
+      <h1 className="sr-only">BLV — Babi Life Vibes</h1>
+      <main className="ts-stage">
+        <div className="ts-vignette" />
+        <section className="ts-crt" aria-label={t.screenLabel}>
+          <div className="ts-menu-view">
+            {panel === 'menu' && (
+              <nav className="ts-menu-list" aria-label={t.menuLabel}>
+                {ACTIONS.map((action, i) => (
+                  <button
+                    key={action}
+                    type="button"
+                    className={`ts-choice${i === selected ? ' active' : ''}`}
+                    data-start={action === 'new' ? 'true' : undefined}
+                    onMouseEnter={() => setSelected(i)}
+                    onClick={() => { setSelected(i); activate(action); }}
+                  >
+                    {labelOf(action)}
+                  </button>
+                ))}
+              </nav>
+            )}
+            {panel !== 'menu' && (
+              <div className="ts-sub">
+                {panel === 'trophies' && <h2>{t.trophies}</h2>}
+                <p className="ts-soon">{t.soon}</p>
+                <button type="button" onClick={() => setPanel('menu')}>{t.back}</button>
+              </div>
+            )}
           </div>
-        </div>
-      </div>
+        </section>
+        <div className={`ts-toast${toastVisible ? ' show' : ''}`} role="status" aria-live="polite">{toast}</div>
+      </main>
+
+      {/* Sur ordinateur, le bouton d'installation reste disponible ; sur mobile c'est l'entrée « Installer » du menu. */}
+      {!isMobile && !standalone && <div className="ts-pwa"><PWAInstallButton lang={language} /></div>}
+
+      {saveOpen && (
+        <section className="ts-save" aria-label={t.saveLabel}>
+          <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden="true">
+            <filter id="blvHeatWarp" x="-8%" y="-8%" width="116%" height="116%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.012 0.018" numOctaves="2" seed="8" result="noise">
+                <animate attributeName="baseFrequency" dur="8s" values="0.010 0.014;0.018 0.025;0.011 0.017;0.010 0.014" repeatCount="indefinite" />
+              </feTurbulence>
+              <feDisplacementMap in="SourceGraphic" in2="noise" scale="15" xChannelSelector="R" yChannelSelector="G">
+                <animate attributeName="scale" dur="6s" values="9;19;12;9" repeatCount="indefinite" />
+              </feDisplacementMap>
+            </filter>
+          </svg>
+          <img className="ts-save-art" src={saveArt} alt="" />
+          <div className="ts-save-list">
+            {Array.from({ length: SLOT_COUNT }, (_, i) => {
+              const filled = i === 0 && hasSavedGame;
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  className={`ts-save-option${i === selectedSave ? ' active' : ''}${filled ? '' : ' empty'}`}
+                  onMouseEnter={() => setSelectedSave(i)}
+                  onClick={() => { setSelectedSave(i); confirmSave(i + 1); }}
+                >
+                  {t.save(i + 1)}
+                  {filled && savedDestinyName && <small>{savedDestinyName}</small>}
+                </button>
+              );
+            })}
+          </div>
+          <button type="button" className="ts-save-back" aria-label={t.backToMenu} title={t.backToMenu} onClick={() => setSaveOpen(false)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M20 12H5" /><path d="M11 6l-6 6 6 6" />
+            </svg>
+          </button>
+          <div className="ts-crt-overlay" />
+        </section>
+      )}
+
+      <div className="ts-intro" aria-hidden="true"><img src={logo} alt="" /></div>
     </div>
   );
 }

@@ -754,6 +754,7 @@ export default function App() {
           savedDestinyName={initialSaved?.destiny.name}
           onStartNewGame={() => setScreenState('roulette')}
           onContinueGame={handleContinueSavedGame}
+          language={playerState.language}
         />
       )}
 
