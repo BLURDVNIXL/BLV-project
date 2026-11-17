@@ -43,7 +43,6 @@ import {
   HomeAccessMode,
   PlayerState,
   SapeOutfitId,
-  WeatherType,
 } from './src/types/game';
 
 const PORT = 3000;
@@ -97,14 +96,6 @@ db.exec(`
     reason TEXT NOT NULL,
     created_at INTEGER NOT NULL
   );
-  CREATE TABLE IF NOT EXISTS admin_audit_log (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    action TEXT NOT NULL,
-    target_player_id TEXT,
-    details_json TEXT,
-    ip TEXT,
-    created_at INTEGER NOT NULL
-  );
 `);
 // Ancienne fonctionnalité de consentement/romance supprimée : on retire aussi les anciennes données.
 db.exec(`DROP TABLE IF EXISTS consent_requests;`);
@@ -152,46 +143,6 @@ function verifySessionToken(playerId: string, token: string | undefined): boolea
     return parsed.pid === playerId;
   } catch {
     return false;
-  }
-}
-
-function signAdminToken(): string {
-  const payload = Buffer.from(JSON.stringify({ role: 'admin', exp: Date.now() + 3600_000 })).toString('base64url');
-  const sig = crypto.createHmac('sha256', TOKEN_SIGNING_KEY).update(payload).digest('base64url');
-  return `${payload}.${sig}`;
-}
-
-function verifyAdminToken(token: string | undefined): boolean {
-  if (!token || !token.includes('.')) return false;
-  const [payload, sig] = token.split('.');
-  const expected = crypto.createHmac('sha256', TOKEN_SIGNING_KEY).update(payload).digest('base64url');
-  if (!timingSafeMatch(sig, expected)) return false;
-  try {
-    const parsed = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as { role?: string; exp: number };
-    return parsed.role === 'admin' && parsed.exp > Date.now();
-  } catch {
-    return false;
-  }
-}
-
-const adminRateLimit = new Map<string, { fails: number; resetAt: number }>();
-
-function checkAdminRateLimit(ip: string): boolean {
-  const now = Date.now();
-  const entry = adminRateLimit.get(ip);
-  if (!entry || entry.resetAt < now) {
-    return true;
-  }
-  return entry.fails < 5;
-}
-
-function recordAdminFail(ip: string) {
-  const now = Date.now();
-  const entry = adminRateLimit.get(ip);
-  if (!entry || entry.resetAt < now) {
-    adminRateLimit.set(ip, { fails: 1, resetAt: now + 600_000 });
-  } else {
-    entry.fails += 1;
   }
 }
 
@@ -357,85 +308,7 @@ async function startServer() {
     });
   });
 
-  // 1. Admin Verify & Protected Action (consistent { passcode } + IP Rate Limit + SQLite Audit Log)
-  app.post('/api/admin/verify', (req, res) => {
-    const ip = req.ip || 'unknown';
-    if (!checkAdminRateLimit(ip)) {
-      res.status(429).json({ ok: false, error: 'Trop de tentatives. Réessaie dans 10 minutes.' });
-      return;
-    }
-    const body = req.body as { passcode?: string };
-    const clean = (body.passcode || '').trim().toUpperCase();
-    if (clean && timingSafeMatch(clean, ADMIN_SECRET.toUpperCase())) {
-      const token = signAdminToken();
-      db.prepare(`INSERT INTO admin_audit_log (action, target_player_id, details_json, ip, created_at) VALUES (?, ?, ?, ?, ?)`).run(
-        'admin_verify_ok',
-        null,
-        '{}',
-        ip,
-        Date.now()
-      );
-      res.json({ ok: true, token });
-    } else {
-      recordAdminFail(ip);
-      res.status(401).json({ ok: false, error: 'Code d’accès administrateur invalide.' });
-    }
-  });
-
-  app.post('/api/admin/action', (req, res) => {
-    const auth = req.headers.authorization?.replace('Bearer ', '');
-    if (!verifyAdminToken(auth)) {
-      res.status(403).json({ ok: false, error: 'Jeton admin expiré ou invalide.' });
-      return;
-    }
-    const { targetPlayerId, action, payload } = req.body as {
-      targetPlayerId?: string;
-      action?: string;
-      payload?: Record<string, unknown>;
-    };
-    if (!targetPlayerId || !action) {
-      res.status(400).json({ ok: false, error: 'Paramètres manquants.' });
-      return;
-    }
-    const row = getSessionRow(targetPlayerId);
-    if (!row) {
-      res.status(404).json({ ok: false, error: 'Session joueur introuvable.' });
-      return;
-    }
-
-    let st = JSON.parse(row.state_json) as PlayerState;
-    if (action === 'force_destiny') {
-      const d = ALL_DESTINIES.find((x) => x.id === String(payload?.destinyId || ''));
-      if (d) {
-        st = createInitialPlayerState(d, targetPlayerId, st.sessionToken);
-      }
-    } else if (action === 'add_cash') {
-      const amt = Math.min(100_000_000, Math.max(0, Number(payload?.amount || 0)));
-      st = { ...st, cash: st.cash + amt };
-    } else if (action === 'set_weather') {
-      st = { ...st, weather: String(payload?.weather || 'soleil') as WeatherType };
-    } else if (action === 'set_police') {
-      st = { ...st, policeWanted: Math.max(0, Math.min(5, Math.round(Number(payload?.stars || 0)))) };
-    } else if (action === 'refill_needs') {
-      st = {
-        ...st,
-        isDepressed: false,
-        needs: { hunger: 100, energy: 100, hygiene: 100, bladder: 100, envy: 100 },
-      };
-    }
-
-    saveSessionState(targetPlayerId, st);
-    db.prepare(`INSERT INTO admin_audit_log (action, target_player_id, details_json, ip, created_at) VALUES (?, ?, ?, ?, ?)`).run(
-      action,
-      targetPlayerId,
-      JSON.stringify(payload || {}),
-      req.ip || 'unknown',
-      Date.now()
-    );
-    res.json({ ok: true, state: st });
-  });
-
-  // 2. Server-Issued Session Init, Save, Fetch & RGPD Delete
+  // Server-Issued Session Init, Save, Fetch & RGPD Delete
   app.post('/api/session/init', (req, res) => {
     const body = req.body as { playerId?: string; sessionToken?: string; state?: PlayerState };
     if (body.playerId && body.sessionToken && verifySessionToken(body.playerId, body.sessionToken)) {

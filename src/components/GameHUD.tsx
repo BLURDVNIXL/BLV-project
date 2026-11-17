@@ -6,7 +6,6 @@ import {
   Flame,
   Volume2,
   VolumeX,
-  Lock,
   Dices,
   Pause,
   Wrench,
@@ -46,7 +45,6 @@ interface GameHUDProps {
   onOpenPhone: () => void;
   onOpenMap: () => void;
   onOpenSettings: () => void;
-  onOpenAdmin: () => void;
   onOpenRoulette: () => void;
   onToggleSound: () => void;
   onPauseClick: () => void;
@@ -115,7 +113,6 @@ export const GameHUD: React.FC<GameHUDProps> = ({
   onOpenPhone,
   onOpenMap,
   onOpenSettings,
-  onOpenAdmin,
   onOpenRoulette,
   onToggleSound,
   onPauseClick,
@@ -328,7 +325,6 @@ export const GameHUD: React.FC<GameHUDProps> = ({
               <MenuItem icon={<SlidersHorizontal className="h-4 w-4" />} label={s.settingsLabel} onClick={runAndClose(onOpenSettings)} />
               <MenuItem icon={<Smartphone className="h-4 w-4" />} label="BabiOS" onClick={runAndClose(onOpenPhone)} />
               <MenuItem icon={<Dices className="h-4 w-4" />} label={s.destinyBtn} onClick={runAndClose(onOpenRoulette)} />
-              <MenuItem icon={<Lock className="h-4 w-4" />} label={s.adminLabel} onClick={runAndClose(onOpenAdmin)} />
             </div>
           )}
 

@@ -20,7 +20,6 @@ export interface UIStrings {
   destinyBtn: string;
   pauseLabel: string;
   settingsLabel: string;
-  adminLabel: string;
   menuLabel: string;
   exitVehicle: string;
   enterVehicle: string;
@@ -55,7 +54,6 @@ const FR_STRINGS: UIStrings = {
   destinyBtn: 'Destin',
   pauseLabel: 'Pause',
   settingsLabel: 'Réglages',
-  adminLabel: 'Admin Sandbox',
   menuLabel: 'Menu',
   exitVehicle: 'Appuie sur E / ✕ pour sortir du véhicule',
   enterVehicle: 'Appuie sur E / ✕ pour monter dans',
@@ -90,7 +88,6 @@ const EN_STRINGS: UIStrings = {
   destinyBtn: 'Destiny',
   pauseLabel: 'Pause',
   settingsLabel: 'Settings',
-  adminLabel: 'Admin Sandbox',
   menuLabel: 'Menu',
   exitVehicle: 'Press E / ✕ to exit vehicle',
   enterVehicle: 'Press E / ✕ to enter',

@@ -9,7 +9,6 @@ import {
   WeatherType,
 } from './types/game';
 import {
-  ALL_DESTINIES,
   IVORIAN_FOODS,
 } from './core/destinies';
 import {
@@ -54,7 +53,6 @@ import { useTouchControls } from './components/useTouchControls';
 import { BabiOSPhone } from './components/BabiOSPhone';
 import { NewLifeScreen } from './components/NewLifeScreen';
 import { loadProfile, saveProfile } from './core/profile';
-import { AdminModal } from './components/AdminModal';
 import { FullMapModal } from './components/FullMapModal';
 import type { GpsSource } from './core/gpsDestinations';
 import { districtAt } from './world/abidjanGeography';
@@ -84,7 +82,6 @@ export default function App() {
 
   // Modals
   const [isPhoneOpen, setIsPhoneOpen] = useState(false);
-  const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isMapOpen, setIsMapOpen] = useState(false);
   const [route, setRoute] = useState<Route | null>(null);
@@ -779,7 +776,6 @@ export default function App() {
             onOpenPhone={() => setIsPhoneOpen(true)}
             onOpenMap={() => setIsMapOpen(true)}
             onOpenSettings={() => setIsSettingsOpen(true)}
-            onOpenAdmin={() => setIsAdminOpen(true)}
             onOpenRoulette={() => setScreenState('roulette')}
             onToggleSound={handleToggleSound}
             onPauseClick={() => setScreenState('paused')}
@@ -904,70 +900,6 @@ export default function App() {
             setHasSavedGame(false);
             setScreenState('title');
           }}
-        />
-      )}
-
-      {/* ADMIN SANDBOX */}
-      {isAdminOpen && (
-        <AdminModal
-          playerState={playerState}
-          onClose={() => setIsAdminOpen(false)}
-          onForceDestiny={(id, serverState) => {
-            const d = ALL_DESTINIES.find((x) => x.id === id);
-            if (serverState) {
-              const nextSt: PlayerState = { ...serverState, sessionToken: playerState.sessionToken };
-              const lot = sceneRef.current?.spawnPlayerAtDestiny(
-                nextSt.destiny.spawnX,
-                nextSt.destiny.spawnZ,
-                nextSt.destiny.vehicle,
-                nextSt.destiny.secondaryVehicle,
-                nextSt.sapeOutfit,
-                Boolean(nextSt.destiny.realMadridSuperstar),
-                Boolean(nextSt.destiny.mysticBaraka),
-                nextSt.destiny.homeType,
-                `${nextSt.playerId}|${nextSt.destiny.id}`,
-                nextSt.destiny.districtId,
-                nextSt.destiny.id
-              );
-              if (lot?.id) nextSt.homeLotId = lot.id;
-              setPlayerState(nextSt);
-              setCurrentDistrict(nextSt.destiny.district);
-              sceneRef.current?.syncCribUpgrades(nextSt.cribUpgrades);
-              setIsAdminOpen(false);
-            } else if (d) {
-              enterAbidjanWithDestiny(d);
-              setIsAdminOpen(false);
-            }
-          }}
-          onAddCash={(amt, serverState) => {
-            soundEngine.playCashSound();
-            setPlayerState((prev) =>
-              serverState
-                ? { ...serverState, sessionToken: prev.sessionToken }
-                : addLog({ ...prev, cash: prev.cash + amt }, `💎 Admin : +${amt.toLocaleString('fr-FR')} F`, 'star')
-            );
-          }}
-          onChangeWeather={(w, serverState) => {
-            setPlayerState((prev) => (serverState ? { ...serverState, sessionToken: prev.sessionToken } : { ...prev, weather: w }));
-            sceneRef.current?.updateWorldConditions(w, playerState.gameTimeHours, playerState.policeWanted);
-          }}
-          onSetPoliceStars={(stars, serverState) => {
-            setPlayerState((prev) =>
-              serverState ? { ...serverState, sessionToken: prev.sessionToken } : { ...prev, policeWanted: stars }
-            );
-            if (stars > 0) soundEngine.playPoliceSiren();
-          }}
-          onRefillNeeds={(serverState) =>
-            setPlayerState((prev) =>
-              serverState
-                ? { ...serverState, sessionToken: prev.sessionToken }
-                : {
-                    ...prev,
-                    isDepressed: false,
-                    needs: { hunger: 100, energy: 100, hygiene: 100, bladder: 100, envy: 100 },
-                  }
-            )
-          }
         />
       )}
 
