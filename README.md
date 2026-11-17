@@ -173,11 +173,11 @@ Le cœur de la simulation repose sur plusieurs systèmes interdépendants :
 
 Le temps de jeu est accéléré : une heure réelle correspond à quatre heures dans le jeu.
 
-### BabiOS et déplacements
+### MyOS et déplacements
 
-BabiOS constitue le téléphone intégré au jeu.
+MyOS constitue le téléphone intégré au jeu.
 
-Il permet notamment d'accéder aux applications et aux services disponibles dans la simulation.
+Il permet notamment d'accéder aux applications, au GPS et aux services disponibles dans la simulation.
 
 Le GPS propose :
 - Le domicile du joueur.
@@ -306,16 +306,13 @@ Le projet possède déjà une base technique comprenant :
 
 Certaines fonctionnalités et certains parcours restent en cours de développement, d'intégration ou de validation.
 
-Les descriptions détaillées de leur état d'avancement doivent être maintenues dans `CONTEXT.md` et `Continue.md`.
+La documentation principale doit être maintenue dans `README.md` et refléter les fonctionnalités effectivement présentes dans le code.
 
 ---
 
 ## 9. Documentation du projet
 
-Trois documents assurent le suivi du projet :
-
-- `README.md` : présentation générale, architecture et installation.
-- `CONTEXT.md` : décisions techniques, règles de développement et contexte détaillé.
-- `Continue.md` : état de reprise et informations nécessaires pour poursuivre le travail.
+- `README.md` : présentation générale, architecture, installation et commandes disponibles.
+- `PRIVACY.md` : informations relatives à la confidentialité et aux données traitées.
 
 Ces documents doivent rester cohérents avec le code réellement présent dans le dépôt.
