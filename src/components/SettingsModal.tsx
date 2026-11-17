@@ -15,8 +15,8 @@ interface SettingsModalProps {
   onToggleForceGamepad: () => void;
   showHud: boolean;
   onToggleHud: () => void;
-  pcControlsMode: 'wasd' | 'arrows';
-  onChangeControlsMode: (mode: 'wasd' | 'arrows') => void;
+  pcControlsMode: 'zqsl' | 'arrows';
+  onChangeControlsMode: (mode: 'zqsl' | 'arrows') => void;
   /** 0,5 à 2,5 ; 1 = normal. */
   cameraSensitivity: number;
   onCameraSensitivityChange: (value: number) => void;
@@ -78,14 +78,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         </JellyButton>
       </SettingRow>
 
-      <SettingRow title="Contrôles PC" description="WASD ou flèches pour le déplacement">
+      <SettingRow title="Contrôles PC" description="ZQSL ou flèches pour le déplacement">
         <JellyButton
-          tone={pcControlsMode === 'wasd' ? 'lagoon' : 'sun'}
+          tone={pcControlsMode === 'zqsl' ? 'lagoon' : 'sun'}
           size="sm"
-          onClick={() => onChangeControlsMode(pcControlsMode === 'wasd' ? 'arrows' : 'wasd')}
+          onClick={() => onChangeControlsMode(pcControlsMode === 'zqsl' ? 'arrows' : 'zqsl')}
           icon={<Gamepad2 className="h-4 w-4" />}
         >
-          {pcControlsMode === 'wasd' ? 'WASD' : 'Flèches'}
+          {pcControlsMode === 'zqsl' ? 'ZQSL' : 'Flèches'}
         </JellyButton>
       </SettingRow>
 

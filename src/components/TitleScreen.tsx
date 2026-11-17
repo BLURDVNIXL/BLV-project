@@ -13,8 +13,8 @@ interface TitleScreenProps {
   language?: 'fr' | 'en';
   showHud: boolean;
   onToggleHud: () => void;
-  pcControlsMode: 'wasd' | 'arrows';
-  onChangeControlsMode: (mode: 'wasd' | 'arrows') => void;
+  pcControlsMode: 'zqsl' | 'arrows';
+  onChangeControlsMode: (mode: 'zqsl' | 'arrows') => void;
 }
 
 type Action = 'new' | 'continue' | 'settings' | 'trophies' | 'last';
@@ -33,7 +33,7 @@ const TEXT = {
     installed: 'App installée : ouvre-la depuis ton écran d’accueil',
     menuLabel: 'Menu principal',
     screenLabel: 'Menu du jeu sur l’écran de la borne arcade', saveLabel: 'Sélection des sauvegardes',
-    hudVisible: 'HUD visible', hudHidden: 'HUD masqué', controls: 'Contrôles', wasd: 'WASD', arrows: 'Flèches', settingsTitle: 'Réglages',
+    hudVisible: 'HUD visible', hudHidden: 'HUD masqué', controls: 'Contrôles', wasd: 'ZQSL', arrows: 'Flèches', settingsTitle: 'Réglages',
   },
   en: {
     new: 'New game', continue: 'Continue', settings: 'Settings', trophies: 'Trophies', quit: 'Quit', install: 'Install',
@@ -45,7 +45,7 @@ const TEXT = {
     installed: 'App installed: open it from your home screen',
     menuLabel: 'Main menu',
     screenLabel: 'Game menu on the arcade cabinet screen', saveLabel: 'Save selection',
-    hudVisible: 'HUD visible', hudHidden: 'HUD hidden', controls: 'Controls', wasd: 'WASD', arrows: 'Arrow keys', settingsTitle: 'Settings',
+    hudVisible: 'HUD visible', hudHidden: 'HUD hidden', controls: 'Controls', wasd: 'ZQSL', arrows: 'Arrow keys', settingsTitle: 'Settings',
   },
 } as const;
 
@@ -190,8 +190,8 @@ export function TitleScreen({ hasSavedGame, savedDestinyName, onStartNewGame, on
                 </div>
                 <div className="ts-setting-row">
                   <span>{t.controls}</span>
-                  <button type="button" onClick={() => onChangeControlsMode(pcControlsMode === 'wasd' ? 'arrows' : 'wasd')}>
-                    {pcControlsMode === 'wasd' ? t.wasd : t.arrows}
+                  <button type="button" onClick={() => onChangeControlsMode(pcControlsMode === 'zqsl' ? 'arrows' : 'zqsl')}>
+                    {pcControlsMode === 'zqsl' ? t.wasd : t.arrows}
                   </button>
                 </div>
                 <button type="button" onClick={() => setPanel('menu')}>{t.back}</button>

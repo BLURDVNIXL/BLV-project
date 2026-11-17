@@ -346,7 +346,7 @@ export class AbidjanSceneManager {
 
   // Input state
   private keys = new Set<string>();
-  private controlsMode: 'wasd' | 'arrows' = 'wasd';
+  private controlsMode: 'zqsl' | 'arrows' = 'zqsl';
   private joystickVec = { x: 0, y: 0 };
   private isSoftwareGl = false;
   /** Compteur de performance (`?blvdebug=1`) : absent sans le paramètre. */
@@ -2001,6 +2001,33 @@ export class AbidjanSceneManager {
     this.renderer.setSize(width, height);
   }
 
+  private normalizeKeyCodes(e: KeyboardEvent): string[] {
+    const base = new Set<string>([e.code]);
+    const key = e.key?.toLowerCase() ?? '';
+
+    if (key === 'z') {
+      base.add('KeyZ');
+      base.add('KeyW');
+    }
+    if (key === 'q') {
+      base.add('KeyQ');
+      base.add('KeyA');
+    }
+    if (key === 's') {
+      base.add('KeyS');
+    }
+    if (key === 'd') {
+      base.add('KeyD');
+      base.add('KeyL');
+    }
+    if (key === 'l') {
+      base.add('KeyL');
+      base.add('KeyD');
+    }
+
+    return [...base];
+  }
+
   private onKeyDown = (e: KeyboardEvent) => {
     const tag = (e.target as HTMLElement)?.tagName;
     if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
@@ -2014,7 +2041,9 @@ export class AbidjanSceneManager {
     }
 
     if (this.cameraMode !== 'follow' || this.isPaused) return;
-    this.keys.add(code);
+    for (const keyCode of this.normalizeKeyCodes(e)) {
+      this.keys.add(keyCode);
+    }
     if (code === 'ShiftLeft' || code === 'ShiftRight') this.isSprinting = true;
     if (code === 'Space') {
       e.preventDefault();
@@ -2032,7 +2061,9 @@ export class AbidjanSceneManager {
   };
 
   private onKeyUp = (e: KeyboardEvent) => {
-    this.keys.delete(e.code);
+    for (const keyCode of this.normalizeKeyCodes(e)) {
+      this.keys.delete(keyCode);
+    }
     if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') this.isSprinting = false;
     if (e.code === 'Space') this.isHandbraking = false;
   };
@@ -2044,7 +2075,7 @@ export class AbidjanSceneManager {
     this.camSensitivity = THREE.MathUtils.clamp(value, 0.3, 3);
   }
 
-  public setControlsMode(mode: 'wasd' | 'arrows') {
+  public setControlsMode(mode: 'zqsl' | 'arrows') {
     this.controlsMode = mode;
   }
 
@@ -2244,10 +2275,14 @@ export class AbidjanSceneManager {
       if (this.keys.has('ArrowRight')) turnRight += 1;
       if (this.keys.has('ArrowLeft')) turnRight -= 1;
     } else {
-      if (this.keys.has('KeyW')) fwd += 1;
-      if (this.keys.has('KeyS')) fwd -= 1;
-      if (this.keys.has('KeyD')) turnRight += 1;
-      if (this.keys.has('KeyA')) turnRight -= 1;
+      const moveForward = this.keys.has('KeyZ') || this.keys.has('KeyW');
+      const moveBack = this.keys.has('KeyS');
+      const turnRightKey = this.keys.has('KeyL') || this.keys.has('KeyD');
+      const turnLeftKey = this.keys.has('KeyQ') || this.keys.has('KeyA');
+      if (moveForward) fwd += 1;
+      if (moveBack) fwd -= 1;
+      if (turnRightKey) turnRight += 1;
+      if (turnLeftKey) turnRight -= 1;
     }
 
     if (Math.abs(this.joystickVec.y) > 0.08) fwd = -this.joystickVec.y;
@@ -2287,6 +2322,10 @@ export class AbidjanSceneManager {
         const rightZ = forwardX;
         const wx = forwardX * fwd + rightX * turnRight;
         const wz = forwardZ * fwd + rightZ * turnRight;
+        const moveInputLen = Math.hypot(wx, wz);
+        if (moveInputLen > 0.15) {
+          this.playerRotY = Math.atan2(wx, wz);
+        }
         const baseSpeed = this.isSuperstar ? 10.5 : 6.2;
         const speed = this.isSprinting ? baseSpeed * 1.48 : baseSpeed;
         core.characterInput(this.playerCharId, wx, wz, speed, this.jumpPending);
@@ -2326,7 +2365,6 @@ export class AbidjanSceneManager {
         this.playerX = ps.x;
         this.playerY = ps.y;
         this.playerZ = ps.z;
-        this.playerRotY = ps.heading;
         const knocked = ps.stun > 0;
         const moving = ps.speed > 0.35 && ps.grounded && !knocked;
         if (moving) {
@@ -2335,7 +2373,9 @@ export class AbidjanSceneManager {
         this.playerSquashY = THREE.MathUtils.lerp(this.playerSquashY, 1, 1 - Math.exp(-12 * dt));
         this.playerRig.group.position.set(ps.x, ps.y, ps.z);
         this.playerRig.group.rotation.order = 'YXZ';
-        this.playerRig.group.rotation.set(knocked ? -1.35 : 0, ps.heading, 0);
+        const visualHeading = knocked ? ps.heading : this.playerRotY;
+        this.playerRig.group.rotation.set(knocked ? -1.35 : 0, visualHeading, 0);
+        this.playerRotY = visualHeading;
         this.playerRig.group.scale.set(
           1 / Math.sqrt(this.playerSquashY),
           this.playerSquashY,

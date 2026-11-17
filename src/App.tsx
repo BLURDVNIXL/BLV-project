@@ -102,12 +102,14 @@ export default function App() {
       return true;
     }
   });
-  const [pcControlsMode, setPcControlsMode] = useState<'wasd' | 'arrows'>(() => {
+  const [pcControlsMode, setPcControlsMode] = useState<'zqsl' | 'arrows'>(() => {
     try {
       const raw = localStorage.getItem('blv_pc_controls_mode');
-      return raw === 'arrows' ? 'arrows' : 'wasd';
+      if (raw === 'arrows') return 'arrows';
+      if (raw === 'wasd' || raw === 'zqsl' || raw === 'zqsd') return 'zqsl';
+      return 'zqsl';
     } catch {
-      return 'wasd';
+      return 'zqsl';
     }
   });
   const [cameraSensitivity, setCameraSensitivity] = useState<number>(() => {
