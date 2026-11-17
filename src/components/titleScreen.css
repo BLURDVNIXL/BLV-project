@@ -236,3 +236,22 @@
   .ts-stage { filter: none; }
   .ts-crt, .ts-menu-view { opacity: 1; transform: none; }
 }
+.ts-setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 38px;
+  padding: 3px 0;
+  border-bottom: 1px solid rgba(246, 186, 255, 0.18);
+}
+
+.ts-setting-row span {
+  text-align: left;
+}
+
+.ts-setting-row button {
+  flex: 0 0 auto;
+  min-width: 82px;
+  margin-top: 0;
+}

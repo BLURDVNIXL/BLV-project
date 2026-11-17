@@ -36,7 +36,7 @@ import {
   useToilet,
 } from './core/simulation';
 import { DISTRICTS } from './world/abidjanGeography';
-import { loadGameStateAsync, loadGameStateSync, saveGameStateAsync } from './core/storage';
+import { loadGameStateAsync, loadGameStateSync, saveGameStateAsync, purgeAllDataRGPD } from './core/storage';
 import { initWasmCore } from './wasm/wasmBridge';
 import { AbidjanSceneManager, CityHotspot, RadarSnapshot } from './3d/sceneManager';
 import { soundEngine } from './audio/soundEngine';
@@ -772,6 +772,20 @@ export default function App() {
           onToggleHud={() => setShowHud((v) => !v)}
           pcControlsMode={pcControlsMode}
           onChangeControlsMode={(mode) => setPcControlsMode(mode)}
+          isMuted={isMuted}
+          onToggleSound={handleToggleSound}
+          onToggleLanguage={() =>
+            setPlayerState((prev) => ({
+              ...prev,
+              language: prev.destiny.englishLock ? 'en' : prev.language === 'fr' ? 'en' : 'fr',
+            }))
+          }
+          onEraseData={async () => {
+            await purgeAllDataRGPD(playerState.playerId, playerState.sessionToken);
+            setHasSavedGame(false);
+            setIsMuted(false);
+            setPlayerState(createInitialPlayerState(rollDestiny()));
+          }}
         />
       )}
 

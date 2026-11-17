@@ -13,6 +13,10 @@ interface TitleScreenProps {
   language?: 'fr' | 'en';
   showHud: boolean;
   onToggleHud: () => void;
+  isMuted: boolean;
+  onToggleSound: () => void;
+  onToggleLanguage: () => void;
+  onEraseData: () => void | Promise<void>;
   pcControlsMode: 'zqsl' | 'arrows';
   onChangeControlsMode: (mode: 'zqsl' | 'arrows') => void;
 }
@@ -34,6 +38,7 @@ const TEXT = {
     menuLabel: 'Menu principal',
     screenLabel: 'Menu du jeu sur l’écran de la borne arcade', saveLabel: 'Sélection des sauvegardes',
     hudVisible: 'HUD visible', hudHidden: 'HUD masqué', controls: 'Contrôles', wasd: 'ZQSL', arrows: 'Flèches', settingsTitle: 'Réglages',
+    sound: 'Son', language: 'Langue', eraseData: 'Effacer mes données', confirmErase: 'Confirmer l’effacement ?', eraseDone: 'Données effacées',
   },
   en: {
     new: 'New game', continue: 'Continue', settings: 'Settings', trophies: 'Trophies', quit: 'Quit', install: 'Install',
@@ -46,6 +51,7 @@ const TEXT = {
     menuLabel: 'Main menu',
     screenLabel: 'Game menu on the arcade cabinet screen', saveLabel: 'Save selection',
     hudVisible: 'HUD visible', hudHidden: 'HUD hidden', controls: 'Controls', wasd: 'ZQSL', arrows: 'Arrow keys', settingsTitle: 'Settings',
+    sound: 'Sound', language: 'Language', eraseData: 'Erase my data', confirmErase: 'Confirm erasure?', eraseDone: 'Data erased',
   },
 } as const;
 
@@ -69,7 +75,7 @@ function isStandaloneApp(): boolean {
  * Dernière entrée : sur mobile dans le navigateur « Installer » (installe la PWA) ; dans la PWA installée, et sur ordinateur, « Quitter ».
  * Clavier : ↑/↓ choisir, Entrée valider, Échap ou Retour arrière revenir.
  */
-export function TitleScreen({ hasSavedGame, savedDestinyName, onStartNewGame, onContinueGame, language = 'fr', showHud, onToggleHud, pcControlsMode, onChangeControlsMode }: TitleScreenProps) {
+export function TitleScreen({ hasSavedGame, savedDestinyName, onStartNewGame, onContinueGame, language = 'fr', showHud, onToggleHud, isMuted, onToggleSound, onToggleLanguage, onEraseData, pcControlsMode, onChangeControlsMode }: TitleScreenProps) {
   const t = TEXT[language];
   const isMobile = useMediaQuery('(pointer: coarse)');
   const { canInstall, promptInstall } = usePWAInstall();
@@ -82,6 +88,7 @@ export function TitleScreen({ hasSavedGame, savedDestinyName, onStartNewGame, on
   const [panel, setPanel] = useState<'menu' | 'settings' | 'trophies'>('menu');
   const [saveOpen, setSaveOpen] = useState(false);
   const [selectedSave, setSelectedSave] = useState(0);
+  const [confirmErase, setConfirmErase] = useState(false);
   const [toast, setToast] = useState('');
   const [toastVisible, setToastVisible] = useState(false);
   const toastTimer = useRef<number | undefined>(undefined);
@@ -194,6 +201,24 @@ export function TitleScreen({ hasSavedGame, savedDestinyName, onStartNewGame, on
                     {pcControlsMode === 'zqsl' ? t.wasd : t.arrows}
                   </button>
                 </div>
+                <div className="ts-setting-row">
+                  <span>{t.sound}</span>
+                  <button type="button" onClick={onToggleSound}>{isMuted ? 'OFF' : 'ON'}</button>
+                </div>
+                <div className="ts-setting-row">
+                  <span>{t.language}</span>
+                  <button type="button" onClick={onToggleLanguage}>{language === 'fr' ? 'FR' : 'EN'}</button>
+                </div>
+                {confirmErase ? (
+                  <div className="ts-setting-row">
+                    <span>{t.confirmErase}</span>
+                    <button type="button" onClick={async () => { await onEraseData(); setConfirmErase(false); showToast(t.eraseDone); }}>
+                      OK
+                    </button>
+                  </div>
+                ) : (
+                  <button type="button" onClick={() => setConfirmErase(true)}>{t.eraseData}</button>
+                )}
                 <button type="button" onClick={() => setPanel('menu')}>{t.back}</button>
               </div>
             )}
