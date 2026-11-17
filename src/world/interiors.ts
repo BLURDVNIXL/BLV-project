@@ -11,7 +11,7 @@
 import type { AnimalSpecies } from './animals';
 import type { NpcRole } from './npcAppearance';
 
-export type InteriorId =
+export type PublicInteriorId =
   | 'hopital'
   | 'maquis'
   | 'marche_adjame'
@@ -19,6 +19,10 @@ export type InteriorId =
   | 'lycee_caiman'
   | 'lycee_alysma'
   | 'lycee_alex';
+
+export type HouseInteriorId = 'house_floor_0' | 'house_floor_1';
+
+export type InteriorId = PublicInteriorId | HouseInteriorId;
 
 export type InteriorBoxKind = 'wall' | 'partition' | 'prop';
 
@@ -40,7 +44,7 @@ export interface InteriorTheme {
   ceilingGlow?: number;
 }
 
-export type InteriorActionKind = 'eat' | 'work' | 'yannis_academy';
+export type InteriorActionKind = 'eat' | 'work' | 'sleep' | 'shower' | 'toilet' | 'yannis_academy' | 'interior_stairs';
 
 export interface InteriorActionSpot {
   id: string;
@@ -50,6 +54,10 @@ export interface InteriorActionSpot {
   radius: number;
   type: InteriorActionKind;
   color: number;
+  /** Étage cible pour un escalier (`interior_stairs`). */
+  targetFloor?: number;
+  /** Position d'arrivée locale sur l'étage cible pour un escalier. */
+  arrival?: { x: number; z: number; rotY: number };
 }
 
 
@@ -99,6 +107,11 @@ export interface InteriorDef {
   entry: { x: number; z: number; rotY: number };
   /** Zone d'action « Sortir » (local). */
   exit: { x: number; z: number; radius: number };
+  /** Faux sur un étage supérieur sans porte directe vers la rue (vrai par défaut). */
+  hasStreetExit?: boolean;
+  /** Étendue Z couverte par le plafond (optionnel, ex. terrasse ouverte au sud). */
+  ceilingZMin?: number;
+  ceilingZMax?: number;
   /** Point de réveil à côté du lit n°1 (local) — propre à l'hôpital pour le lot santé. */
   bed?: { x: number; z: number; rotY: number };
   /** Zones d'action internes éventuelles (manger, travailler…). */
@@ -539,7 +552,7 @@ export const LYCEE_ALEX_INTERIOR: InteriorDef = {
   ],
 };
 
-export const INTERIORS: Record<InteriorId, InteriorDef> = {
+export const INTERIORS: Record<PublicInteriorId, InteriorDef> = {
   hopital: HOSPITAL_INTERIOR,
   maquis: MAQUIS_INTERIOR,
   marche_adjame: MARCHE_INTERIOR,

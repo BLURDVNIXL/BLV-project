@@ -2,8 +2,6 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import {
   Destiny,
   GameScreenState,
-  HomeAccessMode,
-  HouseKnockPrompt,
   PlayerProfile,
   PlayerState,
   RemotePlayer,
@@ -36,7 +34,6 @@ import {
   playLotoAkwaba,
   repayDebt,
   rollDestiny,
-  setHomeAccessMode,
   sleepAtHome,
   spendCash,
   takeBankLoan,
@@ -73,7 +70,7 @@ import { SettingsModal } from './components/SettingsModal';
 import { GameOverModal } from './components/GameOverModal';
 import { OrientationGuard } from './components/OrientationGuard';
 import { OfflineIndicator } from './components/PWAInstallPrompt';
-import { Play, RotateCcw, Home, ShieldCheck, DoorOpen } from 'lucide-react';
+import { Play, RotateCcw, Home, ShieldCheck } from 'lucide-react';
 
 export default function App() {
   const isAutostart =
@@ -100,8 +97,7 @@ export default function App() {
   const [route, setRoute] = useState<Route | null>(null);
   const routeRef = useRef<Route | null>(null);
   routeRef.current = route;
-  const [incomingKnock, setIncomingKnock] = useState<HouseKnockPrompt | null>(null);
-  const [visitingNeighbor, setVisitingNeighbor] = useState<string | null>(null);
+
   const [toastNotification, setToastNotification] = useState<string | null>(null);
 
   // Audio & Settings
@@ -223,7 +219,8 @@ export default function App() {
             Boolean(saved.destiny.mysticBaraka),
             saved.destiny.homeType,
             `${saved.playerId}|${saved.destiny.id}`,
-            saved.destiny.districtId
+            saved.destiny.districtId,
+            saved.destiny.id
           );
           sceneRef.current?.syncCribUpgrades(saved.cribUpgrades);
         }
@@ -327,6 +324,10 @@ export default function App() {
         runTransition(() => {
           sceneRef.current?.exitInterior();
         });
+      } else if (h.type === 'interior_stairs') {
+        runTransition(() => {
+          sceneRef.current?.switchHouseFloor(h.targetFloor ?? 0);
+        });
       }
     },
     [showToast, syncEconomy, runTransition]
@@ -426,7 +427,8 @@ export default function App() {
         Boolean(p.destiny.mysticBaraka),
         p.destiny.homeType,
         `${p.playerId}|${p.destiny.id}`,
-        p.destiny.districtId
+        p.destiny.districtId,
+        p.destiny.id
       );
       mgr.syncCribUpgrades(p.cribUpgrades);
       mgr.setCameraMode('follow');
@@ -496,17 +498,6 @@ export default function App() {
           showToast(`⚠️ ${msg}`);
         },
         onChatMessage: (msg) => setChatMessages((prev) => [...prev.slice(-30), msg]),
-        onHouseKnockIncoming: (knock) => setIncomingKnock(knock),
-        onHouseVisitResolved: (res) => {
-          if (res.approved && res.homeType && res.seedKey) {
-            sceneRef.current?.visitNeighborHouse(res.homeType, res.seedKey, res.ownerName, res.upgrades);
-            setVisitingNeighbor(res.ownerName);
-            setIsPhoneOpen(false);
-            showToast(`🏠 Bienvenue chez ${res.ownerName} !`);
-          } else {
-            showToast(`🚪 ${res.reason || 'Accès refusé.'}`);
-          }
-        },
         onConnectionChange: () => {},
       });
       mpRef.current = client;
@@ -585,11 +576,11 @@ export default function App() {
       Boolean(destiny.mysticBaraka),
       destiny.homeType,
       `${fresh.playerId}|${destiny.id}`,
-      destiny.districtId
+      destiny.districtId,
+      destiny.id
     );
     if (lot?.id) fresh.homeLotId = lot.id;
 
-    setVisitingNeighbor(null);
     setPlayerState(fresh);
     setCurrentDistrict(destiny.district);
     setScreenState('playing');
@@ -618,7 +609,8 @@ export default function App() {
       Boolean(cur.destiny.mysticBaraka),
       cur.destiny.homeType,
       `${cur.playerId}|${cur.destiny.id}`,
-      cur.destiny.districtId
+      cur.destiny.districtId,
+      cur.destiny.id
     );
     sceneRef.current?.syncCribUpgrades(cur.cribUpgrades);
     sceneRef.current?.setCameraMode('follow');
@@ -865,7 +857,6 @@ export default function App() {
           tontineSnapshot={tontineSnapshot}
           tontineError={tontineError}
           chatMessages={chatMessages}
-          visitingNeighbor={visitingNeighbor}
           isSenderMuted={(id) => mpRef.current?.isSenderMuted(id) ?? false}
           getGpsSource={getGpsSource}
           onClose={() => setIsPhoneOpen(false)}
@@ -931,20 +922,7 @@ export default function App() {
             sceneRef.current?.startTaxiApproach(waitS);
             setIsPhoneOpen(false);
           }}
-          onVisitNeighbor={(ownerId) => {
-            mpRef.current?.requestHouseVisit(ownerId);
-            showToast('🚪 Tu frappes / entres chez ton voisin...');
-          }}
-          onReturnHome={() => {
-            sceneRef.current?.returnToOwnHouse();
-            setVisitingNeighbor(null);
-            setIsPhoneOpen(false);
-            showToast('🏠 De retour chez toi.');
-          }}
-          onChangeHomeAccess={(mode: HomeAccessMode) => {
-            setPlayerState((prev) => setHomeAccessMode(prev, mode));
-            syncEconomy('set_home_access', { mode });
-          }}
+
           onBuyOrEquipOutfit={(outfit: SapeOutfitId) => {
             setPlayerState((prev) => {
               const next = buyOrEquipOutfit(prev, outfit);
@@ -994,41 +972,6 @@ export default function App() {
         />
       )}
 
-      {/* INCOMING HOUSE KNOCK MODAL */}
-      {incomingKnock && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink-900/60">
-          <div className="w-full max-w-sm rounded-2xl bg-cream-100 border-2 border-plum-400/60 p-5 text-center space-y-3 shadow-2xl">
-            <DoorOpen className="w-8 h-8 text-plum-500 mx-auto" />
-            <h3 className="font-display text-xl uppercase text-ink-800">On frappe à ta porte !</h3>
-            <p className="text-xs text-ink-600">
-              <strong>{incomingKnock.fromName}</strong> souhaite visiter ton logement à Abidjan.
-            </p>
-            <div className="flex gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => {
-                  mpRef.current?.respondHouseKnock(incomingKnock.fromPlayerId, true);
-                  setIncomingKnock(null);
-                  showToast(`🏠 Tu as ouvert la porte à ${incomingKnock.fromName}.`);
-                }}
-                className="flex-1 py-2.5 rounded-xl bg-plum-500 hover:bg-plum-500 text-xs font-bold uppercase cursor-pointer"
-              >
-                Ouvrir 🏠
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  mpRef.current?.respondHouseKnock(incomingKnock.fromPlayerId, false);
-                  setIncomingKnock(null);
-                }}
-                className="flex-1 py-2.5 rounded-xl bg-cream-200 hover:bg-cream-200 text-xs font-bold uppercase cursor-pointer"
-              >
-                Refuser
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* SETTINGS & RGPD */}
       {isSettingsOpen && (
@@ -1074,12 +1017,12 @@ export default function App() {
                 Boolean(nextSt.destiny.mysticBaraka),
                 nextSt.destiny.homeType,
                 `${nextSt.playerId}|${nextSt.destiny.id}`,
-                nextSt.destiny.districtId
+                nextSt.destiny.districtId,
+                nextSt.destiny.id
               );
               if (lot?.id) nextSt.homeLotId = lot.id;
               setPlayerState(nextSt);
               setCurrentDistrict(nextSt.destiny.district);
-              setVisitingNeighbor(null);
               sceneRef.current?.syncCribUpgrades(nextSt.cribUpgrades);
               setIsAdminOpen(false);
             } else if (d) {
