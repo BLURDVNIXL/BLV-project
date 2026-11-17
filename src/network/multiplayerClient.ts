@@ -25,14 +25,6 @@ export interface ServerTontineSnapshot {
   history: string[];
 }
 
-export interface ChatMessage {
-  id: string;
-  senderId: string;
-  senderName: string;
-  text: string;
-  time: string;
-}
-
 export interface HouseVisitResolvedPayload {
   approved: boolean;
   ownerId?: string;
@@ -49,7 +41,6 @@ export interface MultiplayerCallbacks {
   onTontinePayout: (amount: number) => void;
   onTontineFleeResult: (amount: number) => void;
   onTontineError?: (message: string) => void;
-  onChatMessage: (msg: ChatMessage) => void;
   onHouseKnockIncoming?: (knock: HouseKnockPrompt) => void;
   onHouseVisitResolved?: (res: HouseVisitResolvedPayload) => void;
   onConnectionChange: (connected: boolean) => void;
@@ -114,23 +105,9 @@ export class MultiplayerClient {
   private reconnectTimer: number | null = null;
   private lastMoveSentAt = 0;
   private lastSentPos: { x: number; z: number; rotY: number; isDriving: boolean } | null = null;
-  private mutedSenderIds = new Set<string>();
 
   constructor(callbacks: MultiplayerCallbacks) {
     this.callbacks = callbacks;
-  }
-
-  public toggleMuteSender(senderId: string): boolean {
-    if (this.mutedSenderIds.has(senderId)) {
-      this.mutedSenderIds.delete(senderId);
-      return false;
-    }
-    this.mutedSenderIds.add(senderId);
-    return true;
-  }
-
-  public isSenderMuted(senderId: string): boolean {
-    return this.mutedSenderIds.has(senderId);
   }
 
   public connect(initPayload: {
@@ -188,11 +165,6 @@ export class MultiplayerClient {
           } else if (msg.type === 'player:left' && msg.payload) {
             this.remotePlayers.delete(msg.payload.id);
             this.callbacks.onPlayersChange(Array.from(this.remotePlayers.values()), msg.payload.onlineCount);
-          } else if (msg.type === 'chat:message' && msg.payload) {
-            const chat = msg.payload as ChatMessage;
-            if (!this.mutedSenderIds.has(chat.senderId)) {
-              this.callbacks.onChatMessage(chat);
-            }
           } else if (msg.type === 'tontine:update' && msg.payload) {
             this.callbacks.onTontineUpdate(msg.payload);
           } else if (msg.type === 'tontine:payout' && msg.payload) {
@@ -242,14 +214,6 @@ export class MultiplayerClient {
     this.lastMoveSentAt = now;
     this.lastSentPos = { x: pos.x, z: pos.z, rotY: pos.rotY, isDriving: pos.isDriving };
     this.send('player:move', pos);
-  }
-
-  public sendChat(text: string) {
-    this.send('chat:send', { text });
-  }
-
-  public reportChat(messageId: string, senderId: string, reason = 'Comportement inapproprié') {
-    this.send('chat:report', { messageId, senderId, reason });
   }
 
   public joinTontine() {

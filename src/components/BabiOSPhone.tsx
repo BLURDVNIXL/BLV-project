@@ -7,15 +7,10 @@ import {
   MapPin,
   Shirt,
   Home,
-  MessageSquare,
   CheckCircle,
-  Send,
   Wifi,
   Battery,
   Target,
-  Flag,
-  VolumeX,
-  Volume2,
   Trophy,
 } from 'lucide-react';
 import {
@@ -38,15 +33,13 @@ import {
 } from '../core/gpsDestinations';
 import { FARE_BETWEEN_COMMUNES, FARE_SAME_COMMUNE, fastTravelFare, formatGameTime } from '../core/simulation';
 import { t } from '../core/i18n';
-import { ChatMessage, ServerTontineSnapshot } from '../network/multiplayerClient';
+import { ServerTontineSnapshot } from '../network/multiplayerClient';
 
 interface BabiOSPhoneProps {
   playerState: PlayerState;
   remotePlayers: RemotePlayer[];
   tontineSnapshot: ServerTontineSnapshot | null;
   tontineError: string | null;
-  chatMessages: ChatMessage[];
-  isSenderMuted: (senderId: string) => boolean;
   /** Lieux et perron de la maison, relevés à l'ouverture de l'application GPS. */
   getGpsSource: () => GpsSource;
   onClose: () => void;
@@ -64,30 +57,17 @@ interface BabiOSPhoneProps {
   onSleepHome: () => void;
   onShowerHome: () => void;
   onToiletHome: () => void;
-  onSendChat: (text: string) => void;
-  onReportChat: (messageId: string, senderId: string) => void;
-  onToggleMuteSender: (senderId: string) => void;
   onDonateYannis: () => void;
   onClearPoliceNetwork: (isBlackMarket: boolean) => void;
 }
 
-type PhoneApp =
-  | 'home'
-  | 'missions'
-  | 'bank'
-  | 'eats'
-  | 'gps'
-  | 'sape'
-  | 'crib'
-  | 'social';
+type PhoneApp = 'home' | 'missions' | 'bank' | 'eats' | 'gps' | 'sape' | 'crib';
 
 export const BabiOSPhone: React.FC<BabiOSPhoneProps> = ({
   playerState,
   remotePlayers,
   tontineSnapshot,
   tontineError,
-  chatMessages,
-  isSenderMuted,
   getGpsSource,
   onClose,
   onEatFood,
@@ -104,16 +84,10 @@ export const BabiOSPhone: React.FC<BabiOSPhoneProps> = ({
   onSleepHome,
   onShowerHome,
   onToiletHome,
-  onSendChat,
-  onReportChat,
-  onToggleMuteSender,
   onDonateYannis,
   onClearPoliceNetwork,
 }) => {
   const [activeApp, setActiveApp] = useState<PhoneApp>('home');
-  const [chatInput, setChatInput] = useState('');
-  const [reportedIds, setReportedIds] = useState<Record<string, boolean>>({});
-  const [, setMuteTick] = useState(0);
   // GPS : la liste est relevée à chaque ouverture de l'application (la maison peut avoir été posée entre-temps).
   const [gpsList, setGpsList] = useState<GpsDestination[]>([]);
   const [gpsFrom, setGpsFrom] = useState<string | null>(null);
@@ -132,13 +106,6 @@ export const BabiOSPhone: React.FC<BabiOSPhoneProps> = ({
   const mission = getMissionForDestiny(playerState.destiny.id);
   const activeStepIdx = Math.min(playerState.activeMission.stepIndex, mission.steps.length - 1);
   const activeStep = mission.steps[activeStepIdx];
-
-  const handleChatSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!chatInput.trim()) return;
-    onSendChat(chatInput.trim());
-    setChatInput('');
-  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 md:p-6 bg-ink-900/60">
@@ -199,7 +166,6 @@ export const BabiOSPhone: React.FC<BabiOSPhoneProps> = ({
                 <AppIcon label={s.gps} icon={<MapPin className="h-6 w-6" />} tone="lagoon" onClick={() => setActiveApp('gps')} />
                 <AppIcon label={s.sape} icon={<Shirt className="h-6 w-6" />} tone="plum" onClick={() => setActiveApp('sape')} />
                 <AppIcon label={s.crib} icon={<Home className="h-6 w-6" />} tone="sun" onClick={() => setActiveApp('crib')} />
-                <AppIcon label="Babi Chat" icon={<MessageSquare className="h-6 w-6" />} tone="plum" onClick={() => setActiveApp('social')} />
               </div>
 
               {/* RECENT LOGS */}
@@ -539,89 +505,6 @@ export const BabiOSPhone: React.FC<BabiOSPhoneProps> = ({
             </div>
           )}
 
-          {/* BABI CHAT MULTIJOUEUR + MUTE / SIGNALER */}
-          {activeApp === 'social' && (
-            <div className="flex flex-col gap-2.5 h-full">
-              <AppHeader title="Babi Chat Multijoueur" onBack={() => setActiveApp('home')} />
-
-              {remotePlayers.length > 0 && (
-                <div className="rounded-xl bg-cream-100 p-2.5 border border-palm-400/40 space-y-2">
-                  <div className="text-xs font-bold uppercase text-palm-600">Joueurs en ligne</div>
-                  {remotePlayers.map((rp) => (
-                    <div key={rp.id} className="flex items-center justify-between gap-2 text-xs">
-                      <div className="min-w-0">
-                        <div className="font-bold text-ink-800 truncate">{rp.name}</div>
-                        <div className="text-xs text-ink-600 truncate">{rp.destinyName}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-              <div className="flex-1 rounded-xl bg-cream-100 border border-cream-200 p-2.5 space-y-2 max-h-72 overflow-y-auto no-scrollbar">
-                {chatMessages.length === 0 && (
-                  <div className="text-xs text-ink-400 text-center py-6">
-                    Aucun message pour l’instant. Passe le bonjour à Babi !
-                  </div>
-                )}
-                {chatMessages.map((m) => {
-                  const isOwn = m.senderId === playerState.playerId;
-                  const muted = isSenderMuted(m.senderId);
-                  return (
-                    <div key={m.id} className="text-xs border-b border-cream-200 pb-1.5 last:border-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <div>
-                          <span className="text-sun-600 font-bold">{m.senderName}</span>
-                          <span className="text-ink-400 text-xs ml-1">{m.time}</span>
-                        </div>
-                        {!isOwn && (
-                          <div className="flex items-center gap-1">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                onToggleMuteSender(m.senderId);
-                                setMuteTick((v) => v + 1);
-                              }}
-                              title={muted ? 'Réactiver ce joueur' : 'Masquer ce joueur'}
-                              className="rounded bg-cream-200 hover:bg-cream-200 px-1.5 py-0.5 text-xs text-ink-600 flex items-center gap-0.5 cursor-pointer"
-                            >
-                              {muted ? <Volume2 className="h-2.5 w-2.5" /> : <VolumeX className="h-2.5 w-2.5" />}
-                              <span>{muted ? 'Unmute' : 'Mute'}</span>
-                            </button>
-                            <button
-                              type="button"
-                              disabled={Boolean(reportedIds[m.id])}
-                              onClick={() => {
-                                onReportChat(m.id, m.senderId);
-                                setReportedIds((prev) => ({ ...prev, [m.id]: true }));
-                              }}
-                              title="Signaler ce message"
-                              className="rounded bg-cream-200 hover:bg-coral-400/15 disabled:opacity-50 px-1.5 py-0.5 text-xs text-coral-600 flex items-center gap-0.5 cursor-pointer"
-                            >
-                              <Flag className="h-2.5 w-2.5" />
-                              <span>{reportedIds[m.id] ? 'Signalé' : 'Signaler'}</span>
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                      <div className="text-ink-600 mt-0.5">{muted ? '[Message masqué]' : m.text}</div>
-                    </div>
-                  );
-                })}
-              </div>
-              <form onSubmit={handleChatSubmit} className="flex gap-1.5">
-                <input
-                  type="text"
-                  value={chatInput}
-                  onChange={(e) => setChatInput(e.target.value)}
-                  placeholder="Écrire à Abidjan..."
-                  className="flex-1 rounded-lg bg-cream-100 border border-cream-200 px-3 py-2 text-xs text-ink-800 focus:border-sun-400/60 focus:outline-none"
-                />
-                <button type="submit" aria-label="Envoyer" className="rounded-lg bg-sun-500 px-3 py-2 text-white font-bold cursor-pointer">
-                  <Send className="w-4 h-4" />
-                </button>
-              </form>
-            </div>
-          )}
         </div>
 
         {/* HOME BAR */}

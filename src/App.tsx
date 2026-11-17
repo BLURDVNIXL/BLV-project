@@ -47,7 +47,6 @@ import { initWasmCore } from './wasm/wasmBridge';
 import { AbidjanSceneManager, CityHotspot, RadarSnapshot } from './3d/sceneManager';
 import { soundEngine } from './audio/soundEngine';
 import {
-  ChatMessage,
   MultiplayerClient,
   ServerTontineSnapshot,
   initServerSession,
@@ -126,7 +125,6 @@ export default function App() {
   const [onlineCount, setOnlineCount] = useState(1);
   const [tontineSnapshot, setTontineSnapshot] = useState<ServerTontineSnapshot | null>(null);
   const [tontineError, setTontineError] = useState<string | null>(null);
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
 
   const canvasContainerRef = useRef<HTMLDivElement | null>(null);
   const sceneRef = useRef<AbidjanSceneManager | null>(null);
@@ -497,7 +495,6 @@ export default function App() {
           setTontineError(msg);
           showToast(`⚠️ ${msg}`);
         },
-        onChatMessage: (msg) => setChatMessages((prev) => [...prev.slice(-30), msg]),
         onConnectionChange: () => {},
       });
       mpRef.current = client;
@@ -857,8 +854,6 @@ export default function App() {
           remotePlayers={remotePlayers}
           tontineSnapshot={tontineSnapshot}
           tontineError={tontineError}
-          chatMessages={chatMessages}
-          isSenderMuted={(id) => mpRef.current?.isSenderMuted(id) ?? false}
           getGpsSource={getGpsSource}
           onClose={() => setIsPhoneOpen(false)}
           onEatFood={(foodId) => {
@@ -951,15 +946,6 @@ export default function App() {
           onToiletHome={() => {
             setPlayerState((prev) => useToilet(prev));
             syncEconomy('toilet');
-          }}
-          onSendChat={(txt) => mpRef.current?.sendChat(txt)}
-          onReportChat={(messageId, senderId) => {
-            mpRef.current?.reportChat(messageId, senderId);
-            showToast('🚩 Message signalé à la modération.');
-          }}
-          onToggleMuteSender={(senderId) => {
-            const nowMuted = mpRef.current?.toggleMuteSender(senderId) ?? false;
-            showToast(nowMuted ? '🔇 Joueur masqué dans le chat.' : '🔊 Joueur réactivé.');
           }}
           onDonateYannis={() => {
             soundEngine.playJingle();
