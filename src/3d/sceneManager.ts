@@ -1372,6 +1372,7 @@ export class AbidjanSceneManager {
       if (id >= 0) colliderIds.push(id);
     }
     this.npcSystem.enterInterior(def); // PNJ de la salle (après ses solides : positions de départ libres)
+    this.animalSystem.enterInterior(def); // animal de la salle (ex. le chat du maquis)
     const ex = interiorToWorld(def, def.exit.x, def.exit.z);
     const exitHotspot: CityHotspot = {
       id: `exit_${def.id}`,
@@ -2068,6 +2069,7 @@ export class AbidjanSceneManager {
       this.animalSystem.update(dt, this.playerX, this.playerZ, this.camYaw, worldReady);
     } else {
       this.npcSystem.updateIndoor(dt, this.playerX, this.playerZ);
+      this.animalSystem.update(dt, this.playerX, this.playerZ, this.camYaw, false);
     }
 
     // 7. Player Input -> C++/WASM PhysicsCore
@@ -2182,6 +2184,7 @@ export class AbidjanSceneManager {
           tc.rig.group.rotation.set(-ts.pitch, ts.heading, ts.roll);
           tc.rig.setPhysicsWheelPose(ts.wheelAngle, ts.steer);
           tc.rig.updateSiren(nowSec, this.policeWanted > 0);
+          this.animalSystem.pushThreat(ts.x, ts.z, Math.abs(ts.forwardSpeed)); // les animaux fuient la circulation
         }
       }
     }

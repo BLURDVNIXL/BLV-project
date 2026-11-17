@@ -8,6 +8,7 @@
  * Axes locaux = axes monde (+x est, +z sud). La porte est sur le mur sud (z = +halfD), on entre en regardant le nord.
  */
 
+import type { AnimalSpecies } from './animals';
 import type { NpcRole } from './npcAppearance';
 
 export type InteriorId =
@@ -73,6 +74,14 @@ export interface InteriorNpcDef {
   behavior: InteriorNpcBehavior;
 }
 
+/** Animal d'une salle (ex. le chat du maquis) : personnage du moteur, rôle et rendu gérés par `AnimalSystem`. */
+export interface InteriorAnimalDef {
+  species: AnimalSpecies;
+  /** Position de départ (local). */
+  x: number;
+  z: number;
+}
+
 export interface InteriorDef {
   id: InteriorId;
   label: string;
@@ -96,6 +105,8 @@ export interface InteriorDef {
   actions?: InteriorActionSpot[];
   /** PNJ de la salle (optionnel) : apparences, positions et comportements déclarés ici, animés par `NpcSystem`. */
   npcs?: InteriorNpcDef[];
+  /** Animaux de la salle (optionnel), animés par `AnimalSystem` (petit périmètre, timides à courte distance). */
+  animals?: InteriorAnimalDef[];
 }
 
 const W = 0.15; // demi-épaisseur des murs
@@ -225,6 +236,7 @@ export const MAQUIS_INTERIOR: InteriorDef = {
     talk('client', 2108, 6.4, -0.6, H),
     walk('client', 2109, [[-7.8, -0.2], [-7.8, 3.8]]),
   ],
+  animals: [{ species: 'chat', x: -3, z: 3.8 }],
 };
 
 /** Grande Halle du Marché d'Adjamé : allées spacieuses, 6 îlots d'étals colorés et comptoir de commerce au nord. */
