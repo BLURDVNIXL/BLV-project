@@ -71,7 +71,7 @@ export function OfflineIndicator({ lang = 'fr' }: { lang?: 'fr' | 'en' }) {
   return (
     <div className="panel pointer-events-none fixed left-1/2 top-2 z-[120] flex -translate-x-1/2 items-center gap-1.5 px-3 py-1.5 text-xs font-semibold">
       <WifiOff className="h-4 w-4 text-sun-600" />
-      {lang === 'en' ? 'Offline Mode — Local WASM & Cache Active' : 'Mode Hors-Ligne'}
+      {lang === 'en' ? '' : 'Mode Hors-Ligne'}
     </div>
   );
 }
