@@ -23,20 +23,19 @@ import { SPECIAL_FOOTPRINTS } from '../world/city';
 import { localToWorld } from '../world/exteriorSolids';
 import { interiorToWorld, type InteriorDef } from '../world/interiors';
 import { generateAppearance, type NpcRole } from '../world/npcAppearance';
+import {
+  NPC_CROWD_CAPACITY, NPC_DESPAWN_DIST, NPC_FAR_AI_DIST, NPC_MARKET_DIST, NPC_POOL_SIZE, NPC_SPAWN_MAX, NPC_SPAWN_MIN,
+} from '../world/budgets';
 import { bridgeAt } from '../world/roads';
 import { NpcCrowd, type NpcHandle } from './npcInstances';
 
-/** Nombre total de PNJ mobiles (piétons + clients du marché) : à relever après mesure sur téléphone. */
-export const NPC_POOL_SIZE = 30;
-/** Capacité de la foule instanciée : PNJ mobiles + vendeurs (≤ 10), avec de la marge. */
-const CROWD_CAPACITY = 80;
-
-const DESPAWN_DIST = 115;
-const MARKET_DIST = 135;
-const SPAWN_MIN = 18;
-const SPAWN_MAX = 78;
-/** Au-delà, l'IA ne tourne qu'une image sur deux (la physique, elle, avance à chaque image). */
-const FAR_AI_DIST = 40;
+/** Budgets (nombre, distances, fréquence d'IA, capacité) : tous réglés dans `src/world/budgets.ts`. */
+const CROWD_CAPACITY = NPC_CROWD_CAPACITY;
+const DESPAWN_DIST = NPC_DESPAWN_DIST;
+const MARKET_DIST = NPC_MARKET_DIST;
+const SPAWN_MIN = NPC_SPAWN_MIN;
+const SPAWN_MAX = NPC_SPAWN_MAX;
+const FAR_AI_DIST = NPC_FAR_AI_DIST;
 const YIELD_DIST = 2.5;
 const YIELD_STOP_DIST = 1.6;
 const FAN_STOP_DIST = 3.6;

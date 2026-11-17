@@ -53,24 +53,17 @@ export const ANIMAL_SPECIES: Record<AnimalSpecies, AnimalSpeciesDef> = {
 
 export const GROUND_SPECIES: readonly AnimalSpecies[] = ['poule', 'chevre', 'chien', 'chat'];
 
-/** Budget d'animaux physiques (personnages du moteur en plus des PNJ) ; réduit sans accélération graphique. */
-export const ANIMAL_BUDGET = 14;
-export const ANIMAL_BUDGET_LOW = 6;
-/** Mêmes principes que les PNJ : réapparition entre 18 et 78 m, retrait au-delà de 115 m, IA allégée au-delà de 40 m. */
-export const ANIMAL_SPAWN_MIN = 18;
-export const ANIMAL_SPAWN_MAX = 78;
-export const ANIMAL_DESPAWN_DIST = 115;
-export const ANIMAL_FAR_AI_DIST = 40;
+// Budgets, distances et effectifs : réglés dans `src/world/budgets.ts` (ré-exportés ici).
+export {
+  ANIMAL_BUDGET, ANIMAL_BUDGET_LOW, ANIMAL_DESPAWN_DIST, ANIMAL_FAR_AI_DIST, ANIMAL_SPAWN_MAX, ANIMAL_SPAWN_MIN,
+  PIGEON_ACTIVE_DIST, PIGEON_COUNT, PIGEON_COUNT_LOW, PIGEON_FLUSH_DIST,
+} from './budgets';
 /** Zones d'influence (m) autour du marché d'Adjamé et du maquis. */
 export const ANIMAL_MARKET_RADIUS = 130;
 export const ANIMAL_MAQUIS_RADIUS = 90;
 
-/** Pigeons (visuels) : places où ils se posent (ids de `SPECIALS`), effectif, distances d'activation et d'envol. */
+/** Pigeons (visuels) : places où ils se posent (ids de `SPECIALS`) ; effectif et distances dans `budgets.ts`. */
 export const PIGEON_PLACE_IDS: readonly string[] = ['cathedrale', 'mairie'];
-export const PIGEON_COUNT = 10;
-export const PIGEON_COUNT_LOW = 5;
-export const PIGEON_ACTIVE_DIST = 110;
-export const PIGEON_FLUSH_DIST = 5.5;
 export const PIGEON_COATS: readonly number[] = [0xb8bcc4, 0xe5e7eb, 0x6b7280, 0xf5f5f4];
 
 /** Contexte de choix d'une espèce à un point d'apparition. */

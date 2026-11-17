@@ -38,7 +38,8 @@ import {
   getLightingMood,
 } from './materials';
 import { AnimalSystem } from './animalSystem';
-import { NPC_POOL_SIZE, NpcSystem } from './npcSystem';
+import { NPC_POOL_SIZE, NPC_POOL_SIZE_LOW } from '../world/budgets';
+import { NpcSystem } from './npcSystem';
 import { AvatarController, loadAvatar } from './avatars';
 import { getWasmCore } from '../wasm/wasmBridge';
 import {
@@ -471,7 +472,7 @@ export class AbidjanSceneManager {
     this.buildStaticHeroLandmarks();
     this.buildStaticHotspotsAndPickups();
 
-    this.npcSystem = new NpcSystem(this.scene, this.isSoftwareGl ? 12 : NPC_POOL_SIZE);
+    this.npcSystem = new NpcSystem(this.scene, this.isSoftwareGl ? NPC_POOL_SIZE_LOW : NPC_POOL_SIZE);
     this.animalSystem = new AnimalSystem(this.scene, this.isSoftwareGl);
     this.initDebugOverlay();
 
