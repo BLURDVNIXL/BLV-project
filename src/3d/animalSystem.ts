@@ -17,7 +17,7 @@
 
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { createCharacterState, type CharacterState, type PhysicsCore } from '../physics/PhysicsCore';
+import { createCharacterState, SolidFlag, type CharacterState, type PhysicsCore } from '../physics/PhysicsCore';
 import { districtAt, isWater } from '../world/abidjanGeography';
 import {
   ANIMAL_BUDGET, ANIMAL_BUDGET_LOW, ANIMAL_DESPAWN_DIST, ANIMAL_FAR_AI_DIST, ANIMAL_MAQUIS_RADIUS, ANIMAL_MARKET_RADIUS,
@@ -25,6 +25,7 @@ import {
   PIGEON_COUNT_LOW, PIGEON_FLUSH_DIST, PIGEON_PLACE_IDS, pickSpecies, type AnimalSpecies,
 } from '../world/animals';
 import { SPECIAL_FOOTPRINTS } from '../world/city';
+import { hitsInteriorBox, insideInterior, interiorToWorld, type InteriorDef } from '../world/interiors';
 import { bridgeAt, roadAt } from '../world/roads';
 
 type MeshKey = AnimalSpecies | 'pigeon';
@@ -37,8 +38,19 @@ const FALL_ROLL = 1.35;
 const VIEW_COS = Math.cos(THREE.MathUtils.degToRad(40));
 const WANDER_MIN = 2.5;
 const WANDER_MAX = 7;
+/** Rayon (m) dégagé de tout solide exigé pour poser un animal ou un pigeon (4 rayons courts : dedans ou contre un mur = refusé). */
+const CLEAR_R = 0.6;
+/** Véhicules en mouvement pris en compte pour la fuite (seuil de vitesse, nombre max). */
+const THREAT_MIN_SPEED = 1.5;
+const MAX_THREATS = 16;
+/** Timidité d'un animal d'intérieur : il ne fuit que de très près (salle exiguë). */
+const INDOOR_SKITTISH = 0.3;
+
+interface Threat { x: number; z: number; speed: number }
 
 interface GroundAnimal {
+  /** Animal d'une salle : jamais retiré par la distance, hors eau/route, évolue dans la salle. */
+  indoor: boolean;
   charId: number;
   charRadius: number;
   species: AnimalSpecies | null;
@@ -181,6 +193,16 @@ export class AnimalSystem {
   private readonly pigeons: Pigeon[] = [];
   private readonly places: PigeonPlace[] = [];
   private pigeonPlace: PigeonPlace | null = null;
+  /** Véhicules en mouvement : `pushThreat` remplit `threatsNext` pendant l'image, échangé au début de la suivante. */
+  private threats: Threat[] = Array.from({ length: MAX_THREATS }, () => ({ x: 0, z: 0, speed: 0 }));
+  private threatsNext: Threat[] = Array.from({ length: MAX_THREATS }, () => ({ x: 0, z: 0, speed: 0 }));
+  private threatCount = 0;
+  private threatNextCount = 0;
+  private playerBoost = 0;
+  private lastPx = 0;
+  private lastPz = 0;
+  private hasLast = false;
+  private interiorDef: InteriorDef | null = null;
   private marketCenter: { x: number; z: number } | null = null;
   private maquisCenter: { x: number; z: number } | null = null;
   private core: PhysicsCore | null = null;
@@ -213,7 +235,7 @@ export class AnimalSystem {
 
     for (let i = 0; i < budget; i++) {
       this.ground.push({
-        charId: -1, charRadius: 0.35, species: null, state: 'wander',
+        indoor: false, charId: -1, charRadius: 0.35, species: null, state: 'wander',
         x: 0, y: 0, z: 0, cap: 0, phase: i * 1.3, roll: 0, timer: 0,
         homeX: 0, homeZ: 0, targetX: 0, targetZ: 0, scale: 1, skittish: 1, fleeSide: 1,
         aiAccum: 0, stuckT: 0, anchorX: 0, anchorZ: 0,
@@ -259,7 +281,12 @@ export class AnimalSystem {
   setIndoor(indoor: boolean): void {
     if (indoor === this.indoor) return;
     this.indoor = indoor;
-    if (!indoor) return;
+    if (!indoor) {
+      for (const a of this.ground) if (a.indoor) this.deactivate(a); // l'animal de la salle disparaît à la sortie
+      this.interiorDef = null;
+      this.hasLast = false;
+      return;
+    }
     for (const a of this.ground) if (a.species) this.deactivate(a);
     this.hidePigeons();
     this.flush();
@@ -272,6 +299,40 @@ export class AnimalSystem {
 
   private flush(): void {
     for (const k of Object.keys(this.meshes) as MeshKey[]) this.meshes[k].instanceMatrix.needsUpdate = true;
+  }
+
+  /** Un véhicule en mouvement (traffic, voiture roulante) : les animaux proches fuient, d'autant plus qu'il va vite. */
+  pushThreat(x: number, z: number, speed: number): void {
+    if (speed < THREAT_MIN_SPEED || this.threatNextCount >= MAX_THREATS) return;
+    const t = this.threatsNext[this.threatNextCount++];
+    t.x = x;
+    t.z = z;
+    t.speed = speed;
+  }
+
+  /** Peuple la salle `def` de ses animaux (appelé APRÈS `setIndoor(true)` et l'enregistrement des solides de la salle). */
+  enterInterior(def: InteriorDef): void {
+    const core = this.core;
+    if (!core || !def.animals) return;
+    this.interiorDef = def;
+    for (const d of def.animals) {
+      const a = this.ground.find((g) => !g.species && g.charId >= 0);
+      if (!a) return;
+      const w = interiorToWorld(def, d.x, d.z);
+      if (!this.activate(a, d.species, w.x, w.z)) continue;
+      a.indoor = true;
+      a.skittish = INDOOR_SKITTISH;
+      a.state = ANIMAL_SPECIES[d.species].sitter ? 'sit' : 'graze';
+      a.timer = 2 + this.rand() * 4;
+    }
+  }
+
+  /** Aucun solide à moins de `CLEAR_R` (4 directions) : pas dans un bâtiment ni collé à un mur. Vrai si le moteur n'est pas prêt. */
+  private isClear(x: number, z: number): boolean {
+    const core = this.core;
+    if (!core) return true;
+    return core.ray(x, z, 1, 0, CLEAR_R, SolidFlag.SOLID) < 0 && core.ray(x, z, -1, 0, CLEAR_R, SolidFlag.SOLID) < 0 &&
+      core.ray(x, z, 0, 1, CLEAR_R, SolidFlag.SOLID) < 0 && core.ray(x, z, 0, -1, CLEAR_R, SolidFlag.SOLID) < 0;
   }
 
   // ───────────── Terrain ─────────────
@@ -296,7 +357,7 @@ export class AnimalSystem {
       if (attempt < 10 && ca * fx + sa * fz > VIEW_COS) continue; // hors du champ de la caméra si possible
       const x = px + ca * r;
       const z = pz + sa * r;
-      if (this.isFreeGround(x, z)) return { x, z };
+      if (this.isFreeGround(x, z) && this.isClear(x, z)) return { x, z };
     }
     return null;
   }
@@ -323,6 +384,7 @@ export class AnimalSystem {
     core.setCharacterEnabled(a.charId, true);
 
     a.species = species;
+    a.indoor = false;
     a.state = 'graze';
     a.timer = 0.5 + this.rand() * 3;
     a.x = x; a.z = z; a.y = 0;
@@ -359,12 +421,30 @@ export class AnimalSystem {
   }
 
   private pickGoal(a: GroundAnimal): void {
+    const def = this.interiorDef;
+    if (a.indoor && def) {
+      // Salle : petits déplacements autour de la position d'attache, dans la salle et hors mobilier
+      for (let attempt = 0; attempt < 8; attempt++) {
+        const ang = this.rand() * Math.PI * 2;
+        const r = 0.8 + this.rand() * 1.4;
+        const lx = a.homeX - def.origin.x + Math.cos(ang) * r;
+        const lz = a.homeZ - def.origin.z + Math.sin(ang) * r;
+        if (insideInterior(def, lx, lz) && !hitsInteriorBox(def, lx, lz, 0.3)) {
+          a.targetX = def.origin.x + lx;
+          a.targetZ = def.origin.z + lz;
+          return;
+        }
+      }
+      a.targetX = a.homeX;
+      a.targetZ = a.homeZ;
+      return;
+    }
     for (let attempt = 0; attempt < 8; attempt++) {
       const ang = this.rand() * Math.PI * 2;
       const r = WANDER_MIN + this.rand() * (WANDER_MAX - WANDER_MIN);
       const x = a.homeX + Math.cos(ang) * r;
       const z = a.homeZ + Math.sin(ang) * r;
-      if (this.isFreeGround(x, z)) {
+      if (this.isFreeGround(x, z) && this.isClear(x, z)) {
         a.targetX = x;
         a.targetZ = z;
         return;
@@ -391,13 +471,29 @@ export class AnimalSystem {
     if (!core || !a.species) return;
     const id = a.charId;
     const def = ANIMAL_SPECIES[a.species];
-    const dx = st.x - px;
-    const dz = st.z - pz;
-    const dP = Math.hypot(dx, dz);
     const fleeDist = def.fleeDist * a.skittish;
 
-    if (dP < fleeDist) {
-      // Fuite : droit devant soi, à l'opposé du joueur, avec un léger écart de côté (les poules se dispersent)
+    // Menace la plus pressante : le joueur (rayon accru s'il roule vite) ou un véhicule en mouvement (rayon accru avec sa vitesse)
+    let dx = st.x - px;
+    let dz = st.z - pz;
+    let dP = Math.hypot(dx, dz);
+    let margin = dP - fleeDist - this.playerBoost;
+    for (let k = 0; k < this.threatCount; k++) {
+      const t = this.threats[k];
+      const tx = st.x - t.x;
+      const tz = st.z - t.z;
+      const td = Math.hypot(tx, tz);
+      const m = td - (fleeDist * 0.8 + Math.min(8, t.speed * 0.7));
+      if (m < margin) {
+        margin = m;
+        dx = tx;
+        dz = tz;
+        dP = td;
+      }
+    }
+
+    if (margin < 0) {
+      // Fuite : droit devant soi, à l'opposé de la menace, avec un léger écart de côté (les poules se dispersent)
       a.state = 'flee';
       a.timer = 1 + this.rand() * 1.5;
       const ax = dP > 0.01 ? dx / dP : 1;
@@ -483,7 +579,7 @@ export class AnimalSystem {
         p.z = place.z + Math.sin(ang) * r;
         this.pt.x = p.x;
         this.pt.z = p.z;
-        ok = !isWater(this.pt);
+        ok = !isWater(this.pt) && this.isClear(p.x, p.z); // ni dans l'eau, ni dans un bâtiment ou contre un mur
       }
       p.active = ok;
       p.fly = false;
@@ -527,13 +623,18 @@ export class AnimalSystem {
         if (dP < PIGEON_FLUSH_DIST && p.cool <= 0) {
           // Envol court : arc à l'opposé du joueur, sans collision
           const base = Math.atan2(dx, dz) + (this.rand() - 0.5) * 1.2;
-          const speed = 3.5 + this.rand() * 1.5;
+          let speed = 3.5 + this.rand() * 1.5;
           p.fly = true;
           p.t = 0;
           p.dur = 2.2 + this.rand() * 1.6;
           p.peak = 2.5 + this.rand() * 1.5;
-          p.vx = Math.sin(base) * speed;
-          p.vz = Math.cos(base) * speed;
+          const dirX = Math.sin(base);
+          const dirZ = Math.cos(base);
+          // Pas de pigeon à travers un mur ou sur un toit : l'envol s'arrête 1 m avant le premier solide
+          const hit = this.core ? this.core.ray(p.x, p.z, dirX, dirZ, speed * p.dur + 1, SolidFlag.SOLID) : -1;
+          if (hit >= 0) speed = Math.max(0.3, (hit - 1) / p.dur);
+          p.vx = dirX * speed;
+          p.vz = dirZ * speed;
           p.cap = base;
         }
       }
@@ -564,12 +665,27 @@ export class AnimalSystem {
   // ───────────── Mise à jour ─────────────
 
   update(dt: number, playerX: number, playerZ: number, camYaw = 0, worldReady = true): void {
-    if (this.indoor) return;
     this.time += dt;
     this.frame++;
     const core = this.core;
 
-    this.updatePigeons(dt, playerX, playerZ);
+    // Menaces de l'image précédente (véhicules) ; vitesse du joueur déduite de son déplacement (rayon de fuite accru s'il roule)
+    const prev = this.threats;
+    this.threats = this.threatsNext;
+    this.threatsNext = prev;
+    this.threatCount = this.threatNextCount;
+    this.threatNextCount = 0;
+    if (this.hasLast && dt > 0) {
+      const sp = Math.hypot(playerX - this.lastPx, playerZ - this.lastPz) / dt;
+      this.playerBoost = sp > 8 ? Math.min(6, (sp - 8) * 0.6) : 0;
+    } else {
+      this.playerBoost = 0;
+    }
+    this.lastPx = playerX;
+    this.lastPz = playerZ;
+    this.hasLast = true;
+
+    if (!this.indoor) this.updatePigeons(dt, playerX, playerZ);
 
     if (!core) return;
     let spawnsLeft = SPAWNS_PER_FRAME;
@@ -578,10 +694,10 @@ export class AnimalSystem {
       const a = this.ground[i];
       if (a.charId < 0) continue;
 
-      if (a.species && Math.hypot(a.x - playerX, a.z - playerZ) > ANIMAL_DESPAWN_DIST) this.deactivate(a);
+      if (a.species && !a.indoor && Math.hypot(a.x - playerX, a.z - playerZ) > ANIMAL_DESPAWN_DIST) this.deactivate(a);
 
       if (!a.species) {
-        if (spawnsLeft <= 0 || !worldReady) continue;
+        if (this.indoor || spawnsLeft <= 0 || !worldReady) continue;
         const spot = this.findSpot(playerX, playerZ, camYaw);
         if (!spot) continue;
         this.pt.x = spot.x;
@@ -606,7 +722,7 @@ export class AnimalSystem {
       a.z = st.z;
 
       // Garde-fou eau : un animal poussé dans l'eau est retiré et réapparaît ailleurs
-      if ((this.frame + i) % 15 === 0) {
+      if (!a.indoor && (this.frame + i) % 15 === 0) {
         this.pt.x = st.x;
         this.pt.z = st.z;
         if (isWater(this.pt)) {
