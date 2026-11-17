@@ -255,3 +255,28 @@
   min-width: 82px;
   margin-top: 0;
 }
+
+/* Menu principal + sous-panneaux scrollables dans l'écran de la borne */
+.ts-menu-view {
+  justify-content: safe center;      /* centré s'il tient, aligné en haut s'il déborde */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  scrollbar-width: none;             /* Firefox */
+}
+.ts-menu-view::-webkit-scrollbar { display: none; }  /* Chrome / Safari */
+
+/* Sans ça, les éléments se compriment au lieu de déborder, donc rien à faire défiler */
+.ts-menu-list,
+.ts-sub { flex-shrink: 0; }
+
+/* Téléphone en paysage : on compacte un peu */
+@media (max-height: 480px) {
+  .ts-menu-list { gap: 4px; }
+  .ts-choice { padding: 5px 8px; }
+  .ts-setting-row { min-height: 26px; }
+  .ts-sub h2 { margin-bottom: 4px; }
+  .ts-sub button { margin-top: 4px; padding: 4px 12px; }
+}
+
+
