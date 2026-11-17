@@ -59,8 +59,9 @@ Objectif : remplacer l'ancienne coque 12 × 9 m par un mécanisme porte-balise �
 * **Phase 1 (retrait des visites chez les voisins) : faite** (commit `d353b0c`, restaurable par `git revert d353b0c`). Retrait des visites dans `sceneManager.ts`, `App.tsx` et `BabiOSPhone.tsx` (dont le sélecteur `Porte & Visiteurs Multijoueur` sur validation du créateur) ; `server.ts` et `src/network/multiplayerClient.ts` intacts.
 * **Phase 2 (pilote `poignon` 1 étage + `golden_boy` 2 étages + suppression ancienne maison) : faite** (commit `8a1bf6a`, validée par le créateur).
 * **Phase 3 — Groupe A (`squat`, `chambre_cour`, `studio`, 7 destins) : faite** (commit `33a3723`).
-* **Phase 3 — Groupe B (`deux_pieces` & `trois_pieces`, 7 destins : `mecanicien_treichville` [2 étages], `brouteur`, `djassaman`, `classe_moyenne_angre`, `gerant_maquis` [2 étages], `eleve_inphb`, `politicien_dechu` [2 étages]) : faite** (`src/world/houseGroupB.ts`, 16/19 maisons actives).
-* **Phase 3 — Groupe C (`bunker` & `villa_ambassade`, 3 derniers destins : `cadre_plateau`, `late_cocody`, `yannis_diomande`) : prochaine action.**
+* **Phase 3 — Groupe B (`deux_pieces` & `trois_pieces`, 7 destins) : faite** (commit `d83bcfe`).
+* **Phase 3 — Groupe C (`bunker` & `villa_ambassade`, 3 derniers destins : `cadre_plateau`, `late_cocody` [2 étages], `yannis_diomande` [2 étages]) : faite** (`src/world/houseGroupC.ts`, 19/19 destins couverts).
+* **Phase 4 (finitions, audit visuel Chromium, vérification complète et texte de PR) : en cours.**
 
 ## 4. Carte du code
 | Dossier | Contenu |
@@ -68,7 +69,7 @@ Objectif : remplacer l'ancienne coque 12 × 9 m par un mécanisme porte-balise �
 | `physics/` | `physics.cpp` (cœur C++), `build.sh`, tests (`test.mjs`, `integration.test.ts`, `world.test.ts`, `city.test.ts`) |
 | `public/physics.wasm` | binaire (≈ 22 Ko) — **à recompiler après toute modification de `physics.cpp`** |
 | `src/physics/` | `PhysicsCore.ts` (passerelle typée), `controls.ts` (commandes maintenues), `abidjanWorld.ts` + `trafficAI.ts` (historiques, utilisés seulement par les tests d'intégration) |
-| `src/world/` | `geo.ts`, `abidjanGeography.ts`, `roads.ts`, `city.ts`, `terrain.ts`, `rng.ts`, `chunkMesh.ts`, `chunkProvider.ts`, `worldWorker.ts`, `WorldStreamer.ts`, `playerHouses.ts` + `houseShared.ts` + `houseGroupA.ts` + `houseGroupB.ts` (maisons fermées + étages par destin), `interiors.ts` (données des salles publiques et types d'étages, dont `npcs`), `npcAppearance.ts` (pack d'apparence des PNJ), `animals.ts` (espèces et zones des animaux), `budgets.ts` (**budgets de PNJ et d'animaux : seul endroit à régler**), `roadTraffic.ts` |
+| `src/world/` | `geo.ts`, `abidjanGeography.ts`, `roads.ts`, `city.ts`, `terrain.ts`, `rng.ts`, `chunkMesh.ts`, `chunkProvider.ts`, `worldWorker.ts`, `WorldStreamer.ts`, `playerHouses.ts` + `houseShared.ts` + `houseGroupA.ts` + `houseGroupB.ts` + `houseGroupC.ts` (19/19 maisons fermées + étages par destin), `interiors.ts` (données des salles publiques et types d'étages, dont `npcs`), `npcAppearance.ts` (pack d'apparence des PNJ), `animals.ts` (espèces et zones des animaux), `budgets.ts` (**budgets de PNJ et d'animaux : seul endroit à régler**), `roadTraffic.ts` |
 | `src/3d/` | `sceneManager.ts` (scène 3D + boucle de jeu), `interiors.ts`, `houseModels.ts` (façades fermées + mobilier fusionné des maisons), `npcSystem.ts` (PNJ de la rue et des salles, personnages du moteur), `npcInstances.ts` (rendu instancié des PNJ), `animalSystem.ts` (animaux), `wallFader.ts`, `models.ts`, `avatars.ts`, `ambiance.ts`, `sky.ts` |
 | `e2e/` | test Chromium de bout en bout |
 

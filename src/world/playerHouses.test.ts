@@ -15,6 +15,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { CribUpgrades } from '../types/game';
 import { PhysicsCore, SolidFlag } from '../physics/PhysicsCore';
+import { ALL_DESTINIES } from '../core/destinies';
 import { INTERIORS, type InteriorBox } from './interiors';
 import { carSpotForLot, findHouseLot } from './city';
 import {
@@ -172,6 +173,14 @@ test('pilotes Poignon et Golden Boy : structure, origines, 4 actions et amélior
   const required = Object.values(HOUSE_REQUIRED_ACTIONS);
   const signatures = new Set<string>();
 
+  // Tous les 19 destins doivent disposer d’un plan dédié et distinct
+  assert.equal(ALL_DESTINIES.length, 19, '19 destins attendus');
+  for (const d of ALL_DESTINIES) {
+    const spec = HOUSE_SPECS[d.id];
+    assert.ok(spec, `Maison dédiée manquante pour le destin ${d.id}`);
+    assert.equal(spec.homeType, d.homeType, `homeType incohérent pour ${d.id}`);
+    assert.equal(resolveHouseSpec(d.id, d.homeType).destinyId, d.id);
+  }
   const allSpecs = Object.values(HOUSE_SPECS).filter((s): s is NonNullable<typeof s> => s !== null);
   for (const spec of allSpecs) {
     const allActions = spec.floors.flatMap((f) => f.actions);
@@ -415,6 +424,43 @@ test('moteur WASM réel : façade fermée infranchissable et parcours intérieur
       eastPush.x - ox <= def.halfW - 0.15 - PLAYER_R + 0.05,
       `${spec.destinyId} RDC : traversée du mur est`
     );
+  }
+
+  // 2ter. Vérification WASM multi-étages sur toutes les maisons à 2 étages
+  for (const spec of allSpecs.filter((s) => s.floors.length > 1)) {
+    core.reset();
+    const def0 = buildHouseFloorDef(spec, 0, ALL_UPGRADES);
+    for (const b of def0.boxes) {
+      core.addBox(def0.origin.x + b.x, def0.origin.z + b.z, b.hx, b.hz, 0, b.h, SolidFlag.PROP);
+    }
+    const stairsUp = def0.actions!.find((a) => a.type === 'interior_stairs')!;
+    const ch0 = core.createCharacter(def0.origin.x + def0.entry.x, def0.origin.z + def0.entry.z, PLAYER_R);
+    const st0 = walkTo(ch0, def0.origin.x + stairsUp.x, def0.origin.z + stairsUp.z, 2.5, 0.25);
+    assert.ok(
+      Math.hypot(st0.x - (def0.origin.x + stairsUp.x), st0.z - (def0.origin.z + stairsUp.z)) <= stairsUp.radius,
+      `${spec.destinyId} RDC : escalier inatteignable en WASM`
+    );
+
+    core.reset();
+    const def1 = buildHouseFloorDef(spec, 1, ALL_UPGRADES);
+    for (const b of def1.boxes) {
+      core.addBox(def1.origin.x + b.x, def1.origin.z + b.z, b.hx, b.hz, 0, b.h, SolidFlag.PROP);
+    }
+    const arr = stairsUp.arrival!;
+    const bedAct = def1.actions!.find((a) => a.id === 'home_bed')!;
+    const ch1 = core.createCharacter(def1.origin.x + arr.x, def1.origin.z + arr.z, PLAYER_R);
+    const hasVerticalNorthPartition = def1.boxes.some(
+      (b) => b.kind === 'partition' && Math.abs(b.x) < 0.5 && b.z < -0.5
+    );
+    if (hasVerticalNorthPartition) {
+      walkTo(ch1, def1.origin.x + bedAct.x, def1.origin.z + 0.85, 2.5, 0.25);
+    } else {
+      walkTo(ch1, def1.origin.x, def1.origin.z + arr.z, 2.0, 0.25);
+      walkTo(ch1, def1.origin.x, def1.origin.z - 0.85, 2.0, 0.25);
+    }
+    const atBed = walkTo(ch1, def1.origin.x + bedAct.x, def1.origin.z + bedAct.z, 2.5, 0.25);
+    const dBedAct = Math.hypot(atBed.x - (def1.origin.x + bedAct.x), atBed.z - (def1.origin.z + bedAct.z));
+    assert.ok(dBedAct <= bedAct.radius, `${spec.destinyId} R+1 : lit hors de portée WASM (d=${dBedAct.toFixed(2)})`);
   }
 
   // 3. Intérieur Golden Boy (2 étages) : RDC escalier -> R+1 lit + rambarde terrasse solide

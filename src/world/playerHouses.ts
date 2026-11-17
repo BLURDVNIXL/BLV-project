@@ -24,6 +24,7 @@ import {
 } from './houseShared';
 import { HOUSE_GROUP_A } from './houseGroupA';
 import { HOUSE_GROUP_B } from './houseGroupB';
+import { HOUSE_GROUP_C } from './houseGroupC';
 
 export {
   HOUSE_FLOOR_ORIGINS,
@@ -857,12 +858,12 @@ export const HOUSE_SPECS: Record<string, HouseSpec | null> = {
   golden_boy: GOLDEN_BOY_HOUSE,
   ...HOUSE_GROUP_A,
   ...HOUSE_GROUP_B,
+  ...HOUSE_GROUP_C,
 };
 
 /**
- * Retourne le plan de maison du destin demandé.
- * Durant la phase pilote (Phase 2), les destins non encore dotés d'un plan dédié se replient
- * proprement sur le pilote de gabarit proche (dupliqué en Phase 3 avec les 17 plans dédiés).
+ * Retourne le plan de maison dédié au destin demandé (19/19 destins couverts),
+ * avec repli de secours sur gabarit proche si un futur destin inconnu est fourni.
  */
 export function resolveHouseSpec(destinyId: string, homeType: HomeType = 'studio'): HouseSpec {
   const exact = HOUSE_SPECS[destinyId];
