@@ -32,7 +32,7 @@ Simulation de vie urbaine 3D temps réel à Abidjan (Côte d’Ivoire), construi
   - Sessions signées HMAC et persistées dans SQLite (`blv_world.sqlite`), avec réconciliation économique (`/api/economy/action`).
   - WebSocket `/ws` avec filtrage spatial (340 m), limitation de débit, filtre anti-insultes, mute local et signalement en base (`chat_reports`).
   - Tontine multijoueur réelle entre joueurs connectés uniquement (minimum 2 joueurs réels, 0 faux PNJ).
-  - Visites de maisons entre joueurs (bouton « Visiter » dans Babi Chat) (`open` / `friends` / `closed`).
+  - Visites de maisons entre joueurs : temporairement retirées de l’interface et de la scène (branche `home`, Phase 1), couture conservée côté serveur et réseau pour réactivation ultérieure.
   - Espace Admin protégé par secret serveur (`ADMIN_SANDBOX_SECRET` ou code éphémère généré par CSPRNG au démarrage en dev), limitation par IP (5 essais / 10 min) et journal d’audit SQLite (`admin_audit_log`).
 
 ## Documentation de reprise

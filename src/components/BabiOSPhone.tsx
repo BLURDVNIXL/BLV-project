@@ -13,7 +13,6 @@ import {
   Wifi,
   Battery,
   Target,
-  DoorOpen,
   Flag,
   VolumeX,
   Volume2,
@@ -23,7 +22,6 @@ import {
   PlayerState,
   RemotePlayer,
   SapeOutfitId,
-  HomeAccessMode,
 } from '../types/game';
 import {
   IVORIAN_FOODS,
@@ -48,7 +46,6 @@ interface BabiOSPhoneProps {
   tontineSnapshot: ServerTontineSnapshot | null;
   tontineError: string | null;
   chatMessages: ChatMessage[];
-  visitingNeighbor: string | null;
   isSenderMuted: (senderId: string) => boolean;
   /** Lieux et perron de la maison, relevés à l'ouverture de l'application GPS. */
   getGpsSource: () => GpsSource;
@@ -62,9 +59,6 @@ interface BabiOSPhoneProps {
   onContributeTontine: () => void;
   onFleeTontine: () => void;
   onFastTravel: (x: number, z: number, districtName: string, districtId: string) => void;
-  onVisitNeighbor: (ownerId: string) => void;
-  onReturnHome: () => void;
-  onChangeHomeAccess: (mode: HomeAccessMode) => void;
   onBuyOrEquipOutfit: (outfit: SapeOutfitId) => void;
   onUpgradeCrib: (upgradeKey: 'splitClim' | 'bafflesMaquis' | 'tv4k' | 'canapeCuir') => void;
   onSleepHome: () => void;
@@ -93,7 +87,6 @@ export const BabiOSPhone: React.FC<BabiOSPhoneProps> = ({
   tontineSnapshot,
   tontineError,
   chatMessages,
-  visitingNeighbor,
   isSenderMuted,
   getGpsSource,
   onClose,
@@ -106,9 +99,6 @@ export const BabiOSPhone: React.FC<BabiOSPhoneProps> = ({
   onContributeTontine,
   onFleeTontine,
   onFastTravel,
-  onVisitNeighbor,
-  onReturnHome,
-  onChangeHomeAccess,
   onBuyOrEquipOutfit,
   onUpgradeCrib,
   onSleepHome,
@@ -511,44 +501,6 @@ export const BabiOSPhone: React.FC<BabiOSPhoneProps> = ({
               <AppHeader title={s.crib} onBack={() => setActiveApp('home')} />
               <div className="text-xs text-ink-600">{playerState.destiny.housing}</div>
 
-              {visitingNeighbor && (
-                <button
-                  type="button"
-                  onClick={onReturnHome}
-                  className="w-full rounded-xl bg-lagoon-600 hover:bg-lagoon-500 py-2 text-xs font-bold text-white flex items-center justify-center gap-1.5 cursor-pointer"
-                >
-                  <DoorOpen className="h-4 w-4" />
-                  Rentrer chez moi (quitter chez {visitingNeighbor})
-                </button>
-              )}
-
-              {/* PORTE / ACCÈS MAISON */}
-              <div className="rounded-xl bg-cream-100 p-2.5 border border-cream-200 space-y-1.5">
-                <div className="text-xs font-bold uppercase text-plum-500">Porte & Visiteurs Multijoueur</div>
-                <div className="grid grid-cols-3 gap-1.5">
-                  {(
-                    [
-                      { id: 'open', label: 'Ouverte' },
-                      { id: 'friends', label: 'Frapper' },
-                      { id: 'closed', label: 'Fermée' },
-                    ] as const
-                  ).map((opt) => (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      onClick={() => onChangeHomeAccess(opt.id)}
-                      className={`rounded-lg py-1.5 text-xs font-bold border cursor-pointer ${
-                        playerState.homeAccess === opt.id
-                          ? 'bg-plum-500 border-plum-400/60 text-white'
-                          : 'bg-cream-50 border-cream-200 text-ink-600 hover:text-ink-800'
-                      }`}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
               <div className="grid grid-cols-3 gap-1.5">
                 <button type="button" onClick={onSleepHome} className="rounded-lg bg-plum-500 hover:bg-plum-500 py-1.5 text-xs font-bold cursor-pointer">
                   🛏️ Dormir
@@ -601,13 +553,6 @@ export const BabiOSPhone: React.FC<BabiOSPhoneProps> = ({
                         <div className="font-bold text-ink-800 truncate">{rp.name}</div>
                         <div className="text-xs text-ink-600 truncate">{rp.destinyName}</div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => onVisitNeighbor(rp.id)}
-                        className="shrink-0 px-2 py-1 rounded bg-plum-500 hover:bg-plum-500 text-xs font-bold cursor-pointer"
-                      >
-                        🏠 Visiter
-                      </button>
                     </div>
                   ))}
                 </div>

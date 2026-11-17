@@ -275,16 +275,13 @@ export class AbidjanSceneManager {
     }
   > = new Map();
 
-  // Houses (own + optional visited neighbor)
+  // Maison du joueur
   private ownHouseLot: HouseLot | null = null;
   private ownHouseRig: CribZoneHandles | null = null;
   private ownHouseColliderIds: number[] = [];
   /** Solides des structures extérieures (étals, poteaux…) : calculés à la construction, enregistrés quand la physique est prête. */
   private exteriorSolidDefs: ExteriorSolid[] = [];
   private exteriorColliderIds: number[] = [];
-  private visitedHouseLot: HouseLot | null = null;
-  private visitedHouseRig: CribZoneHandles | null = null;
-  private visitedHouseColliderIds: number[] = [];
   private ownUpgrades: CribUpgrades = { splitClim: false, bafflesMaquis: false, tv4k: false, canapeCuir: false };
   private ownHomeType: HomeType = 'studio';
 
@@ -846,9 +843,6 @@ export class AbidjanSceneManager {
     if (!this.physics) return;
     const reserved: string[] = [];
     if (this.ownHouseLot) reserved.push(this.ownHouseLot.id);
-    if (this.visitedHouseLot && this.visitedHouseLot.id !== this.ownHouseLot?.id) {
-      reserved.push(this.visitedHouseLot.id);
-    }
     if (this.streamer) {
       this.streamer.dispose();
     }
@@ -986,7 +980,6 @@ export class AbidjanSceneManager {
       homes: [homeType],
     };
     this.ownHouseLot = lot;
-    this.visitedHouseLot = null;
 
     this.rebuildStreamerReservedLots();
 
@@ -1049,54 +1042,6 @@ export class AbidjanSceneManager {
     this.streamer?.update(porch.x, porch.z, 9);
 
     return lot;
-  }
-
-  /** Permet de visiter la maison d'un joueur en ligne (ou revenir chez soi). */
-  public visitNeighborHouse(
-    homeType: HomeType,
-    seedKey: string,
-    ownerName: string,
-    upgrades: CribUpgrades = { splitClim: false, bafflesMaquis: false, tv4k: false, canapeCuir: false }
-  ) {
-    if (!this.physics) return;
-    const lot = findHouseLot(homeType, strHash(seedKey));
-    if (!lot) return;
-
-    // Clean old visited house
-    if (this.visitedHouseRig) {
-      this.scene.remove(this.visitedHouseRig.group);
-      this.visitedHouseRig = null;
-    }
-    for (const id of this.visitedHouseColliderIds) this.physics.removeSolid(id);
-    this.visitedHouseColliderIds = [];
-
-    this.visitedHouseLot = lot;
-    this.rebuildStreamerReservedLots();
-
-    this.visitedHouseRig = createPlayerHouseRig(homeType, upgrades, `Chez ${ownerName}`);
-    this.visitedHouseRig.group.position.set(lot.x, 0, lot.z);
-    this.visitedHouseRig.group.rotation.y = lot.rotationY;
-    this.scene.add(this.visitedHouseRig.group);
-    this.visitedHouseColliderIds = registerPlayerHouse(this.physics, lot.x, lot.z, lot.rotationY);
-
-    const porch = houseToWorld(lot.x, lot.z, lot.rotationY, 0, 5.4);
-    this.teleportPlayer(porch.x, porch.z);
-  }
-
-  public returnToOwnHouse() {
-    if (!this.ownHouseLot) return;
-    if (this.visitedHouseRig) {
-      this.scene.remove(this.visitedHouseRig.group);
-      this.visitedHouseRig = null;
-    }
-    if (this.physics) {
-      for (const id of this.visitedHouseColliderIds) this.physics.removeSolid(id);
-    }
-    this.visitedHouseColliderIds = [];
-    this.visitedHouseLot = null;
-    this.rebuildStreamerReservedLots();
-    const porch = houseToWorld(this.ownHouseLot.x, this.ownHouseLot.z, this.ownHouseLot.rotationY, 0, 5.2);
-    this.teleportPlayer(porch.x, porch.z);
   }
 
   public setCameraMode(mode: 'flyover' | 'follow') {
@@ -1295,10 +1240,7 @@ export class AbidjanSceneManager {
   /** Murs et toit des maisons : transparents côté caméra, toit masqué quand le joueur est dedans. */
   private updateHouseShells(dt: number) {
     const cam = this.camPos;
-    for (const h of [
-      { rig: this.ownHouseRig, lot: this.ownHouseLot },
-      { rig: this.visitedHouseRig, lot: this.visitedHouseLot },
-    ]) {
+    for (const h of [{ rig: this.ownHouseRig, lot: this.ownHouseLot }]) {
       if (!h.rig || !h.lot) continue;
       const pl = worldToHouse(h.lot.x, h.lot.z, h.lot.rotationY, this.playerX, this.playerZ);
       const c = worldToHouse(h.lot.x, h.lot.z, h.lot.rotationY, cam.x, cam.z);

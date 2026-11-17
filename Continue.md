@@ -53,6 +53,12 @@ npm run dev           # port 3000
 * **Projet 100 % gratuit** : aucun service payant (décision du créateur).
 * Le créateur veut les réponses **en conversation** ; ne pas livrer de fichiers sans son accord.
 
+## Chantier maisons (branche `home`, depuis `main` au commit `4bd9f8b`)
+
+Objectif : remplacer l'ancienne coque 12 × 9 m par un mécanisme porte-balise → fondu → intérieur dédié par destin (19 destins, plusieurs étages pour certains, façades distinctes et fermées, collisions complètes intérieur et extérieur).
+* **Phase 1 (retrait des visites chez les voisins) : faite** (commit `refactor(maisons): retrait des visites chez les voisins`). Retrait des visites dans `sceneManager.ts`, `App.tsx` et `BabiOSPhone.tsx` (dont le sélecteur `Porte & Visiteurs Multijoueur` sur validation du créateur) ; `server.ts` et `src/network/multiplayerClient.ts` intacts.
+* **Phase 2 (pilote `poignon` 1 étage + `golden_boy` 2 étages + suppression ancienne maison) : à faire** (prochaine action).
+
 ## 4. Carte du code
 | Dossier | Contenu |
 |---|---|
