@@ -136,7 +136,7 @@ function bfsReachable(
     const minIx = Math.max(0, toIx(tx - tolRadius));
     const maxIx = Math.min(cols - 1, toIx(tx + tolRadius));
     const minIz = Math.max(0, toIz(tz - tolRadius));
-    const maxIz = Math.min(rows - 1, toIx(tz + tolRadius));
+    const maxIz = Math.min(rows - 1, toIz(tz + tolRadius));
     for (let iz = minIz; iz <= maxIz; iz++) {
       for (let ix = minIx; ix <= maxIx; ix++) {
         if (!visited[iz * cols + ix]) continue;
@@ -172,7 +172,8 @@ test('pilotes Poignon et Golden Boy : structure, origines, 4 actions et amélior
   const required = Object.values(HOUSE_REQUIRED_ACTIONS);
   const signatures = new Set<string>();
 
-  for (const spec of [poignon, golden]) {
+  const allSpecs = Object.values(HOUSE_SPECS).filter((s): s is NonNullable<typeof s> => s !== null);
+  for (const spec of allSpecs) {
     const allActions = spec.floors.flatMap((f) => f.actions);
     for (const req of required) {
       const match = allActions.find((a) => a.id === req.id);
@@ -338,7 +339,8 @@ test('moteur WASM réel : façade fermée infranchissable et parcours intérieur
   };
 
   // 1. Extérieurs tournés (rotationY = Math.PI / 2) : mur avant fermé arrête le personnage
-  for (const spec of [HOUSE_SPECS.poignon!, HOUSE_SPECS.golden_boy!]) {
+  const allSpecs = Object.values(HOUSE_SPECS).filter((s): s is NonNullable<typeof s> => s !== null);
+  for (const spec of allSpecs) {
     core.reset();
     const rotY = Math.PI / 2;
     const cx = 100;
@@ -350,13 +352,15 @@ test('moteur WASM réel : façade fermée infranchissable et parcours intérieur
     const doorWall = houseToWorld(cx, cz, rotY, 0, -0.6);
     const ch = core.createCharacter(porch.x, porch.z, PLAYER_R);
     const res = stepChar(ch, doorWall.x - porch.x, doorWall.z - porch.z, 2.0);
-    // Transforme la position atteinte en repère local de la façade : z_local doit rester > 1.7 (devant le mur sud)
+    // Transforme la position atteinte en repère local de la façade : z_local reste devant la façade sud
+    const building = spec.facade.volumes.find((v) => v.kind === 'building')!;
+    const frontWallZ = building.z + building.hz;
     const dx = res.x - cx;
     const dz = res.z - cz;
     const localZ = dx * Math.sin(rotY) + dz * Math.cos(rotY);
     assert.ok(
-      localZ > 1.7,
-      `${spec.destinyId} : le joueur a traversé la façade fermée (localZ=${localZ.toFixed(2)})`
+      localZ >= frontWallZ + PLAYER_R - 0.05,
+      `${spec.destinyId} : le joueur a traversé la façade fermée (localZ=${localZ.toFixed(2)}, mur=${frontWallZ.toFixed(2)})`
     );
   }
 
@@ -386,6 +390,31 @@ test('moteur WASM réel : façade fermée infranchissable et parcours intérieur
     // Poussée contre le mur nord (z = -2.5)
     const wallPush = stepChar(ch, 0, -1, 1.5);
     assert.ok(wallPush.z - oz >= -2.5 + 0.15 + PLAYER_R - 0.05, 'Poignon : traversée du mur nord');
+  }
+
+  // 2bis. Vérification WASM entrée -> sortie -> mur sud sur toutes les maisons enregistrées
+  for (const spec of allSpecs) {
+    core.reset();
+    const def = buildHouseFloorDef(spec, 0, ALL_UPGRADES);
+    for (const b of def.boxes) {
+      core.addBox(def.origin.x + b.x, def.origin.z + b.z, b.hx, b.hz, 0, b.h, SolidFlag.PROP);
+    }
+    const ox = def.origin.x;
+    const oz = def.origin.z;
+    const ch = core.createCharacter(ox + def.entry.x, oz + def.entry.z, PLAYER_R);
+    const atExit = walkTo(ch, ox + def.exit.x, oz + def.exit.z, 2.0, 0.25);
+    const dExit = Math.hypot(atExit.x - (ox + def.exit.x), atExit.z - (oz + def.exit.z));
+    assert.ok(
+      dExit <= def.exit.radius,
+      `${spec.destinyId} RDC : sortie hors de portée WASM (d=${dExit.toFixed(2)})`
+    );
+    // Poussée contre un mur latéral est (x = +halfW)
+    core.placeCharacter(ch, ox, oz);
+    const eastPush = stepChar(ch, 1, 0, 2.0);
+    assert.ok(
+      eastPush.x - ox <= def.halfW - 0.15 - PLAYER_R + 0.05,
+      `${spec.destinyId} RDC : traversée du mur est`
+    );
   }
 
   // 3. Intérieur Golden Boy (2 étages) : RDC escalier -> R+1 lit + rambarde terrasse solide

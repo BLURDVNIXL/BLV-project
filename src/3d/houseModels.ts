@@ -205,6 +205,70 @@ function makePropGeometry(p: HousePropSpec): THREE.BufferGeometry {
       parts.push(colorBox(W * 0.92, H * 0.86, D * 0.5, 0, H / 2, D * 0.25, c3));
       break;
     }
+    case 'tools': {
+      // Établi garage + panneau outils + bidon
+      const topY = H * 0.78;
+      parts.push(colorBox(W, 0.08, D, 0, topY, 0, c1));
+      parts.push(colorBox(0.1, topY, D * 0.9, -W / 2 + 0.06, topY / 2, 0, c2));
+      parts.push(colorBox(0.1, topY, D * 0.9, W / 2 - 0.06, topY / 2, 0, c2));
+      parts.push(colorBox(W * 0.9, H - topY, 0.08, 0, topY + (H - topY) / 2, -D / 2 + 0.05, c2));
+      parts.push(colorBox(W * 0.35, 0.14, D * 0.45, -W * 0.2, topY + 0.08, 0.04, c3));
+      parts.push(colorBox(W * 0.22, 0.18, D * 0.35, W * 0.24, topY + 0.1, 0.04, c3));
+      break;
+    }
+    case 'mannequin': {
+      // Socle + tige + buste habillé pagne/tissu
+      const baseH = 0.08;
+      const poleH = H * 0.48;
+      parts.push(colorBox(W * 0.85, baseH, D * 0.85, 0, baseH / 2, 0, c2));
+      parts.push(colorBox(W * 0.18, poleH, D * 0.18, 0, baseH + poleH / 2, 0, c2));
+      const bustH = H * 0.42;
+      const bustY = baseH + poleH * 0.85;
+      parts.push(colorBox(W * 0.78, bustH, D * 0.56, 0, bustY + bustH / 2, 0, c1));
+      parts.push(colorBox(W * 0.82, bustH * 0.35, D * 0.6, 0, bustY + bustH * 0.25, 0, c3));
+      break;
+    }
+    case 'trophy': {
+      // Socle vitrine + coupes dorées
+      const pedH = H * 0.55;
+      parts.push(colorBox(W, pedH, D, 0, pedH / 2, 0, c1));
+      const cupH = H - pedH;
+      parts.push(colorBox(W * 0.28, cupH * 0.3, D * 0.35, 0, pedH + cupH * 0.15, 0, c2));
+      parts.push(colorBox(W * 0.44, cupH * 0.62, D * 0.45, 0, pedH + cupH * 0.65, 0, c3));
+      parts.push(colorBox(W * 0.22, cupH * 0.45, D * 0.28, -W * 0.32, pedH + cupH * 0.24, 0, c3));
+      parts.push(colorBox(W * 0.22, cupH * 0.45, D * 0.28, W * 0.32, pedH + cupH * 0.24, 0, c3));
+      break;
+    }
+    case 'fan': {
+      // Pied + colonne + cage de ventilateur
+      parts.push(colorBox(W * 0.85, 0.08, D * 0.85, 0, 0.04, 0, c1));
+      parts.push(colorBox(W * 0.18, H * 0.62, D * 0.18, 0, 0.08 + H * 0.31, 0, c2));
+      const headH = H * 0.34;
+      parts.push(colorBox(W * 0.88, headH, D * 0.48, 0, H - headH / 2, 0, c2));
+      parts.push(colorBox(W * 0.64, headH * 0.68, D * 0.54, 0, H - headH / 2, 0, c3));
+      break;
+    }
+    case 'rack_clothes': {
+      // Portant fripes / tissus colorés
+      parts.push(colorBox(W * 0.96, 0.07, D * 0.85, 0, 0.035, 0, c2));
+      parts.push(colorBox(0.07, H, D * 0.22, -W / 2 + 0.05, H / 2, 0, c2));
+      parts.push(colorBox(0.07, H, D * 0.22, W / 2 - 0.05, H / 2, 0, c2));
+      parts.push(colorBox(W * 0.94, 0.06, 0.08, 0, H - 0.04, 0, c2));
+      parts.push(colorBox(W * 0.26, H * 0.62, D * 0.72, -W * 0.28, H * 0.62, 0, c1));
+      parts.push(colorBox(W * 0.26, H * 0.58, D * 0.72, 0, H * 0.64, 0, c3));
+      parts.push(colorBox(W * 0.26, H * 0.64, D * 0.72, W * 0.28, H * 0.6, 0, c1));
+      break;
+    }
+    case 'gym_bench': {
+      // Banc de musculation + barre d'haltères
+      parts.push(colorBox(W * 0.88, H * 0.36, D * 0.42, 0, H * 0.18, 0, c1));
+      parts.push(colorBox(0.1, H * 0.85, D * 0.75, -W * 0.32, H * 0.425, 0, c2));
+      parts.push(colorBox(0.1, H * 0.85, D * 0.75, W * 0.32, H * 0.425, 0, c2));
+      parts.push(colorBox(W * 0.95, 0.06, 0.06, 0, H * 0.82, 0, c2));
+      parts.push(colorBox(0.1, H * 0.32, D * 0.48, -W * 0.43, H * 0.82, 0, c3));
+      parts.push(colorBox(0.1, H * 0.32, D * 0.48, W * 0.43, H * 0.82, 0, c3));
+      break;
+    }
     case 'ac_split': {
       parts.push(colorBox(W, H, D, 0, H / 2, 0, c1));
       parts.push(colorBox(W * 0.86, H * 0.2, 0.04, 0, H * 0.22, D / 2 - 0.01, c3));
