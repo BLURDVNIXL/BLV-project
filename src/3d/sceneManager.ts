@@ -10,7 +10,6 @@ import {
 } from '../types/game';
 import {
   CharacterRig,
-  CribZoneHandles,
   VehicleRig,
   createBassamFuturisticSchool,
   createBridgeModel,
@@ -24,7 +23,6 @@ import {
   createMairiePlateauLandmark,
   createMaquisStructure,
   createMarketStallCluster,
-  createPlayerHouseRig,
   createPortCraneAndContainers,
   createStadeFhbLandmark,
   createTourPostelLandmark,
@@ -83,12 +81,19 @@ import {
   taxiRouteTo,
   TaxiPath,
 } from '../world/taxiApproach';
-import { houseToWorld, registerPlayerHouse } from '../world/playerHouse';
 import { exteriorSolidsFor, type ExteriorSolid, type ExteriorSolidId } from '../world/exteriorSolids';
-import { HOUSE_D, insideHouse, segmentCrossesRect, worldToHouse } from '../world/houseShell';
 import { HOSPITAL_SITES } from '../world/hospitals';
-import { INTERIORS, InteriorDef, InteriorId, interiorToWorld } from '../world/interiors';
+import { INTERIORS, InteriorDef, InteriorId, PublicInteriorId, interiorToWorld } from '../world/interiors';
 import { InteriorRig, createHospitalExterior, createInteriorRig } from './interiors';
+import {
+  HouseSpec,
+  buildHouseFloorDef,
+  facadeWorldSolids,
+  getHouseUpgradeBoxes,
+  houseToWorld,
+  resolveHouseSpec,
+} from '../world/playerHouses';
+import { createHouseFacadeRig, createHouseFloorFurniture } from './houseModels';
 import { RoadCar, updateRoadTraffic } from '../world/roadTraffic';
 import { strHash } from '../world/rng';
 
@@ -111,8 +116,11 @@ export interface CityHotspot {
     | 'black_market'
     | 'yannis_academy'
     | 'interior_door'
-    | 'interior_exit';
+    | 'interior_exit'
+    | 'interior_stairs';
   color: number;
+  targetFloor?: number;
+  arrival?: { x: number; z: number; rotY: number };
 }
 
 export interface RadarSnapshot {
@@ -275,9 +283,11 @@ export class AbidjanSceneManager {
     }
   > = new Map();
 
-  // Maison du joueur
+  // Maison du joueur (façade extérieure fermée + intérieur dédié par destin et par étage)
   private ownHouseLot: HouseLot | null = null;
-  private ownHouseRig: CribZoneHandles | null = null;
+  private ownHouseSpec: HouseSpec | null = null;
+  private ownHouseFacade: { group: THREE.Group; dispose: () => void } | null = null;
+  private ownHouseDoorRing: THREE.Mesh | null = null;
   private ownHouseColliderIds: number[] = [];
   /** Solides des structures extérieures (étals, poteaux…) : calculés à la construction, enregistrés quand la physique est prête. */
   private exteriorSolidDefs: ExteriorSolid[] = [];
@@ -309,6 +319,13 @@ export class AbidjanSceneManager {
     returnRotY: number;
     prevPitch: number;
     prevDist: number;
+  } | null = null;
+  /** État actif si l'intérieur occupé appartient à la maison du joueur (étage + mises à jour d'améliorations). */
+  private activeHouse: {
+    spec: HouseSpec;
+    floorIndex: number;
+    upgradeColliderIds: number[];
+    updateUpgrades: (u: CribUpgrades) => void;
   } | null = null;
 
   // Camera state: flyover (Title) vs follow (360° mouse drag + wheel zoom + building ray pull-in)
@@ -859,36 +876,59 @@ export class AbidjanSceneManager {
     );
   }
 
-  private buildHomeHotspots(lot: HouseLot) {
+  private disposeOwnHouse() {
+    if (this.physics) {
+      for (const id of this.ownHouseColliderIds) this.physics.removeSolid(id);
+    }
+    this.ownHouseColliderIds = [];
+    if (this.ownHouseFacade) {
+      this.scene.remove(this.ownHouseFacade.group);
+      this.ownHouseFacade.dispose();
+      this.ownHouseFacade = null;
+    }
+    if (this.ownHouseDoorRing) {
+      this.scene.remove(this.ownHouseDoorRing);
+      this.ownHouseDoorRing.geometry.dispose();
+      (this.ownHouseDoorRing.material as THREE.Material).dispose();
+      this.ownHouseDoorRing = null;
+    }
+    this.interiorDoors.delete('door_home');
+  }
+
+  private buildHomeHotspots(lot: HouseLot, spec: HouseSpec) {
     this.homeHotspots = [];
-    const addLocal = (
-      id: string,
-      lx: number,
-      lz: number,
-      type: CityHotspot['type'],
-      label: string,
-      color: number,
-      radius = 2.6
-    ) => {
-      const p = houseToWorld(lot.x, lot.z, lot.rotationY, lx, lz);
-      this.homeHotspots.push({
-        id,
-        label,
-        district: districtAt({ x: lot.x, z: lot.z }).name,
-        x: p.x,
-        z: p.z,
-        radius,
-        type,
-        color,
-      });
-    };
+    const districtName = districtAt({ x: lot.x, z: lot.z }).name;
+    const doorPos = houseToWorld(lot.x, lot.z, lot.rotationY, 0, spec.facade.doorZ);
+    const porch = houseToWorld(lot.x, lot.z, lot.rotationY, 0, spec.facade.porchZ);
 
-    addLocal('home_bed', -4, -3, 'sleep', '🛏️ Dormir au lit (Énergie +85%)', 0x6366f1);
-    addLocal('home_fridge', 3, -3.5, 'eat', '🧊 Réfrigérateur & Garba maison', 0xf97316);
-    addLocal('home_shower', 4, 2, 'shower', '🚿 Douche & Hygiène', 0x06b6d4);
-    addLocal('home_pc', -4, 2, 'work', '💻 Bureau PC / Télétravail', 0x10b981);
+    this.interiorDoors.set('door_home', {
+      interiorId: 'house_floor_0',
+      siteId: spec.destinyId,
+      name: spec.name,
+      outX: porch.x,
+      outZ: porch.z,
+      outRotY: lot.rotationY,
+    });
+    this.homeHotspots.push({
+      id: 'door_home',
+      label: `🏠 Entrer — ${spec.name}`,
+      district: districtName,
+      x: doorPos.x,
+      z: doorPos.z,
+      radius: spec.facade.doorRadius,
+      type: 'interior_door',
+      color: spec.facade.doorColor,
+    });
+    const ring = new THREE.Mesh(
+      new THREE.RingGeometry(1.05, 1.5, 24),
+      new THREE.MeshBasicMaterial({ color: spec.facade.doorColor, side: THREE.DoubleSide, transparent: true, opacity: 0.8 })
+    );
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.set(doorPos.x, 0.08, doorPos.z);
+    this.scene.add(ring);
+    this.ownHouseDoorRing = ring;
 
-    // Local curb garbadrome & loto kiosk right down the street from the player's parcel
+    // Garbadrome de quartier dans la rue devant la parcelle
     const curbSpot = carSpotForLot(lot);
     const streetX = curbSpot.x + Math.sin(curbSpot.heading) * 14;
     const streetZ = curbSpot.z + Math.cos(curbSpot.heading) * 14;
@@ -916,7 +956,8 @@ export class AbidjanSceneManager {
     mysticBaraka = false,
     homeType: HomeType = 'studio',
     seedKey = 'blv_default',
-    preferredDistrict?: string
+    preferredDistrict?: string,
+    destinyId?: string
   ): HouseLot | null {
     this.ownHomeType = homeType;
     this.isSuperstar = isSuperstar;
@@ -935,6 +976,7 @@ export class AbidjanSceneManager {
         homeType,
         seedKey,
         preferredDistrict,
+        destinyId,
       ];
       this.playerX = spawnX;
       this.playerZ = spawnZ;
@@ -943,6 +985,20 @@ export class AbidjanSceneManager {
     }
 
     const core = this.physics;
+
+    // Si on recommence ou change de destin depuis un intérieur, on le libère proprement
+    if (this.activeInterior) {
+      for (const id of this.activeInterior.colliderIds) core.removeSolid(id);
+      if (this.activeHouse) {
+        for (const id of this.activeHouse.upgradeColliderIds) core.removeSolid(id);
+        this.activeHouse = null;
+      }
+      this.scene.remove(this.activeInterior.rig.group);
+      this.activeInterior.rig.dispose();
+      this.activeInterior = null;
+      this.npcSystem.setIndoor(false);
+      this.animalSystem.setIndoor(false);
+    }
 
     // Clear old vehicles & characters & houses
     for (const v of this.spawnedVehicles) {
@@ -957,12 +1013,7 @@ export class AbidjanSceneManager {
       core.destroyCharacter(this.playerCharId);
       this.playerCharId = -1;
     }
-    for (const id of this.ownHouseColliderIds) core.removeSolid(id);
-    this.ownHouseColliderIds = [];
-    if (this.ownHouseRig) {
-      this.scene.remove(this.ownHouseRig.group);
-      this.ownHouseRig = null;
-    }
+    this.disposeOwnHouse();
 
     // 1. Find deterministic HouseLot on a real road in the matching district
     const seed = strHash(seedKey);
@@ -983,16 +1034,32 @@ export class AbidjanSceneManager {
 
     this.rebuildStreamerReservedLots();
 
-    // 2. Mount Open Dollhouse + Physics Colliders
-    this.ownHouseRig = createPlayerHouseRig(homeType, this.ownUpgrades);
-    this.ownHouseRig.group.position.set(lot.x, 0, lot.z);
-    this.ownHouseRig.group.rotation.y = lot.rotationY;
-    this.scene.add(this.ownHouseRig.group);
-    this.ownHouseColliderIds = registerPlayerHouse(core, lot.x, lot.z, lot.rotationY);
-    this.buildHomeHotspots(lot);
+    // 2. Façade fermée + solides extérieurs + porte-balise de la maison du destin
+    const resolvedId = destinyId ?? seedKey.split('|').slice(1).join('|');
+    const spec = resolveHouseSpec(resolvedId, homeType);
+    this.ownHouseSpec = spec;
+    const facade = createHouseFacadeRig(spec);
+    facade.group.position.set(lot.x, 0, lot.z);
+    facade.group.rotation.y = lot.rotationY;
+    this.scene.add(facade.group);
+    this.ownHouseFacade = facade;
+
+    for (const s of facadeWorldSolids(spec, lot.x, lot.z, lot.rotationY)) {
+      const id = core.addBox(
+        s.x,
+        s.z,
+        s.hx,
+        s.hz,
+        s.angle,
+        s.h,
+        s.flag === 'building' ? SolidFlag.BUILDING : SolidFlag.PROP
+      );
+      if (id >= 0) this.ownHouseColliderIds.push(id);
+    }
+    this.buildHomeHotspots(lot, spec);
 
     // 3. On apparaît sur le perron, face à sa porte ; la caméra est côté rue et voit la façade
-    const porch = houseToWorld(lot.x, lot.z, lot.rotationY, 0, 5.2);
+    const porch = houseToWorld(lot.x, lot.z, lot.rotationY, 0, spec.facade.porchZ);
     this.playerX = porch.x;
     this.playerY = 0;
     this.playerZ = porch.z;
@@ -1105,7 +1172,19 @@ export class AbidjanSceneManager {
 
   public syncCribUpgrades(u: CribUpgrades) {
     this.ownUpgrades = u;
-    this.ownHouseRig?.updateUpgrades(u);
+    if (!this.activeHouse || !this.physics) return;
+    const core = this.physics;
+    for (const id of this.activeHouse.upgradeColliderIds) core.removeSolid(id);
+    this.activeHouse.upgradeColliderIds = [];
+    const floor = this.activeHouse.spec.floors[this.activeHouse.floorIndex];
+    const origin = this.activeInterior?.def.origin;
+    if (floor && origin) {
+      for (const b of getHouseUpgradeBoxes(floor, u)) {
+        const id = core.addBox(origin.x + b.x, origin.z + b.z, b.hx, b.hz, 0, b.h, SolidFlag.PROP);
+        if (id >= 0) this.activeHouse.upgradeColliderIds.push(id);
+      }
+    }
+    this.activeHouse.updateUpgrades(u);
   }
 
   public updateWorldConditions(weather: WeatherType, gameTimeHours: number, policeWanted: number, star = 50) {
@@ -1237,19 +1316,7 @@ export class AbidjanSceneManager {
       });
   }
 
-  /** Murs et toit des maisons : transparents côté caméra, toit masqué quand le joueur est dedans. */
-  private updateHouseShells(dt: number) {
-    const cam = this.camPos;
-    for (const h of [{ rig: this.ownHouseRig, lot: this.ownHouseLot }]) {
-      if (!h.rig || !h.lot) continue;
-      const pl = worldToHouse(h.lot.x, h.lot.z, h.lot.rotationY, this.playerX, this.playerZ);
-      const c = worldToHouse(h.lot.x, h.lot.z, h.lot.rotationY, cam.x, cam.z);
-      const inside = insideHouse(pl.x, pl.z);
-      // Joueur dehors mais maison entre lui et la caméra : tout devient transparent pour ne pas le cacher
-      const occluding = !inside && segmentCrossesRect(pl.x, pl.z, c.x, c.z, 6.2, HOUSE_D / 2 + 0.2);
-      h.rig.fader.update(c.x, c.z, inside, dt, occluding);
-    }
-  }
+
 
   /** Vrai si le joueur est dans un intérieur (salle fermée hors carte). */
   public isInsideInterior(): boolean {
@@ -1291,6 +1358,104 @@ export class AbidjanSceneManager {
     });
   }
 
+  private mountHouseFloor(
+    spec: HouseSpec,
+    floorIndex: number,
+    returnDoor: { name: string; outX: number; outZ: number; outRotY: number },
+    prevPitch: number,
+    prevDist: number,
+    atOverride?: { x: number; z: number; rotY: number }
+  ): boolean {
+    const core = this.physics;
+    const floor = spec.floors[floorIndex];
+    if (!core || !floor || this.playerCharId < 0) return false;
+
+    const noUpg: CribUpgrades = { splitClim: false, bafflesMaquis: false, tv4k: false, canapeCuir: false };
+    const baseDef = buildHouseFloorDef(spec, floorIndex, noUpg);
+    const furniture = createHouseFloorFurniture(floor, this.ownUpgrades);
+    const rig = createInteriorRig(baseDef, furniture.build);
+    this.scene.add(rig.group);
+
+    const colliderIds: number[] = [];
+    for (const b of baseDef.boxes) {
+      const p = interiorToWorld(baseDef, b.x, b.z);
+      const id = core.addBox(p.x, p.z, b.hx, b.hz, 0, b.h, SolidFlag.PROP);
+      if (id >= 0) colliderIds.push(id);
+    }
+    const upgradeColliderIds: number[] = [];
+    for (const b of getHouseUpgradeBoxes(floor, this.ownUpgrades)) {
+      const p = interiorToWorld(baseDef, b.x, b.z);
+      const id = core.addBox(p.x, p.z, b.hx, b.hz, 0, b.h, SolidFlag.PROP);
+      if (id >= 0) upgradeColliderIds.push(id);
+    }
+
+    const hotspots: CityHotspot[] = [];
+    if (baseDef.hasStreetExit !== false) {
+      const ex = interiorToWorld(baseDef, baseDef.exit.x, baseDef.exit.z);
+      hotspots.push({
+        id: `exit_${baseDef.id}`,
+        label: `🚪 Sortir — ${returnDoor.name}`,
+        district: baseDef.label,
+        x: ex.x,
+        z: ex.z,
+        radius: baseDef.exit.radius,
+        type: 'interior_exit',
+        color: 0xef4444,
+      });
+    }
+    for (const act of baseDef.actions ?? []) {
+      const p = interiorToWorld(baseDef, act.x, act.z);
+      hotspots.push({
+        id: act.id,
+        label: act.label,
+        district: baseDef.label,
+        x: p.x,
+        z: p.z,
+        radius: act.radius,
+        type: act.type,
+        color: act.color,
+        targetFloor: act.targetFloor,
+        arrival: act.arrival,
+      });
+    }
+
+    this.activeHouse = { spec, floorIndex, upgradeColliderIds, updateUpgrades: furniture.updateUpgrades };
+    this.activeInterior = {
+      id: baseDef.id,
+      def: baseDef,
+      rig,
+      colliderIds,
+      hotspots,
+      label: returnDoor.name,
+      returnX: returnDoor.outX,
+      returnZ: returnDoor.outZ,
+      returnRotY: returnDoor.outRotY,
+      prevPitch,
+      prevDist,
+    };
+
+    const at = atOverride ?? baseDef.entry;
+    const w = interiorToWorld(baseDef, at.x, at.z);
+    core.placeCharacter(this.playerCharId, w.x, w.z);
+    core.faceCharacter(this.playerCharId, at.rotY, true);
+    this.playerX = w.x;
+    this.playerY = 0;
+    this.playerZ = w.z;
+    this.playerRotY = at.rotY;
+    this.playerRig.group.position.set(w.x, 0, w.z);
+    this.playerRig.group.rotation.y = at.rotY;
+    this.camYaw = at.rotY + Math.PI;
+    this.camPitch = 0.5;
+    this.camDist = 8.2;
+    this.camPos.set(
+      w.x + Math.sin(this.camYaw) * Math.cos(this.camPitch) * this.camDist,
+      this.playerY + 1.55 + Math.sin(this.camPitch) * this.camDist,
+      w.z + Math.cos(this.camYaw) * Math.cos(this.camPitch) * this.camDist
+    );
+    this.camLook.set(w.x, 1.55, w.z);
+    return true;
+  }
+
   /**
    * Entre dans un intérieur par la porte `doorId` : fondu géré par l'interface ; ici on construit la salle,
    * on enregistre ses collisions, on téléporte le joueur et on fige la ville (elle reste chargée).
@@ -1298,10 +1463,33 @@ export class AbidjanSceneManager {
   public enterInterior(doorId: string, spawn: 'door' | 'bed' = 'door'): { ok: boolean; reason?: 'driving' | 'unknown' } {
     const door = this.interiorDoors.get(doorId);
     const core = this.physics;
-    const def = door ? INTERIORS[door.interiorId] : undefined;
-    if (!door || !def || !core || this.playerCharId < 0) return { ok: false, reason: 'unknown' };
+    if (!door || !core || this.playerCharId < 0) return { ok: false, reason: 'unknown' };
     if (this.activeInterior) return { ok: false };
     if (this.drivingVehicle) return { ok: false, reason: 'driving' };
+
+    if (doorId === 'door_home') {
+      const spec = this.ownHouseSpec;
+      if (!spec) return { ok: false, reason: 'unknown' };
+      this.npcSystem.setIndoor(true);
+      this.animalSystem.setIndoor(true);
+      const floorIdx = spawn === 'bed'
+        ? Math.max(0, spec.floors.findIndex((f) => Boolean(f.bed)))
+        : 0;
+      const fl = spec.floors[floorIdx] ?? spec.floors[0];
+      const at = spawn === 'bed' && fl.bed ? fl.bed : fl.entry;
+      this.mountHouseFloor(
+        spec,
+        floorIdx,
+        { name: door.name, outX: door.outX, outZ: door.outZ, outRotY: door.outRotY },
+        this.camPitch,
+        this.camDist,
+        at
+      );
+      return { ok: true };
+    }
+
+    const def = INTERIORS[door.interiorId as PublicInteriorId];
+    if (!def) return { ok: false, reason: 'unknown' };
 
     this.npcSystem.setIndoor(true); // les PNJ extérieurs sont désactivés tant qu'on est dedans
     this.animalSystem.setIndoor(true); // les animaux aussi
@@ -1367,11 +1555,38 @@ export class AbidjanSceneManager {
     return { ok: true };
   }
 
+  /** Change d'étage dans une maison à plusieurs niveaux en conservant le point de retour sur rue. */
+  public switchHouseFloor(targetFloor: number): boolean {
+    const a = this.activeInterior;
+    const h = this.activeHouse;
+    if (!a || !h || !this.physics) return false;
+    const nextFloor = h.spec.floors[targetFloor];
+    if (!nextFloor) return false;
+
+    const stairFrom = a.hotspots.find((hs) => hs.type === 'interior_stairs' && hs.targetFloor === targetFloor);
+    const arrival = stairFrom?.arrival ?? nextFloor.entry;
+    const returnDoor = { name: a.label, outX: a.returnX, outZ: a.returnZ, outRotY: a.returnRotY };
+    const { prevPitch, prevDist } = a;
+
+    for (const id of a.colliderIds) this.physics.removeSolid(id);
+    for (const id of h.upgradeColliderIds) this.physics.removeSolid(id);
+    this.scene.remove(a.rig.group);
+    a.rig.dispose();
+    this.activeInterior = null;
+    this.activeHouse = null;
+
+    return this.mountHouseFloor(h.spec, targetFloor, returnDoor, prevPitch, prevDist, arrival);
+  }
+
   /** Sort de l'intérieur : retire la salle et remet le joueur devant la porte, face à la rue. */
   public exitInterior(): boolean {
     const a = this.activeInterior;
     if (!a || !this.physics) return false;
     for (const id of a.colliderIds) this.physics.removeSolid(id);
+    if (this.activeHouse) {
+      for (const id of this.activeHouse.upgradeColliderIds) this.physics.removeSolid(id);
+      this.activeHouse = null;
+    }
     this.scene.remove(a.rig.group);
     a.rig.dispose();
     this.activeInterior = null;
@@ -1393,7 +1608,7 @@ export class AbidjanSceneManager {
     if (!a) return;
     a.rig.fader.update(this.camPos.x - a.def.origin.x, this.camPos.z - a.def.origin.z, true, dt);
     const pulse = 0.6 + 0.25 * Math.sin(nowSec * 4);
-    (a.rig.exitRing.material as THREE.MeshBasicMaterial).opacity = pulse;
+    if (a.rig.exitRing) (a.rig.exitRing.material as THREE.MeshBasicMaterial).opacity = pulse;
     for (const r of a.rig.actionRings) (r.material as THREE.MeshBasicMaterial).opacity = pulse;
     a.rig.animate?.(nowSec, dt);
   }
@@ -1769,7 +1984,7 @@ export class AbidjanSceneManager {
       places: this.staticHotspots.map((h) => ({ id: h.id, label: h.label, x: h.x, z: h.z, color: h.color })),
       home: this.ownHouseLot ? { x: this.ownHouseLot.x, z: this.ownHouseLot.z } : null,
       homePorch: this.ownHouseLot
-        ? houseToWorld(this.ownHouseLot.x, this.ownHouseLot.z, this.ownHouseLot.rotationY, 0, 5.2)
+        ? houseToWorld(this.ownHouseLot.x, this.ownHouseLot.z, this.ownHouseLot.rotationY, 0, this.ownHouseSpec?.facade.porchZ ?? 5.2)
         : null,
       remotes: Array.from(this.remoteRigs.values()).map((r) => ({
         name: r.name,
@@ -1937,6 +2152,10 @@ export class AbidjanSceneManager {
       const r = this.beaconRings[i];
       const pulse = 1 + Math.sin(nowSec * 3.5 + i) * 0.08;
       r.scale.set(pulse, pulse, 1);
+    }
+    if (this.ownHouseDoorRing) {
+      const p = 1 + Math.sin(nowSec * 3.5) * 0.08;
+      this.ownHouseDoorRing.scale.set(p, p, 1);
     }
 
     for (const p of this.cashPickups) {
@@ -2175,7 +2394,6 @@ export class AbidjanSceneManager {
     this.camLook.lerp(this.scratchTarget, k);
     this.camera.position.copy(this.camPos);
     this.camera.lookAt(this.camLook);
-    this.updateHouseShells(dt);
     this.updateInteriorShell(dt, nowSec);
 
     this.dirLight.position.set(
@@ -2280,7 +2498,14 @@ export class AbidjanSceneManager {
     this.stopTaxiApproach();
     this.taxiRide = null;
     this.streamer?.dispose();
-    if (this.physics) for (const id of this.exteriorColliderIds) this.physics.removeSolid(id);
+    this.disposeOwnHouse();
+    if (this.physics) {
+      for (const id of this.exteriorColliderIds) this.physics.removeSolid(id);
+      if (this.activeHouse) {
+        for (const id of this.activeHouse.upgradeColliderIds) this.physics.removeSolid(id);
+        this.activeHouse = null;
+      }
+    }
     this.exteriorColliderIds = [];
     this.skyDome?.dispose();
     this.chunkMats.dispose();

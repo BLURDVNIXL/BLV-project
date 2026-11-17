@@ -219,7 +219,8 @@ export default function App() {
             Boolean(saved.destiny.mysticBaraka),
             saved.destiny.homeType,
             `${saved.playerId}|${saved.destiny.id}`,
-            saved.destiny.districtId
+            saved.destiny.districtId,
+            saved.destiny.id
           );
           sceneRef.current?.syncCribUpgrades(saved.cribUpgrades);
         }
@@ -323,6 +324,10 @@ export default function App() {
         runTransition(() => {
           sceneRef.current?.exitInterior();
         });
+      } else if (h.type === 'interior_stairs') {
+        runTransition(() => {
+          sceneRef.current?.switchHouseFloor(h.targetFloor ?? 0);
+        });
       }
     },
     [showToast, syncEconomy, runTransition]
@@ -422,7 +427,8 @@ export default function App() {
         Boolean(p.destiny.mysticBaraka),
         p.destiny.homeType,
         `${p.playerId}|${p.destiny.id}`,
-        p.destiny.districtId
+        p.destiny.districtId,
+        p.destiny.id
       );
       mgr.syncCribUpgrades(p.cribUpgrades);
       mgr.setCameraMode('follow');
@@ -570,7 +576,8 @@ export default function App() {
       Boolean(destiny.mysticBaraka),
       destiny.homeType,
       `${fresh.playerId}|${destiny.id}`,
-      destiny.districtId
+      destiny.districtId,
+      destiny.id
     );
     if (lot?.id) fresh.homeLotId = lot.id;
 
@@ -602,7 +609,8 @@ export default function App() {
       Boolean(cur.destiny.mysticBaraka),
       cur.destiny.homeType,
       `${cur.playerId}|${cur.destiny.id}`,
-      cur.destiny.districtId
+      cur.destiny.districtId,
+      cur.destiny.id
     );
     sceneRef.current?.syncCribUpgrades(cur.cribUpgrades);
     sceneRef.current?.setCameraMode('follow');
@@ -1009,7 +1017,8 @@ export default function App() {
                 Boolean(nextSt.destiny.mysticBaraka),
                 nextSt.destiny.homeType,
                 `${nextSt.playerId}|${nextSt.destiny.id}`,
-                nextSt.destiny.districtId
+                nextSt.destiny.districtId,
+                nextSt.destiny.id
               );
               if (lot?.id) nextSt.homeLotId = lot.id;
               setPlayerState(nextSt);

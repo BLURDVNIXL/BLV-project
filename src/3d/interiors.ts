@@ -7,7 +7,7 @@
  * Les murs sont de simples boîtes ; seul un nombre fixe de matériaux est utilisé (pas de coût par bâtiment).
  */
 import * as THREE from 'three';
-import { InteriorDef, InteriorId } from '../world/interiors';
+import { InteriorDef, PublicInteriorId } from '../world/interiors';
 import { FadeWall, WallFader } from './wallFader';
 
 // ───────────── Aides de construction ─────────────
@@ -91,7 +91,7 @@ export function createHospitalExterior(w: number, d: number, h: number, name: st
 
 export type InteriorFurnitureBuilder = (g: THREE.Group, def: InteriorDef) => ((nowSec: number, dt: number) => void) | void;
 
-const FURNITURE_BUILDERS: Record<InteriorId, InteriorFurnitureBuilder> = {
+const FURNITURE_BUILDERS: Record<PublicInteriorId, InteriorFurnitureBuilder> = {
   hopital: buildHospitalFurniture,
   maquis: buildMaquisFurniture,
   marche_adjame: buildMarcheFurniture,
@@ -104,13 +104,13 @@ const FURNITURE_BUILDERS: Record<InteriorId, InteriorFurnitureBuilder> = {
 export interface InteriorRig {
   group: THREE.Group;
   fader: WallFader;
-  exitRing: THREE.Mesh;
+  exitRing?: THREE.Mesh;
   actionRings: THREE.Mesh[];
   animate?: (nowSec: number, dt: number) => void;
   dispose: () => void;
 }
 
-export function createInteriorRig(def: InteriorDef): InteriorRig {
+export function createInteriorRig(def: InteriorDef, customFurniture?: InteriorFurnitureBuilder): InteriorRig {
   const g = new THREE.Group();
   g.position.set(def.origin.x, 0, def.origin.z);
   const { theme } = def;
@@ -130,9 +130,12 @@ export function createInteriorRig(def: InteriorDef): InteriorRig {
   // Plafond : face tournée vers le bas → visible de l'intérieur, transparent vu d'en haut
   const ceilColor = theme.ceilingColor ?? 0xffffff;
   const ceilMat = new THREE.MeshStandardMaterial({ color: ceilColor, roughness: 0.9, emissive: ceilColor, emissiveIntensity: theme.ceilingGlow ?? 0.25 });
-  const ceil = new THREE.Mesh(new THREE.PlaneGeometry(W, D), ceilMat);
+  const czMin = def.ceilingZMin ?? -def.halfD;
+  const czMax = def.ceilingZMax ?? def.halfD;
+  const ceilD = Math.max(0.5, czMax - czMin);
+  const ceil = new THREE.Mesh(new THREE.PlaneGeometry(W, ceilD), ceilMat);
   ceil.rotation.x = Math.PI / 2;
-  ceil.position.y = def.wallH;
+  ceil.position.set(0, def.wallH, (czMin + czMax) / 2);
   ceil.castShadow = true;
   g.add(ceil);
 
@@ -148,24 +151,34 @@ export function createInteriorRig(def: InteriorDef): InteriorRig {
   // Cloisons basses : ne cachent jamais la caméra, pas de fondu
   def.boxes.filter((b) => b.kind === 'partition').forEach((b) => g.add(box(b.hx * 2, b.h, b.hz * 2, mats.div, b.x, b.h / 2, b.z)));
 
-  const animate = FURNITURE_BUILDERS[def.id]?.(g, def) || undefined;
+  const built = customFurniture
+    ? customFurniture(g, def)
+    : def.id in FURNITURE_BUILDERS
+      ? FURNITURE_BUILDERS[def.id as PublicInteriorId](g, def)
+      : undefined;
+  const animate = built || undefined;
 
-  // Linteau et enseigne « SORTIE » au-dessus de la porte
-  const doorTop = 2.5;
-  g.add(box(def.doorWidth + 0.5, def.wallH - doorTop, 0.34, mats.s, 0, doorTop + (def.wallH - doorTop) / 2, def.halfD));
-  const sortie = sign('SORTIE', '#14532d', '#ffffff', 1.9, 0.5, 0.9);
-  sortie.rotation.y = Math.PI;
-  sortie.position.set(0, doorTop - 0.3, def.halfD - 0.2);
-  g.add(sortie);
+  let ring: THREE.Mesh | undefined;
+  if (def.hasStreetExit !== false) {
+    // Linteau et enseigne « SORTIE » au-dessus de la porte
+    const doorTop = 2.5;
+    if (def.wallH > doorTop + 0.05) {
+      g.add(box(def.doorWidth + 0.5, def.wallH - doorTop, 0.34, mats.s, 0, doorTop + (def.wallH - doorTop) / 2, def.halfD));
+    }
+    const sortie = sign('SORTIE', '#14532d', '#ffffff', 1.9, 0.5, 0.9);
+    sortie.rotation.y = Math.PI;
+    sortie.position.set(0, Math.min(doorTop - 0.3, def.wallH - 0.3), def.halfD - 0.2);
+    g.add(sortie);
 
-  // Anneau « Sortir »
-  const ring = new THREE.Mesh(
-    new THREE.RingGeometry(1.0, 1.4, 28),
-    new THREE.MeshBasicMaterial({ color: 0xef4444, side: THREE.DoubleSide, transparent: true, opacity: 0.8 })
-  );
-  ring.rotation.x = -Math.PI / 2;
-  ring.position.set(def.exit.x, 0.14, def.exit.z);
-  g.add(ring);
+    // Anneau « Sortir »
+    ring = new THREE.Mesh(
+      new THREE.RingGeometry(1.0, 1.4, 28),
+      new THREE.MeshBasicMaterial({ color: 0xef4444, side: THREE.DoubleSide, transparent: true, opacity: 0.8 })
+    );
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.set(def.exit.x, 0.14, def.exit.z);
+    g.add(ring);
+  }
 
   // Anneaux des éventuelles zones d'action internes
   const actionRings: THREE.Mesh[] = [];
