@@ -23,6 +23,7 @@ import {
   type HouseSpec,
 } from './houseShared';
 import { HOUSE_GROUP_A } from './houseGroupA';
+import { HOUSE_GROUP_B } from './houseGroupB';
 
 export {
   HOUSE_FLOOR_ORIGINS,
@@ -855,6 +856,7 @@ export const HOUSE_SPECS: Record<string, HouseSpec | null> = {
   poignon: POIGNON_HOUSE,
   golden_boy: GOLDEN_BOY_HOUSE,
   ...HOUSE_GROUP_A,
+  ...HOUSE_GROUP_B,
 };
 
 /**
