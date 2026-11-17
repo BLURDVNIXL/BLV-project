@@ -8,8 +8,6 @@ import {
   CheckCircle,
   Wifi,
   Battery,
-  Target,
-  Trophy,
 } from 'lucide-react';
 import {
   PlayerState,
@@ -20,7 +18,6 @@ import {
   IVORIAN_FOODS,
   SAPE_OUTFITS,
 } from '../core/destinies';
-import { getMissionForDestiny } from '../core/missions';
 import {
   buildGpsDestinations,
   searchGpsDestinations,
@@ -47,7 +44,7 @@ interface BabiOSPhoneProps {
   onClearPoliceNetwork: (isBlackMarket: boolean) => void;
 }
 
-type PhoneApp = 'home' | 'missions' | 'eats' | 'gps' | 'sape';
+type PhoneApp = 'home' | 'eats' | 'gps' | 'sape';
 
 export const BabiOSPhone: React.FC<BabiOSPhoneProps> = ({
   playerState,
@@ -78,9 +75,6 @@ export const BabiOSPhone: React.FC<BabiOSPhoneProps> = ({
   const gpsShown = useMemo(() => searchGpsDestinations(gpsList, gpsQuery), [gpsList, gpsQuery]);
 
   const s = t(playerState.language);
-  const mission = getMissionForDestiny(playerState.destiny.id);
-  const activeStepIdx = Math.min(playerState.activeMission.stepIndex, mission.steps.length - 1);
-  const activeStep = mission.steps[activeStepIdx];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 md:p-6 bg-ink-900/60">
@@ -116,117 +110,11 @@ export const BabiOSPhone: React.FC<BabiOSPhoneProps> = ({
                 </div>
               </div>
 
-              {/* ACTIVE MISSION SUMMARY TILE */}
-              <button
-                type="button"
-                onClick={() => setActiveApp('missions')}
-                className="rounded-2xl bg-sun-300/35 hover:bg-sun-300/35 p-3 border border-sun-400/40 text-left cursor-pointer"
-              >
-                <div className="flex items-center justify-between text-xs font-bold uppercase text-sun-600">
-                  <span className="flex items-center gap-1">
-                    <Target className="h-3.5 w-3.5" />
-                    Mission : {mission.title}
-                  </span>
-                  <span>{playerState.activeMission.completed ? '🏆 3/3' : `${activeStepIdx + 1}/${mission.steps.length}`}</span>
-                </div>
-                <div className="text-xs font-bold text-ink-800 mt-0.5 truncate">
-                  {playerState.activeMission.completed ? `Trophée : ${mission.finalTrophy}` : activeStep.title}
-                </div>
-              </button>
-
-              <div className="grid grid-cols-4 gap-2.5">
-                <AppIcon label="Missions" icon={<Target className="h-6 w-6" />} tone="sun" onClick={() => setActiveApp('missions')} />
+              <div className="grid grid-cols-3 gap-2.5">
                 <AppIcon label={s.eats} icon={<UtensilsCrossed className="h-6 w-6" />} tone="sun" onClick={() => setActiveApp('eats')} />
                 <AppIcon label={s.gps} icon={<MapPin className="h-6 w-6" />} tone="lagoon" onClick={() => setActiveApp('gps')} />
                 <AppIcon label={s.sape} icon={<Shirt className="h-6 w-6" />} tone="plum" onClick={() => setActiveApp('sape')} />
               </div>
-
-              {/* RECENT LOGS */}
-              <div className="rounded-2xl bg-cream-100 p-3 border border-cream-200">
-                <div className="text-xs font-bold uppercase text-ink-600 mb-2">Journal d’Abidjan</div>
-                <div className="flex flex-col gap-1.5 max-h-28 overflow-y-auto no-scrollbar">
-                  {playerState.logs.slice(0, 6).map((log) => (
-                    <div key={log.id} className="text-xs leading-snug border-b border-cream-200 pb-1 last:border-0">
-                      <span className="tabular-nums font-bold text-sun-600 mr-1.5">{log.time}</span>
-                      <span className="text-ink-600">{log.message}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* MISSIONS DU DESTIN (3 ÉTAPES) */}
-          {activeApp === 'missions' && (
-            <div className="flex flex-col gap-3">
-              <AppHeader title="Missions du Destin" onBack={() => setActiveApp('home')} />
-              <div className="rounded-xl bg-cream-100 p-3.5 border border-sun-400/40 space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-sun-600 uppercase">{mission.title}</span>
-                  {playerState.activeMission.completed && <Trophy className="h-4 w-4 text-sun-600" />}
-                </div>
-                <p className="text-xs text-ink-600 leading-snug">{mission.summary}</p>
-                <div className="text-xs font-bold text-palm-600">
-                  Trophée final : {mission.finalTrophy}
-                </div>
-              </div>
-
-              {mission.steps.map((step, index) => {
-                const done = playerState.activeMission.completed || index < playerState.activeMission.stepIndex;
-                const current = !playerState.activeMission.completed && index === playerState.activeMission.stepIndex;
-                return (
-                  <div
-                    key={step.id}
-                    className={`rounded-xl p-3 border ${
-                      done
-                        ? 'bg-palm-400/15 border-palm-400/50'
-                        : current
-                        ? 'bg-sun-300/35 border-sun-400/60'
-                        : 'bg-cream-100 border-cream-200 opacity-75'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-xs font-bold text-ink-800">
-                        {index + 1}. {step.title}
-                      </span>
-                      <span
-                        className={`rounded px-1.5 py-0.5 text-xs font-bold uppercase ${
-                          done
-                            ? 'bg-palm-400/20 text-palm-600'
-                            : current
-                            ? 'bg-sun-300/40 text-sun-600'
-                            : 'bg-cream-200 text-ink-600'
-                        }`}
-                      >
-                        {done ? 'Validée' : current ? 'En cours' : 'À venir'}
-                      </span>
-                    </div>
-                    <p className="text-xs text-ink-600 mt-1">{step.description}</p>
-                    <div className="flex items-center justify-between text-xs mt-1.5 tabular-nums">
-                      <span className="text-lagoon-600">📍 {step.targetDistrictName}</span>
-                      <span className="text-palm-600">
-                        +{step.rewardCash.toLocaleString('fr-FR')} F · +{step.rewardStar}★
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-
-              {playerState.destiny.realMadridSuperstar && (
-                <button type="button" onClick={onDonateYannis} className="rounded-xl bg-lagoon-600 hover:bg-lagoon-600 py-2 text-xs font-bold cursor-pointer">
-                  ⚽ Financer Académie Yannis Diomandé (500 000 F)
-                </button>
-              )}
-              {playerState.destiny.secretAddressBook && playerState.policeWanted > 0 && (
-                <button type="button" onClick={() => onClearPoliceNetwork(false)} className="rounded-xl bg-sun-600 py-2 text-xs font-bold text-white cursor-pointer">
-                  📞 Carnet d’Adresses : Annuler ★ Police
-                </button>
-              )}
-              {playerState.destiny.blackMarketAccess && (
-                <button type="button" onClick={() => onClearPoliceNetwork(true)} className="rounded-xl bg-palm-600 py-2 text-xs font-bold cursor-pointer">
-                  🕶️ Marché Noir : Fausses Plaques (35 000 F)
-                </button>
-              )}
             </div>
           )}
 
