@@ -94,6 +94,22 @@ export default function App() {
   const [isMuted, setIsMuted] = useState(false);
   const [forceGamepad, setForceGamepad] = useState(false);
   const touchControls = useTouchControls(forceGamepad);
+  const [showHud, setShowHud] = useState<boolean>(() => {
+    try {
+      const raw = localStorage.getItem('blv_show_hud');
+      return raw === null ? true : raw !== '0';
+    } catch {
+      return true;
+    }
+  });
+  const [pcControlsMode, setPcControlsMode] = useState<'wasd' | 'arrows'>(() => {
+    try {
+      const raw = localStorage.getItem('blv_pc_controls_mode');
+      return raw === 'arrows' ? 'arrows' : 'wasd';
+    } catch {
+      return 'wasd';
+    }
+  });
   const [cameraSensitivity, setCameraSensitivity] = useState<number>(() => {
     try {
       const v = Number(localStorage.getItem('blv_camera_sensitivity'));
@@ -110,6 +126,21 @@ export default function App() {
       /* stockage indisponible : le réglage vaut pour la session */
     }
   };
+  useEffect(() => {
+    try {
+      localStorage.setItem('blv_show_hud', showHud ? '1' : '0');
+    } catch {
+      // ignore
+    }
+  }, [showHud]);
+  useEffect(() => {
+    try {
+      localStorage.setItem('blv_pc_controls_mode', pcControlsMode);
+    } catch {
+      // ignore
+    }
+    sceneRef.current?.setControlsMode(pcControlsMode);
+  }, [pcControlsMode]);
 
   // Multiplayer
   const [remotePlayers, setRemotePlayers] = useState<RemotePlayer[]>([]);
@@ -735,6 +766,10 @@ export default function App() {
           onStartNewGame={() => setScreenState('roulette')}
           onContinueGame={handleContinueSavedGame}
           language={playerState.language}
+          showHud={showHud}
+          onToggleHud={() => setShowHud((v) => !v)}
+          pcControlsMode={pcControlsMode}
+          onChangeControlsMode={(mode) => setPcControlsMode(mode)}
         />
       )}
 
@@ -761,7 +796,7 @@ export default function App() {
       />
 
       {/* STAGE 3: ACTIVE ABIDJAN HUD & OPTIONAL MOBILE GAMEPAD */}
-      {screenState === 'playing' && (
+      {screenState === 'playing' && showHud && (
         <>
           <GameHUD
             playerState={playerState}
@@ -886,6 +921,10 @@ export default function App() {
           onToggleSound={handleToggleSound}
           isMuted={isMuted}
           forceGamepad={forceGamepad}
+          showHud={showHud}
+          onToggleHud={() => setShowHud((v) => !v)}
+          pcControlsMode={pcControlsMode}
+          onChangeControlsMode={(mode) => setPcControlsMode(mode)}
           cameraSensitivity={cameraSensitivity}
           onCameraSensitivityChange={handleCameraSensitivityChange}
           onToggleForceGamepad={() => setForceGamepad((v) => !v)}

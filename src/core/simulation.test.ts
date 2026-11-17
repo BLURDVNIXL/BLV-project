@@ -172,7 +172,7 @@ test('Golden Boy enforces English lock & 30-day Platinum timer expires cleanly',
   assert.equal(state.goldenBoyDaysLeft, 0);
 });
 
-test('Babi Cribs upgrade strictly deducts FCFA and rejects broke players', () => {
+test('Home upgrade strictly deducts FCFA and rejects broke players', () => {
   const poor = createInitialPlayerState(rollDestiny('debrouillard_abobo'));
   const rejected = buyCribUpgrade(poor, 'tv4k');
   assert.equal(rejected.cribUpgrades.tv4k, false);

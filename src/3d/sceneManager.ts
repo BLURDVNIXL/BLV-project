@@ -346,6 +346,7 @@ export class AbidjanSceneManager {
 
   // Input state
   private keys = new Set<string>();
+  private controlsMode: 'wasd' | 'arrows' = 'wasd';
   private joystickVec = { x: 0, y: 0 };
   private isSoftwareGl = false;
   /** Compteur de performance (`?blvdebug=1`) : absent sans le paramètre. */
@@ -2043,6 +2044,10 @@ export class AbidjanSceneManager {
     this.camSensitivity = THREE.MathUtils.clamp(value, 0.3, 3);
   }
 
+  public setControlsMode(mode: 'wasd' | 'arrows') {
+    this.controlsMode = mode;
+  }
+
   private onPointerDown = (e: PointerEvent) => {
     if (this.cameraMode !== 'follow' || this.camPointerId !== null) return;
     this.camPointerId = e.pointerId;
@@ -2232,10 +2237,18 @@ export class AbidjanSceneManager {
     // 7. Player Input -> C++/WASM PhysicsCore
     let fwd = 0;
     let turnRight = 0;
-    if (this.keys.has('KeyW') || this.keys.has('ArrowUp')) fwd += 1;
-    if (this.keys.has('KeyS') || this.keys.has('ArrowDown')) fwd -= 1;
-    if (this.keys.has('KeyD') || this.keys.has('ArrowRight')) turnRight += 1;
-    if (this.keys.has('KeyA') || this.keys.has('ArrowLeft')) turnRight -= 1;
+    const useArrows = this.controlsMode === 'arrows';
+    if (useArrows) {
+      if (this.keys.has('ArrowUp')) fwd += 1;
+      if (this.keys.has('ArrowDown')) fwd -= 1;
+      if (this.keys.has('ArrowRight')) turnRight += 1;
+      if (this.keys.has('ArrowLeft')) turnRight -= 1;
+    } else {
+      if (this.keys.has('KeyW')) fwd += 1;
+      if (this.keys.has('KeyS')) fwd -= 1;
+      if (this.keys.has('KeyD')) turnRight += 1;
+      if (this.keys.has('KeyA')) turnRight -= 1;
+    }
 
     if (Math.abs(this.joystickVec.y) > 0.08) fwd = -this.joystickVec.y;
     if (Math.abs(this.joystickVec.x) > 0.08) turnRight = this.joystickVec.x;

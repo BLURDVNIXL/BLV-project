@@ -540,7 +540,7 @@ export function buyCribUpgrade(
       },
       isDepressed: false,
     },
-    `🛋️ Babi Cribs : « ${item.name} » acheté et installé chez toi (-${item.cost.toLocaleString('fr-FR')} F) !`,
+    `🛋️ Foyer : « ${item.name} » acheté et installé chez toi (-${item.cost.toLocaleString('fr-FR')} F) !`,
     'success'
   );
   return evaluateMissionProgress(updated);

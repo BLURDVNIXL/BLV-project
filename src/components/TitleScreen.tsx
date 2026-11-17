@@ -11,6 +11,10 @@ interface TitleScreenProps {
   onStartNewGame: () => void;
   onContinueGame: () => void;
   language?: 'fr' | 'en';
+  showHud: boolean;
+  onToggleHud: () => void;
+  pcControlsMode: 'wasd' | 'arrows';
+  onChangeControlsMode: (mode: 'wasd' | 'arrows') => void;
 }
 
 type Action = 'new' | 'continue' | 'settings' | 'trophies' | 'last';
@@ -29,6 +33,7 @@ const TEXT = {
     installed: 'App installée : ouvre-la depuis ton écran d’accueil',
     menuLabel: 'Menu principal',
     screenLabel: 'Menu du jeu sur l’écran de la borne arcade', saveLabel: 'Sélection des sauvegardes',
+    hudVisible: 'HUD visible', hudHidden: 'HUD masqué', controls: 'Contrôles', wasd: 'WASD', arrows: 'Flèches', settingsTitle: 'Réglages',
   },
   en: {
     new: 'New game', continue: 'Continue', settings: 'Settings', trophies: 'Trophies', quit: 'Quit', install: 'Install',
@@ -40,6 +45,7 @@ const TEXT = {
     installed: 'App installed: open it from your home screen',
     menuLabel: 'Main menu',
     screenLabel: 'Game menu on the arcade cabinet screen', saveLabel: 'Save selection',
+    hudVisible: 'HUD visible', hudHidden: 'HUD hidden', controls: 'Controls', wasd: 'WASD', arrows: 'Arrow keys', settingsTitle: 'Settings',
   },
 } as const;
 
@@ -63,7 +69,7 @@ function isStandaloneApp(): boolean {
  * Dernière entrée : sur mobile dans le navigateur « Installer » (installe la PWA) ; dans la PWA installée, et sur ordinateur, « Quitter ».
  * Clavier : ↑/↓ choisir, Entrée valider, Échap ou Retour arrière revenir.
  */
-export function TitleScreen({ hasSavedGame, savedDestinyName, onStartNewGame, onContinueGame, language = 'fr' }: TitleScreenProps) {
+export function TitleScreen({ hasSavedGame, savedDestinyName, onStartNewGame, onContinueGame, language = 'fr', showHud, onToggleHud, pcControlsMode, onChangeControlsMode }: TitleScreenProps) {
   const t = TEXT[language];
   const isMobile = useMediaQuery('(pointer: coarse)');
   const { canInstall, promptInstall } = usePWAInstall();
@@ -175,13 +181,30 @@ export function TitleScreen({ hasSavedGame, savedDestinyName, onStartNewGame, on
                 ))}
               </nav>
             )}
-            {panel !== 'menu' && (
+            {panel === 'settings' && (
               <div className="ts-sub">
-                {panel === 'trophies' && <h2>{t.trophies}</h2>}
+                <h2>{t.settingsTitle}</h2>
+                <div className="ts-setting-row">
+                  <span>{showHud ? t.hudVisible : t.hudHidden}</span>
+                  <button type="button" onClick={onToggleHud}>{showHud ? 'ON' : 'OFF'}</button>
+                </div>
+                <div className="ts-setting-row">
+                  <span>{t.controls}</span>
+                  <button type="button" onClick={() => onChangeControlsMode(pcControlsMode === 'wasd' ? 'arrows' : 'wasd')}>
+                    {pcControlsMode === 'wasd' ? t.wasd : t.arrows}
+                  </button>
+                </div>
+                <button type="button" onClick={() => setPanel('menu')}>{t.back}</button>
+              </div>
+            )}
+            {panel === 'trophies' && (
+              <div className="ts-sub">
+                <h2>{t.trophies}</h2>
                 <p className="ts-soon">{t.soon}</p>
                 <button type="button" onClick={() => setPanel('menu')}>{t.back}</button>
               </div>
             )}
+            {panel === 'menu' && null}
           </div>
         </section>
         <div className={`ts-toast${toastVisible ? ' show' : ''}`} role="status" aria-live="polite">{toast}</div>

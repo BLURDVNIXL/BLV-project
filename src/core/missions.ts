@@ -208,7 +208,7 @@ export const DESTINY_MISSIONS: Record<string, DestinyMission> = {
       },
       {
         title: 'Confort à la Maison',
-        description: 'Achète au moins 1 équipement Babi Cribs pour ton foyer.',
+        description: 'Achète au moins 1 équipement pour ton foyer.',
         targetDistrictId: 'cocody',
         targetDistrictName: 'Cocody · Deux-Plateaux',
         conditionKind: 'crib_upgrade',
@@ -251,7 +251,7 @@ export const DESTINY_MISSIONS: Record<string, DestinyMission> = {
       },
       {
         title: 'Sonorisation Royale',
-        description: 'Installe 1 amélioration Babi Cribs (ex: Baffles Géantes).',
+        description: 'Installe 1 amélioration pour ton foyer (ex: Baffles Géantes).',
         targetDistrictId: 'yopougon',
         targetDistrictName: 'Yopougon',
         conditionKind: 'crib_upgrade',
@@ -412,7 +412,7 @@ export const DESTINY_MISSIONS: Record<string, DestinyMission> = {
     steps: mkSteps('late_cocody', [
       {
         title: 'Équipement Villa',
-        description: 'Installe 1 équipement Babi Cribs.',
+        description: 'Installe 1 équipement pour ta villa.',
         targetDistrictId: 'riviera',
         targetDistrictName: 'Cocody · Riviera',
         conditionKind: 'crib_upgrade',
@@ -520,7 +520,7 @@ export const DESTINY_MISSIONS: Record<string, DestinyMission> = {
       },
       {
         title: 'Penthouse Upgrade',
-        description: 'Install 1 luxury Babi Cribs upgrade.',
+        description: 'Install 1 luxury home upgrade.',
         targetDistrictId: 'riviera',
         targetDistrictName: 'Cocody · Riviera',
         conditionKind: 'crib_upgrade',

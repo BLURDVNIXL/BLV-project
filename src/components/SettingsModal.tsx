@@ -13,6 +13,10 @@ interface SettingsModalProps {
   onToggleLanguage: () => void;
   forceGamepad: boolean;
   onToggleForceGamepad: () => void;
+  showHud: boolean;
+  onToggleHud: () => void;
+  pcControlsMode: 'wasd' | 'arrows';
+  onChangeControlsMode: (mode: 'wasd' | 'arrows') => void;
   /** 0,5 à 2,5 ; 1 = normal. */
   cameraSensitivity: number;
   onCameraSensitivityChange: (value: number) => void;
@@ -27,6 +31,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onToggleLanguage,
   forceGamepad,
   onToggleForceGamepad,
+  showHud,
+  onToggleHud,
+  pcControlsMode,
+  onChangeControlsMode,
   cameraSensitivity,
   onCameraSensitivityChange,
   onResetGame,
@@ -64,6 +72,23 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         </JellyButton>
       </SettingRow>
 
+      <SettingRow title="Affichage du HUD" description="Masque ou réaffiche les infos du jeu en cours">
+        <JellyButton tone={showHud ? 'palm' : 'cream'} size="sm" onClick={onToggleHud} icon={<Settings className="h-4 w-4" />}>
+          {showHud ? 'Visible' : 'Masqué'}
+        </JellyButton>
+      </SettingRow>
+
+      <SettingRow title="Contrôles PC" description="WASD ou flèches pour le déplacement">
+        <JellyButton
+          tone={pcControlsMode === 'wasd' ? 'lagoon' : 'sun'}
+          size="sm"
+          onClick={() => onChangeControlsMode(pcControlsMode === 'wasd' ? 'arrows' : 'wasd')}
+          icon={<Gamepad2 className="h-4 w-4" />}
+        >
+          {pcControlsMode === 'wasd' ? 'WASD' : 'Flèches'}
+        </JellyButton>
+      </SettingRow>
+
       <SettingRow title="Manette tactile" description="Automatique sur mobile en paysage · optionnelle sur ordinateur">
         <JellyButton tone={forceGamepad ? 'sun' : 'cream'} size="sm" onClick={onToggleForceGamepad} icon={<Gamepad2 className="h-4 w-4" />}>
           {forceGamepad ? 'Toujours visible' : 'Auto mobile'}
@@ -92,7 +117,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
       <SettingRow
         title="Langue / Language"
-        description={playerState.destiny.englishLock ? '🔒 Locked in Jet-Set English (Golden Boy)' : 'Français (Babi) / English'}
+        description={playerState.destiny.englishLock ? '🔒 Locked in Jet-Set English (Golden Boy)' : 'Français / English'}
       >
         <JellyButton tone="lagoon" size="sm" onClick={handleLanguageClick} icon={<Globe className="h-4 w-4" />}>
           {playerState.language === 'fr' ? 'Français' : 'English'}
