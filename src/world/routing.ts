@@ -2,7 +2,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  *
- * BLV — Babi Life Vibes
+ * BLV
  * Itinéraire : plus court chemin sur le réseau des grands axes et des ponts (Dijkstra).
  * Le départ et l'arrivée se raccordent au point le plus proche d'un axe (tronçon « dernier mètre » en ligne droite).
  */

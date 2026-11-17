@@ -2,7 +2,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  *
- * BLV — Babi Life Vibes
+ * BLV
  * Gestionnaire de piétons ivoiriens (PNJ d'ambiance) PHYSIQUES en extérieur.
  *  - Un pool de personnages du moteur (`createCharacter`), créés une fois et réutilisés
  *    (`setCharacterEnabled`, `placeCharacter`) : les PNJ sont bloqués par les murs, les étals, les autres

@@ -154,7 +154,7 @@ export function TitleScreen({ hasSavedGame, savedDestinyName, onStartNewGame, on
 
   return (
     <div className={`ts-root${quick ? ' ts-quick' : ''}`}>
-      <h1 className="sr-only">BLV — Babi Life Vibes</h1>
+      <h1 className="sr-only">BLV</h1>
       <main className="ts-stage">
         <div className="ts-vignette" />
         <section className="ts-crt" aria-label={t.screenLabel}>

@@ -2,7 +2,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  *
- * BLV — Babi Life Vibes
+ * BLV
  * Décor statique de la carte actuelle (version compacte 260 × 220 m) enregistré dans le moteur physique.
  * Les coordonnées reprennent exactement celles de ThreeCanvas.tsx. La génération de la grande carte
  * d'Abidjan (étape suivante) remplacera ce module par un chargeur de zones.

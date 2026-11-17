@@ -2,7 +2,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  *
- * BLV — Babi Life Vibes
+ * BLV
  * Intérieurs « à part » : salles fermées posées dans une zone libre au sud de la carte (hors de la ville),
  * où l'on est téléporté par une porte. Module PUR (données + géométrie, sans Three.js ni physique) → testable.
  * Axes locaux = axes monde (+x est, +z sud). La porte est sur le mur sud (z = +halfD), on entre en regardant le nord.

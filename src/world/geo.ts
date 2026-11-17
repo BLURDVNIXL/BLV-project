@@ -2,7 +2,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  *
- * BLV — Babi Life Vibes
+ * BLV
  * Projection géographique : coordonnées GPS réelles (WGS84) -> mètres du monde de jeu.
  * Convention du monde : x vers l'est, z vers le sud (le nord est donc -z), y vers le haut.
  */

@@ -1,4 +1,4 @@
-// BLV — Babi Life Vibes
+// BLV
 // Cœur physique 2.5D (C++ freestanding -> WebAssembly), Règle 2 du CONTEXT.md.
 // Conventions : y vers le haut ; cap h : avant = (sin h, cos h), droite = (-cos h, sin h).
 // Boîtes : axes e1 = (c, s), e2 = (-s, c). Pour un véhicule : c = sin h, s = cos h.

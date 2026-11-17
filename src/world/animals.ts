@@ -2,7 +2,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  *
- * BLV — Babi Life Vibes
+ * BLV
  * Animaux de la ville : espèces, paramètres, zones et budget. Module PUR (données + choix pondéré), sans Three ni physique.
  * Poules, chèvres, chiens et chats sont des personnages du moteur (petit rayon) ; les pigeons sont purement visuels
  * (au sol puis un envol court, sans collision). Aucune violence : un animal touché par un véhicule est seulement renversé.

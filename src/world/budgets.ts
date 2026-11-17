@@ -2,7 +2,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  *
- * BLV — Babi Life Vibes
+ * BLV
  * BUDGETS DE LA VIE DES RUES : un seul endroit pour régler le nombre de PNJ et d'animaux, les distances d'affichage,
  * la fréquence d'IA et les capacités des `InstancedMesh`. Module PUR (nombres seulement).
  *

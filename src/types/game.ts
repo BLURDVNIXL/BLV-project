@@ -1,5 +1,5 @@
 /**
- * BLV — BABI LIFE VIBES (V3)
+ * BLV
  * Types et interfaces complets de la simulation de vie urbaine à Abidjan
  */
 

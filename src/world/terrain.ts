@@ -2,7 +2,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  *
- * BLV — Babi Life Vibes
+ * BLV
  * Sol de la ville : couleur de chaque point (eau, tablier, rue, plage, parcelles) cuite en texture par chunk.
  * Fonctions pures (testables sous Node, aucune dépendance au DOM ni à Three.js).
  */

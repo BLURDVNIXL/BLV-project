@@ -2,7 +2,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  *
- * BLV — Babi Life Vibes
+ * BLV
  * Modèles 3D des intérieurs et des hôpitaux. Les murs s'effacent côté caméra avec le même WallFader que la maison du joueur.
  * Les murs sont de simples boîtes ; seul un nombre fixe de matériaux est utilisé (pas de coût par bâtiment).
  */

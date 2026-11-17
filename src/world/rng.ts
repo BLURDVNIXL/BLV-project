@@ -2,7 +2,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  *
- * BLV — Babi Life Vibes
+ * BLV
  * Aléa déterministe : la ville est la même chez tous les joueurs (aucun téléchargement de carte).
  */
 

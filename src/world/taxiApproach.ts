@@ -2,7 +2,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  *
- * BLV — Babi Life Vibes
+ * BLV 
  * Arrivée du taxi (étape B2) : trajet d'un woro-woro qui apparaît à environ 120 m sur le grand axe
  * le plus proche du joueur, roule sur le réseau des grands axes et s'arrête au point de route le plus proche de lui.
  * Module pur (sans Three.js), testé dans taxiApproach.test.ts.

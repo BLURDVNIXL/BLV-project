@@ -2,7 +2,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  *
- * BLV — Babi Life Vibes
+ * BLV
  * Fournisseur de chunks : la génération (bâtiments + sol, 10–25 ms par chunk) tourne dans un Web Worker
  * pour ne jamais saccader l'affichage. Repli synchrone si les Workers sont indisponibles.
  */

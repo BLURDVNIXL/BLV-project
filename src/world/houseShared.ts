@@ -2,7 +2,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  *
- * BLV — Babi Life Vibes
+ * BLV
  * Types et constantes partagés des plans de maisons par destin (module PUR).
  */
 import type { CribUpgrades } from '../types/game';

@@ -14,9 +14,9 @@ export default defineConfig(() => {
         includeAssets: ['favicon-32.png', 'favicon-48.png', 'apple-touch-icon.png', 'blv_core.wasm'],
         manifest: {
           id: '/',
-          name: 'BLV — Babi Life Vibes | Simulation 3D Abidjan',
-          short_name: 'BLV Babi',
-          description: 'La simulation de vie urbaine 3D multijoueur à Abidjan (GTA Roleplay × The Sims).',
+          name: 'BLV ',
+          short_name: 'BLV ',
+          description: "BLV — Un univers interactif inspiré d'Abidjan.",
           theme_color: '#2a1040',
           background_color: '#2a1040',
           display: 'standalone',

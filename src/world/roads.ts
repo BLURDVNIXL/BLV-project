@@ -2,7 +2,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  *
- * BLV — Babi Life Vibes
+ * BLV 
  * Réseau routier d'Abidjan : grands axes (graphe entre communes et ponts) + grille locale par commune.
  * Les largeurs sont en mètres de jeu RÉELS (les rues ne sont pas compressées par l'échelle 1:4).
  */

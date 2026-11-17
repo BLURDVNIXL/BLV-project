@@ -2,7 +2,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  *
- * BLV — Babi Life Vibes
+ * BLV
  * Géographie d'Abidjan (version SCHÉMATIQUE à raffiner).
  *
  * Fiabilité des données (champ `confidence`) :

@@ -2,7 +2,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  *
- * BLV — Babi Life Vibes
+ * BLV
  * IA minimale du trafic : suit une voie est-ouest (poursuite de point), garde ses distances.
  */
 

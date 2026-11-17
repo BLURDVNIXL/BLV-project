@@ -2,7 +2,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  *
- * BLV — Babi Life Vibes
+ * BLV
  * Garde-fou des collisions d'intérieur et des façades de maisons :
  * tout meuble ou volume visible au sol doit avoir un solide (`prop` / `building`),
  * et aucun solide ne doit gêner l'entrée, la sortie, les escaliers, le perron ou une zone d'action.

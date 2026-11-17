@@ -2,7 +2,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  *
- * BLV — Babi Life Vibes
+ * BLV
  * Chargement par zones : charge autour du joueur les chunks proches (maillages + solides physiques),
  * décharge les lointains. La physique reçoit ses solides à l'arrivée du chunk et les retire au départ.
  */

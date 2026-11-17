@@ -2,7 +2,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  *
- * BLV — Babi Life Vibes
+ * BLV
  * Pack de composants PNJ : tire une apparence en mélangeant des composants au hasard.
  * Module PUR et déterministe (ni Three.js, ni rendu, ni `Math.random()`) : même graine + même contexte = même PNJ.
  * Le rendu instancié (étape 4) lira ces champs : un id de composant et une couleur par pièce.

@@ -2,7 +2,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  *
- * BLV — Babi Life Vibes
+ * BLV
  * Destinations de l'application GPS de BabiOS : « Chez moi », lieux, repères de la ville et communes.
  *
  * Module pur (aucune dépendance au rendu 3D) : il est donc testable seul.

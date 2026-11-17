@@ -2,7 +2,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  *
- * BLV — Babi Life Vibes
+ * BLV
  * Constructeurs 3D procéduraux des façades extérieures fermées et du mobilier intérieur des maisons.
  * Chaque meuble fusionne ses sous-boîtes (couleurs de sommet, 1 seul appel de dessin par meuble)
  * et reste exactement inscrit dans son emprise déclarée `(x, z, hx, hz, h)`.

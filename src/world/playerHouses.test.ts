@@ -2,7 +2,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  *
- * BLV — Babi Life Vibes
+ * BLV
  * Tests complets des maisons de destins (phase pilote : poignon + golden_boy) :
  * 1) Complétude des données, origines physiques, unicité du mobilier, 4 points d'action.
  * 2) Atteignabilité BFS sur grille fine 0,1 m (rayon 0,35 m), avec et sans améliorations.

@@ -2,7 +2,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  *
- * BLV — Babi Life Vibes
+ * BLV
  * Générateur déterministe de la ville d'Abidjan, par chunks de 64 m.
  * Mêmes entrées => mêmes bâtiments chez tous les joueurs (indispensable au multijoueur).
  *

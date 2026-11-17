@@ -2,7 +2,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  *
- * BLV — Babi Life Vibes
+ * BLV
  * Transforme un chunk généré en objets Three.js stylisés façon GTA San Andreas Abidjan :
  * sol texturé, façades vitrées/vérandas, toitures en pente/terrasses différenciées par commune,
  * auvents de maquis/boutiques et palmiers/manguiers fusionnés (~4 appels de dessin par chunk).

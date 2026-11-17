@@ -2,7 +2,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  *
- * BLV — Babi Life Vibes
+ * BLV 
  * Animaux de la ville (poules, chèvres, chiens errants, chats, pigeons). Données dans `src/world/animals.ts`.
  *  - Modèles en boîtes fusionnées : UN `InstancedMesh` par espèce (5 appels de dessin au total), couleur de robe et
  *    échelle par instance, aucune ombre portée, aucune allocation par image.

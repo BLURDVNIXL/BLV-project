@@ -2,7 +2,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  *
- * BLV — Babi Life Vibes
+ * BLV
  * Plans de maisons du Groupe B (`deux_pieces` & `trois_pieces` — 7 destins) :
  * `mecanicien_treichville` (2 étages), `brouteur`, `djassaman`,
  * `classe_moyenne_angre`, `gerant_maquis` (2 étages), `eleve_inphb`,

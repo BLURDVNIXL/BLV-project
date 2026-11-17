@@ -2,7 +2,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  *
- * BLV — Babi Life Vibes
+ * BLV
  * Les 4 hôpitaux d'Abidjan : emplacements APPROXIMATIFS (à ajuster sur la carte), emprise du bâtiment
  * et identifiants de repères. Ils deviennent de vrais bâtiments « héros » (voir city.ts → SPECIALS)
  * avec une porte d'entrée qui mène à l'intérieur partagé (voir interiors.ts).

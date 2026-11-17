@@ -2,7 +2,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  *
- * BLV — Babi Life Vibes
+ * BLV 
  * Trafic sur les grands axes d'Abidjan : des voitures apparaissent autour du joueur, suivent l'axe
  * (conduite à droite), gardent leurs distances et disparaissent quand elles s'éloignent.
  * Le trafic est local à chaque client (décor vivant) : il n'est pas synchronisé en multijoueur.

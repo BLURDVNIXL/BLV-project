@@ -2,7 +2,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  *
- * BLV — Babi Life Vibes
+ * BLV
  * Phase 3 — Groupe A : maisons `squat`, `chambre_cour` et `studio` (7 destins).
  * `poignon` (squat pilote) est défini dans `playerHouses.ts`.
  */

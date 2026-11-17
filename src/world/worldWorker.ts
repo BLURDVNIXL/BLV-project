@@ -2,7 +2,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  *
- * BLV — Babi Life Vibes
+ * BLV
  * Web Worker : génère les chunks de la ville (données + texture de sol) hors du fil principal.
  */
 

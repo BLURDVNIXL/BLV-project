@@ -2,7 +2,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  *
- * BLV — Babi Life Vibes
+ * BLV
  * Plans des maisons du joueur par id de destin : façades extérieures fermées (emprise ≤ 13 × 11 m),
  * étages intérieurs hors carte, mobilier et objets signature déclarés UNE SEULE FOIS pour produire
  * à la fois le rendu 3D et les solides physiques. Module PUR (zéro Three.js, zéro PhysicsCore).

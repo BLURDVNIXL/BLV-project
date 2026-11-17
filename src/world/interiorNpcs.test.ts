@@ -2,7 +2,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  *
- * BLV — Babi Life Vibes
+ * BLV 
  * PNJ d'intérieur : chaque position de départ et chaque point de trajet est dans la salle, libre de solides,
  * hors de l'arrivée du joueur et de la sortie ; les trajets sont libres de bout en bout.
  */

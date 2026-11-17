@@ -2,7 +2,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  *
- * BLV — Babi Life Vibes
+ * BLV
  * Passerelle TypeScript vers le cœur physique WebAssembly (physics/physics.cpp).
  * Aucune donnée personnelle : le module ne manipule que des positions et des vitesses.
  */

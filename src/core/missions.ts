@@ -1,5 +1,5 @@
 /**
- * BLV — BABI LIFE VIBES (V3)
+ * BLV
  * Missions Principales Scénarisées (3 étapes par destin) pour les 19 Destins d'Abidjan
  */
 

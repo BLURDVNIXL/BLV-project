@@ -1,8 +1,4 @@
-/**
- * BLV — Babi Life Vibes V3 Full-Stack Server
- * Express + WebSocket + SQLite (node:sqlite) Server-Authoritative Backend.
- * Serves Vite dev middleware (dev) or dist/ (prod) on Port 3000.
- */
+
 
 import http from 'node:http';
 import path from 'node:path';
@@ -971,7 +967,7 @@ async function startServer() {
   });
 
   server.listen(PORT, '0.0.0.0', () => {
-    console.log(`🇨🇮 BLV Babi Life Vibes V3 Server listening on http://0.0.0.0:${PORT}`);
+    console.log(`🇨🇮 BLV Server listening on http://0.0.0.0:${PORT}`);
   });
 }
 

@@ -2,7 +2,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  *
- * BLV — Babi Life Vibes
+ * BLV
  * Rendu instancié des PNJ : une « foule » de capacité fixe dessinée avec une trentaine de `InstancedMesh`
  * PARTAGÉS (un par partie du corps, un par coiffure, un par accessoire), quel que soit le nombre de PNJ.
  * Couleurs par instance (`setColorAt`), taille / corpulence / âge dans la matrice d'instance, marche calculée

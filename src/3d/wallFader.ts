@@ -2,7 +2,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  *
- * BLV — Babi Life Vibes
+ * BLV
  * Fondu des murs et du toit d'un bâtiment fermé, pour que la caméra ne soit jamais masquée par la maison.
  * Quelques matériaux par bâtiment, aucun coût par image tant que rien ne change.
  */

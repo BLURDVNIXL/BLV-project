@@ -2,7 +2,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  *
- * BLV — Babi Life Vibes
+ * BL
  * Plans de maisons du Groupe C (`bunker` & `villa_ambassade` — 3 derniers destins) :
  * `cadre_plateau` (`bunker`), `late_cocody` (`villa_ambassade`, 2 étages),
  * `yannis_diomande` (`villa_ambassade`, 2 étages). Module PUR.
