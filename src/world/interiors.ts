@@ -8,6 +8,8 @@
  * Axes locaux = axes monde (+x est, +z sud). La porte est sur le mur sud (z = +halfD), on entre en regardant le nord.
  */
 
+import type { NpcRole } from './npcAppearance';
+
 export type InteriorId =
   | 'hopital'
   | 'maquis'
@@ -49,6 +51,28 @@ export interface InteriorActionSpot {
   color: number;
 }
 
+
+/**
+ * Comportement d'un PNJ d'intérieur : `still` (immobile, simple solide), `talk` (immobile, face à un voisin,
+ * gestes plus marqués), `walk` (personnage du pool qui parcourt `points` en boucle, avec détection de blocage).
+ */
+export type InteriorNpcBehavior =
+  | { kind: 'still' }
+  | { kind: 'talk' }
+  | { kind: 'walk'; points: ReadonlyArray<{ x: number; z: number }> };
+
+export interface InteriorNpcDef {
+  role: NpcRole;
+  /** Graine d'apparence (fixe : la même salle montre toujours les mêmes personnes). */
+  seed: number;
+  /** Position de départ (local) ; pour `walk`, c'est le premier point. */
+  x: number;
+  z: number;
+  /** Cap de départ : le PNJ regarde (sin rotY, cos rotY). */
+  rotY: number;
+  behavior: InteriorNpcBehavior;
+}
+
 export interface InteriorDef {
   id: InteriorId;
   label: string;
@@ -70,9 +94,21 @@ export interface InteriorDef {
   bed?: { x: number; z: number; rotY: number };
   /** Zones d'action internes éventuelles (manger, travailler…). */
   actions?: InteriorActionSpot[];
+  /** PNJ de la salle (optionnel) : apparences, positions et comportements déclarés ici, animés par `NpcSystem`. */
+  npcs?: InteriorNpcDef[];
 }
 
 const W = 0.15; // demi-épaisseur des murs
+
+const still = (role: NpcRole, seed: number, x: number, z: number, rotY: number): InteriorNpcDef =>
+  ({ role, seed, x, z, rotY, behavior: { kind: 'still' } });
+const talk = (role: NpcRole, seed: number, x: number, z: number, rotY: number): InteriorNpcDef =>
+  ({ role, seed, x, z, rotY, behavior: { kind: 'talk' } });
+const walk = (role: NpcRole, seed: number, pts: ReadonlyArray<readonly [number, number]>): InteriorNpcDef => {
+  const points = pts.map(([x, z]) => ({ x, z }));
+  return { role, seed, x: points[0].x, z: points[0].z, rotY: 0, behavior: { kind: 'walk', points } };
+};
+const H = Math.PI / 2;
 
 /** Hôpital : accueil au sud (près de la porte), chambres au nord derrière une cloison, passage à l'est. */
 export const HOSPITAL_INTERIOR: InteriorDef = {
@@ -112,7 +148,17 @@ export const HOSPITAL_INTERIOR: InteriorDef = {
   ],
   entry: { x: 0, z: 2.2, rotY: Math.PI },
   exit: { x: 0, z: 4.3, radius: 1.6 },
-  bed: { x: 6.2, z: -2.5, rotY: Math.PI }
+  bed: { x: 6.2, z: -2.5, rotY: Math.PI },
+  npcs: [
+    still('soignant', 1101, -4, 1.6, 0),
+    walk('soignant', 1102, [[4.2, -2.2], [4.2, 1.4], [7.8, 1.4], [7.8, -2.2]]),
+    still('soignant', 1103, -4.5, -2.2, -2.3),
+    walk('passant', 1104, [[-2, 0.6], [1.5, 0.6]]),
+    still('passant', 1105, 6.8, 2, 0),
+    still('passant', 1106, -0.5, -2.8, 0),
+    talk('passant', 1107, -8, 0.4, H),
+    talk('passant', 1108, -7.1, 0.4, -H),
+  ],
 };
 
 /** Maquis Le Temple : salle chaleureuse avec bar au nord, tables conviviales, coin DJ et zone d'action repas. */
@@ -167,6 +213,17 @@ export const MAQUIS_INTERIOR: InteriorDef = {
       type: 'eat',
       color: 0xf97316,
     },
+  ],
+  npcs: [
+    still('serveur_maquis', 2101, 0, -5.4, 0),
+    walk('serveur_maquis', 2102, [[-3, 0.6], [3, 0.6]]),
+    still('client', 2103, -3.7, 2.4, -H),
+    still('client', 2104, -5.5, 0.7, 0),
+    still('client', 2105, 3.7, 2.4, H),
+    still('client', 2106, 5.5, 0.7, 0),
+    talk('client', 2107, 7.6, -0.6, -H),
+    talk('client', 2108, 6.4, -0.6, H),
+    walk('client', 2109, [[-7.8, -0.2], [-7.8, 3.8]]),
   ],
 };
 
@@ -230,6 +287,24 @@ export const MARCHE_INTERIOR: InteriorDef = {
       color: 0x10b981,
     },
   ],
+  npcs: [
+    // Vendeurs derrière leur étal (côté mur), patron derrière le comptoir nord
+    still('vendeur', 3101, -11, 3, H),
+    still('vendeur', 3102, -11, -1.4, H),
+    still('vendeur', 3103, -11, -5.6, H),
+    still('vendeur', 3104, 11, 3, -H),
+    still('vendeur', 3105, 11, -1.4, -H),
+    still('vendeur', 3106, 11, -5.6, -H),
+    still('vendeur', 3107, 0, -7.8, 0),
+    // Clients qui flânent dans les allées libres
+    walk('client', 3108, [[-3, -3.2], [-3, 4.5]]),
+    walk('client', 3109, [[3, 4.5], [3, -3.2]]),
+    walk('client', 3110, [[-6.1, -4.2], [-6.1, 3.6]]),
+    walk('client', 3111, [[6.1, 3.6], [6.1, -4.2]]),
+    walk('client', 3112, [[-1.5, 1.5], [1.5, 1.5]]),
+    talk('client', 3113, -1.8, 3, H),
+    talk('client', 3114, -0.8, 3, -H),
+  ],
 };
 
 /** Mairie du Plateau : hall d'apparat solennel visitable (guichet état civil, bancs d'attente et tribune). */
@@ -275,6 +350,16 @@ export const MAIRIE_INTERIOR: InteriorDef = {
   ],
   entry: { x: 0, z: 3.2, rotY: Math.PI },
   exit: { x: 0, z: 5.7, radius: 1.6 },
+  npcs: [
+    still('agent_mairie', 4101, -2, -6.4, 0),
+    still('agent_mairie', 4102, 2, -6.4, 0),
+    walk('agent_mairie', 4103, [[-2.5, -3], [2.5, -3]]),
+    still('client', 4104, 0, -2.8, Math.PI),
+    still('client', 4105, 0.4, -1.2, Math.PI),
+    walk('client', 4106, [[-8, 0.2], [8, 0.2]]),
+    talk('client', 4107, -6.8, -3.6, H),
+    talk('client', 4108, -5.8, -3.6, -H),
+  ],
 };
 
 /** Lycée Classique (Cocody) : grande salle d'étude classique, pupitres bois et bureau magistral. */
@@ -321,6 +406,16 @@ export const LYCEE_CAIMAN_INTERIOR: InteriorDef = {
   ],
   entry: { x: 0, z: 3.4, rotY: Math.PI },
   exit: { x: 0, z: 5.7, radius: 1.6 },
+  npcs: [
+    walk('enseignant', 5101, [[-1.2, -2.6], [1.2, -2.6]]),
+    still('eleve', 5102, -2.5, -0.2, -H),
+    still('eleve', 5103, 2.5, -0.2, H),
+    still('eleve', 5104, -2.5, 1.8, -H),
+    still('eleve', 5105, 2.5, 1.8, H),
+    talk('eleve', 5106, -7.8, -1, H),
+    talk('eleve', 5107, -6.9, -1, -H),
+    walk('eleve', 5108, [[7.8, -3], [7.8, 2.5]]),
+  ],
 };
 
 /** Lycée Sainte-Marie (Cocody) : amphithéâtre littéraire, grandes tables de séminaire et bibliothèque. */
@@ -367,6 +462,16 @@ export const LYCEE_ALYSMA_INTERIOR: InteriorDef = {
   ],
   entry: { x: 0, z: 3.4, rotY: Math.PI },
   exit: { x: 0, z: 5.7, radius: 1.6 },
+  npcs: [
+    walk('enseignant', 6101, [[-1.2, -2.8], [1.2, -2.8]]),
+    still('eleve', 6102, -2.8, -0.4, -H),
+    still('eleve', 6103, 2.8, -0.4, H),
+    still('eleve', 6104, -2.8, -2.6, -H),
+    still('eleve', 6105, 2.8, -2.6, H),
+    talk('eleve', 6106, -8, -1.2, H),
+    talk('eleve', 6107, -7.1, -1.2, -H),
+    walk('eleve', 6108, [[8, -2.5], [8, 0.6]]),
+  ],
 };
 
 /** Lycée d'Excellence de Bassam : campus sciences & numérique, écrans bleus et îlots de labo. */
@@ -410,6 +515,16 @@ export const LYCEE_ALEX_INTERIOR: InteriorDef = {
   ],
   entry: { x: 0, z: 4.0, rotY: Math.PI },
   exit: { x: 0, z: 6.6, radius: 1.6 },
+  npcs: [
+    walk('enseignant', 7101, [[-1.5, -3.4], [1.5, -3.4]]),
+    still('eleve', 7102, -2.5, -2, -H),
+    still('eleve', 7103, 2.5, -2, H),
+    still('eleve', 7104, -2.5, 1, -H),
+    still('eleve', 7105, 2.5, 1, H),
+    talk('eleve', 7106, -9.5, 0.6, H),
+    talk('eleve', 7107, -8.6, 0.6, -H),
+    walk('eleve', 7108, [[9, -3.8], [9, 2]]),
+  ],
 };
 
 export const INTERIORS: Record<InteriorId, InteriorDef> = {

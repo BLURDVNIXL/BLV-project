@@ -10,7 +10,9 @@
  *  - Les PNJ marchent avec `characterInput` et on lit `readCharacter` pour poser leur instance
  *    (rendu instancié, `npcInstances.ts`). Aucun trajet précalculé.
  *  - Les vendeurs du marché, immobiles, sont de simples cercles statiques (`addCircle`, `PROP`).
- *  - Dans un intérieur (`setIndoor(true)`), tout est désactivé ; la ville est replacée à la sortie.
+ *  - Dans un intérieur (`setIndoor(true)`), les PNJ de la rue sont désactivés ; ceux de la salle (déclarés dans
+ *    `InteriorDef.npcs`) prennent leur place : marcheurs = personnages du pool, immobiles = cercles solides.
+ *    À la sortie la salle est vidée et la rue est replacée.
  * Les PNJ sont locaux : rien n'est transmis au serveur. Aucune conséquence de jeu (police, score).
  */
 
@@ -19,7 +21,8 @@ import { createCharacterState, SolidFlag, type CharacterState, type PhysicsCore 
 import { districtAt, isWater } from '../world/abidjanGeography';
 import { SPECIAL_FOOTPRINTS } from '../world/city';
 import { localToWorld } from '../world/exteriorSolids';
-import { generateAppearance } from '../world/npcAppearance';
+import { interiorToWorld, type InteriorDef } from '../world/interiors';
+import { generateAppearance, type NpcRole } from '../world/npcAppearance';
 import { bridgeAt } from '../world/roads';
 import { NpcCrowd, type NpcHandle } from './npcInstances';
 
@@ -76,6 +79,9 @@ interface MobileNpc {
   sideT: number;
   sideX: number;
   sideZ: number;
+  /** Trajet en boucle (coordonnées MONDE) d'un PNJ d'intérieur ; `null` en extérieur. */
+  route: Array<{ x: number; z: number }> | null;
+  routeIdx: number;
 }
 
 interface MarketVendorNpc {
@@ -87,6 +93,18 @@ interface MarketVendorNpc {
   phase: number;
   /** Cap MONDE de base. */
   baseCap: number;
+  solidId: number;
+}
+
+/** PNJ immobile d'une salle (`still` / `talk`) : instance + cercle solide, aucun personnage du pool. */
+interface InteriorStaticNpc {
+  handle: NpcHandle;
+  wx: number;
+  wz: number;
+  baseCap: number;
+  phase: number;
+  /** Amplitude du balancement du cap (gestes de la discussion). */
+  sway: number;
   solidId: number;
 }
 
@@ -102,6 +120,9 @@ export class NpcSystem {
   private readonly crowd = new NpcCrowd(CROWD_CAPACITY);
   private readonly mobile: MobileNpc[] = [];
   private readonly vendors: MarketVendorNpc[] = [];
+  /** PNJ de la salle occupée : marcheurs (pris dans le pool) et immobiles (cercles solides). */
+  private readonly interiorMobile: MobileNpc[] = [];
+  private readonly interiorStatics: InteriorStaticNpc[] = [];
   private core: PhysicsCore | null = null;
   private marketActive = false;
   private indoor = false;
@@ -172,6 +193,7 @@ export class NpcSystem {
         waitT: 0, yieldT: 0, aiAccum: 0,
         stuckT: 0, anchorX: 0, anchorZ: 0,
         sideT: 0, sideX: 0, sideZ: 0,
+        route: null, routeIdx: 0,
       });
     }
   }
@@ -285,7 +307,7 @@ export class NpcSystem {
   // ───────────── Pool ─────────────
 
   /** Réserve la place dans la foule et active le personnage du moteur. `false` si impossible (rien n'est modifié). */
-  private activate(n: MobileNpc, seed: number, role: 'passant' | 'client', districtId: string, x: number, z: number): boolean {
+  private activate(n: MobileNpc, seed: number, role: NpcRole, districtId: string | undefined, x: number, z: number): boolean {
     const core = this.core;
     if (!core || n.charId < 0) return false;
     const appearance = generateAppearance(seed, { role, districtId });
@@ -338,6 +360,13 @@ export class NpcSystem {
   }
 
   private pickGoal(n: MobileNpc, x: number, z: number): void {
+    if (n.route) {
+      // Intérieur : point suivant du trajet en boucle
+      n.routeIdx = (n.routeIdx + 1) % n.route.length;
+      n.targetX = n.route[n.routeIdx].x;
+      n.targetZ = n.route[n.routeIdx].z;
+      return;
+    }
     if (n.shopper) {
       const g = this.pickOpenMarketPoint();
       n.targetX = g.x;
@@ -363,11 +392,85 @@ export class NpcSystem {
   setIndoor(indoor: boolean): void {
     if (indoor === this.indoor) return;
     this.indoor = indoor;
-    if (!indoor) return;
+    if (!indoor) {
+      this.clearInterior(); // PNJ de la salle retirés ; ceux de la rue réapparaissent via `update`
+      return;
+    }
     for (const n of this.mobile) if (n.handle) this.deactivate(n);
     this.leaveMarket();
     this.marketActive = false;
     this.crowd.commit(this.time); // plus aucun PNJ réservé : les instances disparaissent de l'écran
+  }
+
+  // ───────────── PNJ d'intérieur ─────────────
+
+  /**
+   * Peuple la salle `def` (appelé APRÈS `setIndoor(true)` et l'enregistrement des solides de la salle).
+   * Marcheurs : personnages du pool, trajet en boucle en coordonnées MONDE ; immobiles : cercles solides.
+   * Si le pool est plus petit que prévu (appareil sans GPU), les marcheurs en trop sont omis.
+   */
+  enterInterior(def: InteriorDef): void {
+    this.clearInterior();
+    const core = this.core;
+    const list = def.npcs;
+    if (!core || !list) return;
+    const free = this.mobile.filter((n) => n.charId >= 0 && !n.handle);
+    let used = 0;
+    for (const d of list) {
+      const w = interiorToWorld(def, d.x, d.z);
+      if (d.behavior.kind === 'walk') {
+        const n = free[used];
+        if (!n) continue;
+        n.route = d.behavior.points.map((p) => interiorToWorld(def, p.x, p.z));
+        n.routeIdx = 0;
+        if (!this.activate(n, d.seed, d.role, undefined, w.x, w.z)) {
+          n.route = null;
+          continue;
+        }
+        used++;
+        this.interiorMobile.push(n);
+      } else {
+        const handle = this.crowd.acquire(generateAppearance(d.seed, { role: d.role }));
+        if (!handle) continue;
+        const phase = d.seed * 0.37;
+        this.crowd.setPose(handle, w.x, w.z, d.rotY, phase, 0.08);
+        this.interiorStatics.push({
+          handle, wx: w.x, wz: w.z, baseCap: d.rotY, phase,
+          sway: d.behavior.kind === 'talk' ? 0.3 : 0.15,
+          solidId: core.addCircle(w.x, w.z, VENDOR_RADIUS, VENDOR_HEIGHT, SolidFlag.PROP),
+        });
+      }
+    }
+  }
+
+  /** Retire les PNJ de la salle : instances rendues, personnages remis au repos dans le pool, solides supprimés. */
+  private clearInterior(): void {
+    for (const n of this.interiorMobile) {
+      this.deactivate(n);
+      n.route = null;
+      n.routeIdx = 0;
+    }
+    this.interiorMobile.length = 0;
+    for (const s of this.interiorStatics) {
+      this.crowd.release(s.handle);
+      if (this.core && s.solidId >= 0) this.core.removeSolid(s.solidId);
+    }
+    this.interiorStatics.length = 0;
+  }
+
+  /** Animation des PNJ de la salle occupée (la ville reste figée) ; le joueur est en coordonnées MONDE. */
+  updateIndoor(dt: number, playerX: number, playerZ: number): void {
+    if (!this.indoor) return;
+    this.time += dt;
+    this.frame++;
+    for (let k = 0; k < this.interiorMobile.length; k++) {
+      this.stepMobile(this.interiorMobile[k], k, dt, playerX, playerZ, false, false);
+    }
+    for (const s of this.interiorStatics) {
+      s.phase += dt * 2.2;
+      this.crowd.setPose(s.handle, s.wx, s.wz, s.baseCap + Math.sin(s.phase * 0.7) * s.sway, s.phase, 0.08);
+    }
+    this.crowd.commit(this.time);
   }
 
   // ───────────── Marché : vendeurs statiques ─────────────
@@ -436,7 +539,7 @@ export class NpcSystem {
     const gx0 = tx - st.x;
     const gz0 = tz - st.z;
     const d = Math.hypot(gx0, gz0);
-    if (!fan && d < 1.2) {
+    if (!fan && d < (n.route ? 0.4 : 1.2)) {
       n.state = 'wait';
       n.waitT = 0.4 + this.nextRand() * 2.2;
       core.characterInput(id, 0, 0, 0);
@@ -504,6 +607,46 @@ export class NpcSystem {
     }
   }
 
+  /** Un pas de simulation d'un PNJ mobile actif : lecture du moteur, IA, pose instanciée. `outdoor` : garde-fou eau. */
+  private stepMobile(n: MobileNpc, i: number, dt: number, playerX: number, playerZ: number, isSuperstar: boolean, outdoor: boolean): void {
+    const core = this.core;
+    const handle = n.handle;
+    if (!core || !handle) return;
+    core.readCharacter(n.charId, this.scratch);
+    const st = this.scratch;
+    n.x = st.x;
+    n.z = st.z;
+
+    // Garde-fou eau : un PNJ poussé dans l'eau est retiré et réapparaît ailleurs
+    if (outdoor && (this.frame + i) % 15 === 0 && this.isWaterAt(st.x, st.z)) {
+      this.deactivate(n);
+      return;
+    }
+
+    const dist = Math.hypot(st.x - playerX, st.z - playerZ);
+    n.aiAccum += dt;
+    const knocked = st.stun > 0;
+    if (knocked) {
+      // Renversé par un véhicule : aucun `characterInput` tant que `stun > 0`
+      n.state = 'down';
+    } else {
+      if (n.state === 'down') {
+        n.state = 'walk';
+        this.resetStuck(n, st);
+      }
+      if (dist < FAR_AI_DIST || ((this.frame + i) & 1) === 0) {
+        this.think(n, st, n.aiAccum, playerX, playerZ, isSuperstar);
+        n.aiAccum = 0;
+      }
+    }
+
+    const moving = !knocked && st.speed > 0.35;
+    if (moving) n.phase += st.speed * dt * 2.8;
+    if (!knocked && st.speed > 0.4) n.cap += angleDiff(st.heading, n.cap) * Math.min(1, 12 * dt);
+    n.tilt += ((knocked ? FALL_TILT : 0) - n.tilt) * Math.min(1, 8 * dt);
+    this.crowd.setPose(handle, st.x, st.z, n.cap, n.phase, moving ? 0.85 : 0, n.tilt);
+  }
+
   // ───────────── Mise à jour ─────────────
 
   /**
@@ -511,7 +654,7 @@ export class NpcSystem {
    * `worldReady` : les solides des chunks autour du joueur sont chargés (sinon on n'apparaît pas encore).
    */
   update(dt: number, playerX: number, playerZ: number, isSuperstar: boolean, camYaw = 0, worldReady = true): void {
-    if (this.indoor) return;
+    if (this.indoor) return; // dans une salle, c'est `updateIndoor` qui anime
     this.time += dt;
     this.frame++;
     const core = this.core;
@@ -557,41 +700,7 @@ export class NpcSystem {
           }
           continue;
         }
-        const handle = n.handle;
-
-        core.readCharacter(n.charId, this.scratch);
-        const st = this.scratch;
-        n.x = st.x;
-        n.z = st.z;
-
-        // Garde-fou eau : un PNJ poussé dans l'eau est retiré et réapparaît ailleurs
-        if ((this.frame + i) % 15 === 0 && this.isWaterAt(st.x, st.z)) {
-          this.deactivate(n);
-          continue;
-        }
-
-        const dist = Math.hypot(st.x - playerX, st.z - playerZ);
-        n.aiAccum += dt;
-        const knocked = st.stun > 0;
-        if (knocked) {
-          // Renversé par un véhicule : aucun `characterInput` tant que `stun > 0`
-          n.state = 'down';
-        } else {
-          if (n.state === 'down') {
-            n.state = 'walk';
-            this.resetStuck(n, st);
-          }
-          if (dist < FAR_AI_DIST || ((this.frame + i) & 1) === 0) {
-            this.think(n, st, n.aiAccum, playerX, playerZ, isSuperstar);
-            n.aiAccum = 0;
-          }
-        }
-
-        const moving = !knocked && st.speed > 0.35;
-        if (moving) n.phase += st.speed * dt * 2.8;
-        if (!knocked && st.speed > 0.4) n.cap += angleDiff(st.heading, n.cap) * Math.min(1, 12 * dt);
-        n.tilt += ((knocked ? FALL_TILT : 0) - n.tilt) * Math.min(1, 8 * dt);
-        this.crowd.setPose(handle, st.x, st.z, n.cap, n.phase, moving ? 0.85 : 0, n.tilt);
+        this.stepMobile(n, i, dt, playerX, playerZ, isSuperstar, true);
       }
     }
 
@@ -603,6 +712,7 @@ export class NpcSystem {
     if (core) {
       for (const n of this.mobile) if (n.charId >= 0) core.destroyCharacter(n.charId);
       for (const v of this.vendors) if (v.solidId >= 0) core.removeSolid(v.solidId);
+      for (const st of this.interiorStatics) if (st.solidId >= 0) core.removeSolid(st.solidId);
     }
     this.core = null;
     this.crowd.dispose();
