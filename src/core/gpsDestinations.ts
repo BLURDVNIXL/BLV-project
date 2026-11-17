@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  *
  * BLV
- * Destinations de l'application GPS de BabiOS : « Chez moi », lieux, repères de la ville et communes.
+ * Destinations de l'application GPS de MyOS : « Chez moi », lieux, repères de la ville et communes.
  *
  * Module pur (aucune dépendance au rendu 3D) : il est donc testable seul.
  * Il décide aussi OÙ le joueur est déposé : devant l'entrée pour un lieu, au perron pour « Chez moi »,

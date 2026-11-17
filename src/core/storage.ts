@@ -4,11 +4,11 @@
 
 import { PlayerState } from '../types/game';
 
-const DB_NAME = 'blv_babi_life_vibes_db';
+const DB_NAME = 'blv_db';
 const DB_VERSION = 1;
 const STORE_NAME = 'saves';
 const SAVE_KEY = 'current_player_state';
-const LOCAL_FALLBACK_KEY = 'blv_babi_life_vibes_save_v3';
+const LOCAL_FALLBACK_KEY = 'blv_save_v3';
 
 function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -76,7 +76,7 @@ export async function loadGameStateAsync(): Promise<PlayerState | null> {
 
 /**
  * RGPD Article 17: Right to Erasure / Purge Intégrale Scopée
- * Deletes only BLV-scoped keys (blv_*), IndexedDB blv_babi_life_vibes_db,
+ * Deletes only BLV-scoped keys (blv_*), IndexedDB blv_db,
  * BLV caches, and the authenticated server session.
  */
 export async function purgeAllDataRGPD(playerId?: string, sessionToken?: string): Promise<void> {

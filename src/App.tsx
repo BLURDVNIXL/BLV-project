@@ -50,7 +50,7 @@ import { JellyButton } from './components/ui/Jelly';
 import { GameHUD } from './components/GameHUD';
 import { ConsoleGamepad } from './components/ConsoleGamepad';
 import { useTouchControls } from './components/useTouchControls';
-import { BabiOSPhone } from './components/BabiOSPhone';
+import { MyOSPhone } from './components/MyOSPhone';
 import { NewLifeScreen } from './components/NewLifeScreen';
 import { loadProfile, saveProfile } from './core/profile';
 import { FullMapModal } from './components/FullMapModal';
@@ -829,9 +829,9 @@ export default function App() {
         </div>
       )}
 
-      {/* BABIOS SMARTPHONE */}
+      {/* MYOS SMARTPHONE */}
       {isPhoneOpen && screenState === 'playing' && (
-        <BabiOSPhone
+        <MyOSPhone
           playerState={playerState}
           getGpsSource={getGpsSource}
           onClose={() => setIsPhoneOpen(false)}

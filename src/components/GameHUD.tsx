@@ -323,7 +323,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({
             <div className="panel panel-solid absolute right-0 top-[3.75rem] z-30 grid short:top-[2.75rem] w-[21rem] max-w-[calc(100vw-1.5rem)] grid-cols-2 gap-1.5 p-2">
               <MenuItem icon={<Pause className="h-4 w-4 fill-current" />} label={s.pauseLabel} onClick={runAndClose(onPauseClick)} />
               <MenuItem icon={<SlidersHorizontal className="h-4 w-4" />} label={s.settingsLabel} onClick={runAndClose(onOpenSettings)} />
-              <MenuItem icon={<Smartphone className="h-4 w-4" />} label="BabiOS" onClick={runAndClose(onOpenPhone)} />
+              <MenuItem icon={<Smartphone className="h-4 w-4" />} label="MyOS" onClick={runAndClose(onOpenPhone)} />
               <MenuItem icon={<Dices className="h-4 w-4" />} label={s.destinyBtn} onClick={runAndClose(onOpenRoulette)} />
             </div>
           )}

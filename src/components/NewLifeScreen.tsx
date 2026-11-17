@@ -332,7 +332,7 @@ export function NewLifeScreen({ initialProfile, canClose, onClose, onEnter }: Ne
             </button>
           )}
           <section className="nl-left">
-            <p className="nl-eyebrow">Babi Life Vibes</p>
+            <p className="nl-eyebrow">BLV</p>
             <form className="nl-form" onSubmit={handleSubmit}>
               <input
                 className="nl-input"

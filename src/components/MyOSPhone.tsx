@@ -27,7 +27,7 @@ import {
 import { FARE_BETWEEN_COMMUNES, FARE_SAME_COMMUNE, fastTravelFare, formatGameTime } from '../core/simulation';
 import { t } from '../core/i18n';
 
-interface BabiOSPhoneProps {
+interface MyOSPhoneProps {
   playerState: PlayerState;
   /** Lieux et perron de la maison, relevés à l'ouverture de l'application GPS. */
   getGpsSource: () => GpsSource;
@@ -39,7 +39,7 @@ interface BabiOSPhoneProps {
 
 type PhoneApp = 'home' | 'eats' | 'gps' | 'sape';
 
-export const BabiOSPhone: React.FC<BabiOSPhoneProps> = ({
+export const MyOSPhone: React.FC<MyOSPhoneProps> = ({
   playerState,
   getGpsSource,
   onClose,
@@ -70,14 +70,14 @@ export const BabiOSPhone: React.FC<BabiOSPhoneProps> = ({
         {/* TOP STATUS BAR */}
         <div className="relative shrink-0 flex items-center justify-between px-5 pt-2.5 pb-2 text-xs font-bold text-ink-600 bg-cream-100">
           <span className="tabular-nums">{formatGameTime(playerState.gameTimeHours)}</span>
-          <span className="text-xs tabular-nums text-sun-600">BabiOS 26</span>
+          <span className="text-xs tabular-nums text-sun-600">MyOS 26</span>
           <div className="flex items-center gap-1.5">
             <Wifi className="h-3 w-3 text-palm-600" />
             <Battery className="h-3.5 w-3.5 text-ink-600" />
             <button
               type="button"
               onClick={onClose}
-              aria-label="Fermer BabiOS"
+              aria-label="Fermer MyOS"
               className="ml-1 flex h-6 w-6 items-center justify-center rounded-full bg-cream-200 hover:bg-cream-200 text-ink-800 cursor-pointer"
             >
               <X className="h-3.5 w-3.5" />
@@ -243,7 +243,7 @@ export const BabiOSPhone: React.FC<BabiOSPhoneProps> = ({
             type="button"
             onClick={() => setActiveApp('home')}
             className="h-1.5 w-28 rounded-full bg-cream-200 hover:bg-white cursor-pointer"
-            aria-label="Accueil BabiOS"
+            aria-label="Accueil MyOS"
           />
         </div>
       </div>

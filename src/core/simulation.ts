@@ -15,7 +15,7 @@ import {
 import { getMissionForDestiny, isMissionStepSatisfied } from './missions';
 import { getWasmCore } from '../wasm/wasmBridge';
 
-const STORAGE_KEY = 'blv_babi_life_vibes_save_v3';
+const STORAGE_KEY = 'blv_save_v3';
 
 export function hasUnlimitedPlatinum(state: PlayerState): boolean {
   return Boolean(state.destiny.englishLock && state.goldenBoyDaysLeft > 0);

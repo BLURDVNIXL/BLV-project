@@ -131,7 +131,7 @@ test('setHomeAccessMode updates access mode and logs change', () => {
 
 test('purgeLocalData only deletes blv_* keys and preserves third-party keys', () => {
   const store = new Map<string, string>([
-    ['blv_babi_life_vibes_save_v3', '{}'],
+    ['blv_save_v3', '{}'],
     ['blv_extra', '1'],
     ['other_app_setting', 'keep'],
   ]);
@@ -145,12 +145,12 @@ test('purgeLocalData only deletes blv_* keys and preserves third-party keys', ()
     },
     clear: () => store.clear(),
     // Note: Object.keys iterates own enumerable properties in browser; mirror keys for Node mock
-    blv_babi_life_vibes_save_v3: '{}',
+    blv_save_v3: '{}',
     blv_extra: '1',
     other_app_setting: 'keep',
   };
   purgeLocalData();
-  assert.equal(store.has('blv_babi_life_vibes_save_v3'), false);
+  assert.equal(store.has('blv_save_v3'), false);
   assert.equal(store.has('blv_extra'), false);
   assert.equal(store.get('other_app_setting'), 'keep');
   delete (globalThis as unknown as Record<string, unknown>).localStorage;

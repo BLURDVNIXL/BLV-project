@@ -122,11 +122,11 @@ export const ConsoleGamepad: React.FC<ConsoleGamepadProps> = ({
         </div>
       </div>
 
-      {/* DROITE : cinq boutons, une icône par action. Rangée du haut : BabiOS + Utiliser ; rangée du bas : Saut · Interagir (centre) · Sprint/Frein */}
+      {/* DROITE : cinq boutons, une icône par action. Rangée du haut : MyOS + Utiliser ; rangée du bas : Saut · Interagir (centre) · Sprint/Frein */}
       <div className="pointer-events-auto absolute bottom-5 right-5 touch-none short:bottom-3 short:right-3">
         <div className="flex flex-col items-center gap-3 short:gap-2">
           <div className="flex items-center gap-3 short:gap-2">
-            <RoundIconButton tone="sun" size="md" label="Ouvrir BabiOS" onClick={onPhone} className="short:h-9 short:w-9">
+            <RoundIconButton tone="sun" size="md" label="Ouvrir MyOS" onClick={onPhone} className="short:h-9 short:w-9">
               <Smartphone className="h-5 w-5" />
             </RoundIconButton>
             {/* Sac et objets : pas encore actif. */}
