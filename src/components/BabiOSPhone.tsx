@@ -11,7 +11,6 @@ import {
 } from 'lucide-react';
 import {
   PlayerState,
-  RemotePlayer,
   SapeOutfitId,
 } from '../types/game';
 import {
@@ -27,37 +26,26 @@ import {
 } from '../core/gpsDestinations';
 import { FARE_BETWEEN_COMMUNES, FARE_SAME_COMMUNE, fastTravelFare, formatGameTime } from '../core/simulation';
 import { t } from '../core/i18n';
-import { ServerTontineSnapshot } from '../network/multiplayerClient';
 
 interface BabiOSPhoneProps {
   playerState: PlayerState;
-  remotePlayers: RemotePlayer[];
-  tontineSnapshot: ServerTontineSnapshot | null;
-  tontineError: string | null;
   /** Lieux et perron de la maison, relevés à l'ouverture de l'application GPS. */
   getGpsSource: () => GpsSource;
   onClose: () => void;
   onEatFood: (foodId: string) => void;
   onFastTravel: (x: number, z: number, districtName: string, districtId: string) => void;
   onBuyOrEquipOutfit: (outfit: SapeOutfitId) => void;
-  onDonateYannis: () => void;
-  onClearPoliceNetwork: (isBlackMarket: boolean) => void;
 }
 
 type PhoneApp = 'home' | 'eats' | 'gps' | 'sape';
 
 export const BabiOSPhone: React.FC<BabiOSPhoneProps> = ({
   playerState,
-  remotePlayers,
-  tontineSnapshot,
-  tontineError,
   getGpsSource,
   onClose,
   onEatFood,
   onFastTravel,
   onBuyOrEquipOutfit,
-  onDonateYannis,
-  onClearPoliceNetwork,
 }) => {
   const [activeApp, setActiveApp] = useState<PhoneApp>('home');
   // GPS : la liste est relevée à chaque ouverture de l'application (la maison peut avoir été posée entre-temps).

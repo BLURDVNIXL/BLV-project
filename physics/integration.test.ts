@@ -61,7 +61,7 @@ for (let t = 0; t < 6; t++) {
   const id = physics.createVehicle(gb ? VehiclePreset.GBAKA : VehiclePreset.WORO_WORO, -100 + t * 38, laneZ, dir > 0 ? Math.PI / 2 : -Math.PI / 2);
   traffic.push({ vehId: id, laneZ, dir: dir as 1 | -1, targetSpeed: 12 + (t % 3) * 3, stuckTimer: 0 });
 }
-let maxOff = 0; let minAvg = 1e9; let sumSpeed = 0; let samples = 0; let nan = 0;
+let maxOff = 0; let sumSpeed = 0; let samples = 0; let nan = 0;
 run(90, () => {
   updateTraffic(physics, traffic, 1 / 60);
   traffic.forEach((tc) => { physics.readVehicle(tc.vehId, v); if (!Number.isFinite(v.x + v.z + v.speed)) nan++; });

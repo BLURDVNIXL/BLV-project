@@ -3,7 +3,6 @@ import {
   PlayerState,
   FoodItem,
   SapeOutfitId,
-  FactionReputation,
   HomeAccessMode,
   PlayerProfile,
 } from '../types/game';

@@ -110,7 +110,7 @@ export class AvatarController {
   private original = new Map<THREE.MeshStandardMaterial, { map: THREE.Texture | null; color: number }>();
 
   constructor(
-    private readonly root: THREE.Object3D,
+    root: THREE.Object3D,
     clips: THREE.AnimationClip[]
   ) {
     this.mixer = new THREE.AnimationMixer(root);

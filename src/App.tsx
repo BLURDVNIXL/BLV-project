@@ -15,11 +15,9 @@ import {
 import {
   addLog,
   advanceGameTime,
-  buyCribUpgrade,
   buyOrEquipOutfit,
   clearPoliceViaNetwork,
   createInitialPlayerState,
-  depositToBank,
   donateYannisAcademy,
   eatFood,
   evaluateMissionProgress,
@@ -32,14 +30,11 @@ import {
   performLavageEtoile,
   performWorkShift,
   playLotoAkwaba,
-  repayDebt,
   rollDestiny,
   sleepAtHome,
   spendCash,
-  takeBankLoan,
   takeShower,
   useToilet,
-  withdrawFromBank,
 } from './core/simulation';
 import { DISTRICTS } from './world/abidjanGeography';
 import { loadGameStateAsync, loadGameStateSync, saveGameStateAsync } from './core/storage';
@@ -48,7 +43,6 @@ import { AbidjanSceneManager, CityHotspot, RadarSnapshot } from './3d/sceneManag
 import { soundEngine } from './audio/soundEngine';
 import {
   MultiplayerClient,
-  ServerTontineSnapshot,
   initServerSession,
   postEconomyAction,
 } from './network/multiplayerClient';
@@ -69,7 +63,7 @@ import { SettingsModal } from './components/SettingsModal';
 import { GameOverModal } from './components/GameOverModal';
 import { OrientationGuard } from './components/OrientationGuard';
 import { OfflineIndicator } from './components/PWAInstallPrompt';
-import { Play, RotateCcw, Home, ShieldCheck } from 'lucide-react';
+import { Play, RotateCcw, Home } from 'lucide-react';
 
 export default function App() {
   const isAutostart =
@@ -123,8 +117,6 @@ export default function App() {
   // Multiplayer
   const [remotePlayers, setRemotePlayers] = useState<RemotePlayer[]>([]);
   const [onlineCount, setOnlineCount] = useState(1);
-  const [tontineSnapshot, setTontineSnapshot] = useState<ServerTontineSnapshot | null>(null);
-  const [tontineError, setTontineError] = useState<string | null>(null);
 
   const canvasContainerRef = useRef<HTMLDivElement | null>(null);
   const sceneRef = useRef<AbidjanSceneManager | null>(null);
@@ -469,10 +461,7 @@ export default function App() {
           setOnlineCount(count);
           sceneRef.current?.syncRemotePlayers(players);
         },
-        onTontineUpdate: (snap) => {
-          setTontineError(null);
-          setTontineSnapshot(snap);
-        },
+        onTontineUpdate: (_snap) => {},
         onTontinePayout: (amt) => {
           soundEngine.playCashSound();
           setPlayerState((prev) =>
@@ -491,10 +480,7 @@ export default function App() {
           );
           showToast('🚨 Fuite Tontine : +3 ★ Police !');
         },
-        onTontineError: (msg) => {
-          setTontineError(msg);
-          showToast(`⚠️ ${msg}`);
-        },
+        onTontineError: (_msg) => {},
         onConnectionChange: () => {},
       });
       mpRef.current = client;
@@ -851,9 +837,6 @@ export default function App() {
       {isPhoneOpen && screenState === 'playing' && (
         <BabiOSPhone
           playerState={playerState}
-          remotePlayers={remotePlayers}
-          tontineSnapshot={tontineSnapshot}
-          tontineError={tontineError}
           getGpsSource={getGpsSource}
           onClose={() => setIsPhoneOpen(false)}
           onEatFood={(foodId) => {
@@ -894,15 +877,6 @@ export default function App() {
               return next;
             });
             syncEconomy('buy_outfit', { outfitId: outfit });
-          }}
-          onDonateYannis={() => {
-            soundEngine.playJingle();
-            setPlayerState((prev) => donateYannisAcademy(prev));
-            syncEconomy('yannis_academy');
-          }}
-          onClearPoliceNetwork={(isBlackMarket) => {
-            setPlayerState((prev) => clearPoliceViaNetwork(prev, isBlackMarket));
-            syncEconomy('clear_police', { isBlackMarket });
           }}
         />
       )}

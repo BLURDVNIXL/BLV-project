@@ -11,7 +11,6 @@ import { parseGender } from './src/core/profile';
 import {
   ALL_DESTINIES,
   IVORIAN_FOODS,
-  SAPE_OUTFITS,
 } from './src/core/destinies';
 import {
   advanceGameTime,

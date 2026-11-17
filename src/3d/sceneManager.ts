@@ -293,7 +293,6 @@ export class AbidjanSceneManager {
   private exteriorSolidDefs: ExteriorSolid[] = [];
   private exteriorColliderIds: number[] = [];
   private ownUpgrades: CribUpgrades = { splitClim: false, bafflesMaquis: false, tv4k: false, canapeCuir: false };
-  private ownHomeType: HomeType = 'studio';
 
   private staticHotspots: CityHotspot[] = [];
   private homeHotspots: CityHotspot[] = [];
@@ -363,7 +362,6 @@ export class AbidjanSceneManager {
 
   // Live simulation flags synced from React
   private weather: WeatherType = 'soleil';
-  private gameTimeHours = 10;
   private policeWanted = 0;
   private star = 50;
   private isSuperstar = false;
@@ -959,7 +957,6 @@ export class AbidjanSceneManager {
     preferredDistrict?: string,
     destinyId?: string
   ): HouseLot | null {
-    this.ownHomeType = homeType;
     this.isSuperstar = isSuperstar;
     this.mysticBaraka = mysticBaraka;
     this.applyPlayerOutfit(outfit);
@@ -1189,7 +1186,6 @@ export class AbidjanSceneManager {
 
   public updateWorldConditions(weather: WeatherType, gameTimeHours: number, policeWanted: number, star = 50) {
     this.weather = weather;
-    this.gameTimeHours = gameTimeHours;
     this.policeWanted = policeWanted;
     this.star = star;
 

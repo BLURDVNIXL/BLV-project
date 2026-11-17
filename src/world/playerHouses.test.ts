@@ -16,7 +16,7 @@ import { resolve } from 'node:path';
 import type { CribUpgrades } from '../types/game';
 import { PhysicsCore, SolidFlag } from '../physics/PhysicsCore';
 import { ALL_DESTINIES } from '../core/destinies';
-import { INTERIORS, type InteriorBox } from './interiors';
+import { INTERIORS } from './interiors';
 import { carSpotForLot, findHouseLot } from './city';
 import {
   HOUSE_FLOOR_ORIGINS,

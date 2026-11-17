@@ -1,7 +1,7 @@
 // Invariants de la ville générée : npm run test:city
 import { performance } from 'node:perf_hooks';
 import { CHUNK, ChunkData, Building, generateChunk, findHouseLot, SPECIAL_FOOTPRINTS, carSpotForLot, chunkOf } from '../src/world/city';
-import { projected, DISTRICTS, isWater, HomeType, districtAt } from '../src/world/abidjanGeography';
+import { projected, isWater, HomeType, districtAt } from '../src/world/abidjanGeography';
 import { ARTERIALS, bridgeAt, isOpenWater, roadAt } from '../src/world/roads';
 
 let fails = 0;
