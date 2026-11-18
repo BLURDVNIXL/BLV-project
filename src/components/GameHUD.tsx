@@ -28,13 +28,12 @@ import { CityHotspot, RadarSnapshot } from '../3d/sceneManager';
 import { MinimapRadar } from './MinimapRadar';
 import { JellyButton, RoundIconButton } from './ui/Jelly';
 import { BarGauge, RingGauge } from './ui/Gauge';
-import { FcfaCoin, GroupBadge, StarBadge } from './ui/icons';
+import { FcfaCoin, StarBadge } from './ui/icons';
 import { useMediaQuery } from './useMediaQuery';
 
 interface GameHUDProps {
   playerState: PlayerState;
   currentDistrict: string;
-  onlineCount: number;
   nearbyHotspot: CityHotspot | null;
   nearbyVehicle: { id: string; label: string } | null;
   getRadarSnapshot: () => RadarSnapshot | null;
@@ -103,7 +102,6 @@ function MenuItem({ icon, label, detail, onClick }: MenuItemProps) {
 export const GameHUD: React.FC<GameHUDProps> = ({
   playerState,
   currentDistrict,
-  onlineCount,
   nearbyHotspot,
   nearbyVehicle,
   getRadarSnapshot,
@@ -350,10 +348,6 @@ export const GameHUD: React.FC<GameHUDProps> = ({
                 ))}
               </div>
             )}
-            <div className="panel flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-palm-600 short:px-2 short:py-0.5" title="Joueurs en ligne">
-              <GroupBadge className="h-6 w-6 short:h-5 short:w-5" />
-              <span>{onlineCount}</span>
-            </div>
           </div>
         </div>
       </div>

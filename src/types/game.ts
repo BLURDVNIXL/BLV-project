@@ -157,32 +157,6 @@ export interface GameEventLog {
   type: 'neutral' | 'success' | 'danger' | 'love' | 'work' | 'star';
 }
 
-export interface RemotePlayer {
-  id: string;
-  name: string;
-  destinyName: string;
-  color: string;
-  x: number;
-  y: number;
-  z: number;
-  rotY: number;
-  isDriving: boolean;
-  vehicleType?: VehicleModelType | null;
-  sapeOutfit: SapeOutfitId;
-  /** Genre choisi (avatar 3D) ; absent pour les anciennes sauvegardes. Envoyé une seule fois, à la connexion. */
-  gender?: PlayerGender;
-  homeLotId?: string | null;
-  homeAccess?: HomeAccessMode;
-  homeType?: HomeType;
-}
-
-export interface HouseKnockPrompt {
-  requestId: string;
-  fromPlayerId: string;
-  fromName: string;
-  lotId: string;
-}
-
 /** Genre choisi à la création du personnage. */
 export type PlayerGender = 'homme' | 'femme';
 

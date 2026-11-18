@@ -137,18 +137,6 @@ export function BoltBadge({ className }: IconProps) {
   );
 }
 
-/** Groupe de personnes : le multijoueur. */
-export function GroupBadge({ className }: IconProps) {
-  return (
-    <Disc id="bd-group" top="#5fc8f7" bottom="#1479b8" edge="#0b4f7c" className={className}>
-      <circle cx="24" cy="18.5" r="4.6" fill="#fff" />
-      <path d="M15.5 33c0-5 3.8-8 8.5-8s8.5 3 8.5 8z" fill="#fff" />
-      <circle cx="14.5" cy="21" r="3.2" fill="#d4f0ff" />
-      <circle cx="33.5" cy="21" r="3.2" fill="#d4f0ff" />
-    </Disc>
-  );
-}
-
 /** Engrenage : les réglages. */
 export function GearBadge({ className }: IconProps) {
   return (

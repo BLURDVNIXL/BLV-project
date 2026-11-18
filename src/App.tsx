@@ -4,7 +4,6 @@ import {
   GameScreenState,
   PlayerProfile,
   PlayerState,
-  RemotePlayer,
   SapeOutfitId,
   WeatherType,
 } from './types/game';
@@ -40,11 +39,7 @@ import { loadGameStateAsync, loadGameStateSync, saveGameStateAsync, purgeAllData
 import { initWasmCore } from './wasm/wasmBridge';
 import { AbidjanSceneManager, CityHotspot, RadarSnapshot } from './3d/sceneManager';
 import { soundEngine } from './audio/soundEngine';
-import {
-  MultiplayerClient,
-  initServerSession,
-  postEconomyAction,
-} from './network/multiplayerClient';
+import { initServerSession, postEconomyAction } from './network/serverApi';
 import { TitleScreen } from './components/TitleScreen';
 import { JellyButton } from './components/ui/Jelly';
 import { GameHUD } from './components/GameHUD';
@@ -144,13 +139,8 @@ export default function App() {
     sceneRef.current?.setControlsMode(pcControlsMode);
   }, [pcControlsMode]);
 
-  // Multiplayer
-  const [remotePlayers, setRemotePlayers] = useState<RemotePlayer[]>([]);
-  const [onlineCount, setOnlineCount] = useState(1);
-
   const canvasContainerRef = useRef<HTMLDivElement | null>(null);
   const sceneRef = useRef<AbidjanSceneManager | null>(null);
-  const mpRef = useRef<MultiplayerClient | null>(null);
   const playerStateRef = useRef<PlayerState>(playerState);
   playerStateRef.current = playerState;
   const screenStateRef = useRef<GameScreenState>(screenState);
@@ -414,11 +404,6 @@ export default function App() {
           // Arrivé (≈ 15 m de jeu de la destination) : l'itinéraire s'efface
           if (Math.hypot(pos.x - end.x, pos.z - end.z) < 15) setRoute(null);
         }
-        const cur = playerStateRef.current;
-        mpRef.current?.sendPosition({
-          ...pos,
-          sapeOutfit: cur.sapeOutfit,
-        });
       },
       onHorn: () => soundEngine.playHorn(),
       onPauseKey: () => {
@@ -479,67 +464,6 @@ export default function App() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, []);
-
-  // Connect Authenticated WebSocket once playing and sessionToken is ready
-  useEffect(() => {
-    if (screenState !== 'playing' || !playerState.sessionToken) return;
-    if (!mpRef.current) {
-      const client = new MultiplayerClient({
-        onPlayersChange: (players, count) => {
-          setRemotePlayers(players);
-          setOnlineCount(count);
-          sceneRef.current?.syncRemotePlayers(players);
-        },
-        onTontineUpdate: (_snap) => {},
-        onTontinePayout: (amt) => {
-          soundEngine.playCashSound();
-          setPlayerState((prev) =>
-            addLog({ ...prev, cash: prev.cash + amt }, `🎉 Tontine Live : Tu encaisses la cagnotte de ${amt.toLocaleString('fr-FR')} FCFA !`, 'star')
-          );
-          showToast(`🎉 Cagnotte Tontine : +${amt.toLocaleString('fr-FR')} F !`);
-        },
-        onTontineFleeResult: (amt) => {
-          soundEngine.playPoliceSiren();
-          setPlayerState((prev) =>
-            addLog(
-              { ...prev, cash: prev.cash + amt, policeWanted: Math.min(5, prev.policeWanted + 3) },
-              `🚨 SCANDALE ! Tu as fui avec ${amt.toLocaleString('fr-FR')} F de la Tontine ! (+3 ★ Police)`,
-              'danger'
-            )
-          );
-          showToast('🚨 Fuite Tontine : +3 ★ Police !');
-        },
-        onTontineError: (_msg) => {},
-        onConnectionChange: () => {},
-      });
-      mpRef.current = client;
-      const p = playerStateRef.current;
-      client.connect({
-        id: p.playerId,
-        authToken: p.sessionToken,
-        name: p.destiny.name,
-        destinyName: p.destiny.name,
-        color: p.destiny.color,
-        x: p.destiny.spawnX,
-        y: 0,
-        z: p.destiny.spawnZ,
-        rotY: 0,
-        isDriving: p.isDriving,
-        vehicleType: p.destiny.vehicle,
-        sapeOutfit: p.sapeOutfit,
-        homeType: p.destiny.homeType,
-        gender: p.gender,
-      });
-    }
-  }, [screenState, playerState.sessionToken, remotePlayers, showToast]);
-
-  // Cleanup WS on unmount
-  useEffect(() => {
-    return () => {
-      mpRef.current?.disconnect();
-      mpRef.current = null;
-    };
   }, []);
 
   // 1-second Simulation Tick (Time, Needs Decay, Weather, Autosave)
@@ -817,7 +741,6 @@ export default function App() {
           <GameHUD
             playerState={playerState}
             currentDistrict={currentDistrict}
-            onlineCount={onlineCount}
             nearbyHotspot={nearbyHotspot}
             nearbyVehicle={nearbyVehicle}
             getRadarSnapshot={getRadarSnapshot}

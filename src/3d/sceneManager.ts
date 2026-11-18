@@ -4,7 +4,6 @@ import {
   WeatherType,
   VehicleModelType,
   SapeOutfitId,
-  RemotePlayer,
   CribUpgrades,
   PlayerGender,
 } from '../types/game';
@@ -17,7 +16,6 @@ import {
   createCathedralLandmark,
   createCharacterModel,
   createClassicLyceeStructure,
-  createFloatingNameplate,
   createHotelIvoireLandmark,
   createLaPyramideLandmark,
   createMairiePlateauLandmark,
@@ -135,7 +133,6 @@ export interface RadarSnapshot {
   home: { x: number; z: number } | null;
   /** Perron de ta maison (là où le GPS te dépose), null tant qu'elle n'est pas posée. */
   homePorch: { x: number; z: number } | null;
-  remotes: Array<{ name: string; x: number; z: number; color: string }>;
 }
 
 export interface SceneCallbacks {
@@ -263,26 +260,6 @@ export class AbidjanSceneManager {
   private engineStalled = false;
 
   private trafficCars: Array<RoadCar & { rig: VehicleRig }> = [];
-  private remoteRigs: Map<
-    string,
-    {
-      rig: CharacterRig;
-      name: string;
-      targetX: number;
-      targetZ: number;
-      prevX: number;
-      prevZ: number;
-      lastNetTime: number;
-      rotY: number;
-      /** Avatar 3D du joueur distant (genre reçu à la connexion) ; sinon petit personnage de repli. */
-      gender: PlayerGender | null;
-      avatar: THREE.Object3D | null;
-      avatarCtl: AvatarController | null;
-      outfit: SapeOutfitId;
-      speed: number;
-    }
-  > = new Map();
-
   // Maison du joueur (façade extérieure fermée + intérieur dédié par destin et par étage)
   private ownHouseLot: HouseLot | null = null;
   private ownHouseSpec: HouseSpec | null = null;
@@ -357,7 +334,7 @@ export class AbidjanSceneManager {
   private disposed = false;
   private lastTime = performance.now();
   private lastDistrict = 'Le Plateau';
-  private lastRemoteTick = 0;
+  private lastPositionTick = 0;
   private lastUiSync = 0;
   private currentMood: LightingMood = 'day';
 
@@ -1240,81 +1217,6 @@ export class AbidjanSceneManager {
     this.lagoonWaterHandle.setAmbient(this.sunDir, amb.sunColor, horizon, glint);
   }
 
-  public syncRemotePlayers(players: RemotePlayer[]) {
-    const activeIds = new Set(players.map((p) => p.id));
-
-    for (const [id, entry] of this.remoteRigs.entries()) {
-      if (!activeIds.has(id)) {
-        this.scene.remove(entry.rig.group);
-        this.remoteRigs.delete(id);
-      }
-    }
-
-    const nowMs = performance.now();
-    for (const p of players) {
-      let entry = this.remoteRigs.get(p.id);
-      if (!entry) {
-        const rig = createCharacterModel(0x5c3824, p.sapeOutfit || 'standard', true);
-        const nameplate = createFloatingNameplate(p.name || 'Joueur Babi', '#1e293b');
-        nameplate.position.set(0, 2.55, 0);
-        rig.group.add(nameplate);
-        rig.group.position.set(p.x, p.y, p.z);
-        this.scene.add(rig.group);
-        entry = {
-          rig,
-          name: p.name || 'Joueur Babi',
-          targetX: p.x,
-          targetZ: p.z,
-          prevX: p.x,
-          prevZ: p.z,
-          lastNetTime: nowMs,
-          rotY: p.rotY,
-          gender: null,
-          avatar: null,
-          avatarCtl: null,
-          outfit: p.sapeOutfit || 'standard',
-          speed: 0,
-        };
-        this.remoteRigs.set(p.id, entry);
-        this.attachRemoteAvatar(p.id, entry, p.gender);
-      } else {
-        entry.prevX = entry.rig.group.position.x;
-        entry.prevZ = entry.rig.group.position.z;
-        entry.targetX = p.x;
-        entry.targetZ = p.z;
-        entry.lastNetTime = nowMs;
-        entry.rotY = p.rotY;
-        entry.outfit = p.sapeOutfit || 'standard';
-        entry.rig.applyOutfit(entry.outfit);
-        entry.avatarCtl?.applyOutfit(entry.outfit);
-        this.attachRemoteAvatar(p.id, entry, p.gender);
-      }
-    }
-  }
-
-  /** Remplace le petit personnage d'un joueur distant par l'avatar de son genre (sans effet si absent ou déjà fait). */
-  private attachRemoteAvatar(id: string, entry: { rig: CharacterRig; gender: PlayerGender | null; avatar: THREE.Object3D | null; avatarCtl: AvatarController | null; outfit: SapeOutfitId }, gender?: PlayerGender) {
-    if (!gender || gender === entry.gender) return;
-    entry.gender = gender; // évite de relancer le chargement à chaque message réseau
-    loadAvatar(gender)
-      .then(({ root, animations }) => {
-        // Le joueur a pu partir (ou la scène être détruite) pendant le chargement.
-        if (this.disposed || this.remoteRigs.get(id) !== entry || entry.gender !== gender) return;
-        if (entry.avatar) entry.rig.group.remove(entry.avatar);
-        entry.avatar = root;
-        entry.rig.group.add(root);
-        entry.avatarCtl = new AvatarController(root, animations);
-        entry.avatarCtl.applyOutfit(entry.outfit);
-        entry.rig.bodyPivot.visible = false;
-      })
-      .catch((err) => {
-        // On ne retente pas à chaque message réseau : le repli reste affiché jusqu'à la prochaine connexion.
-        console.warn('[BLV] Avatar 3D distant indisponible, repli sur le personnage simple', err);
-      });
-  }
-
-
-
   /** Vrai si le joueur est dans un intérieur (salle fermée hors carte). */
   public isInsideInterior(): boolean {
     return this.activeInterior !== null;
@@ -1983,12 +1885,6 @@ export class AbidjanSceneManager {
       homePorch: this.ownHouseLot
         ? houseToWorld(this.ownHouseLot.x, this.ownHouseLot.z, this.ownHouseLot.rotationY, 0, this.ownHouseSpec?.facade.porchZ ?? 5.2)
         : null,
-      remotes: Array.from(this.remoteRigs.values()).map((r) => ({
-        name: r.name,
-        x: r.rig.group.position.x,
-        z: r.rig.group.position.z,
-        color: '#22c55e',
-      })),
     };
   }
 
@@ -2199,25 +2095,6 @@ export class AbidjanSceneManager {
         p.mesh.visible = false;
         const amt = this.mysticBaraka ? 25000 : 5000;
         this.callbacks.onCashPickup(amt);
-      }
-    }
-
-    // 3. Remote Multiplayer Smooth 150ms Interpolation
-    const nowMs = performance.now();
-    for (const entry of this.remoteRigs.values()) {
-      const t = Math.min(1, (nowMs - entry.lastNetTime) / 150);
-      const rx = entry.rig.group.position.x;
-      const rz = entry.rig.group.position.z;
-      const nx = THREE.MathUtils.lerp(entry.prevX, entry.targetX, t);
-      const nz = THREE.MathUtils.lerp(entry.prevZ, entry.targetZ, t);
-      const moved = Math.hypot(nx - rx, nz - rz);
-      entry.rig.group.position.set(nx, 0, nz);
-      entry.rig.group.rotation.y = entry.rotY;
-      entry.rig.animateGait(nowSec * 6, moved > 0.015 ? 1 : 0, dt);
-      if (entry.avatarCtl) {
-        // Vitesse lissée : les positions réseau arrivent par à-coups (≥ 100 ms).
-        entry.speed += (moved / Math.max(dt, 1e-3) - entry.speed) * Math.min(1, dt * 8);
-        entry.avatarCtl.update(dt, entry.speed, true, false);
       }
     }
 
@@ -2469,8 +2346,8 @@ export class AbidjanSceneManager {
       );
     }
 
-    if (nowSec - this.lastRemoteTick > 0.12) {
-      this.lastRemoteTick = nowSec;
+    if (nowSec - this.lastPositionTick > 0.12) {
+      this.lastPositionTick = nowSec;
       this.callbacks.onPositionTick({
         x: this.playerX,
         y: this.playerY,

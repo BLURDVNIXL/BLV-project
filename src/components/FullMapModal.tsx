@@ -217,13 +217,6 @@ export function FullMapModal({ getSnapshot, route, onRouteChange, onClose }: Ful
     }
 
     if (snap) {
-      // Autres joueurs
-      ctx.fillStyle = '#22c55e';
-      for (const r of snap.remotes) {
-        ctx.beginPath();
-        ctx.arc(sx(r.x), sy(r.z), 4, 0, Math.PI * 2);
-        ctx.fill();
-      }
       // Toi : halo + flèche de cap (+z = sud, cap 0 vers le bas)
       const px = sx(snap.playerX);
       const py = sy(snap.playerZ);
