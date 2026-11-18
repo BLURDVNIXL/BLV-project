@@ -93,6 +93,7 @@ import {
 } from '../world/playerHouses';
 import { createHouseFacadeRig, createHouseFloorFurniture } from './houseModels';
 import { RoadCar, updateRoadTraffic } from '../world/roadTraffic';
+import { computeVehicleAccel } from '../physics/controls';
 import { strHash } from '../world/rng';
 
 export interface CityHotspot {
@@ -2241,8 +2242,7 @@ export class AbidjanSceneManager {
       }
 
       if (this.drivingVehicle) {
-        // Inversion explicite demandée : Avant/Arrière des commandes sont échangés.
-        const accel = this.engineStalled ? 0 : -fwd;
+        const accel = computeVehicleAccel(fwd, this.engineStalled);
         core.vehicleInput(this.drivingVehicle.vehId, accel, turnRight, this.isHandbraking);
       } else {
         const forwardX = -Math.sin(this.camYaw);

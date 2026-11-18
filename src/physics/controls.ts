@@ -16,3 +16,7 @@ export interface HeldControls {
 }
 
 export const createHeldControls = (): HeldControls => ({ sprint: false, handbrake: false, jumpCount: 0 });
+
+
+/** Calcule l'accélération envoyée au moteur physique : positif = marche avant (+Z local), 0 si calé. */
+export const computeVehicleAccel = (fwd: number, engineStalled: boolean): number => (engineStalled ? 0 : fwd);
