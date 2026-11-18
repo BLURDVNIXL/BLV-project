@@ -5,6 +5,7 @@ import {
   UtensilsCrossed,
   MapPin,
   Shirt,
+  Save,
   CheckCircle,
   Wifi,
   Battery,
@@ -35,6 +36,8 @@ interface MyOSPhoneProps {
   onEatFood: (foodId: string) => void;
   onFastTravel: (x: number, z: number, districtName: string, districtId: string) => void;
   onBuyOrEquipOutfit: (outfit: SapeOutfitId) => void;
+  /** Sauvegarde immédiate de la partie ; renvoie vrai si elle a bien été écrite. */
+  onSaveGame: () => Promise<boolean>;
 }
 
 type PhoneApp = 'home' | 'eats' | 'gps' | 'sape';
@@ -46,8 +49,15 @@ export const MyOSPhone: React.FC<MyOSPhoneProps> = ({
   onEatFood,
   onFastTravel,
   onBuyOrEquipOutfit,
+  onSaveGame,
 }) => {
   const [activeApp, setActiveApp] = useState<PhoneApp>('home');
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'ok' | 'fail'>('idle');
+  const handleSave = async () => {
+    const ok = await onSaveGame();
+    setSaveStatus(ok ? 'ok' : 'fail');
+    window.setTimeout(() => setSaveStatus('idle'), 2500);
+  };
   // GPS : la liste est relevée à chaque ouverture de l'application (la maison peut avoir été posée entre-temps).
   const [gpsList, setGpsList] = useState<GpsDestination[]>([]);
   const [gpsFrom, setGpsFrom] = useState<string | null>(null);
@@ -102,6 +112,18 @@ export const MyOSPhone: React.FC<MyOSPhoneProps> = ({
                 <AppIcon label={s.eats} icon={<UtensilsCrossed className="h-6 w-6" />} tone="sun" onClick={() => setActiveApp('eats')} />
                 <AppIcon label={s.gps} icon={<MapPin className="h-6 w-6" />} tone="lagoon" onClick={() => setActiveApp('gps')} />
                 <AppIcon label={s.sape} icon={<Shirt className="h-6 w-6" />} tone="plum" onClick={() => setActiveApp('sape')} />
+                <AppIcon
+                  label={
+                    saveStatus === 'ok'
+                      ? playerState.language === 'fr' ? 'Sauvegardé ✓' : 'Saved ✓'
+                      : saveStatus === 'fail'
+                      ? playerState.language === 'fr' ? 'Échec' : 'Failed'
+                      : playerState.language === 'fr' ? 'Sauvegarder' : 'Save'
+                  }
+                  icon={<Save className="h-6 w-6" />}
+                  tone="palm"
+                  onClick={handleSave}
+                />
               </div>
             </div>
           )}

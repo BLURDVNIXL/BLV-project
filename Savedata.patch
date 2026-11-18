@@ -1,0 +1,791 @@
+diff --git a/PRIVACY.md b/PRIVACY.md
+index 66c7646..acc386f 100644
+--- a/PRIVACY.md
++++ b/PRIVACY.md
+@@ -3,7 +3,7 @@
+ ## Données traitées
+ 
+ 1. **Sauvegarde locale (navigateur)** :
+-   - `localStorage` : clé `blv_save_v3` (état de partie solo/session).
++   - `localStorage` et IndexedDB : 5 emplacements de sauvegarde (clés `blv_slot_1` à `blv_slot_5`, état de partie et position du joueur).
+    - `IndexedDB` : base `blv_db` (sauvegarde asynchrone).
+    - Cache PWA : caches préfixés `blv` / `workbox` pour le fonctionnement hors-ligne.
+ 2. **Données serveur (SQLite `blv_world.sqlite`)** :
+diff --git a/README.md b/README.md
+index f71b7c4..123f5eb 100644
+--- a/README.md
++++ b/README.md
+@@ -198,6 +198,17 @@ Une carte plein écran permet de visualiser la ville et de consulter les lieux.
+ 
+ ---
+ 
++### Sauvegardes
++
++- 5 emplacements de sauvegarde, stockés uniquement sur l'appareil du joueur (module `src/core/saveSlots.ts`).
++- Chaque emplacement est écrit à deux endroits indépendants (`localStorage` clé `blv_slot_N` et IndexedDB clé `slot_N`) ; au chargement, la version la plus récente est retenue.
++- Sauvegarde automatique toutes les 6 secondes en jeu, à la fermeture ou au masquage de la page (`pagehide`, `visibilitychange`) et au retour à l'écran titre.
++- Bouton « Sauvegarder » dans le téléphone MyOS (sauvegarde immédiate avec confirmation).
++- La position et l'orientation du joueur sont sauvegardées : « Continuer » replace le joueur où il s'était arrêté (dans un intérieur : devant la porte).
++- L'écran « Continuer » liste les emplacements par nom (renommable) et permet de les supprimer.
++- L'ancienne sauvegarde unique (`blv_save_v3` / IndexedDB `current_player_state`) est reprise dans l'emplacement 1.
++- Le serveur reçoit toujours une copie de l'état pour valider l'économie, mais n'est plus la source des sauvegardes.
++
+ ## 4. Backend
+ 
+ Le backend est géré par `server.ts`.
+diff --git a/src/3d/sceneManager.ts b/src/3d/sceneManager.ts
+index d6bff27..1e35288 100644
+--- a/src/3d/sceneManager.ts
++++ b/src/3d/sceneManager.ts
+@@ -933,7 +933,8 @@ export class AbidjanSceneManager {
+     homeType: HomeType = 'studio',
+     seedKey = 'blv_default',
+     preferredDistrict?: string,
+-    destinyId?: string
++    destinyId?: string,
++    restorePos?: { x: number; z: number; rotY?: number }
+   ): HouseLot | null {
+     this.isSuperstar = isSuperstar;
+     this.mysticBaraka = mysticBaraka;
+@@ -952,6 +953,7 @@ export class AbidjanSceneManager {
+         seedKey,
+         preferredDistrict,
+         destinyId,
++        restorePos,
+       ];
+       this.playerX = spawnX;
+       this.playerZ = spawnZ;
+@@ -1083,6 +1085,16 @@ export class AbidjanSceneManager {
+     // Pre-warm chunks immediately around spawn
+     this.streamer?.update(porch.x, porch.z, 9);
+ 
++    // 6. Reprise d'une sauvegarde : on replace le joueur là où il s'était arrêté (au lieu du perron)
++    if (restorePos) {
++      this.teleportPlayer(restorePos.x, restorePos.z);
++      if (restorePos.rotY !== undefined) {
++        this.playerRotY = restorePos.rotY;
++        this.playerRig.group.rotation.y = restorePos.rotY;
++        core.faceCharacter(this.playerCharId, restorePos.rotY, true);
++      }
++    }
++
+     return lot;
+   }
+ 
+diff --git a/src/App.tsx b/src/App.tsx
+index 1543ff6..2a29115 100644
+--- a/src/App.tsx
++++ b/src/App.tsx
+@@ -35,7 +35,21 @@ import {
+   useToilet,
+ } from './core/simulation';
+ import { DISTRICTS } from './world/abidjanGeography';
+-import { loadGameStateAsync, loadGameStateSync, saveGameStateAsync, purgeAllDataRGPD } from './core/storage';
++import { purgeAllDataRGPD } from './core/storage';
++import {
++  SLOT_COUNT,
++  type SavePosition,
++  type SaveSlot,
++  type SlotList,
++  defaultSlotName,
++  deleteSlot,
++  loadSlotsAsync,
++  loadSlotsSync,
++  makeSlot,
++  mostRecentPlayable,
++  pickSlotForNewGame,
++  writeSlot,
++} from './core/saveSlots';
+ import { initWasmCore } from './wasm/wasmBridge';
+ import { AbidjanSceneManager, CityHotspot, RadarSnapshot } from './3d/sceneManager';
+ import { soundEngine } from './audio/soundEngine';
+@@ -62,8 +76,18 @@ export default function App() {
+   const isAutostart =
+     typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('autostart') === '1';
+ 
+-  const initialSaved = loadGameStateSync();
+-  const [hasSavedGame, setHasSavedGame] = useState<boolean>(Boolean(initialSaved && !initialSaved.isGameOver));
++  // Sauvegardes multiples : lues une seule fois au démarrage (plus à chaque rendu).
++  const initialSlotsRef = useRef<SlotList | null>(null);
++  if (initialSlotsRef.current === null) initialSlotsRef.current = loadSlotsSync();
++  const initialRecent = mostRecentPlayable(initialSlotsRef.current);
++  const initialSaved = initialRecent ? initialRecent.data.state : null;
++  const [slots, setSlots] = useState<SlotList>(initialSlotsRef.current);
++  const slotsRef = useRef<SlotList>(slots);
++  slotsRef.current = slots;
++  /** Emplacement (1 à 5) de la partie en cours ; null tant qu'aucune partie n'est lancée. */
++  const activeSlotRef = useRef<number | null>(isAutostart && initialRecent ? initialRecent.slot : null);
++  const saveFailWarnedRef = useRef(false);
++  const hasSavedGame = slots.some(Boolean);
+ 
+   const [screenState, setScreenState] = useState<GameScreenState>(() => (isAutostart ? 'playing' : 'title'));
+   const [playerState, setPlayerState] = useState<PlayerState>(() => {
+@@ -186,6 +210,69 @@ export default function App() {
+     }).catch(() => {});
+   }, []);
+ 
++  /**
++   * Sauvegarde la partie dans son emplacement (état + position du joueur), sur l'appareil.
++   * Le serveur reçoit toujours une copie : l'économie y est validée à partir de cet état.
++   */
++  const saveNow = useCallback(
++    async (opts: { manual?: boolean; state?: PlayerState; fresh?: boolean } = {}): Promise<boolean> => {
++      const slotNo = activeSlotRef.current;
++      if (!slotNo) return false;
++      const cur = opts.state ?? playerStateRef.current;
++      const previous = opts.fresh ? null : slotsRef.current[slotNo - 1];
++      let position: SavePosition | undefined = previous?.position;
++      if (!opts.state) {
++        const snap = sceneRef.current?.getRadarSnapshot();
++        if (snap) position = { x: snap.playerX, z: snap.playerZ, rotY: snap.playerRotY };
++      }
++      const data = makeSlot(cur, previous?.name ?? defaultSlotName(cur), position);
++      slotsRef.current = slotsRef.current.map((x, i) => (i === slotNo - 1 ? data : x));
++      setSlots(slotsRef.current);
++      persistServerState(cur);
++      const ok = await writeSlot(slotNo, data);
++      const fr = cur.language === 'fr';
++      if (!ok && !saveFailWarnedRef.current) {
++        saveFailWarnedRef.current = true;
++        showToast(fr ? '⚠️ Sauvegarde impossible sur cet appareil (stockage plein ou bloqué)' : '⚠️ Cannot save on this device (storage full or blocked)');
++      }
++      if (ok) saveFailWarnedRef.current = false;
++      return ok;
++    },
++    [persistServerState, showToast]
++  );
++
++  const renameSlotName = useCallback((slotNo: number, name: string) => {
++    const cur = slotsRef.current[slotNo - 1];
++    if (!cur) return;
++    const data: SaveSlot = { ...cur, name };
++    slotsRef.current = slotsRef.current.map((x, i) => (i === slotNo - 1 ? data : x));
++    setSlots(slotsRef.current);
++    void writeSlot(slotNo, data);
++  }, []);
++
++  const removeSlot = useCallback((slotNo: number) => {
++    slotsRef.current = slotsRef.current.map((x, i) => (i === slotNo - 1 ? null : x));
++    setSlots(slotsRef.current);
++    if (activeSlotRef.current === slotNo) activeSlotRef.current = null;
++    void deleteSlot(slotNo);
++  }, []);
++
++  // Sauvegarde quand la page se cache ou se ferme (changement d'appli, fermeture de l'onglet, verrouillage du téléphone)
++  useEffect(() => {
++    const onHide = () => {
++      if (screenStateRef.current === 'playing') void saveNow();
++    };
++    const onVisibility = () => {
++      if (document.visibilityState === 'hidden') onHide();
++    };
++    window.addEventListener('pagehide', onHide);
++    document.addEventListener('visibilitychange', onVisibility);
++    return () => {
++      window.removeEventListener('pagehide', onHide);
++      document.removeEventListener('visibilitychange', onVisibility);
++    };
++  }, [saveNow]);
++
+   // Sensibilité de la caméra (réglages) : réappliquée aussi quand l'état change, la scène pouvant être créée après le premier rendu.
+   useEffect(() => {
+     sceneRef.current?.setCameraSensitivity(cameraSensitivity);
+@@ -212,28 +299,34 @@ export default function App() {
+     initWasmCore().catch(() => {});
+ 
+     let mounted = true;
+-    loadGameStateAsync().then(async (saved) => {
++    loadSlotsAsync().then(async (merged) => {
+       if (!mounted) return;
+-      if (saved && !saved.isGameOver) {
+-        setHasSavedGame(true);
+-        if (isAutostart) {
+-          setPlayerState(saved);
+-          setCurrentDistrict(saved.destiny.district);
+-          sceneRef.current?.spawnPlayerAtDestiny(
+-            saved.destiny.spawnX,
+-            saved.destiny.spawnZ,
+-            saved.destiny.vehicle,
+-            saved.destiny.secondaryVehicle,
+-            saved.sapeOutfit,
+-            Boolean(saved.destiny.realMadridSuperstar),
+-            Boolean(saved.destiny.mysticBaraka),
+-            saved.destiny.homeType,
+-            `${saved.playerId}|${saved.destiny.id}`,
+-            saved.destiny.districtId,
+-            saved.destiny.id
+-          );
+-          sceneRef.current?.syncCribUpgrades(saved.cribUpgrades);
+-        }
++      // On ne remplace pas la liste si une partie a déjà été sauvegardée entre-temps
++      if (!activeSlotRef.current || isAutostart) {
++        slotsRef.current = merged;
++        setSlots(merged);
++      }
++      const recent = mostRecentPlayable(merged);
++      const saved = recent ? recent.data.state : null;
++      if (recent && saved && isAutostart) {
++        activeSlotRef.current = recent.slot;
++        setPlayerState(saved);
++        setCurrentDistrict(saved.destiny.district);
++        sceneRef.current?.spawnPlayerAtDestiny(
++          saved.destiny.spawnX,
++          saved.destiny.spawnZ,
++          saved.destiny.vehicle,
++          saved.destiny.secondaryVehicle,
++          saved.sapeOutfit,
++          Boolean(saved.destiny.realMadridSuperstar),
++          Boolean(saved.destiny.mysticBaraka),
++          saved.destiny.homeType,
++          `${saved.playerId}|${saved.destiny.id}`,
++          saved.destiny.districtId,
++          saved.destiny.id,
++          recent.data.position
++        );
++        sceneRef.current?.syncCribUpgrades(saved.cribUpgrades);
+       }
+ 
+       const seedState = saved && !saved.isGameOver ? saved : playerStateRef.current;
+@@ -488,16 +581,16 @@ export default function App() {
+     }, 1000);
+ 
+     const saveTimer = window.setInterval(() => {
+-      const cur = playerStateRef.current;
+-      saveGameStateAsync(cur);
+-      persistServerState(cur);
++      void saveNow();
+     }, 6000);
+ 
+     return () => {
+       clearInterval(timer);
+       clearInterval(saveTimer);
++      // On quitte le jeu (écran titre, game over, nouveau destin) : dernière sauvegarde avec la position
++      void saveNow();
+     };
+-  }, [screenState, persistServerState]);
++  }, [screenState, saveNow]);
+ 
+   const enterAbidjanWithDestiny = (destiny: Destiny, profile?: PlayerProfile) => {
+     (document.activeElement as HTMLElement | null)?.blur?.();
+@@ -521,8 +614,17 @@ export default function App() {
+     setPlayerState(fresh);
+     setCurrentDistrict(destiny.district);
+     setScreenState('playing');
+-    saveGameStateAsync(fresh);
+-    persistServerState(fresh);
++    // Nouvelle partie : premier emplacement vide (sinon on remplace la sauvegarde la moins récente)
++    const pick = pickSlotForNewGame(slotsRef.current);
++    activeSlotRef.current = pick.slot;
++    if (pick.replaces) {
++      showToast(
++        fresh.language === 'fr'
++          ? `Toutes les sauvegardes sont pleines : la sauvegarde ${pick.slot} est remplacée`
++          : `All saves are full: save ${pick.slot} is replaced`
++      );
++    }
++    void saveNow({ state: fresh, fresh: true });
+ 
+     sceneRef.current?.syncCribUpgrades(fresh.cribUpgrades);
+     sceneRef.current?.setCameraMode('follow');
+@@ -530,9 +632,12 @@ export default function App() {
+     showToast(`🇨🇮 Bienvenue${profile ? ` ${profile.name}` : ''} à ${destiny.district} (${destiny.name}) !`);
+   };
+ 
+-  const handleContinueSavedGame = () => {
++  const handleContinueSavedGame = (slotNo: number) => {
+     (document.activeElement as HTMLElement | null)?.blur?.();
+-    const cur = initialSaved || playerState;
++    const entry = slotsRef.current[slotNo - 1];
++    if (!entry || entry.state.isGameOver) return;
++    const cur = entry.state;
++    activeSlotRef.current = slotNo;
+     setPlayerState(cur);
+     setCurrentDistrict(cur.destiny.district);
+     setScreenState('playing');
+@@ -547,11 +652,22 @@ export default function App() {
+       cur.destiny.homeType,
+       `${cur.playerId}|${cur.destiny.id}`,
+       cur.destiny.districtId,
+-      cur.destiny.id
++      cur.destiny.id,
++      entry.position
+     );
+     sceneRef.current?.syncCribUpgrades(cur.cribUpgrades);
+     sceneRef.current?.setCameraMode('follow');
+     sceneRef.current?.setPaused(false);
++    // Identité de session fraîche : le jeton de l'ancienne sauvegarde peut être refusé par le serveur
++    void initServerSession(cur).then((session) => {
++      if (!session || activeSlotRef.current !== slotNo) return;
++      setPlayerState((prev) => ({
++        ...prev,
++        playerId: session.playerId,
++        sessionToken: session.sessionToken,
++        homeLotId: session.homeLotId || prev.homeLotId,
++      }));
++    });
+   };
+ 
+   const handleToggleSound = () => {
+@@ -688,9 +804,11 @@ export default function App() {
+       {screenState === 'title' && (
+         <TitleScreen
+           hasSavedGame={hasSavedGame}
+-          savedDestinyName={initialSaved?.destiny.name}
++          slots={slots.map((x) => (x ? { name: x.name, gameOver: x.state.isGameOver } : null))}
+           onStartNewGame={() => setScreenState('roulette')}
+           onContinueGame={handleContinueSavedGame}
++          onRenameSlot={renameSlotName}
++          onDeleteSlot={removeSlot}
+           language={playerState.language}
+           showHud={showHud}
+           onToggleHud={() => setShowHud((v) => !v)}
+@@ -706,7 +824,9 @@ export default function App() {
+           }
+           onEraseData={async () => {
+             await purgeAllDataRGPD(playerState.playerId, playerState.sessionToken);
+-            setHasSavedGame(false);
++            activeSlotRef.current = null;
++            slotsRef.current = Array.from({ length: SLOT_COUNT }, () => null);
++            setSlots(slotsRef.current);
+             setIsMuted(false);
+             setPlayerState(createInitialPlayerState(rollDestiny()));
+           }}
+@@ -809,6 +929,7 @@ export default function App() {
+           playerState={playerState}
+           getGpsSource={getGpsSource}
+           onClose={() => setIsPhoneOpen(false)}
++          onSaveGame={() => saveNow({ manual: true })}
+           onEatFood={(foodId) => {
+             const f = IVORIAN_FOODS.find((x) => x.id === foodId);
+             if (f) {
+@@ -875,7 +996,6 @@ export default function App() {
+           }
+           onResetGame={() => {
+             setIsSettingsOpen(false);
+-            setHasSavedGame(false);
+             setScreenState('title');
+           }}
+         />
+diff --git a/src/components/MyOSPhone.tsx b/src/components/MyOSPhone.tsx
+index cc1ea4e..31909a5 100644
+--- a/src/components/MyOSPhone.tsx
++++ b/src/components/MyOSPhone.tsx
+@@ -5,6 +5,7 @@ import {
+   UtensilsCrossed,
+   MapPin,
+   Shirt,
++  Save,
+   CheckCircle,
+   Wifi,
+   Battery,
+@@ -35,6 +36,8 @@ interface MyOSPhoneProps {
+   onEatFood: (foodId: string) => void;
+   onFastTravel: (x: number, z: number, districtName: string, districtId: string) => void;
+   onBuyOrEquipOutfit: (outfit: SapeOutfitId) => void;
++  /** Sauvegarde immédiate de la partie ; renvoie vrai si elle a bien été écrite. */
++  onSaveGame: () => Promise<boolean>;
+ }
+ 
+ type PhoneApp = 'home' | 'eats' | 'gps' | 'sape';
+@@ -46,8 +49,15 @@ export const MyOSPhone: React.FC<MyOSPhoneProps> = ({
+   onEatFood,
+   onFastTravel,
+   onBuyOrEquipOutfit,
++  onSaveGame,
+ }) => {
+   const [activeApp, setActiveApp] = useState<PhoneApp>('home');
++  const [saveStatus, setSaveStatus] = useState<'idle' | 'ok' | 'fail'>('idle');
++  const handleSave = async () => {
++    const ok = await onSaveGame();
++    setSaveStatus(ok ? 'ok' : 'fail');
++    window.setTimeout(() => setSaveStatus('idle'), 2500);
++  };
+   // GPS : la liste est relevée à chaque ouverture de l'application (la maison peut avoir été posée entre-temps).
+   const [gpsList, setGpsList] = useState<GpsDestination[]>([]);
+   const [gpsFrom, setGpsFrom] = useState<string | null>(null);
+@@ -102,6 +112,18 @@ export const MyOSPhone: React.FC<MyOSPhoneProps> = ({
+                 <AppIcon label={s.eats} icon={<UtensilsCrossed className="h-6 w-6" />} tone="sun" onClick={() => setActiveApp('eats')} />
+                 <AppIcon label={s.gps} icon={<MapPin className="h-6 w-6" />} tone="lagoon" onClick={() => setActiveApp('gps')} />
+                 <AppIcon label={s.sape} icon={<Shirt className="h-6 w-6" />} tone="plum" onClick={() => setActiveApp('sape')} />
++                <AppIcon
++                  label={
++                    saveStatus === 'ok'
++                      ? playerState.language === 'fr' ? 'Sauvegardé ✓' : 'Saved ✓'
++                      : saveStatus === 'fail'
++                      ? playerState.language === 'fr' ? 'Échec' : 'Failed'
++                      : playerState.language === 'fr' ? 'Sauvegarder' : 'Save'
++                  }
++                  icon={<Save className="h-6 w-6" />}
++                  tone="palm"
++                  onClick={handleSave}
++                />
+               </div>
+             </div>
+           )}
+diff --git a/src/components/TitleScreen.tsx b/src/components/TitleScreen.tsx
+index a07a2f4..5e5fff2 100644
+--- a/src/components/TitleScreen.tsx
++++ b/src/components/TitleScreen.tsx
+@@ -7,9 +7,12 @@ import saveArt from '../assets/save-background.jpeg';
+ 
+ interface TitleScreenProps {
+   hasSavedGame: boolean;
+-  savedDestinyName?: string;
++  /** Les 5 emplacements de sauvegarde (null = vide). */
++  slots: ({ name: string; gameOver: boolean } | null)[];
+   onStartNewGame: () => void;
+-  onContinueGame: () => void;
++  onContinueGame: (slot: number) => void;
++  onRenameSlot: (slot: number, name: string) => void;
++  onDeleteSlot: (slot: number) => void;
+   language?: 'fr' | 'en';
+   showHud: boolean;
+   onToggleHud: () => void;
+@@ -30,7 +33,7 @@ const TEXT = {
+   fr: {
+     new: 'Nouvelle partie', continue: 'Continuer', settings: 'Paramètres', trophies: 'Trophées', quit: 'Quitter', install: 'Installer',
+     soon: 'Option bientôt disponible', back: 'Retour', backToMenu: 'Retour au menu principal',
+-    save: (n: number) => `Sauvegarde ${n}`, empty: 'Emplacement vide',
++    save: (n: number) => `Sauvegarde ${n}`, empty: 'Emplacement vide', gameOver: 'Partie terminée', rename: 'Renommer', renamePrompt: 'Nom de la sauvegarde', del: 'Supprimer', confirmDelete: 'Supprimer cette sauvegarde ?',
+     quitHint: 'Tu peux fermer cette fenêtre pour quitter le jeu',
+     quitApp: 'Ferme l’app depuis ton téléphone (glisse vers le haut)',
+     installHint: 'Menu du navigateur → « Ajouter à l’écran d’accueil »',
+@@ -43,7 +46,7 @@ const TEXT = {
+   en: {
+     new: 'New game', continue: 'Continue', settings: 'Settings', trophies: 'Trophies', quit: 'Quit', install: 'Install',
+     soon: 'Option coming soon', back: 'Back', backToMenu: 'Back to main menu',
+-    save: (n: number) => `Save ${n}`, empty: 'Empty slot',
++    save: (n: number) => `Save ${n}`, empty: 'Empty slot', gameOver: 'Game over', rename: 'Rename', renamePrompt: 'Save name', del: 'Delete', confirmDelete: 'Delete this save?',
+     quitHint: 'You can close this window to quit the game',
+     quitApp: 'Close the app from your phone (swipe up)',
+     installHint: 'Browser menu → “Add to Home screen”',
+@@ -71,11 +74,11 @@ function isStandaloneApp(): boolean {
+ 
+ /**
+  * Écran de démarrage « borne d'arcade » : le menu s'affiche sur l'écran CRT de la borne.
+- * « Continuer » ouvre l'écran des sauvegardes (5 emplacements ; seul le 1 est relié à la sauvegarde unique du jeu).
++ * « Continuer » ouvre l'écran des sauvegardes (5 emplacements, chacun affiché par son nom modifiable).
+  * Dernière entrée : sur mobile dans le navigateur « Installer » (installe la PWA) ; dans la PWA installée, et sur ordinateur, « Quitter ».
+  * Clavier : ↑/↓ choisir, Entrée valider, Échap ou Retour arrière revenir.
+  */
+-export function TitleScreen({ hasSavedGame, savedDestinyName, onStartNewGame, onContinueGame, language = 'fr', showHud, onToggleHud, isMuted, onToggleSound, onToggleLanguage, onEraseData, pcControlsMode, onChangeControlsMode }: TitleScreenProps) {
++export function TitleScreen({ hasSavedGame, slots, onStartNewGame, onContinueGame, onRenameSlot, onDeleteSlot, language = 'fr', showHud, onToggleHud, isMuted, onToggleSound, onToggleLanguage, onEraseData, pcControlsMode, onChangeControlsMode }: TitleScreenProps) {
+   const t = TEXT[language];
+   const isMobile = useMediaQuery('(pointer: coarse)');
+   const { canInstall, promptInstall } = usePWAInstall();
+@@ -138,8 +141,10 @@ export function TitleScreen({ hasSavedGame, savedDestinyName, onStartNewGame, on
+   };
+ 
+   const confirmSave = (slot: number) => {
+-    if (slot === 1 && hasSavedGame) onContinueGame();
+-    else showToast(t.empty);
++    const entry = slots[slot - 1];
++    if (!entry) showToast(t.empty);
++    else if (entry.gameOver) showToast(t.gameOver);
++    else onContinueGame(slot);
+   };
+ 
+   useEffect(() => {
+@@ -163,7 +168,7 @@ export function TitleScreen({ hasSavedGame, savedDestinyName, onStartNewGame, on
+     document.addEventListener('keydown', onKey);
+     return () => document.removeEventListener('keydown', onKey);
+     // eslint-disable-next-line react-hooks/exhaustive-deps
+-  }, [saveOpen, panel, selected, selectedSave, hasSavedGame, onContinueGame, onStartNewGame, language, installMode, canInstall, standalone]);
++  }, [saveOpen, panel, selected, selectedSave, hasSavedGame, slots, onContinueGame, onStartNewGame, language, installMode, canInstall, standalone]);
+ 
+   return (
+     <div className={`ts-root${quick ? ' ts-quick' : ''}`}>
+@@ -253,18 +258,47 @@ export function TitleScreen({ hasSavedGame, savedDestinyName, onStartNewGame, on
+           <img className="ts-save-art" src={saveArt} alt="" />
+           <div className="ts-save-list">
+             {Array.from({ length: SLOT_COUNT }, (_, i) => {
+-              const filled = i === 0 && hasSavedGame;
++              const entry = slots[i];
++              const filled = Boolean(entry);
+               return (
+-                <button
+-                  key={i}
+-                  type="button"
+-                  className={`ts-save-option${i === selectedSave ? ' active' : ''}${filled ? '' : ' empty'}`}
+-                  onMouseEnter={() => setSelectedSave(i)}
+-                  onClick={() => { setSelectedSave(i); confirmSave(i + 1); }}
+-                >
+-                  {t.save(i + 1)}
+-                  {filled && savedDestinyName && <small>{savedDestinyName}</small>}
+-                </button>
++                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
++                  <button
++                    type="button"
++                    style={{ flex: 1 }}
++                    className={`ts-save-option${i === selectedSave ? ' active' : ''}${filled ? '' : ' empty'}`}
++                    onMouseEnter={() => setSelectedSave(i)}
++                    onClick={() => { setSelectedSave(i); confirmSave(i + 1); }}
++                  >
++                    {entry ? entry.name : t.save(i + 1)}
++                  </button>
++                  {entry && (
++                    <>
++                      <button
++                        type="button"
++                        className="ts-save-option"
++                        style={{ width: 'auto', padding: '0 10px' }}
++                        aria-label={t.rename}
++                        title={t.rename}
++                        onClick={() => {
++                          const name = window.prompt(t.renamePrompt, entry.name);
++                          if (name && name.trim()) onRenameSlot(i + 1, name.trim().slice(0, 24));
++                        }}
++                      >
++                        ✎
++                      </button>
++                      <button
++                        type="button"
++                        className="ts-save-option"
++                        style={{ width: 'auto', padding: '0 10px' }}
++                        aria-label={t.del}
++                        title={t.del}
++                        onClick={() => { if (window.confirm(t.confirmDelete)) onDeleteSlot(i + 1); }}
++                      >
++                        ✕
++                      </button>
++                    </>
++                  )}
++                </div>
+               );
+             })}
+           </div>
+diff --git a/src/core/saveSlots.ts b/src/core/saveSlots.ts
+new file mode 100644
+index 0000000..af2f121
+--- /dev/null
++++ b/src/core/saveSlots.ts
+@@ -0,0 +1,209 @@
++/**
++ * BLV — Sauvegardes multiples (5 emplacements), stockées uniquement sur l'appareil du joueur.
++ * Chaque emplacement est écrit à deux endroits indépendants (localStorage + IndexedDB) :
++ * si l'un échoue (quota, navigation privée…), l'autre garde la partie. À la lecture, on garde le plus récent.
++ * Les clés commencent par « blv_ » : la purge RGPD (storage.ts) les efface avec le reste.
++ */
++
++import { PlayerState } from '../types/game';
++import { openDB, STORE_NAME, SAVE_KEY, LOCAL_FALLBACK_KEY } from './storage';
++
++export const SLOT_COUNT = 5;
++
++export interface SavePosition {
++  x: number;
++  z: number;
++  rotY: number;
++}
++
++export interface SaveSlot {
++  /** Nom affiché dans l'écran « Continuer » (modifiable par le joueur). */
++  name: string;
++  /** Date de la dernière sauvegarde (ms depuis 1970). */
++  savedAt: number;
++  state: PlayerState;
++  /** Dernière position connue dehors (si le joueur était dans un intérieur : devant la porte). */
++  position?: SavePosition;
++}
++
++export type SlotList = (SaveSlot | null)[];
++
++const lsKey = (slot: number) => `blv_slot_${slot}`;
++const idbKey = (slot: number) => `slot_${slot}`;
++
++function isValidSlot(v: unknown): v is SaveSlot {
++  const s = v as SaveSlot | null;
++  return Boolean(s && typeof s === 'object' && s.state && s.state.destiny && typeof s.savedAt === 'number');
++}
++
++function cleanPosition(p: unknown): SavePosition | undefined {
++  const q = p as SavePosition | undefined;
++  if (q && Number.isFinite(q.x) && Number.isFinite(q.z)) {
++    return { x: q.x, z: q.z, rotY: Number.isFinite(q.rotY) ? q.rotY : 0 };
++  }
++  return undefined;
++}
++
++export function defaultSlotName(state: PlayerState): string {
++  return (state.playerName && state.playerName.trim()) || state.destiny.name;
++}
++
++export function makeSlot(state: PlayerState, name: string, position?: SavePosition): SaveSlot {
++  return { name, savedAt: Date.now(), state, position: cleanPosition(position) };
++}
++
++function readLocal(slot: number): SaveSlot | null {
++  try {
++    if (typeof localStorage === 'undefined') return null;
++    const raw = localStorage.getItem(lsKey(slot));
++    if (!raw) return null;
++    const v = JSON.parse(raw);
++    return isValidSlot(v) ? v : null;
++  } catch {
++    return null;
++  }
++}
++
++/** Ancienne sauvegarde unique (avant les emplacements) : reprise dans l'emplacement 1 si celui-ci est vide. */
++function migrateLegacyLocal(): void {
++  try {
++    if (typeof localStorage === 'undefined') return;
++    const raw = localStorage.getItem(LOCAL_FALLBACK_KEY);
++    if (!raw) return;
++    if (!readLocal(1)) {
++      const st = JSON.parse(raw) as PlayerState;
++      if (st && st.destiny) {
++        localStorage.setItem(lsKey(1), JSON.stringify(makeSlot(st, defaultSlotName(st))));
++      }
++    }
++    localStorage.removeItem(LOCAL_FALLBACK_KEY);
++  } catch {
++    // migration au mieux
++  }
++}
++
++/** Lecture rapide (localStorage) pour l'affichage immédiat. */
++export function loadSlotsSync(): SlotList {
++  migrateLegacyLocal();
++  return Array.from({ length: SLOT_COUNT }, (_, i) => readLocal(i + 1));
++}
++
++/** Lecture complète : fusionne localStorage et IndexedDB, garde le plus récent de chaque emplacement. */
++export async function loadSlotsAsync(): Promise<SlotList> {
++  const local = loadSlotsSync();
++  try {
++    const db = await openDB();
++    const result = await new Promise<SlotList>((resolve, reject) => {
++      const tx = db.transaction(STORE_NAME, 'readonly');
++      const store = tx.objectStore(STORE_NAME);
++      const reqs = Array.from({ length: SLOT_COUNT }, (_, i) => store.get(idbKey(i + 1)));
++      const legacyReq = store.get(SAVE_KEY);
++      tx.oncomplete = () => {
++        const merged: SlotList = reqs.map((r, i) => {
++          const fromDb = isValidSlot(r.result) ? (r.result as SaveSlot) : null;
++          const fromLs = local[i];
++          if (fromDb && fromLs) return fromDb.savedAt >= fromLs.savedAt ? fromDb : fromLs;
++          return fromDb || fromLs;
++        });
++        const legacy = legacyReq.result as PlayerState | undefined;
++        if (!merged[0] && legacy && legacy.destiny) {
++          merged[0] = makeSlot(legacy, defaultSlotName(legacy));
++        }
++        resolve(merged);
++      };
++      tx.onerror = () => reject(tx.error);
++      tx.onabort = () => reject(tx.error);
++    });
++    db.close();
++    // Ancienne sauvegarde IndexedDB reprise : on la retire pour qu'elle ne revienne pas après suppression.
++    if (result[0]) {
++      void writeSlot(1, result[0]).then(() => removeLegacyIdb());
++    }
++    return result;
++  } catch {
++    return local;
++  }
++}
++
++async function removeLegacyIdb(): Promise<void> {
++  try {
++    const db = await openDB();
++    await new Promise<void>((resolve) => {
++      const tx = db.transaction(STORE_NAME, 'readwrite');
++      tx.objectStore(STORE_NAME).delete(SAVE_KEY);
++      tx.oncomplete = () => resolve();
++      tx.onerror = () => resolve();
++    });
++    db.close();
++  } catch {
++    // au mieux
++  }
++}
++
++/** Écrit un emplacement aux deux endroits, indépendamment. Renvoie vrai si au moins un a réussi. */
++export async function writeSlot(slot: number, data: SaveSlot): Promise<boolean> {
++  let ok = false;
++  try {
++    if (typeof localStorage !== 'undefined') {
++      localStorage.setItem(lsKey(slot), JSON.stringify(data));
++      ok = true;
++    }
++  } catch {
++    // quota ou stockage bloqué : IndexedDB prend le relais
++  }
++  try {
++    const db = await openDB();
++    await new Promise<void>((resolve, reject) => {
++      const tx = db.transaction(STORE_NAME, 'readwrite');
++      tx.objectStore(STORE_NAME).put(data, idbKey(slot));
++      tx.oncomplete = () => resolve();
++      tx.onerror = () => reject(tx.error);
++      tx.onabort = () => reject(tx.error);
++    });
++    db.close();
++    ok = true;
++  } catch {
++    // localStorage garde la partie si disponible
++  }
++  return ok;
++}
++
++export async function deleteSlot(slot: number): Promise<void> {
++  try {
++    if (typeof localStorage !== 'undefined') localStorage.removeItem(lsKey(slot));
++  } catch {
++    // au mieux
++  }
++  try {
++    const db = await openDB();
++    await new Promise<void>((resolve) => {
++      const tx = db.transaction(STORE_NAME, 'readwrite');
++      tx.objectStore(STORE_NAME).delete(idbKey(slot));
++      tx.oncomplete = () => resolve();
++      tx.onerror = () => resolve();
++    });
++    db.close();
++  } catch {
++    // au mieux
++  }
++}
++
++/** Premier emplacement vide ; s'ils sont tous pleins, le moins récent (il sera remplacé). */
++export function pickSlotForNewGame(slots: SlotList): { slot: number; replaces: boolean } {
++  const free = slots.findIndex((s) => !s);
++  if (free >= 0) return { slot: free + 1, replaces: false };
++  let oldest = 0;
++  slots.forEach((s, i) => {
++    if (s && slots[oldest] && s.savedAt < slots[oldest]!.savedAt) oldest = i;
++  });
++  return { slot: oldest + 1, replaces: true };
++}
++
++/** Sauvegarde la plus récente que l'on peut reprendre (partie non terminée). */
++export function mostRecentPlayable(slots: SlotList): { slot: number; data: SaveSlot } | null {
++  let best: { slot: number; data: SaveSlot } | null = null;
++  slots.forEach((s, i) => {
++    if (s && !s.state.isGameOver && (!best || s.savedAt > best.data.savedAt)) best = { slot: i + 1, data: s };
++  });
++  return best;
++}
+diff --git a/src/core/storage.ts b/src/core/storage.ts
+index 9083b94..b06ea50 100644
+--- a/src/core/storage.ts
++++ b/src/core/storage.ts
+@@ -6,11 +6,11 @@ import { PlayerState } from '../types/game';
+ 
+ const DB_NAME = 'blv_db';
+ const DB_VERSION = 1;
+-const STORE_NAME = 'saves';
+-const SAVE_KEY = 'current_player_state';
+-const LOCAL_FALLBACK_KEY = 'blv_save_v3';
++export const STORE_NAME = 'saves';
++export const SAVE_KEY = 'current_player_state';
++export const LOCAL_FALLBACK_KEY = 'blv_save_v3';
+ 
+-function openDB(): Promise<IDBDatabase> {
++export function openDB(): Promise<IDBDatabase> {
+   return new Promise((resolve, reject) => {
+     if (typeof indexedDB === 'undefined') {
+       reject(new Error('IndexedDB unavailable'));

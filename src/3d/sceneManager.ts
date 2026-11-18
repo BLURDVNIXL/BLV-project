@@ -933,7 +933,8 @@ export class AbidjanSceneManager {
     homeType: HomeType = 'studio',
     seedKey = 'blv_default',
     preferredDistrict?: string,
-    destinyId?: string
+    destinyId?: string,
+    restorePos?: { x: number; z: number; rotY?: number }
   ): HouseLot | null {
     this.isSuperstar = isSuperstar;
     this.mysticBaraka = mysticBaraka;
@@ -952,6 +953,7 @@ export class AbidjanSceneManager {
         seedKey,
         preferredDistrict,
         destinyId,
+        restorePos,
       ];
       this.playerX = spawnX;
       this.playerZ = spawnZ;
@@ -1082,6 +1084,16 @@ export class AbidjanSceneManager {
 
     // Pre-warm chunks immediately around spawn
     this.streamer?.update(porch.x, porch.z, 9);
+
+    // 6. Reprise d'une sauvegarde : on replace le joueur là où il s'était arrêté (au lieu du perron)
+    if (restorePos) {
+      this.teleportPlayer(restorePos.x, restorePos.z);
+      if (restorePos.rotY !== undefined) {
+        this.playerRotY = restorePos.rotY;
+        this.playerRig.group.rotation.y = restorePos.rotY;
+        core.faceCharacter(this.playerCharId, restorePos.rotY, true);
+      }
+    }
 
     return lot;
   }

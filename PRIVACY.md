@@ -3,7 +3,7 @@
 ## Données traitées
 
 1. **Sauvegarde locale (navigateur)** :
-   - `localStorage` : clé `blv_save_v3` (état de partie solo/session).
+   - `localStorage` et IndexedDB : 5 emplacements de sauvegarde (clés `blv_slot_1` à `blv_slot_5`, état de partie et position du joueur).
    - `IndexedDB` : base `blv_db` (sauvegarde asynchrone).
    - Cache PWA : caches préfixés `blv` / `workbox` pour le fonctionnement hors-ligne.
 2. **Données serveur (SQLite `blv_world.sqlite`)** :

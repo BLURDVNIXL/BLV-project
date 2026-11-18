@@ -7,9 +7,12 @@ import saveArt from '../assets/save-background.jpeg';
 
 interface TitleScreenProps {
   hasSavedGame: boolean;
-  savedDestinyName?: string;
+  /** Les 5 emplacements de sauvegarde (null = vide). */
+  slots: ({ name: string; gameOver: boolean } | null)[];
   onStartNewGame: () => void;
-  onContinueGame: () => void;
+  onContinueGame: (slot: number) => void;
+  onRenameSlot: (slot: number, name: string) => void;
+  onDeleteSlot: (slot: number) => void;
   language?: 'fr' | 'en';
   showHud: boolean;
   onToggleHud: () => void;
@@ -30,7 +33,7 @@ const TEXT = {
   fr: {
     new: 'Nouvelle partie', continue: 'Continuer', settings: 'Paramètres', trophies: 'Trophées', quit: 'Quitter', install: 'Installer',
     soon: 'Option bientôt disponible', back: 'Retour', backToMenu: 'Retour au menu principal',
-    save: (n: number) => `Sauvegarde ${n}`, empty: 'Emplacement vide',
+    save: (n: number) => `Sauvegarde ${n}`, empty: 'Emplacement vide', gameOver: 'Partie terminée', rename: 'Renommer', renamePrompt: 'Nom de la sauvegarde', del: 'Supprimer', confirmDelete: 'Supprimer cette sauvegarde ?',
     quitHint: 'Tu peux fermer cette fenêtre pour quitter le jeu',
     quitApp: 'Ferme l’app depuis ton téléphone (glisse vers le haut)',
     installHint: 'Menu du navigateur → « Ajouter à l’écran d’accueil »',
@@ -43,7 +46,7 @@ const TEXT = {
   en: {
     new: 'New game', continue: 'Continue', settings: 'Settings', trophies: 'Trophies', quit: 'Quit', install: 'Install',
     soon: 'Option coming soon', back: 'Back', backToMenu: 'Back to main menu',
-    save: (n: number) => `Save ${n}`, empty: 'Empty slot',
+    save: (n: number) => `Save ${n}`, empty: 'Empty slot', gameOver: 'Game over', rename: 'Rename', renamePrompt: 'Save name', del: 'Delete', confirmDelete: 'Delete this save?',
     quitHint: 'You can close this window to quit the game',
     quitApp: 'Close the app from your phone (swipe up)',
     installHint: 'Browser menu → “Add to Home screen”',
@@ -71,11 +74,11 @@ function isStandaloneApp(): boolean {
 
 /**
  * Écran de démarrage « borne d'arcade » : le menu s'affiche sur l'écran CRT de la borne.
- * « Continuer » ouvre l'écran des sauvegardes (5 emplacements ; seul le 1 est relié à la sauvegarde unique du jeu).
+ * « Continuer » ouvre l'écran des sauvegardes (5 emplacements, chacun affiché par son nom modifiable).
  * Dernière entrée : sur mobile dans le navigateur « Installer » (installe la PWA) ; dans la PWA installée, et sur ordinateur, « Quitter ».
  * Clavier : ↑/↓ choisir, Entrée valider, Échap ou Retour arrière revenir.
  */
-export function TitleScreen({ hasSavedGame, savedDestinyName, onStartNewGame, onContinueGame, language = 'fr', showHud, onToggleHud, isMuted, onToggleSound, onToggleLanguage, onEraseData, pcControlsMode, onChangeControlsMode }: TitleScreenProps) {
+export function TitleScreen({ hasSavedGame, slots, onStartNewGame, onContinueGame, onRenameSlot, onDeleteSlot, language = 'fr', showHud, onToggleHud, isMuted, onToggleSound, onToggleLanguage, onEraseData, pcControlsMode, onChangeControlsMode }: TitleScreenProps) {
   const t = TEXT[language];
   const isMobile = useMediaQuery('(pointer: coarse)');
   const { canInstall, promptInstall } = usePWAInstall();
@@ -138,8 +141,10 @@ export function TitleScreen({ hasSavedGame, savedDestinyName, onStartNewGame, on
   };
 
   const confirmSave = (slot: number) => {
-    if (slot === 1 && hasSavedGame) onContinueGame();
-    else showToast(t.empty);
+    const entry = slots[slot - 1];
+    if (!entry) showToast(t.empty);
+    else if (entry.gameOver) showToast(t.gameOver);
+    else onContinueGame(slot);
   };
 
   useEffect(() => {
@@ -163,7 +168,7 @@ export function TitleScreen({ hasSavedGame, savedDestinyName, onStartNewGame, on
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [saveOpen, panel, selected, selectedSave, hasSavedGame, onContinueGame, onStartNewGame, language, installMode, canInstall, standalone]);
+  }, [saveOpen, panel, selected, selectedSave, hasSavedGame, slots, onContinueGame, onStartNewGame, language, installMode, canInstall, standalone]);
 
   return (
     <div className={`ts-root${quick ? ' ts-quick' : ''}`}>
@@ -253,18 +258,47 @@ export function TitleScreen({ hasSavedGame, savedDestinyName, onStartNewGame, on
           <img className="ts-save-art" src={saveArt} alt="" />
           <div className="ts-save-list">
             {Array.from({ length: SLOT_COUNT }, (_, i) => {
-              const filled = i === 0 && hasSavedGame;
+              const entry = slots[i];
+              const filled = Boolean(entry);
               return (
-                <button
-                  key={i}
-                  type="button"
-                  className={`ts-save-option${i === selectedSave ? ' active' : ''}${filled ? '' : ' empty'}`}
-                  onMouseEnter={() => setSelectedSave(i)}
-                  onClick={() => { setSelectedSave(i); confirmSave(i + 1); }}
-                >
-                  {t.save(i + 1)}
-                  {filled && savedDestinyName && <small>{savedDestinyName}</small>}
-                </button>
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <button
+                    type="button"
+                    style={{ flex: 1 }}
+                    className={`ts-save-option${i === selectedSave ? ' active' : ''}${filled ? '' : ' empty'}`}
+                    onMouseEnter={() => setSelectedSave(i)}
+                    onClick={() => { setSelectedSave(i); confirmSave(i + 1); }}
+                  >
+                    {entry ? entry.name : t.save(i + 1)}
+                  </button>
+                  {entry && (
+                    <>
+                      <button
+                        type="button"
+                        className="ts-save-option"
+                        style={{ width: 'auto', padding: '0 10px' }}
+                        aria-label={t.rename}
+                        title={t.rename}
+                        onClick={() => {
+                          const name = window.prompt(t.renamePrompt, entry.name);
+                          if (name && name.trim()) onRenameSlot(i + 1, name.trim().slice(0, 24));
+                        }}
+                      >
+                        ✎
+                      </button>
+                      <button
+                        type="button"
+                        className="ts-save-option"
+                        style={{ width: 'auto', padding: '0 10px' }}
+                        aria-label={t.del}
+                        title={t.del}
+                        onClick={() => { if (window.confirm(t.confirmDelete)) onDeleteSlot(i + 1); }}
+                      >
+                        ✕
+                      </button>
+                    </>
+                  )}
+                </div>
               );
             })}
           </div>

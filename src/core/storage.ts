@@ -6,11 +6,11 @@ import { PlayerState } from '../types/game';
 
 const DB_NAME = 'blv_db';
 const DB_VERSION = 1;
-const STORE_NAME = 'saves';
-const SAVE_KEY = 'current_player_state';
-const LOCAL_FALLBACK_KEY = 'blv_save_v3';
+export const STORE_NAME = 'saves';
+export const SAVE_KEY = 'current_player_state';
+export const LOCAL_FALLBACK_KEY = 'blv_save_v3';
 
-function openDB(): Promise<IDBDatabase> {
+export function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     if (typeof indexedDB === 'undefined') {
       reject(new Error('IndexedDB unavailable'));
