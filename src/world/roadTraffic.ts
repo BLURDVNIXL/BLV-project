@@ -5,7 +5,7 @@
  * BLV 
  * Trafic sur les grands axes d'Abidjan : des voitures apparaissent autour du joueur, suivent l'axe
  * (conduite à droite), gardent leurs distances et disparaissent quand elles s'éloignent.
- * Le trafic est local à chaque client (décor vivant) : il n'est pas synchronisé en multijoueur.
+ * Le trafic est un décor vivant, purement local.
  */
 
 import { PhysicsCore, VehicleState, createVehicleState } from '../physics/PhysicsCore';

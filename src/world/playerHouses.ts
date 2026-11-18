@@ -37,7 +37,7 @@ export {
   type HouseSpec,
 };
 
-/** Descripteur autonome prévu pour réactiver ultérieurement les visites multijoueur. */
+/** Descripteur autonome d'une maison (conservé : utile si les visites sont réintroduites). */
 export interface HouseDescriptor {
   destinyId: string;
   homeType: HomeType;

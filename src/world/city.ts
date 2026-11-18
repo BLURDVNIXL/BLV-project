@@ -4,7 +4,7 @@
  *
  * BLV
  * Générateur déterministe de la ville d'Abidjan, par chunks de 64 m.
- * Mêmes entrées => mêmes bâtiments chez tous les joueurs (indispensable au multijoueur).
+ * Mêmes entrées => mêmes bâtiments (génération déterministe).
  *
  * Conventions : x est, z sud. Un angle « physique » a définit les axes e1 = (cos a, sin a), e2 = (-sin a, cos a).
  * Pour un objet Three.js, rotation.y = -a.
@@ -408,7 +408,7 @@ function buildWater(out: ChunkData, x0: number, z0: number): void {
   }
 }
 
-// ───────────── Parcelles de maisons (multijoueur) ─────────────
+// ───────────── Parcelles de maisons ─────────────
 
 /**
  * Choisit de façon déterministe une parcelle pour un logement donné.
