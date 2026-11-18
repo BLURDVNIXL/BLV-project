@@ -35,7 +35,21 @@ import {
   useToilet,
 } from './core/simulation';
 import { DISTRICTS } from './world/abidjanGeography';
-import { loadGameStateAsync, loadGameStateSync, saveGameStateAsync, purgeAllDataRGPD } from './core/storage';
+import { purgeAllDataRGPD } from './core/storage';
+import {
+  SLOT_COUNT,
+  type SavePosition,
+  type SaveSlot,
+  type SlotList,
+  defaultSlotName,
+  deleteSlot,
+  loadSlotsAsync,
+  loadSlotsSync,
+  makeSlot,
+  mostRecentPlayable,
+  pickSlotForNewGame,
+  writeSlot,
+} from './core/saveSlots';
 import { initWasmCore } from './wasm/wasmBridge';
 import { AbidjanSceneManager, CityHotspot, RadarSnapshot } from './3d/sceneManager';
 import { soundEngine } from './audio/soundEngine';
@@ -62,8 +76,18 @@ export default function App() {
   const isAutostart =
     typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('autostart') === '1';
 
-  const initialSaved = loadGameStateSync();
-  const [hasSavedGame, setHasSavedGame] = useState<boolean>(Boolean(initialSaved && !initialSaved.isGameOver));
+  // Sauvegardes multiples : lues une seule fois au démarrage (plus à chaque rendu).
+  const initialSlotsRef = useRef<SlotList | null>(null);
+  if (initialSlotsRef.current === null) initialSlotsRef.current = loadSlotsSync();
+  const initialRecent = mostRecentPlayable(initialSlotsRef.current);
+  const initialSaved = initialRecent ? initialRecent.data.state : null;
+  const [slots, setSlots] = useState<SlotList>(initialSlotsRef.current);
+  const slotsRef = useRef<SlotList>(slots);
+  slotsRef.current = slots;
+  /** Emplacement (1 à 5) de la partie en cours ; null tant qu'aucune partie n'est lancée. */
+  const activeSlotRef = useRef<number | null>(isAutostart && initialRecent ? initialRecent.slot : null);
+  const saveFailWarnedRef = useRef(false);
+  const hasSavedGame = slots.some(Boolean);
 
   const [screenState, setScreenState] = useState<GameScreenState>(() => (isAutostart ? 'playing' : 'title'));
   const [playerState, setPlayerState] = useState<PlayerState>(() => {
@@ -115,12 +139,25 @@ export default function App() {
       return 1;
     }
   });
+    const [playerModelScale, setPlayerModelScale] = useState<number>(() => {
+      localStorage.removeItem('blv_player_model_scale');
+      return 1.2;
+    });
   const handleCameraSensitivityChange = (v: number) => {
     setCameraSensitivity(v);
     try {
       localStorage.setItem('blv_camera_sensitivity', String(v));
     } catch {
       /* stockage indisponible : le réglage vaut pour la session */
+    }
+  };
+  const handlePlayerModelScaleChange = (v: number) => {
+    const next = Math.max(0.90, Math.min(1.50, v));
+    setPlayerModelScale(next);
+    try {
+      localStorage.setItem('blv_player_model_scale', String(next));
+    } catch {
+      // réglage conservé pour la session
     }
   };
   useEffect(() => {
@@ -186,10 +223,77 @@ export default function App() {
     }).catch(() => {});
   }, []);
 
+  /**
+   * Sauvegarde la partie dans son emplacement (état + position du joueur), sur l'appareil.
+   * Le serveur reçoit toujours une copie : l'économie y est validée à partir de cet état.
+   */
+  const saveNow = useCallback(
+    async (opts: { manual?: boolean; state?: PlayerState; fresh?: boolean } = {}): Promise<boolean> => {
+      const slotNo = activeSlotRef.current;
+      if (!slotNo) return false;
+      const cur = opts.state ?? playerStateRef.current;
+      const previous = opts.fresh ? null : slotsRef.current[slotNo - 1];
+      let position: SavePosition | undefined = previous?.position;
+      if (!opts.state) {
+        const snap = sceneRef.current?.getRadarSnapshot();
+        if (snap) position = { x: snap.playerX, z: snap.playerZ, rotY: snap.playerRotY };
+      }
+      const data = makeSlot(cur, previous?.name ?? defaultSlotName(cur), position);
+      slotsRef.current = slotsRef.current.map((x, i) => (i === slotNo - 1 ? data : x));
+      setSlots(slotsRef.current);
+      persistServerState(cur);
+      const ok = await writeSlot(slotNo, data);
+      const fr = cur.language === 'fr';
+      if (!ok && !saveFailWarnedRef.current) {
+        saveFailWarnedRef.current = true;
+        showToast(fr ? '⚠️ Sauvegarde impossible sur cet appareil (stockage plein ou bloqué)' : '⚠️ Cannot save on this device (storage full or blocked)');
+      }
+      if (ok) saveFailWarnedRef.current = false;
+      return ok;
+    },
+    [persistServerState, showToast]
+  );
+
+  const renameSlotName = useCallback((slotNo: number, name: string) => {
+    const cur = slotsRef.current[slotNo - 1];
+    if (!cur) return;
+    const data: SaveSlot = { ...cur, name, savedAt: Date.now() };
+    slotsRef.current = slotsRef.current.map((x, i) => (i === slotNo - 1 ? data : x));
+    setSlots(slotsRef.current);
+    void writeSlot(slotNo, data);
+  }, []);
+
+  const removeSlot = useCallback((slotNo: number) => {
+    slotsRef.current = slotsRef.current.map((x, i) => (i === slotNo - 1 ? null : x));
+    setSlots(slotsRef.current);
+    if (activeSlotRef.current === slotNo) activeSlotRef.current = null;
+    void deleteSlot(slotNo);
+  }, []);
+
+  // Sauvegarde quand la page se cache ou se ferme (changement d'appli, fermeture de l'onglet, verrouillage du téléphone)
+  useEffect(() => {
+    const onHide = () => {
+      if (screenStateRef.current === 'playing') void saveNow();
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') onHide();
+    };
+    window.addEventListener('pagehide', onHide);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.removeEventListener('pagehide', onHide);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [saveNow]);
+
   // Sensibilité de la caméra (réglages) : réappliquée aussi quand l'état change, la scène pouvant être créée après le premier rendu.
   useEffect(() => {
     sceneRef.current?.setCameraSensitivity(cameraSensitivity);
   }, [cameraSensitivity, screenState]);
+
+  useEffect(() => {
+    sceneRef.current?.setPlayerModelScale(playerModelScale);
+  }, [playerModelScale, screenState]);
 
   // Mirror state machine to document.body.dataset.state
   useEffect(() => {
@@ -212,28 +316,34 @@ export default function App() {
     initWasmCore().catch(() => {});
 
     let mounted = true;
-    loadGameStateAsync().then(async (saved) => {
+    loadSlotsAsync().then(async (merged) => {
       if (!mounted) return;
-      if (saved && !saved.isGameOver) {
-        setHasSavedGame(true);
-        if (isAutostart) {
-          setPlayerState(saved);
-          setCurrentDistrict(saved.destiny.district);
-          sceneRef.current?.spawnPlayerAtDestiny(
-            saved.destiny.spawnX,
-            saved.destiny.spawnZ,
-            saved.destiny.vehicle,
-            saved.destiny.secondaryVehicle,
-            saved.sapeOutfit,
-            Boolean(saved.destiny.realMadridSuperstar),
-            Boolean(saved.destiny.mysticBaraka),
-            saved.destiny.homeType,
-            `${saved.playerId}|${saved.destiny.id}`,
-            saved.destiny.districtId,
-            saved.destiny.id
-          );
-          sceneRef.current?.syncCribUpgrades(saved.cribUpgrades);
-        }
+      // On ne remplace pas la liste si une partie a déjà été sauvegardée entre-temps
+      if (!activeSlotRef.current || isAutostart) {
+        slotsRef.current = merged;
+        setSlots(merged);
+      }
+      const recent = mostRecentPlayable(merged);
+      const saved = recent ? recent.data.state : null;
+      if (recent && saved && isAutostart) {
+        activeSlotRef.current = recent.slot;
+        setPlayerState(saved);
+        setCurrentDistrict(saved.destiny.district);
+        sceneRef.current?.spawnPlayerAtDestiny(
+          saved.destiny.spawnX,
+          saved.destiny.spawnZ,
+          saved.destiny.vehicle,
+          saved.destiny.secondaryVehicle,
+          saved.sapeOutfit,
+          Boolean(saved.destiny.realMadridSuperstar),
+          Boolean(saved.destiny.mysticBaraka),
+          saved.destiny.homeType,
+          `${saved.playerId}|${saved.destiny.id}`,
+          saved.destiny.districtId,
+          saved.destiny.id,
+          recent.data.position
+        );
+        sceneRef.current?.syncCribUpgrades(saved.cribUpgrades);
       }
 
       const seedState = saved && !saved.isGameOver ? saved : playerStateRef.current;
@@ -488,16 +598,16 @@ export default function App() {
     }, 1000);
 
     const saveTimer = window.setInterval(() => {
-      const cur = playerStateRef.current;
-      saveGameStateAsync(cur);
-      persistServerState(cur);
+      void saveNow();
     }, 6000);
 
     return () => {
       clearInterval(timer);
       clearInterval(saveTimer);
+      // On quitte le jeu (écran titre, game over, nouveau destin) : dernière sauvegarde avec la position
+      void saveNow();
     };
-  }, [screenState, persistServerState]);
+  }, [screenState, saveNow]);
 
   const enterAbidjanWithDestiny = (destiny: Destiny, profile?: PlayerProfile) => {
     (document.activeElement as HTMLElement | null)?.blur?.();
@@ -521,8 +631,17 @@ export default function App() {
     setPlayerState(fresh);
     setCurrentDistrict(destiny.district);
     setScreenState('playing');
-    saveGameStateAsync(fresh);
-    persistServerState(fresh);
+    // Nouvelle partie : premier emplacement vide (sinon on remplace la sauvegarde la moins récente)
+    const pick = pickSlotForNewGame(slotsRef.current);
+    activeSlotRef.current = pick.slot;
+    if (pick.replaces) {
+      showToast(
+        fresh.language === 'fr'
+          ? `Toutes les sauvegardes sont pleines : la sauvegarde ${pick.slot} est remplacée`
+          : `All saves are full: save ${pick.slot} is replaced`
+      );
+    }
+    void saveNow({ state: fresh, fresh: true });
 
     sceneRef.current?.syncCribUpgrades(fresh.cribUpgrades);
     sceneRef.current?.setCameraMode('follow');
@@ -530,9 +649,12 @@ export default function App() {
     showToast(`🇨🇮 Bienvenue${profile ? ` ${profile.name}` : ''} à ${destiny.district} (${destiny.name}) !`);
   };
 
-  const handleContinueSavedGame = () => {
+  const handleContinueSavedGame = (slotNo: number) => {
     (document.activeElement as HTMLElement | null)?.blur?.();
-    const cur = initialSaved || playerState;
+    const entry = slotsRef.current[slotNo - 1];
+    if (!entry || entry.state.isGameOver) return;
+    const cur = entry.state;
+    activeSlotRef.current = slotNo;
     setPlayerState(cur);
     setCurrentDistrict(cur.destiny.district);
     setScreenState('playing');
@@ -547,11 +669,22 @@ export default function App() {
       cur.destiny.homeType,
       `${cur.playerId}|${cur.destiny.id}`,
       cur.destiny.districtId,
-      cur.destiny.id
+      cur.destiny.id,
+      entry.position
     );
     sceneRef.current?.syncCribUpgrades(cur.cribUpgrades);
     sceneRef.current?.setCameraMode('follow');
     sceneRef.current?.setPaused(false);
+    // Identité de session fraîche : le jeton de l'ancienne sauvegarde peut être refusé par le serveur
+    void initServerSession(cur).then((session) => {
+      if (!session || activeSlotRef.current !== slotNo) return;
+      setPlayerState((prev) => ({
+        ...prev,
+        playerId: session.playerId,
+        sessionToken: session.sessionToken,
+        homeLotId: session.homeLotId || prev.homeLotId,
+      }));
+    });
   };
 
   const handleToggleSound = () => {
@@ -688,9 +821,11 @@ export default function App() {
       {screenState === 'title' && (
         <TitleScreen
           hasSavedGame={hasSavedGame}
-          savedDestinyName={initialSaved?.destiny.name}
+          slots={slots.map((x) => (x ? { name: x.name, gameOver: x.state.isGameOver } : null))}
           onStartNewGame={() => setScreenState('roulette')}
           onContinueGame={handleContinueSavedGame}
+          onRenameSlot={renameSlotName}
+          onDeleteSlot={removeSlot}
           language={playerState.language}
           showHud={showHud}
           onToggleHud={() => setShowHud((v) => !v)}
@@ -706,7 +841,9 @@ export default function App() {
           }
           onEraseData={async () => {
             await purgeAllDataRGPD(playerState.playerId, playerState.sessionToken);
-            setHasSavedGame(false);
+            activeSlotRef.current = null;
+            slotsRef.current = Array.from({ length: SLOT_COUNT }, () => null);
+            setSlots(slotsRef.current);
             setIsMuted(false);
             setPlayerState(createInitialPlayerState(rollDestiny()));
           }}
@@ -809,6 +946,9 @@ export default function App() {
           playerState={playerState}
           getGpsSource={getGpsSource}
           onClose={() => setIsPhoneOpen(false)}
+          onSaveGame={() => saveNow({ manual: true })}
+          playerModelScale={playerModelScale}
+          onPlayerModelScaleChange={handlePlayerModelScaleChange}
           onEatFood={(foodId) => {
             const f = IVORIAN_FOODS.find((x) => x.id === foodId);
             if (f) {
@@ -875,7 +1015,6 @@ export default function App() {
           }
           onResetGame={() => {
             setIsSettingsOpen(false);
-            setHasSavedGame(false);
             setScreenState('title');
           }}
         />

@@ -5,9 +5,11 @@ import {
   UtensilsCrossed,
   MapPin,
   Shirt,
+  Save,
   CheckCircle,
   Wifi,
   Battery,
+  SlidersHorizontal,
 } from 'lucide-react';
 import {
   PlayerState,
@@ -35,9 +37,13 @@ interface MyOSPhoneProps {
   onEatFood: (foodId: string) => void;
   onFastTravel: (x: number, z: number, districtName: string, districtId: string) => void;
   onBuyOrEquipOutfit: (outfit: SapeOutfitId) => void;
+  /** Sauvegarde immédiate de la partie ; renvoie vrai si elle a bien été écrite. */
+  onSaveGame: () => Promise<boolean>;
+  playerModelScale: number;
+  onPlayerModelScaleChange: (value: number) => void;
 }
 
-type PhoneApp = 'home' | 'eats' | 'gps' | 'sape';
+type PhoneApp = 'home' | 'eats' | 'gps' | 'sape' | 'customisation';
 
 export const MyOSPhone: React.FC<MyOSPhoneProps> = ({
   playerState,
@@ -46,8 +52,17 @@ export const MyOSPhone: React.FC<MyOSPhoneProps> = ({
   onEatFood,
   onFastTravel,
   onBuyOrEquipOutfit,
+  onSaveGame,
+  playerModelScale,
+  onPlayerModelScaleChange,
 }) => {
   const [activeApp, setActiveApp] = useState<PhoneApp>('home');
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'ok' | 'fail'>('idle');
+  const handleSave = async () => {
+    const ok = await onSaveGame();
+    setSaveStatus(ok ? 'ok' : 'fail');
+    window.setTimeout(() => setSaveStatus('idle'), 2500);
+  };
   // GPS : la liste est relevée à chaque ouverture de l'application (la maison peut avoir été posée entre-temps).
   const [gpsList, setGpsList] = useState<GpsDestination[]>([]);
   const [gpsFrom, setGpsFrom] = useState<string | null>(null);
@@ -102,6 +117,24 @@ export const MyOSPhone: React.FC<MyOSPhoneProps> = ({
                 <AppIcon label={s.eats} icon={<UtensilsCrossed className="h-6 w-6" />} tone="sun" onClick={() => setActiveApp('eats')} />
                 <AppIcon label={s.gps} icon={<MapPin className="h-6 w-6" />} tone="lagoon" onClick={() => setActiveApp('gps')} />
                 <AppIcon label={s.sape} icon={<Shirt className="h-6 w-6" />} tone="plum" onClick={() => setActiveApp('sape')} />
+                <AppIcon
+                  label={playerState.language === 'fr' ? 'Customisation' : 'Customisation'}
+                  icon={<SlidersHorizontal className="h-6 w-6" />}
+                  tone="coral"
+                  onClick={() => setActiveApp('customisation')}
+                />
+                <AppIcon
+                  label={
+                    saveStatus === 'ok'
+                      ? playerState.language === 'fr' ? 'Sauvegardé ✓' : 'Saved ✓'
+                      : saveStatus === 'fail'
+                      ? playerState.language === 'fr' ? 'Échec' : 'Failed'
+                      : playerState.language === 'fr' ? 'Sauvegarder' : 'Save'
+                  }
+                  icon={<Save className="h-6 w-6" />}
+                  tone="palm"
+                  onClick={handleSave}
+                />
               </div>
             </div>
           )}
@@ -235,6 +268,37 @@ export const MyOSPhone: React.FC<MyOSPhoneProps> = ({
             </div>
           )}
 
+          {/* CUSTOMISATION */}
+          {activeApp === 'customisation' && (
+            <div className="flex flex-col gap-3">
+              <AppHeader title={playerState.language === 'fr' ? 'Customisation' : 'Customisation'} onBack={() => setActiveApp('home')} />
+              <div className="rounded-xl bg-cream-100 p-3 border border-cream-200">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-bold text-ink-800">
+                    {playerState.language === 'fr' ? 'Taille du modèle' : 'Model size'}
+                  </span>
+                  <span className="text-xs font-bold tabular-nums text-sun-600">
+                    {Math.round((playerModelScale / 1.20) * 100)} %
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="75"
+                  max="125"
+                  step="1"
+                  value={Math.round((playerModelScale / 1.20) * 100)}
+                  onChange={(event) => onPlayerModelScaleChange((Number(event.target.value) / 100) * 1.20)}
+                  aria-label={playerState.language === 'fr' ? 'Taille du modèle' : 'Model size'}
+                  className="w-full accent-sun-600"
+                />
+                <div className="mt-1 flex justify-between text-[10px] text-ink-500">
+                  <span>{playerState.language === 'fr' ? 'Petit' : 'Small'}</span>
+                  <span>{playerState.language === 'fr' ? 'Normal' : 'Normal'}</span>
+                  <span>{playerState.language === 'fr' ? 'Grand' : 'Large'}</span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* HOME BAR */}

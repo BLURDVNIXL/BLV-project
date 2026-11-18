@@ -198,6 +198,17 @@ Une carte plein écran permet de visualiser la ville et de consulter les lieux. 
 
 ---
 
+### Sauvegardes
+
+- 5 emplacements de sauvegarde, stockés uniquement sur l'appareil du joueur (module `src/core/saveSlots.ts`).
+- Chaque emplacement est écrit à deux endroits indépendants (`localStorage` clé `blv_slot_N` et IndexedDB clé `slot_N`) ; au chargement, la version la plus récente est retenue.
+- Sauvegarde automatique toutes les 6 secondes en jeu, à la fermeture ou au masquage de la page (`pagehide`, `visibilitychange`) et au retour à l'écran titre.
+- Bouton « Sauvegarder » dans le téléphone MyOS (sauvegarde immédiate avec confirmation).
+- La position et l'orientation du joueur sont sauvegardées : « Continuer » replace le joueur où il s'était arrêté (dans un intérieur : devant la porte).
+- L'écran « Continuer » liste les emplacements par nom (renommable) et permet de les supprimer.
+- L'ancienne sauvegarde unique (`blv_save_v3` / IndexedDB `current_player_state`) est reprise dans l'emplacement 1.
+- Le serveur reçoit toujours une copie de l'état pour valider l'économie, mais n'est plus la source des sauvegardes.
+
 ## 4. Backend
 
 Le backend est géré par `server.ts`.
