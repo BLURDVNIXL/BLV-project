@@ -26,7 +26,7 @@ import { generateAppearance, type NpcRole } from '../world/npcAppearance';
 import {
   NPC_CROWD_CAPACITY, NPC_DESPAWN_DIST, NPC_FAR_AI_DIST, NPC_MARKET_DIST, NPC_POOL_SIZE, NPC_SPAWN_MAX, NPC_SPAWN_MIN,
 } from '../world/budgets';
-import { bridgeAt } from '../world/roads';
+import { bridgeAt, roadAt } from '../world/roads';
 import { NpcCrowd, type NpcHandle } from './npcInstances';
 
 /** Budgets (nombre, distances, fréquence d'IA, capacité) : tous réglés dans `src/world/budgets.ts`. */
@@ -275,32 +275,41 @@ export class NpcSystem {
   }
 
   private findDrySpotNear(px: number, pz: number, minR: number, maxR: number): { x: number; z: number } | null {
-    for (let attempt = 0; attempt < 16; attempt++) {
+    let fallback: { x: number; z: number } | null = null;
+    for (let attempt = 0; attempt < 18; attempt++) {
       const a = this.nextRand() * Math.PI * 2;
       const r = minR + this.nextRand() * (maxR - minR);
       const x = px + Math.cos(a) * r;
       const z = pz + Math.sin(a) * r;
-      if (this.isDry(x, z) && !this.insideHall(x, z)) return { x, z };
+      if (!this.isDry(x, z) || this.insideHall(x, z)) continue;
+      this.pt.x = x;
+      this.pt.z = z;
+      if (roadAt(this.pt) !== 'none') return { x, z };
+      if (!fallback) fallback = { x, z };
     }
-    return null;
+    return fallback;
   }
 
-  /** Point d'apparition à 18–78 m du joueur, de préférence hors du champ de la caméra. */
+  /** Point d'apparition autour du joueur, en privilégiant les rues et trottoirs. */
   private findSpawnSpot(px: number, pz: number, camYaw: number): { x: number; z: number } | null {
     const fx = -Math.sin(camYaw);
     const fz = -Math.cos(camYaw);
-    for (let attempt = 0; attempt < 20; attempt++) {
+    let fallback: { x: number; z: number } | null = null;
+    for (let attempt = 0; attempt < 24; attempt++) {
       const a = this.nextRand() * Math.PI * 2;
       const r = SPAWN_MIN + this.nextRand() * (SPAWN_MAX - SPAWN_MIN);
       const ca = Math.cos(a);
       const sa = Math.sin(a);
-      // Les 14 premiers essais refusent le cône de vue ; les suivants l'acceptent (mieux vaut un PNJ visible que pas de PNJ)
-      if (attempt < 14 && ca * fx + sa * fz > VIEW_COS) continue;
+      if (attempt < 6 && r < 24 && ca * fx + sa * fz > VIEW_COS) continue;
       const x = px + ca * r;
       const z = pz + sa * r;
-      if (this.isDry(x, z) && !this.insideHall(x, z)) return { x, z };
+      if (!this.isDry(x, z) || this.insideHall(x, z)) continue;
+      this.pt.x = x;
+      this.pt.z = z;
+      if (roadAt(this.pt) !== 'none') return { x, z };
+      if (!fallback) fallback = { x, z };
     }
-    return null;
+    return fallback;
   }
 
   // ───────────── Pool ─────────────

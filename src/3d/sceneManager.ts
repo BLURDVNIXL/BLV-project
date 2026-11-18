@@ -38,6 +38,7 @@ import { NPC_POOL_SIZE, NPC_POOL_SIZE_LOW } from '../world/budgets';
 import { NpcSystem } from './npcSystem';
 import { WeatherFxSystem, weatherFxMode } from './weatherFx';
 import { WaterTrafficSystem } from './waterTraffic';
+import { StreetAnimSystem } from './streetAnim';
 import { AvatarController, loadAvatar } from './avatars';
 import { getWasmCore } from '../wasm/wasmBridge';
 import {
@@ -227,6 +228,7 @@ export class AbidjanSceneManager {
   private animalSystem!: AnimalSystem;
   private weatherFx!: WeatherFxSystem;
   private waterTraffic!: WaterTrafficSystem;
+  private streetAnim!: StreetAnimSystem;
 
   private lagoonWaterHandle!: AnimatedWaterHandle;
   /** Dôme de ciel (null sur rendu logiciel : le fond uni est alors utilisé). */
@@ -474,6 +476,7 @@ export class AbidjanSceneManager {
     this.animalSystem = new AnimalSystem(this.scene, this.isSoftwareGl);
     this.weatherFx = new WeatherFxSystem(this.scene, this.isSoftwareGl);
     this.waterTraffic = new WaterTrafficSystem(this.scene, this.isSoftwareGl);
+    this.streetAnim = new StreetAnimSystem(this.scene, this.isSoftwareGl);
     this.initDebugOverlay();
 
     // 3. Player Character Rig
@@ -797,7 +800,7 @@ export class AbidjanSceneManager {
       );
 
       // Spawn AI Traffic cars via roadTraffic.ts
-      const trafficCount = this.isSoftwareGl ? 4 : 8;
+      const trafficCount = this.isSoftwareGl ? 5 : 12;
       for (let t = 0; t < trafficCount; t++) {
         const vType: VehicleModelType =
           t % 4 === 0 ? 'gbaka' : t % 4 === 1 ? 'woro_woro' : t % 4 === 2 ? 'berline_citadine' : 'police_plcc';
@@ -2204,6 +2207,7 @@ export class AbidjanSceneManager {
       fxDistId
     );
     this.waterTraffic.update(fxDt, nowSec, fxFocusX, fxFocusZ, this.activeInterior === null);
+    this.streetAnim.update(nowSec, fxFocusX, fxFocusZ, this.activeInterior === null, this.weather === 'pluie' || this.weather === 'inondation', this.currentMood === 'night');
 
     // 4. Title / Roulette Flyover Mode over Le Plateau & Lagune Ébrié
     if (this.cameraMode === 'flyover') {
@@ -2548,6 +2552,7 @@ export class AbidjanSceneManager {
     this.animalSystem.dispose();
     this.weatherFx.dispose();
     this.waterTraffic.dispose();
+    this.streetAnim.dispose();
     this.debugEl?.remove();
     this.debugEl = null;
     this.renderer.dispose();

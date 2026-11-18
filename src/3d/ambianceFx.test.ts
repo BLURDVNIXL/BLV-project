@@ -66,3 +66,29 @@ test('maquis et marché d Adjamé incluent le mobilier enrichi (brasero, taboure
   const market = createMarketStallCluster();
   assert.ok(market.children.length >= 24, `marché enfants=${market.children.length}`);
 });
+
+import * as THREE from 'three';
+import { StreetAnimSystem } from './streetAnim';
+
+test('StreetAnimSystem crée oiseaux, papillons et feux tricolores sans erreur', () => {
+  const scene = new THREE.Scene();
+  const sys = new StreetAnimSystem(scene, false);
+  assert.ok(scene.children.length >= 16, `enfants StreetAnimSystem=${scene.children.length}`);
+  sys.update(3.5, 0, 0, true, false, false);
+  sys.update(8.2, 0, 0, true, true, true);
+  sys.dispose();
+  assert.equal(scene.children.length, 0);
+});
+
+test('terrain Abobo rue locale : trottoir, bordure et passage piéton distincts', () => {
+  const abobo = project(5.415, -4.02);
+  const ctx = prepareTerrain(chunkOf(abobo.x), chunkOf(abobo.z));
+  const colors = new Set<string>();
+  for (let dx = -30; dx <= 30; dx += 2) {
+    for (let dz = -30; dz <= 30; dz += 2) {
+      const rgb = groundColor(ctx, { x: abobo.x + dx, z: abobo.z + dz });
+      colors.add(rgb.map((c) => Math.round(c / 20)).join(','));
+    }
+  }
+  assert.ok(colors.size >= 3, `variété de couleurs sol Abobo=${colors.size}`);
+});

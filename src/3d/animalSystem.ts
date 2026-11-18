@@ -597,17 +597,29 @@ export class AnimalSystem {
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
   }
 
+  private streetFlockCenter: PigeonPlace | null = null;
+
   private updatePigeons(dt: number, px: number, pz: number): void {
-    // Place la plus proche dans le rayon d'activation
+    // Place emblématique proche, ou volée de quartier autour du joueur
     let best: PigeonPlace | null = null;
     let bestD = PIGEON_ACTIVE_DIST;
     for (const pl of this.places) {
       const d = Math.hypot(pl.x - px, pl.z - pz);
       if (d < bestD) { bestD = d; best = pl; }
     }
-    if (best !== this.pigeonPlace) {
+    if (!best) {
+      if (!this.streetFlockCenter || Math.hypot(this.streetFlockCenter.x - px, this.streetFlockCenter.z - pz) > 58) {
+        const ang = this.rand() * Math.PI * 2;
+        const dist = 16 + this.rand() * 14;
+        this.streetFlockCenter = { x: px + Math.cos(ang) * dist, z: pz + Math.sin(ang) * dist, r: 2 };
+        this.hidePigeons();
+        this.spawnPigeons(this.streetFlockCenter);
+      }
+      best = this.streetFlockCenter;
+    } else if (best !== this.pigeonPlace) {
+      this.streetFlockCenter = null;
       this.hidePigeons();
-      if (best) this.spawnPigeons(best);
+      this.spawnPigeons(best);
     }
     if (!this.pigeonPlace) return;
 

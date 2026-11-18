@@ -9,7 +9,7 @@
 import { generateChunk } from './city';
 import { bakeGround } from './terrain';
 
-const GROUND_SIZE = 96;
+const GROUND_SIZE = 192;
 let reserved = new Set<string>();
 
 self.onmessage = (e: MessageEvent<{ type: 'init'; reserved: string[] } | { type: 'chunk'; id: number; cx: number; cz: number }>) => {

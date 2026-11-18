@@ -11,7 +11,7 @@ import { ChunkData } from './city';
 import { generateChunk } from './city';
 import { bakeGround } from './terrain';
 
-export const GROUND_SIZE = 96;
+export const GROUND_SIZE = 192;
 
 export interface ChunkPayload { data: ChunkData; ground: Uint8Array }
 
