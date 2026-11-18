@@ -111,19 +111,7 @@ export function MinimapRadar({ getSnapshot, district, onOpen }: MinimapRadarProp
             }
           }
 
-          // 6. Remote online players
-          for (const r of snap.remotes) {
-            const rx = mapX(r.x);
-            const ry = mapY(r.z);
-            if (rx >= 2 && rx <= w - 2 && ry >= 2 && ry <= h - 2) {
-              ctx.fillStyle = '#22c55e';
-              ctx.beginPath();
-              ctx.arc(rx, ry, 3.2, 0, Math.PI * 2);
-              ctx.fill();
-            }
-          }
-
-          // 7. Center Player Heading Arrow (+z = South => heading 0 points down)
+          // 6. Center Player Heading Arrow (+z = South => heading 0 points down)
           ctx.save();
           ctx.translate(w / 2, h / 2);
           ctx.rotate(Math.PI - snap.playerRotY);
