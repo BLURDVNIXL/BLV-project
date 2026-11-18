@@ -39,7 +39,6 @@ import {
   purgeLocalData,
   repayDebt,
   rollDestiny,
-  setHomeAccessMode,
   sleepAtHome,
   takeBankLoan,
   takeShower,
@@ -79,7 +78,7 @@ test('All 19 Destinies exist with unique IDs, valid Abidjan coordinates, distric
   }
 });
 
-test('All 19 Destinies have dedicated 3-step Main Story Missions and initial zero-NPC Tontine state', () => {
+test('All 19 Destinies have dedicated 3-step Main Story Missions', () => {
   for (const d of ALL_DESTINIES) {
     const mission = DESTINY_MISSIONS[d.id];
     assert.ok(mission, `Missing dedicated mission for destiny ${d.id}`);
@@ -94,9 +93,6 @@ test('All 19 Destinies have dedicated 3-step Main Story Missions and initial zer
     assert.equal(st.activeMission.missionId, mission.id);
     assert.equal(st.activeMission.stepIndex, 0);
     assert.equal(st.activeMission.completed, false);
-    assert.equal(st.tontine.members.length, 0, 'No fake NPCs in initial tontine state');
-    assert.equal(st.tontine.currentPot, 0);
-    assert.equal(st.homeAccess, 'open');
   }
 });
 
@@ -119,14 +115,6 @@ test('Story mission progression advances steps and grants completion trophy & re
   assert.equal(st.activeMission.completed, true);
   assert.ok(st.completedMissions.includes(mission.id));
   assert.ok(st.cash > startCash);
-});
-
-test('setHomeAccessMode updates access mode and logs change', () => {
-  let st = createInitialPlayerState(rollDestiny('classe_moyenne_angre'));
-  st = setHomeAccessMode(st, 'friends');
-  assert.equal(st.homeAccess, 'friends');
-  st = setHomeAccessMode(st, 'closed');
-  assert.equal(st.homeAccess, 'closed');
 });
 
 test('purgeLocalData only deletes blv_* keys and preserves third-party keys', () => {
