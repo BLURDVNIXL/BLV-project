@@ -278,5 +278,14 @@
   .ts-sub h2 { margin-bottom: 4px; }
   .ts-sub button { margin-top: 4px; padding: 4px 12px; }
 }
+.ts-save-rename-input {
+  width: min(260px, 38vw); min-width: 120px; height: 38px;
+  border: 1px solid rgba(255,240,214,.7); border-radius: 4px;
+  background: rgba(20,4,0,.78); color: #fff8ed;
+  font: 800 16px/1 "Trebuchet MS", Arial, sans-serif;
+  letter-spacing: .04em; padding: 0 10px;
+  box-shadow: 0 0 14px rgba(255,100,0,.28);
+}
+.ts-save-rename-input:focus { outline: 2px solid rgba(255,180,80,.55); outline-offset: 2px; }
 
 

@@ -244,7 +244,7 @@ export default function App() {
   const renameSlotName = useCallback((slotNo: number, name: string) => {
     const cur = slotsRef.current[slotNo - 1];
     if (!cur) return;
-    const data: SaveSlot = { ...cur, name };
+    const data: SaveSlot = { ...cur, name, savedAt: Date.now() };
     slotsRef.current = slotsRef.current.map((x, i) => (i === slotNo - 1 ? data : x));
     setSlots(slotsRef.current);
     void writeSlot(slotNo, data);

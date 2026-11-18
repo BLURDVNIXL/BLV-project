@@ -91,6 +91,8 @@ export function TitleScreen({ hasSavedGame, slots, onStartNewGame, onContinueGam
   const [panel, setPanel] = useState<'menu' | 'settings' | 'trophies'>('menu');
   const [saveOpen, setSaveOpen] = useState(false);
   const [selectedSave, setSelectedSave] = useState(0);
+  const [renamingSlot, setRenamingSlot] = useState<number | null>(null);
+  const [renameName, setRenameName] = useState('');
   const [confirmErase, setConfirmErase] = useState(false);
   const [toast, setToast] = useState('');
   const [toastVisible, setToastVisible] = useState(false);
@@ -147,12 +149,29 @@ export function TitleScreen({ hasSavedGame, slots, onStartNewGame, onContinueGam
     else onContinueGame(slot);
   };
 
+  const startRename = (slot: number, currentName: string) => {
+    setRenamingSlot(slot);
+    setRenameName(currentName);
+  };
+
+  const commitRename = () => {
+    if (renamingSlot === null) return;
+    const name = renameName.trim().slice(0, 24);
+    if (name) onRenameSlot(renamingSlot, name);
+    setRenamingSlot(null);
+  };
+
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       const down = event.key === 'ArrowDown';
       const up = event.key === 'ArrowUp';
       const back = event.key === 'Escape' || event.key === 'Backspace';
       if (saveOpen) {
+        if (renamingSlot !== null) {
+          if (event.key === 'Enter') { event.preventDefault(); commitRename(); }
+          else if (event.key === 'Escape') { event.preventDefault(); setRenamingSlot(null); }
+          return;
+        }
         if (down || up) { event.preventDefault(); setSelectedSave((i) => (i + (down ? 1 : -1) + SLOT_COUNT) % SLOT_COUNT); }
         else if (event.key === 'Enter') { event.preventDefault(); confirmSave(selectedSave + 1); }
         else if (back) setSaveOpen(false);
@@ -168,7 +187,7 @@ export function TitleScreen({ hasSavedGame, slots, onStartNewGame, onContinueGam
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [saveOpen, panel, selected, selectedSave, hasSavedGame, slots, onContinueGame, onStartNewGame, language, installMode, canInstall, standalone]);
+  }, [saveOpen, panel, selected, selectedSave, hasSavedGame, slots, onContinueGame, onStartNewGame, language, installMode, canInstall, standalone, renamingSlot]);
 
   return (
     <div className={`ts-root${quick ? ' ts-quick' : ''}`}>
@@ -273,29 +292,49 @@ export function TitleScreen({ hasSavedGame, slots, onStartNewGame, onContinueGam
                   </button>
                   {entry && (
                     <>
-                      <button
-                        type="button"
-                        className="ts-save-option"
-                        style={{ width: 'auto', padding: '0 10px' }}
-                        aria-label={t.rename}
-                        title={t.rename}
-                        onClick={() => {
-                          const name = window.prompt(t.renamePrompt, entry.name);
-                          if (name && name.trim()) onRenameSlot(i + 1, name.trim().slice(0, 24));
-                        }}
-                      >
-                        ✎
-                      </button>
-                      <button
-                        type="button"
-                        className="ts-save-option"
-                        style={{ width: 'auto', padding: '0 10px' }}
-                        aria-label={t.del}
-                        title={t.del}
-                        onClick={() => { if (window.confirm(t.confirmDelete)) onDeleteSlot(i + 1); }}
-                      >
-                        ✕
-                      </button>
+                      {renamingSlot === i + 1 ? (
+                        <>
+                          <input
+                            className="ts-save-rename-input"
+                            value={renameName}
+                            maxLength={24}
+                            autoFocus
+                            aria-label={t.renamePrompt}
+                            onChange={(event) => setRenameName(event.target.value)}
+                            onClick={(event) => event.stopPropagation()}
+                            onKeyDown={(event) => {
+                              event.stopPropagation();
+                              if (event.key === 'Enter') commitRename();
+                              if (event.key === 'Escape') setRenamingSlot(null);
+                            }}
+                          />
+                          <button type="button" className="ts-save-option" style={{ width: 'auto', padding: '0 10px' }} aria-label="OK" onClick={commitRename}>✓</button>
+                          <button type="button" className="ts-save-option" style={{ width: 'auto', padding: '0 10px' }} aria-label={t.back} onClick={() => setRenamingSlot(null)}>×</button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            className="ts-save-option"
+                            style={{ width: 'auto', padding: '0 10px' }}
+                            aria-label={t.rename}
+                            title={t.rename}
+                            onClick={() => startRename(i + 1, entry.name)}
+                          >
+                            ✎
+                          </button>
+                          <button
+                            type="button"
+                            className="ts-save-option"
+                            style={{ width: 'auto', padding: '0 10px' }}
+                            aria-label={t.del}
+                            title={t.del}
+                            onClick={() => { if (window.confirm(t.confirmDelete)) onDeleteSlot(i + 1); }}
+                          >
+                            ✕
+                          </button>
+                        </>
+                      )}
                     </>
                   )}
                 </div>
