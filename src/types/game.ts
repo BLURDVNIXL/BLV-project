@@ -139,34 +139,6 @@ export interface GameEventLog {
   type: 'neutral' | 'success' | 'danger' | 'love' | 'work' | 'star';
 }
 
-/** Maladies attrapées au hasard (voir `core/health.ts`). */
-export type DiseaseId = 'palu' | 'typhoide' | 'cholera' | 'grippe' | 'intoxication';
-
-export interface ActiveDisease {
-  id: DiseaseId;
-  /** Jours de jeu restants avant guérison naturelle. */
-  daysLeft: number;
-}
-
-/** Gravité d'un incident : elle décide de la durée d'hospitalisation et de la facture. */
-export type HospitalSeverity = 'leger' | 'moyen' | 'grave';
-
-/** Résumé d'un séjour à l'hôpital (affiché au réveil, puis acquitté par le joueur). */
-export interface HospitalVisit {
-  severity: HospitalSeverity;
-  cause: string;
-  days: number;
-  hospitalId: string;
-  hospitalName: string;
-  /** Facture totale, puis part payée en espèces et part ajoutée aux dettes. */
-  bill: number;
-  paidCash: number;
-  addedDebt: number;
-  /** Position de réveil (mètres du monde). */
-  x: number;
-  z: number;
-}
-
 /** Genre choisi à la création du personnage. */
 export type PlayerGender = 'homme' | 'femme';
 
@@ -187,10 +159,6 @@ export interface PlayerState {
   bankCash: number;
   debt: number;
   star: number; // 1-100 (Chance / Karma)
-  health: number; // 0-100 : à 0, mort NON définitive → hôpital
-  diseases: ActiveDisease[];
-  hospitalizations: number; // nombre de séjours depuis le début de la vie
-  hospitalVisit: HospitalVisit | null; // séjour à présenter au joueur (téléportation + fenêtre de réveil)
   needs: Needs;
   isDepressed: boolean; // True when envy <= 0 -> 50% work efficiency
   policeWanted: number; // 0 - 5 stars
