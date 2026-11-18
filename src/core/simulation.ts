@@ -3,7 +3,6 @@ import {
   PlayerState,
   FoodItem,
   SapeOutfitId,
-  HomeAccessMode,
   PlayerProfile,
 } from '../types/game';
 import { DISTRICTS } from '../world/abidjanGeography';
@@ -98,16 +97,6 @@ export function createInitialPlayerState(
       ordre: destiny.id === 'cadre_plateau' || destiny.id === 'eleve_inphb' ? 65 : 50,
       jetset: destiny.id === 'golden_boy' || destiny.id === 'yannis_diomande' ? 75 : 50,
     },
-    // Real multiplayer Tontine: ZERO fake NPC participants or fake pot cash
-    tontine: {
-      joined: false,
-      weeklyDues: 50000,
-      currentPot: 0,
-      roundNumber: 1,
-      members: [],
-      currentTurnIndex: 0,
-      history: [],
-    },
     sapeOutfit: startingOutfit,
     ownedOutfits: [startingOutfit],
     cribUpgrades: {
@@ -117,8 +106,6 @@ export function createInitialPlayerState(
       canapeCuir: false,
     },
     homeLotId: null,
-    homeAccess: 'open',
-    friendsIds: [],
     activeMission: {
       missionId: mission.id,
       stepIndex: 0,
@@ -202,15 +189,6 @@ export function evaluateMissionProgress(state: PlayerState, currentDistrictId?: 
     `✅ Étape validée (${step.title}) : +${step.rewardCash.toLocaleString('fr-FR')} F ! Suivant : ${upcoming.title}.`,
     'success'
   );
-}
-
-export function setHomeAccessMode(state: PlayerState, mode: HomeAccessMode): PlayerState {
-  const labels: Record<HomeAccessMode, string> = {
-    open: 'Ouverte (visiteurs libres)',
-    friends: 'Amis uniquement',
-    closed: 'Fermée (frapper à la porte)',
-  };
-  return addLog({ ...state, homeAccess: mode }, `🏠 Accès maison réglé sur : ${labels[mode]}.`, 'neutral');
 }
 
 /**
