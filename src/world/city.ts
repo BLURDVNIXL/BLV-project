@@ -418,7 +418,8 @@ export function findHouseLot(
   home: HomeType,
   seed: number,
   taken: ReadonlySet<string> = new Set(),
-  preferredDistrict?: string
+  preferredDistrict?: string,
+  preferredLotId?: string
 ): HouseLot | null {
   const allForHome = districtsForHome(home);
   const preferred = preferredDistrict ? DISTRICTS.find((d) => d.id === preferredDistrict && d.homes.length > 0) : undefined;
@@ -426,6 +427,20 @@ export function findHouseLot(
     ? [preferred, ...allForHome.filter((d) => d.id !== preferred.id)]
     : allForHome;
   if (districts.length === 0) return null;
+  if (preferredLotId && !taken.has(preferredLotId)) {
+    const lotDistId = preferredLotId.split(':')[0];
+    const targetDist = DISTRICTS.find((d) => d.id === lotDistId) ?? preferred ?? districts[0];
+    const c = project(targetDist.center.lat, targetDist.center.lon);
+    const ccx = chunkOf(c.x);
+    const ccz = chunkOf(c.z);
+    for (let ring = 0; ring <= 8; ring++) {
+      for (let dx = -ring; dx <= ring; dx++) for (let dz = -ring; dz <= ring; dz++) {
+        if (Math.max(Math.abs(dx), Math.abs(dz)) !== ring) continue;
+        const match = generateChunk(ccx + dx, ccz + dz).houseLots.find((l) => l.id === preferredLotId);
+        if (match) return match;
+      }
+    }
+  }
   const start = preferred ? 0 : hash32(seed, 1) % districts.length;
   for (let k = 0; k < districts.length; k++) {
     const dist = districts[(start + k) % districts.length];

@@ -38,6 +38,7 @@ import { DISTRICTS } from './world/abidjanGeography';
 import { purgeAllDataRGPD } from './core/storage';
 import {
   SLOT_COUNT,
+  cleanPosition,
   type SavePosition,
   type SaveSlot,
   type SlotList,
@@ -91,11 +92,19 @@ export default function App() {
 
   const [screenState, setScreenState] = useState<GameScreenState>(() => (isAutostart ? 'playing' : 'title'));
   const [playerState, setPlayerState] = useState<PlayerState>(() => {
-    if (isAutostart && initialSaved && !initialSaved.isGameOver) return initialSaved;
+    if (isAutostart && initialSaved && !initialSaved.isGameOver) {
+      return initialSaved.isDriving ? { ...initialSaved, isDriving: false } : initialSaved;
+    }
     return createInitialPlayerState(rollDestiny());
   });
 
-  const [currentDistrict, setCurrentDistrict] = useState<string>(playerState.destiny.district);
+  const [currentDistrict, setCurrentDistrict] = useState<string>(() => {
+    if (isAutostart && initialRecent?.data.position) {
+      const pos = cleanPosition(initialRecent.data.position);
+      if (pos) return districtAt({ x: pos.x, z: pos.z }).name;
+    }
+    return playerState.destiny.district;
+  });
   const [nearbyHotspot, setNearbyHotspot] = useState<CityHotspot | null>(null);
   const [nearbyVehicle, setNearbyVehicle] = useState<{ id: string; label: string } | null>(null);
 
@@ -228,14 +237,15 @@ export default function App() {
    * Le serveur reçoit toujours une copie : l'économie y est validée à partir de cet état.
    */
   const saveNow = useCallback(
-    async (opts: { manual?: boolean; state?: PlayerState; fresh?: boolean } = {}): Promise<boolean> => {
+    async (opts: { manual?: boolean; state?: PlayerState; fresh?: boolean; useCurrentPosition?: boolean } = {}): Promise<boolean> => {
       const slotNo = activeSlotRef.current;
       if (!slotNo) return false;
       const cur = opts.state ?? playerStateRef.current;
       const previous = opts.fresh ? null : slotsRef.current[slotNo - 1];
       let position: SavePosition | undefined = previous?.position;
-      if (!opts.state) {
-        const snap = sceneRef.current?.getRadarSnapshot();
+      const scene = sceneRef.current;
+      if ((!opts.state || opts.useCurrentPosition) && scene && !scene.hasPendingSpawn()) {
+        const snap = scene.getRadarSnapshot();
         if (snap) position = { x: snap.playerX, z: snap.playerZ, rotY: snap.playerRotY };
       }
       const data = makeSlot(cur, previous?.name ?? defaultSlotName(cur), position);
@@ -326,24 +336,27 @@ export default function App() {
       const recent = mostRecentPlayable(merged);
       const saved = recent ? recent.data.state : null;
       if (recent && saved && isAutostart) {
+        const restored = saved.isDriving ? { ...saved, isDriving: false } : saved;
+        const restoredPos = cleanPosition(recent.data.position);
         activeSlotRef.current = recent.slot;
-        setPlayerState(saved);
-        setCurrentDistrict(saved.destiny.district);
+        setPlayerState(restored);
+        setCurrentDistrict(restoredPos ? districtAt({ x: restoredPos.x, z: restoredPos.z }).name : restored.destiny.district);
         sceneRef.current?.spawnPlayerAtDestiny(
-          saved.destiny.spawnX,
-          saved.destiny.spawnZ,
-          saved.destiny.vehicle,
-          saved.destiny.secondaryVehicle,
-          saved.sapeOutfit,
-          Boolean(saved.destiny.realMadridSuperstar),
-          Boolean(saved.destiny.mysticBaraka),
-          saved.destiny.homeType,
-          `${saved.playerId}|${saved.destiny.id}`,
-          saved.destiny.districtId,
-          saved.destiny.id,
-          recent.data.position
+          restored.destiny.spawnX,
+          restored.destiny.spawnZ,
+          restored.destiny.vehicle,
+          restored.destiny.secondaryVehicle,
+          restored.sapeOutfit,
+          Boolean(restored.destiny.realMadridSuperstar),
+          Boolean(restored.destiny.mysticBaraka),
+          restored.destiny.homeType,
+          `${restored.playerId}|${restored.destiny.id}`,
+          restored.destiny.districtId,
+          restored.destiny.id,
+          restoredPos,
+          restored.homeLotId ?? undefined
         );
-        sceneRef.current?.syncCribUpgrades(saved.cribUpgrades);
+        sceneRef.current?.syncCribUpgrades(restored.cribUpgrades);
       }
 
       const seedState = saved && !saved.isGameOver ? saved : playerStateRef.current;
@@ -353,7 +366,7 @@ export default function App() {
           ...prev,
           playerId: session.playerId,
           sessionToken: session.sessionToken,
-          homeLotId: session.homeLotId || prev.homeLotId,
+          homeLotId: prev.homeLotId || session.homeLotId || null,
         }));
       }
     });
@@ -531,7 +544,9 @@ export default function App() {
 
     if (isAutostart) {
       const p = playerStateRef.current;
-      setCurrentDistrict(p.destiny.district);
+      const autoRecent = mostRecentPlayable(slotsRef.current);
+      const autoPos = cleanPosition(autoRecent?.data.position);
+      setCurrentDistrict(autoPos ? districtAt({ x: autoPos.x, z: autoPos.z }).name : p.destiny.district);
       mgr.spawnPlayerAtDestiny(
         p.destiny.spawnX,
         p.destiny.spawnZ,
@@ -543,7 +558,9 @@ export default function App() {
         p.destiny.homeType,
         `${p.playerId}|${p.destiny.id}`,
         p.destiny.districtId,
-        p.destiny.id
+        p.destiny.id,
+        autoPos,
+        p.homeLotId ?? undefined
       );
       mgr.syncCribUpgrades(p.cribUpgrades);
       mgr.setCameraMode('follow');
@@ -564,17 +581,7 @@ export default function App() {
     sceneRef.current?.setPlayerGender(playerState.gender);
   }, [playerState.gender]);
 
-  // Title Screen Enter/Space keyboard start handshake
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (screenStateRef.current === 'title' && (e.code === 'Enter' || e.code === 'Space')) {
-        e.preventDefault();
-        setScreenState('roulette');
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, []);
+  // Navigation clavier de l'écran titre gérée directement par TitleScreen.tsx.
 
   // 1-second Simulation Tick (Time, Needs Decay, Weather, Autosave)
   useEffect(() => {
@@ -641,7 +648,7 @@ export default function App() {
           : `All saves are full: save ${pick.slot} is replaced`
       );
     }
-    void saveNow({ state: fresh, fresh: true });
+    void saveNow({ state: fresh, fresh: true, useCurrentPosition: Boolean(lot) });
 
     sceneRef.current?.syncCribUpgrades(fresh.cribUpgrades);
     sceneRef.current?.setCameraMode('follow');
@@ -653,12 +660,14 @@ export default function App() {
     (document.activeElement as HTMLElement | null)?.blur?.();
     const entry = slotsRef.current[slotNo - 1];
     if (!entry || entry.state.isGameOver) return;
-    const cur = entry.state;
+    const raw = entry.state;
+    const cur = raw.isDriving ? { ...raw, isDriving: false } : raw;
+    const restoredPos = cleanPosition(entry.position);
     activeSlotRef.current = slotNo;
     setPlayerState(cur);
-    setCurrentDistrict(cur.destiny.district);
+    setCurrentDistrict(restoredPos ? districtAt({ x: restoredPos.x, z: restoredPos.z }).name : cur.destiny.district);
     setScreenState('playing');
-    sceneRef.current?.spawnPlayerAtDestiny(
+    const lot = sceneRef.current?.spawnPlayerAtDestiny(
       cur.destiny.spawnX,
       cur.destiny.spawnZ,
       cur.destiny.vehicle,
@@ -670,19 +679,24 @@ export default function App() {
       `${cur.playerId}|${cur.destiny.id}`,
       cur.destiny.districtId,
       cur.destiny.id,
-      entry.position
+      restoredPos,
+      cur.homeLotId ?? undefined
     );
+    if (lot?.id && !cur.homeLotId) {
+      setPlayerState((prev) => ({ ...prev, homeLotId: lot.id }));
+    }
     sceneRef.current?.syncCribUpgrades(cur.cribUpgrades);
     sceneRef.current?.setCameraMode('follow');
     sceneRef.current?.setPaused(false);
-    // Identité de session fraîche : le jeton de l'ancienne sauvegarde peut être refusé par le serveur
+    // Identité de session fraîche : le jeton de l'ancienne sauvegarde peut être refusé par le serveur,
+    // mais on garde la parcelle (homeLotId) de la sauvegarde pour que la maison ne déménage pas.
     void initServerSession(cur).then((session) => {
       if (!session || activeSlotRef.current !== slotNo) return;
       setPlayerState((prev) => ({
         ...prev,
         playerId: session.playerId,
         sessionToken: session.sessionToken,
-        homeLotId: session.homeLotId || prev.homeLotId,
+        homeLotId: prev.homeLotId || session.homeLotId || null,
       }));
     });
   };

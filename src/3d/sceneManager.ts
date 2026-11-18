@@ -335,7 +335,7 @@ export class AbidjanSceneManager {
   private softwareTimeoutId: number | null = null;
   private disposed = false;
   private lastTime = performance.now();
-  private lastDistrict = 'Le Plateau';
+  private lastDistrict = '';
   private lastPositionTick = 0;
   private lastUiSync = 0;
   private currentMood: LightingMood = 'day';
@@ -926,6 +926,11 @@ export class AbidjanSceneManager {
     }
   }
 
+  /** Vrai tant que la physique WASM n'est pas prête ou qu'une apparition attend son chargement. */
+  public hasPendingSpawn(): boolean {
+    return this.pendingSpawnArgs !== null || !this.physics || this.playerCharId < 0;
+  }
+
   public spawnPlayerAtDestiny(
     spawnX: number,
     spawnZ: number,
@@ -938,11 +943,15 @@ export class AbidjanSceneManager {
     seedKey = 'blv_default',
     preferredDistrict?: string,
     destinyId?: string,
-    restorePos?: { x: number; z: number; rotY?: number }
+    restorePos?: { x: number; z: number; rotY?: number },
+    preferredLotId?: string
   ): HouseLot | null {
     this.isSuperstar = isSuperstar;
     this.mysticBaraka = mysticBaraka;
     this.applyPlayerOutfit(outfit);
+
+    const validRestore =
+      restorePos && Number.isFinite(restorePos.x) && Number.isFinite(restorePos.z) ? restorePos : undefined;
 
     if (!this.physics) {
       this.pendingSpawnArgs = [
@@ -957,28 +966,36 @@ export class AbidjanSceneManager {
         seedKey,
         preferredDistrict,
         destinyId,
-        restorePos,
+        validRestore,
+        preferredLotId,
       ];
-      this.playerX = spawnX;
-      this.playerZ = spawnZ;
-      this.playerRig.group.position.set(spawnX, 0, spawnZ);
+      const previewX = validRestore ? validRestore.x : spawnX;
+      const previewZ = validRestore ? validRestore.z : spawnZ;
+      this.playerX = previewX;
+      this.playerZ = previewZ;
+      this.playerRig.group.position.set(previewX, 0, previewZ);
+      if (validRestore && validRestore.rotY !== undefined && Number.isFinite(validRestore.rotY)) {
+        this.playerRotY = validRestore.rotY;
+        this.playerRig.group.rotation.y = validRestore.rotY;
+      }
       return null;
     }
 
     const core = this.physics;
 
-    const spawnKey = `${seedKey}|${destinyId ?? ''}|${preferredDistrict ?? ''}|${homeType}`;
-    if (this.currentSpawnKey === spawnKey && restorePos && this.playerCharId >= 0) {
+    const spawnKey = `${seedKey}|${destinyId ?? ''}|${preferredDistrict ?? ''}|${homeType}|${preferredLotId ?? ''}`;
+    if (this.currentSpawnKey === spawnKey && validRestore && this.playerCharId >= 0) {
+      if (this.drivingVehicle) this.toggleVehicle();
       if (this.activeInterior) this.exitInterior();
-      if (Number.isFinite(restorePos.x) && Number.isFinite(restorePos.z)) {
-        this.teleportPlayer(restorePos.x, restorePos.z);
-        if (restorePos.rotY !== undefined) {
-          this.playerRotY = restorePos.rotY;
-          this.playerRig.group.rotation.y = restorePos.rotY;
-          core.faceCharacter(this.playerCharId, restorePos.rotY, true);
-        }
+      this.teleportPlayer(validRestore.x, validRestore.z);
+      if (validRestore.rotY !== undefined && Number.isFinite(validRestore.rotY)) {
+        this.playerRotY = validRestore.rotY;
+        this.playerRig.group.rotation.y = validRestore.rotY;
+        core.faceCharacter(this.playerCharId, validRestore.rotY, true);
       }
       this.applyPlayerOutfit(outfit);
+      this.lastDistrict = '';
+      this.lastUiSync = -999;
       this.streamer?.update(this.playerX, this.playerZ, 9);
       this.setCameraMode('follow');
       this.setPaused(false);
@@ -1017,7 +1034,7 @@ export class AbidjanSceneManager {
 
     // 1. Find deterministic HouseLot on a real road in the matching district
     const seed = strHash(seedKey);
-    const foundLot = findHouseLot(homeType, seed, undefined, preferredDistrict);
+    const foundLot = findHouseLot(homeType, seed, undefined, preferredDistrict, preferredLotId);
     const lot: HouseLot = foundLot ?? {
       id: `fallback_${seed}`,
       district: 'plateau',
@@ -1105,18 +1122,20 @@ export class AbidjanSceneManager {
     );
     this.camLook.set(porch.x, 1.5, porch.z);
 
-    // Pre-warm chunks immediately around spawn
-    this.streamer?.update(porch.x, porch.z, 9);
-
-    // 6. Reprise d'une sauvegarde : on replace le joueur là où il s'était arrêté (au lieu du perron)
-    if (restorePos && Number.isFinite(restorePos.x) && Number.isFinite(restorePos.z)) {
-      this.teleportPlayer(restorePos.x, restorePos.z);
-      if (restorePos.rotY !== undefined) {
-        this.playerRotY = restorePos.rotY;
-        this.playerRig.group.rotation.y = restorePos.rotY;
-        core.faceCharacter(this.playerCharId, restorePos.rotY, true);
+    // 6. Reprise d'une sauvegarde : on téléporte d'abord avant de charger les chunks pour ne pas saturer le worker avec le perron
+    if (validRestore) {
+      this.teleportPlayer(validRestore.x, validRestore.z);
+      if (validRestore.rotY !== undefined && Number.isFinite(validRestore.rotY)) {
+        this.playerRotY = validRestore.rotY;
+        this.playerRig.group.rotation.y = validRestore.rotY;
+        core.faceCharacter(this.playerCharId, validRestore.rotY, true);
       }
+    } else {
+      // Pre-warm chunks immediately around porch
+      this.streamer?.update(porch.x, porch.z, 9);
     }
+    this.lastDistrict = '';
+    this.lastUiSync = -999;
 
     return lot;
   }

@@ -168,21 +168,21 @@ export function TitleScreen({ hasSavedGame, slots, onStartNewGame, onContinueGam
       const back = event.key === 'Escape' || event.key === 'Backspace';
       if (saveOpen) {
         if (renamingSlot !== null) {
-          if (event.key === 'Enter') { event.preventDefault(); commitRename(); }
-          else if (event.key === 'Escape') { event.preventDefault(); setRenamingSlot(null); }
+          if (event.key === 'Enter') { event.preventDefault(); event.stopPropagation(); commitRename(); }
+          else if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); setRenamingSlot(null); }
           return;
         }
-        if (down || up) { event.preventDefault(); setSelectedSave((i) => (i + (down ? 1 : -1) + SLOT_COUNT) % SLOT_COUNT); }
-        else if (event.key === 'Enter') { event.preventDefault(); confirmSave(selectedSave + 1); }
-        else if (back) setSaveOpen(false);
+        if (down || up) { event.preventDefault(); event.stopPropagation(); setSelectedSave((i) => (i + (down ? 1 : -1) + SLOT_COUNT) % SLOT_COUNT); }
+        else if (event.key === 'Enter') { event.preventDefault(); event.stopPropagation(); confirmSave(selectedSave + 1); }
+        else if (back) { event.preventDefault(); event.stopPropagation(); setSaveOpen(false); }
         return;
       }
       if (panel !== 'menu') {
-        if (event.key === 'Enter' || back) { event.preventDefault(); setPanel('menu'); }
+        if (event.key === 'Enter' || back) { event.preventDefault(); event.stopPropagation(); setPanel('menu'); }
         return;
       }
-      if (down || up) { event.preventDefault(); setSelected((i) => (i + (down ? 1 : -1) + ACTIONS.length) % ACTIONS.length); }
-      else if (event.key === 'Enter') { event.preventDefault(); activate(ACTIONS[selected]); }
+      if (down || up) { event.preventDefault(); event.stopPropagation(); setSelected((i) => (i + (down ? 1 : -1) + ACTIONS.length) % ACTIONS.length); }
+      else if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.stopPropagation(); activate(ACTIONS[selected]); }
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);

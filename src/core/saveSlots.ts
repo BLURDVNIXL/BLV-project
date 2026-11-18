@@ -9,6 +9,7 @@ import { PlayerState } from '../types/game';
 import { openDB, STORE_NAME, SAVE_KEY, LOCAL_FALLBACK_KEY } from './storage';
 
 export const SLOT_COUNT = 5;
+const WORLD_LIMIT = 3072;
 
 export interface SavePosition {
   x: number;
@@ -33,15 +34,25 @@ const idbKey = (slot: number) => `slot_${slot}`;
 
 function isValidSlot(v: unknown): v is SaveSlot {
   const s = v as SaveSlot | null;
-  return Boolean(s && typeof s === 'object' && s.state && s.state.destiny && typeof s.savedAt === 'number');
+  return Boolean(
+    s &&
+      typeof s === 'object' &&
+      s.state &&
+      s.state.destiny &&
+      typeof s.state.destiny.id === 'string' &&
+      Number.isFinite(s.savedAt)
+  );
 }
 
-function cleanPosition(p: unknown): SavePosition | undefined {
+/** Valide une position extérieure : dans les bornes du monde et hors de la bande d'intérieurs. */
+export function cleanPosition(p: unknown): SavePosition | undefined {
   const q = p as SavePosition | undefined;
-  if (q && Number.isFinite(q.x) && Number.isFinite(q.z)) {
-    return { x: q.x, z: q.z, rotY: Number.isFinite(q.rotY) ? q.rotY : 0 };
-  }
-  return undefined;
+  if (!q || typeof q !== 'object') return undefined;
+  if (!Number.isFinite(q.x) || !Number.isFinite(q.z)) return undefined;
+  if (Math.abs(q.x) > WORLD_LIMIT || Math.abs(q.z) > WORLD_LIMIT) return undefined;
+  // Bande hors-carte réservée aux intérieurs (x >= 2450, z >= 2800) : jamais une position extérieure valide.
+  if (q.x >= 2450 && q.z >= 2800) return undefined;
+  return { x: q.x, z: q.z, rotY: Number.isFinite(q.rotY) ? q.rotY : 0 };
 }
 
 export function defaultSlotName(state: PlayerState): string {
@@ -52,13 +63,28 @@ export function makeSlot(state: PlayerState, name: string, position?: SavePositi
   return { name, savedAt: Date.now(), state, position: cleanPosition(position) };
 }
 
+/** Fusionne deux copies d'un même emplacement en gardant la plus récente sans perdre une position valide. */
+export function mergeSlotPair(fromDb: SaveSlot | null, fromLs: SaveSlot | null): SaveSlot | null {
+  if (!fromDb && !fromLs) return null;
+  if (!fromDb) return { ...fromLs!, position: cleanPosition(fromLs!.position) };
+  if (!fromLs) return { ...fromDb, position: cleanPosition(fromDb.position) };
+  const winner = fromDb.savedAt >= fromLs.savedAt ? fromDb : fromLs;
+  const loser = winner === fromDb ? fromLs : fromDb;
+  let pos = cleanPosition(winner.position);
+  if (!pos && loser.state.destiny.id === winner.state.destiny.id) {
+    pos = cleanPosition(loser.position);
+  }
+  return { ...winner, position: pos };
+}
+
 function readLocal(slot: number): SaveSlot | null {
   try {
     if (typeof localStorage === 'undefined') return null;
     const raw = localStorage.getItem(lsKey(slot));
     if (!raw) return null;
     const v = JSON.parse(raw);
-    return isValidSlot(v) ? v : null;
+    if (!isValidSlot(v)) return null;
+    return { ...v, position: cleanPosition(v.position) };
   } catch {
     return null;
   }
@@ -93,6 +119,8 @@ export async function loadSlotsAsync(): Promise<SlotList> {
   const local = loadSlotsSync();
   try {
     const db = await openDB();
+    let legacyPresent = false;
+    let migratedSlot1 = false;
     const result = await new Promise<SlotList>((resolve, reject) => {
       const tx = db.transaction(STORE_NAME, 'readonly');
       const store = tx.objectStore(STORE_NAME);
@@ -101,13 +129,15 @@ export async function loadSlotsAsync(): Promise<SlotList> {
       tx.oncomplete = () => {
         const merged: SlotList = reqs.map((r, i) => {
           const fromDb = isValidSlot(r.result) ? (r.result as SaveSlot) : null;
-          const fromLs = local[i];
-          if (fromDb && fromLs) return fromDb.savedAt >= fromLs.savedAt ? fromDb : fromLs;
-          return fromDb || fromLs;
+          return mergeSlotPair(fromDb, local[i]);
         });
         const legacy = legacyReq.result as PlayerState | undefined;
-        if (!merged[0] && legacy && legacy.destiny) {
-          merged[0] = makeSlot(legacy, defaultSlotName(legacy));
+        if (legacy && legacy.destiny) {
+          legacyPresent = true;
+          if (!merged[0]) {
+            merged[0] = makeSlot(legacy, defaultSlotName(legacy));
+            migratedSlot1 = true;
+          }
         }
         resolve(merged);
       };
@@ -115,9 +145,11 @@ export async function loadSlotsAsync(): Promise<SlotList> {
       tx.onabort = () => reject(tx.error);
     });
     db.close();
-    // Ancienne sauvegarde IndexedDB reprise : on la retire pour qu'elle ne revienne pas après suppression.
-    if (result[0]) {
+    // Ancienne sauvegarde IndexedDB reprise : on ne réécrit le slot 1 que si la migration a eu lieu, puis on purge la clé héritée.
+    if (migratedSlot1 && result[0]) {
       void writeSlot(1, result[0]).then(() => removeLegacyIdb());
+    } else if (legacyPresent) {
+      void removeLegacyIdb();
     }
     return result;
   } catch {
