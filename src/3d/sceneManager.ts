@@ -36,6 +36,8 @@ import {
 import { AnimalSystem } from './animalSystem';
 import { NPC_POOL_SIZE, NPC_POOL_SIZE_LOW } from '../world/budgets';
 import { NpcSystem } from './npcSystem';
+import { WeatherFxSystem, weatherFxMode } from './weatherFx';
+import { WaterTrafficSystem } from './waterTraffic';
 import { AvatarController, loadAvatar } from './avatars';
 import { getWasmCore } from '../wasm/wasmBridge';
 import {
@@ -223,6 +225,8 @@ export class AbidjanSceneManager {
   private chunkMats!: ChunkMaterials;
   private npcSystem!: NpcSystem;
   private animalSystem!: AnimalSystem;
+  private weatherFx!: WeatherFxSystem;
+  private waterTraffic!: WaterTrafficSystem;
 
   private lagoonWaterHandle!: AnimatedWaterHandle;
   /** Dôme de ciel (null sur rendu logiciel : le fond uni est alors utilisé). */
@@ -468,6 +472,8 @@ export class AbidjanSceneManager {
 
     this.npcSystem = new NpcSystem(this.scene, this.isSoftwareGl ? NPC_POOL_SIZE_LOW : NPC_POOL_SIZE);
     this.animalSystem = new AnimalSystem(this.scene, this.isSoftwareGl);
+    this.weatherFx = new WeatherFxSystem(this.scene, this.isSoftwareGl);
+    this.waterTraffic = new WaterTrafficSystem(this.scene, this.isSoftwareGl);
     this.initDebugOverlay();
 
     // 3. Player Character Rig
@@ -1226,8 +1232,10 @@ export class AbidjanSceneManager {
       this.currentMood = mood;
       const isNight = mood === 'night';
       this.chunkMats.setNight(isNight);
+      this.waterTraffic.setNight(isNight);
       this.bridgeSetNights.forEach((fn) => fn(isNight));
     }
+    this.chunkMats.setWetness(weather === 'pluie' || weather === 'inondation');
 
     // Ambiance continue : palette chaude interpolée selon l'heure, soleil qui voyage d'est en ouest
     const amb = sampleAmbient(gameTimeHours);
@@ -2169,6 +2177,34 @@ export class AbidjanSceneManager {
       }
     }
 
+    // 3. Effets atmosphériques (pluie / harmattan / lucioles) & trafic lagunaire (pirogues, bateaux-bus, bouées)
+    const fxFocusX =
+      this.cameraMode === 'flyover'
+        ? this.flyoverCenter.x
+        : this.taxiRide?.phase === 'ride'
+          ? this.taxiRide.x
+          : this.playerX;
+    const fxFocusZ =
+      this.cameraMode === 'flyover'
+        ? this.flyoverCenter.z
+        : this.taxiRide?.phase === 'ride'
+          ? this.taxiRide.z
+          : this.playerZ;
+    const fxDt = this.cameraMode !== 'flyover' && this.isPaused ? 0 : dt;
+    const fxDistId = districtAt({ x: fxFocusX, z: fxFocusZ }).id;
+    const fxMode = weatherFxMode(this.weather, this.currentMood === 'night', fxDistId);
+    this.weatherFx.update(
+      fxDt,
+      nowSec,
+      fxFocusX,
+      this.playerY,
+      fxFocusZ,
+      fxMode,
+      this.activeInterior === null,
+      fxDistId
+    );
+    this.waterTraffic.update(fxDt, nowSec, fxFocusX, fxFocusZ, this.activeInterior === null);
+
     // 4. Title / Roulette Flyover Mode over Le Plateau & Lagune Ébrié
     if (this.cameraMode === 'flyover') {
       this.streamer?.update(this.flyoverCenter.x, this.flyoverCenter.z, 8);
@@ -2510,6 +2546,8 @@ export class AbidjanSceneManager {
     this.activeInterior?.rig.dispose();
     this.npcSystem.dispose();
     this.animalSystem.dispose();
+    this.weatherFx.dispose();
+    this.waterTraffic.dispose();
     this.debugEl?.remove();
     this.debugEl = null;
     this.renderer.dispose();

@@ -1059,14 +1059,46 @@ export function createMaquisStructure(w = 18, d = 12, h = 5.2): THREE.Group {
     g.add(spk);
   });
 
-  // Deux mange-debout décoratifs sur les bords de la terrasse (hors du passage central)
-  [-4.6, 4.6].forEach((tx) => {
+  // Deux mange-debout décoratifs + tabourets colorés sur les bords de la terrasse (hors du passage central)
+  const stoolMats = [0xea580c, 0x16a34a, 0x2563eb, 0xfacc15].map(
+    (c) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.6 })
+  );
+  const stoolGeo = new THREE.CylinderGeometry(0.24, 0.28, 0.48, 8);
+  [-4.6, 4.6].forEach((tx, idx) => {
     const table = new THREE.Mesh(new THREE.CylinderGeometry(0.65, 0.65, 0.08, 12), woodMat);
     table.position.set(tx, 0.95, d / 2 + 3.2);
     const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.14, 0.9, 8), trimMat);
     leg.position.set(tx, 0.45, d / 2 + 3.2);
     g.add(table, leg);
+    const sideDir = tx < 0 ? -1 : 1;
+    [
+      [tx + sideDir * 0.95, d / 2 + 2.85],
+      [tx + sideDir * 0.95, d / 2 + 3.65],
+    ].forEach(([sx, sz], j) => {
+      const stool = new THREE.Mesh(stoolGeo, stoolMats[(idx * 2 + j) % stoolMats.length]);
+      stool.position.set(sx, 0.24, sz);
+      stool.castShadow = true;
+      g.add(stool);
+    });
   });
+
+  // Brasero à charbon incandescent avec brochettes (côté droit de la terrasse)
+  const grillX = postX - 0.9;
+  const grillZ = d / 2 + 1.9;
+  const grillStand = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.68, 0.65), spkMat);
+  grillStand.position.set(grillX, 0.34, grillZ);
+  grillStand.castShadow = true;
+  const emberMat = new THREE.MeshStandardMaterial({
+    color: 0xf97316,
+    emissive: 0xea580c,
+    emissiveIntensity: 1.35,
+    roughness: 0.4,
+  });
+  const embers = new THREE.Mesh(new THREE.BoxGeometry(0.96, 0.1, 0.48), emberMat);
+  embers.position.set(grillX, 0.72, grillZ);
+  const grate = new THREE.Mesh(new THREE.BoxGeometry(1.04, 0.05, 0.54), trimMat);
+  grate.position.set(grillX, 0.78, grillZ);
+  g.add(grillStand, embers, grate);
 
   return g;
 }
@@ -1167,7 +1199,19 @@ export function createMarketStallCluster(w = 36, d = 18, h = 9.5): THREE.Group {
     g2.position.set(0.85, 1.05, -0.05);
     const crate = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.45, 0.55), crateMat);
     crate.position.set(1.15, 0.22, 1.05);
-    s.add(table, canopy, pole, g1, g2, crate);
+    // Sacs de riz / oignons en toile de jute + tas de tomates / plantains
+    const sackMat = new THREE.MeshStandardMaterial({ color: idx % 2 === 0 ? 0xd6b88d : 0xc2a278, roughness: 0.9 });
+    const sack1 = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.34, 0.44), sackMat);
+    sack1.position.set(-1.18, 0.17, 1.02);
+    const sack2 = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.28, 0.4), sackMat);
+    sack2.position.set(-1.12, 0.46, 0.98);
+    sack2.rotation.y = 0.2;
+    const producePile = new THREE.Mesh(
+      new THREE.ConeGeometry(0.32, 0.34, 6),
+      goodsMats[(idx + 1) % goodsMats.length]
+    );
+    producePile.position.set(0.0, 1.04, 0.12);
+    s.add(table, canopy, pole, g1, g2, crate, sack1, sack2, producePile);
     g.add(s);
   };
 

@@ -2,8 +2,8 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  *
- * BLV
- * Sol de la ville : couleur de chaque point (eau, tablier, rue, plage, parcelles) cuite en texture par chunk.
+ * BLV6:
+ * Sol de la ville : couleur de chaque point (eau, tablier, trottoir, terre-plein, plage, parcelles) cuite en texture par chunk.
  * Fonctions pures (testables sous Node, aucune dépendance au DOM ni à Three.js).
  */
 
@@ -16,21 +16,26 @@ import { hash32 } from './rng';
 export type RGB = [number, number, number];
 
 const SOCIAL_GROUND: Record<string, RGB> = {
-  luxury: [92, 128, 78],
-  middle: [128, 134, 86],
-  popular: [150, 130, 98],
-  informal: [134, 112, 86],
-  industrial: [128, 130, 134],
-  nature: [58, 100, 58]
+  luxury: [86, 128, 74],
+  middle: [124, 132, 84],
+  popular: [148, 126, 94],
+  informal: [134, 110, 84],
+  industrial: [124, 128, 134],
+  nature: [52, 96, 54],
 };
-const SAND: RGB = [226, 210, 160];
+const SAND: RGB = [228, 212, 162];
+const WET_SAND: RGB = [194, 178, 134];
 const WATER: RGB = [34, 110, 160];
-const ASPHALT_ART: RGB = [52, 54, 60];
-const ASPHALT_LOC: RGB = [74, 76, 82];
+const ASPHALT_ART: RGB = [50, 52, 58];
+const ASPHALT_LOC: RGB = [72, 74, 80];
+const SIDEWALK: RGB = [116, 118, 124];
+const MEDIAN_GREEN: RGB = [76, 118, 66];
 const DECK: RGB = [58, 60, 66];
-const PLAZA: RGB = [160, 158, 150];
+const PLAZA: RGB = [164, 160, 150];
 
-interface Seg { a: Vec2; b: Vec2; half: number }
+const BOULEVARD_MEDIAN_IDS = new Set(['plateau_fhb', 'plateau_degaulle', 'plateau_cocody', 'riviera_marcory', 'cocody_riviera']);
+
+interface Seg { id: string; a: Vec2; b: Vec2; half: number }
 
 /** Contexte préparé pour un chunk : ne garde que les routes et ponts qui le touchent (accélère le tracé). */
 export interface TerrainContext {
@@ -56,7 +61,7 @@ export function prepareTerrain(cx: number, cz: number): TerrainContext {
       const a = art.points[i];
       const b = art.points[i + 1];
       if (Math.max(a.x, b.x) < x0 - m || Math.min(a.x, b.x) > x1 + m || Math.max(a.z, b.z) < z0 - m || Math.min(a.z, b.z) > z1 + m) continue;
-      segs.push({ a, b, half: art.width / 2 });
+      segs.push({ id: art.id, a, b, half: art.width / 2 });
     }
   }
   const bridges = BRIDGE_GEOMS.filter((br) => {
@@ -85,7 +90,11 @@ const n8 = (x: number, z: number): number => ((hash32(Math.floor(x * 2), Math.fl
 /** Couleur du sol au point p (RGB 0–255). */
 export function groundColor(ctx: TerrainContext, p: Vec2): RGB {
   const noise = n8(p.x, p.z);
-  const shade = (c: RGB, k = 1): RGB => [Math.max(0, Math.min(255, c[0] * k + noise * 255)), Math.max(0, Math.min(255, c[1] * k + noise * 255)), Math.max(0, Math.min(255, c[2] * k + noise * 255))];
+  const shade = (c: RGB, k = 1): RGB => [
+    Math.max(0, Math.min(255, c[0] * k + noise * 255)),
+    Math.max(0, Math.min(255, c[1] * k + noise * 255)),
+    Math.max(0, Math.min(255, c[2] * k + noise * 255)),
+  ];
 
   // 1. Tablier de pont
   for (const br of ctx.bridges) {
@@ -102,12 +111,19 @@ export function groundColor(ctx: TerrainContext, p: Vec2): RGB {
     const wave = Math.sin(p.x * 0.11 + p.z * 0.07) * 0.04 + Math.sin(p.z * 0.19 - p.x * 0.05) * 0.03;
     return shade(WATER, 1 + wave);
   }
-  // 3. Repères : esplanade
-  if (insideSpecial(p, 2)) return shade(PLAZA);
-  // 4. Grands axes
+  // 3. Repères : esplanade dallée subtile
+  if (insideSpecial(p, 2)) {
+    const tile = ((Math.floor(p.x / 3) + Math.floor(p.z / 3)) & 1) === 0 ? 1.03 : 0.96;
+    return shade(PLAZA, tile);
+  }
+  // 4. Grands axes (+ trottoirs en rive et terre-plein végétalisé sur les grands boulevards)
   for (const s of ctx.segs) {
-    const { dist } = distanceToSegment(p, s.a, s.b);
-    if (dist < s.half) {
+    const { dist, t } = distanceToSegment(p, s.a, s.b);
+    if (dist < s.half + 1.1) {
+      if (dist >= s.half) return shade(SIDEWALK);
+      if (BOULEVARD_MEDIAN_IDS.has(s.id) && dist < 0.72 && t > 0.08 && t < 0.92) {
+        return dist > 0.56 ? shade([195, 195, 190]) : shade(MEDIAN_GREEN);
+      }
       if (dist < 0.25 && (Math.floor((p.x + p.z) / 4) & 1) === 0) return shade([232, 200, 70]);
       if (dist > s.half - 0.5) return shade([215, 215, 215]);
       return shade(ASPHALT_ART);
@@ -132,12 +148,18 @@ export function groundColor(ctx: TerrainContext, p: Vec2): RGB {
       return shade(ASPHALT_LOC);
     }
   }
-  // 6. Plage (près de la côte atlantique)
+  // 6. Plage (près de la côte atlantique) : sable humide près du ressac + sable chaud
   if (ctx.coastNear) {
     const c = projected.coast;
-    for (let i = 0; i < c.length - 1; i++) if (distanceToSegment(p, c[i], c[i + 1]).dist < 45) return shade(SAND);
+    let minC = Infinity;
+    for (let i = 0; i < c.length - 1; i++) minC = Math.min(minC, distanceToSegment(p, c[i], c[i + 1]).dist);
+    if (minC < 45) return shade(minC < 12 ? WET_SAND : SAND);
   }
-  // 7. Sol selon le profil de la commune
+  // 7. Sol selon le profil de la commune (variation douce pour le Banco)
+  if (d.id === 'banco') {
+    const moss = Math.sin(p.x * 0.08) * Math.cos(p.z * 0.08) * 0.08;
+    return shade(SOCIAL_GROUND.nature, 1 + moss);
+  }
   return shade(SOCIAL_GROUND[d.social] ?? SOCIAL_GROUND.middle);
 }
 
