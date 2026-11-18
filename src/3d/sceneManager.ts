@@ -240,6 +240,7 @@ export class AbidjanSceneManager {
   private playerAvatarCtl: AvatarController | null = null;
   private playerOutfit: SapeOutfitId = 'standard';
   private avatarRequestId = 0;
+  private currentSpawnKey: string | null = null;
   private playerCharId = -1;
   private charState: CharacterState = createCharacterState();
   private carState: VehicleState = createVehicleState();
@@ -351,6 +352,8 @@ export class AbidjanSceneManager {
   private callbacks: SceneCallbacks;
   private scratchVec = new THREE.Vector3();
   private scratchTarget = new THREE.Vector3();
+
+  private playerModelScale = 1.20;
 
   constructor(container: HTMLElement, callbacks: SceneCallbacks) {
     this.container = container;
@@ -963,6 +966,25 @@ export class AbidjanSceneManager {
 
     const core = this.physics;
 
+    const spawnKey = `${seedKey}|${destinyId ?? ''}|${preferredDistrict ?? ''}|${homeType}`;
+    if (this.currentSpawnKey === spawnKey && restorePos && this.playerCharId >= 0) {
+      if (this.activeInterior) this.exitInterior();
+      if (Number.isFinite(restorePos.x) && Number.isFinite(restorePos.z)) {
+        this.teleportPlayer(restorePos.x, restorePos.z);
+        if (restorePos.rotY !== undefined) {
+          this.playerRotY = restorePos.rotY;
+          this.playerRig.group.rotation.y = restorePos.rotY;
+          core.faceCharacter(this.playerCharId, restorePos.rotY, true);
+        }
+      }
+      this.applyPlayerOutfit(outfit);
+      this.streamer?.update(this.playerX, this.playerZ, 9);
+      this.setCameraMode('follow');
+      this.setPaused(false);
+      return this.ownHouseLot;
+    }
+    this.currentSpawnKey = spawnKey;
+
     // Si on recommence ou change de destin depuis un intérieur, on le libère proprement
     if (this.activeInterior) {
       for (const id of this.activeInterior.colliderIds) core.removeSolid(id);
@@ -1086,7 +1108,7 @@ export class AbidjanSceneManager {
     this.streamer?.update(porch.x, porch.z, 9);
 
     // 6. Reprise d'une sauvegarde : on replace le joueur là où il s'était arrêté (au lieu du perron)
-    if (restorePos) {
+    if (restorePos && Number.isFinite(restorePos.x) && Number.isFinite(restorePos.z)) {
       this.teleportPlayer(restorePos.x, restorePos.z);
       if (restorePos.rotY !== undefined) {
         this.playerRotY = restorePos.rotY;
@@ -1582,7 +1604,7 @@ export class AbidjanSceneManager {
     if (nowSec >= t.nextCheck) {
       t.nextCheck = nowSec + 0.5;
       const stop = nearestRoadPoint(this.taxiPickupPoint()).at;
-      if (Math.hypot(stop.x - t.path.stop.x, stop.z - t.path.stop.z) > 15) {
+      if (Math.hypot(stop.x - this.playerX, stop.z - this.playerZ) > 6) {
         const cur = pointAlongPath(t.path.points, t.lastS);
         const re = taxiRouteTo({ x: cur.x, z: cur.z }, stop);
         if (re) {
@@ -1834,6 +1856,11 @@ export class AbidjanSceneManager {
 
     const nearest = this.findNearestVehicle();
     if (nearest) {
+      const trafficIndex = this.trafficCars.findIndex((tc) => tc.vehId === nearest.vehId);
+      if (trafficIndex >= 0) {
+        this.trafficCars.splice(trafficIndex, 1);
+        this.spawnedVehicles.push(nearest);
+      }
       this.drivingVehicle = nearest;
       if (this.playerCharId >= 0) {
         this.physics.setCharacterEnabled(this.playerCharId, false);
@@ -1987,6 +2014,10 @@ export class AbidjanSceneManager {
     this.controlsMode = mode;
   }
 
+  public setPlayerModelScale(value: number) {
+    this.playerModelScale = THREE.MathUtils.clamp(value, 0.90, 1.50);
+  }
+
   private onPointerDown = (e: PointerEvent) => {
     if (this.cameraMode !== 'follow' || this.camPointerId !== null) return;
     this.camPointerId = e.pointerId;
@@ -2066,6 +2097,14 @@ export class AbidjanSceneManager {
       if (d < bestD) {
         bestD = d;
         best = v;
+      }
+    }
+    for (const tc of this.trafficCars) {
+      if (!tc.rig.group.visible) continue;
+      const d = Math.hypot(this.playerX - tc.rig.group.position.x, this.playerZ - tc.rig.group.position.z);
+      if (d < bestD) {
+        bestD = d;
+        best = { id: `stolen_${tc.vehId}`, vehId: tc.vehId, rig: tc.rig };
       }
     }
     return best;
@@ -2202,7 +2241,8 @@ export class AbidjanSceneManager {
       }
 
       if (this.drivingVehicle) {
-        const accel = this.engineStalled ? 0 : fwd;
+        // Inversion explicite demandée : Avant/Arrière des commandes sont échangés.
+        const accel = this.engineStalled ? 0 : -fwd;
         core.vehicleInput(this.drivingVehicle.vehId, accel, turnRight, this.isHandbraking);
       } else {
         const forwardX = -Math.sin(this.camYaw);
@@ -2265,10 +2305,11 @@ export class AbidjanSceneManager {
         const visualHeading = knocked ? ps.heading : this.playerRotY;
         this.playerRig.group.rotation.set(knocked ? -1.35 : 0, visualHeading, 0);
         this.playerRotY = visualHeading;
+        const playerScale = this.playerModelScale;
         this.playerRig.group.scale.set(
-          1 / Math.sqrt(this.playerSquashY),
-          this.playerSquashY,
-          1 / Math.sqrt(this.playerSquashY)
+          playerScale / Math.sqrt(this.playerSquashY),
+          playerScale * this.playerSquashY,
+          playerScale / Math.sqrt(this.playerSquashY)
         );
         this.playerRig.animateGait(this.walkPhase, moving ? 1 : 0, dt);
         this.playerAvatarCtl?.update(dt, ps.speed, ps.grounded, knocked);

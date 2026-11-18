@@ -139,12 +139,25 @@ export default function App() {
       return 1;
     }
   });
+    const [playerModelScale, setPlayerModelScale] = useState<number>(() => {
+      localStorage.removeItem('blv_player_model_scale');
+      return 1.2;
+    });
   const handleCameraSensitivityChange = (v: number) => {
     setCameraSensitivity(v);
     try {
       localStorage.setItem('blv_camera_sensitivity', String(v));
     } catch {
       /* stockage indisponible : le réglage vaut pour la session */
+    }
+  };
+  const handlePlayerModelScaleChange = (v: number) => {
+    const next = Math.max(0.90, Math.min(1.50, v));
+    setPlayerModelScale(next);
+    try {
+      localStorage.setItem('blv_player_model_scale', String(next));
+    } catch {
+      // réglage conservé pour la session
     }
   };
   useEffect(() => {
@@ -277,6 +290,10 @@ export default function App() {
   useEffect(() => {
     sceneRef.current?.setCameraSensitivity(cameraSensitivity);
   }, [cameraSensitivity, screenState]);
+
+  useEffect(() => {
+    sceneRef.current?.setPlayerModelScale(playerModelScale);
+  }, [playerModelScale, screenState]);
 
   // Mirror state machine to document.body.dataset.state
   useEffect(() => {
@@ -930,6 +947,8 @@ export default function App() {
           getGpsSource={getGpsSource}
           onClose={() => setIsPhoneOpen(false)}
           onSaveGame={() => saveNow({ manual: true })}
+          playerModelScale={playerModelScale}
+          onPlayerModelScaleChange={handlePlayerModelScaleChange}
           onEatFood={(foodId) => {
             const f = IVORIAN_FOODS.find((x) => x.id === foodId);
             if (f) {
