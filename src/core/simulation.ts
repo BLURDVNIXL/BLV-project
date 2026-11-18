@@ -3,9 +3,6 @@ import {
   PlayerState,
   FoodItem,
   SapeOutfitId,
-  ActiveDisease,
-  DiseaseId,
-  HospitalSeverity,
   PlayerProfile,
 } from '../types/game';
 import { DISTRICTS } from '../world/abidjanGeography';
@@ -16,20 +13,6 @@ import {
 } from './destinies';
 import { getMissionForDestiny, isMissionStepSatisfied } from './missions';
 import { getWasmCore } from '../wasm/wasmBridge';
-import {
-  DISEASES,
-  EXHAUSTION_DAMAGE_PER_HOUR,
-  MAX_HEALTH,
-  REGEN_PER_HOUR,
-  SEVERITY_LABEL,
-  STARVATION_DAMAGE_PER_HOUR,
-  ensureHealth,
-  hospitalBill,
-  nearestHospital,
-  rollDailyDisease,
-  severityForHit,
-  stayDays,
-} from './health';
 
 const STORAGE_KEY = 'blv_save_v3';
 
@@ -92,10 +75,6 @@ export function createInitialPlayerState(
     bankCash: destiny.id === 'golden_boy' ? 50000000 : destiny.id === 'yannis_diomande' ? 100000000 : 0,
     debt: 0,
     star: destiny.startingStar,
-    health: MAX_HEALTH,
-    diseases: [],
-    hospitalizations: 0,
-    hospitalVisit: null,
     needs: {
       hunger: 85,
       energy: 90,
@@ -215,20 +194,11 @@ export function evaluateMissionProgress(state: PlayerState, currentDistrictId?: 
 /**
  * 1 real hour = 4 in-game hours.
  */
-export interface AdvanceOptions {
-  /** Pas de dégâts, de maladies ni de soins (utilisé pendant un séjour à l'hôpital). */
-  skipHealth?: boolean;
-  /** Position du joueur (mètres du monde) : sert à choisir l'hôpital le plus proche en cas d'hospitalisation. */
-  at?: { x: number; z: number };
-}
-
 export function advanceGameTime(
-  rawState: PlayerState,
+  state: PlayerState,
   realSecondsElapsed: number,
-  speedMultiplier: number = 1,
-  opts: AdvanceOptions = {}
+  speedMultiplier: number = 1
 ): PlayerState {
-  const state = ensureHealth(rawState);
   if (state.isGameOver) return state;
 
   const gameHoursAdded = (realSecondsElapsed * 4 * speedMultiplier) / 3600;
@@ -241,7 +211,6 @@ export function advanceGameTime(
   let newCleanStreak = state.cleanDaysStreak;
   let newRedemption = state.redemptionTrophyUnlocked;
   let newStar = state.star;
-  let newDiseases: ActiveDisease[] = state.diseases.map((d) => ({ ...d }));
   const newLogs = [...state.logs];
 
   while (newHours >= 24) {
@@ -283,37 +252,6 @@ export function advanceGameTime(
           time: '08:00',
           message: '🏆 TROPHÉE SECRET DÉBLOQUÉ : Rédemption Héroïque après 7 jours sobres ! (+25 Étoile)',
           type: 'star',
-        });
-      }
-    }
-
-    // 3b. Maladies : le temps passe (guérison naturelle) puis tirage d'une nouvelle maladie
-    if (!opts.skipHealth) {
-      newDiseases = newDiseases.map((d) => ({ ...d, daysLeft: d.daysLeft - 1 }));
-      for (const done of newDiseases.filter((d) => d.daysLeft <= 0)) {
-        newLogs.unshift({
-          id: `cure_${done.id}_${newDays}`,
-          time: '08:00',
-          message: `✅ Tu es guéri : ${DISEASES[done.id].name}. Ça va mieux !`,
-          type: 'success',
-        });
-      }
-      newDiseases = newDiseases.filter((d) => d.daysLeft > 0);
-      const caught = rollDailyDisease({
-        playerId: state.playerId,
-        day: newDays,
-        weather: state.weather,
-        hygiene: state.needs.hygiene,
-        hunger: state.needs.hunger,
-        active: newDiseases.map((d) => d.id),
-      });
-      if (caught) {
-        newDiseases.push({ id: caught, daysLeft: DISEASES[caught].days });
-        newLogs.unshift({
-          id: `sick_${caught}_${newDays}`,
-          time: '08:00',
-          message: `${DISEASES[caught].emoji} Tu as attrapé : ${DISEASES[caught].name}. Pense à te soigner (BabiOS › Santé).`,
-          type: 'danger',
         });
       }
     }
@@ -381,12 +319,10 @@ export function advanceGameTime(
   // Needs decay
   const hungerDecay = gameHoursAdded * 3.0;
   const climFactor = state.cribUpgrades.splitClim ? 0.85 : 1.0;
-  const sickFactor = opts.skipHealth ? 1 : state.diseases.reduce((m, d) => Math.max(m, DISEASES[d.id].energyFactor), 1);
   const energyDecay =
     gameHoursAdded *
     (state.destiny.perk.includes('Résistance à la fatigue') ? 1.8 : 2.5) *
-    climFactor *
-    sickFactor;
+    climFactor;
   const hygieneDecay = gameHoursAdded * 2.2;
   const bladderDecay = gameHoursAdded * 2.0;
   const bafflesBonus = state.cribUpgrades.bafflesMaquis ? 1.0 : 2.5;
@@ -418,32 +354,7 @@ export function advanceGameTime(
       'Épuisement total (faim et énergie à 0) sous le poids des dettes (> 25 000 FCFA) à Abidjan.';
   }
 
-  // Santé : la faim, l'épuisement et la maladie font perdre de la vie ; sinon le corps récupère
-  let newHealth = state.health;
-  let deathCause: string | null = null;
-  if (!opts.skipHealth) {
-    let loss = 0;
-    if (newNeeds.hunger <= 0) {
-      loss += STARVATION_DAMAGE_PER_HOUR * gameHoursAdded;
-      deathCause = 'la faim';
-    }
-    if (newNeeds.energy <= 0) {
-      loss += EXHAUSTION_DAMAGE_PER_HOUR * gameHoursAdded;
-      deathCause = deathCause ?? 'l\'épuisement';
-    }
-    const sickLoss = newDiseases.reduce((sum, d) => sum + DISEASES[d.id].dailyDamage, 0) / 24;
-    if (sickLoss > 0) {
-      loss += sickLoss * gameHoursAdded;
-      deathCause = deathCause ?? 'la maladie';
-    }
-    if (loss > 0) {
-      newHealth = Math.max(0, newHealth - loss);
-    } else if (newNeeds.hunger > 25 && newNeeds.energy > 25) {
-      newHealth = Math.min(MAX_HEALTH, newHealth + REGEN_PER_HOUR * gameHoursAdded);
-    }
-  }
-
-  const advanced = evaluateMissionProgress({
+  return evaluateMissionProgress({
     ...state,
     gameTimeHours: newHours,
     daysLived: newDays,
@@ -458,144 +369,8 @@ export function advanceGameTime(
     isDepressed,
     isGameOver,
     gameOverReason,
-    health: newHealth,
-    diseases: newDiseases,
     logs: newLogs.slice(0, 25),
   });
-
-  // Vie à zéro : mort NON définitive → hôpital (sauf si la fin de partie du GDD est déjà atteinte)
-  if (!opts.skipHealth && !advanced.isGameOver && advanced.health <= 0) {
-    return admitToHospital(advanced, 'moyen', deathCause ?? 'un malaise', opts.at);
-  }
-  return advanced;
-}
-
-/* ───────────────────────── Santé : dégâts, hôpital, soins ───────────────────────── */
-
-/**
- * Inflige des dégâts (accident, chute…). Si la vie tombe à 0, le joueur est hospitalisé : la gravité
- * dépend de la violence du coup (léger < 30 ≤ sérieux < 60 ≤ grave).
- */
-export function damagePlayer(
-  rawState: PlayerState,
-  amount: number,
-  cause: string,
-  at?: { x: number; z: number }
-): PlayerState {
-  const state = ensureHealth(rawState);
-  if (state.isGameOver || amount <= 0) return state;
-  const health = Math.max(0, state.health - amount);
-  const hurt = addLog({ ...state, health }, `💥 Aïe ! ${cause} (-${Math.round(amount)} de vie).`, 'danger');
-  if (health > 0) return hurt;
-  return admitToHospital(hurt, severityForHit(amount), cause, at);
-}
-
-/**
- * Hospitalise le joueur : il se réveille quelques jours plus tard à l'hôpital le plus proche, soigné,
- * avec la facture payée en espèces et le reste ajouté aux dettes. Le temps continue de passer jour par jour
- * (salaires, loyers et intérêts) mais sans dégâts ni nouvelles maladies.
- */
-export function admitToHospital(
-  rawState: PlayerState,
-  severity: HospitalSeverity,
-  cause: string,
-  at?: { x: number; z: number }
-): PlayerState {
-  const state = ensureHealth(rawState);
-  if (state.isGameOver) return state;
-
-  const days = stayDays(severity, state.playerId, state.daysLived);
-  const bill = hospitalBill(severity, days);
-  const paidCash = Math.min(Math.max(0, state.cash), bill);
-  const addedDebt = bill - paidCash;
-  const spawn = nearestHospital(at?.x ?? 0, at?.z ?? 0);
-
-  let s: PlayerState = {
-    ...state,
-    cash: state.cash - paidCash,
-    debt: state.debt + addedDebt,
-    health: 60,
-    diseases: [],
-    isDriving: false,
-    engineStalled: false,
-  };
-  for (let i = 0; i < days; i++) {
-    s = advanceGameTime(
-      { ...s, needs: { ...s.needs, hunger: 80, energy: 90, hygiene: 90, bladder: 80 } },
-      6 * 3600,
-      1,
-      { skipHealth: true }
-    );
-    if (s.isGameOver) return s;
-  }
-
-  const visit = {
-    severity,
-    cause,
-    days,
-    hospitalId: spawn.hospital.id,
-    hospitalName: spawn.hospital.name,
-    bill,
-    paidCash,
-    addedDebt,
-    x: spawn.x,
-    z: spawn.z,
-  };
-  const recovered: PlayerState = {
-    ...s,
-    gameTimeHours: 8,
-    health: severity === 'grave' ? 75 : MAX_HEALTH,
-    diseases: [],
-    needs: {
-      ...s.needs,
-      hunger: 70,
-      energy: 85,
-      hygiene: 90,
-      bladder: 85,
-      envy: Math.min(100, s.needs.envy + 15),
-    },
-    isDepressed: false,
-    hospitalizations: state.hospitalizations + 1,
-    hospitalVisit: visit,
-  };
-  return addLog(
-    recovered,
-    `🏥 Réveil à ${spawn.hospital.name} après ${days} jour${days > 1 ? 's' : ''} (${SEVERITY_LABEL[severity]}). Facture : ${bill.toLocaleString('fr-FR')} FCFA.`,
-    'danger'
-  );
-}
-
-/** Le joueur a vu la fenêtre de réveil : on efface le séjour en attente. */
-export function acknowledgeHospitalVisit(state: PlayerState): PlayerState {
-  return state.hospitalVisit ? { ...state, hospitalVisit: null } : state;
-}
-
-/** Traite une maladie en pharmacie : guérison immédiate contre le prix du traitement. */
-export function treatDisease(
-  rawState: PlayerState,
-  id: DiseaseId
-): { ok: boolean; nextState: PlayerState } {
-  const state = ensureHealth(rawState);
-  const info = DISEASES[id];
-  if (!state.diseases.some((d) => d.id === id)) return { ok: false, nextState: state };
-  if (state.cash < info.treatCost) {
-    return {
-      ok: false,
-      nextState: addLog(state, `❌ ${info.treatCost.toLocaleString('fr-FR')} FCFA requis pour soigner : ${info.name}.`, 'danger'),
-    };
-  }
-  return {
-    ok: true,
-    nextState: addLog(
-      {
-        ...state,
-        cash: state.cash - info.treatCost,
-        diseases: state.diseases.filter((d) => d.id !== id),
-      },
-      `💊 Traitement payé (-${info.treatCost.toLocaleString('fr-FR')} F) : ${info.name} soigné.`,
-      'success'
-    ),
-  };
 }
 
 export function spendCash(state: PlayerState, amount: number): { ok: boolean; nextCash: number } {
