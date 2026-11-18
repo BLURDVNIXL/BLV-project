@@ -16,7 +16,6 @@ Le projet associe une simulation 3D avec Three.js, un moteur physique C++ compil
 | Bundler | Vite |
 | Physique | C++ / WebAssembly |
 | Backend | Node.js, Express |
-| Communication temps réel | WebSocket |
 | Persistance serveur | SQLite |
 | Application mobile | PWA, Service Worker |
 
@@ -186,35 +185,37 @@ Le GPS propose :
 - Les différentes communes.
 - Une recherche par nom ou par localisation.
 
-Le déplacement rapide est actuellement effectué par téléportation, avec un tarif de 500 FCFA dans la même commune et de 1 000 FCFA entre communes.
+Le déplacement rapide se fait en taxi (woro-woro) :
+- Le joueur appelle un taxi (attente de 10 à 20 secondes, annulation libre).
+- Le taxi arrive sur le grand axe le plus proche et s'arrête avant la montée.
+- Le paiement a lieu à la montée : 500 FCFA dans la même commune, 1 000 FCFA entre communes.
+- Une cinématique accélérée emmène le joueur devant le lieu choisi.
+- Le trajet fait passer le temps de jeu (3 minutes par kilomètre, de 5 à 90 minutes) et baisse légèrement la faim et l'énergie.
+
+Si aucun trajet n'est possible, le joueur est téléporté à destination.
 
 Une carte plein écran permet de visualiser la ville et de consulter les lieux. Un système d'itinéraire calcule également un parcours sur les grands axes et les ponts.
 
 ---
 
-## 4. Backend et réseau
+## 4. Backend
 
 Le backend est géré par `server.ts`.
 
 Il repose sur :
 - Express pour les routes HTTP.
-- WebSocket pour les communications temps réel.
 - SQLite pour la persistance des données.
 - Des sessions signées.
 - Des opérations économiques validées côté serveur.
 
-Les systèmes serveur comprennent notamment :
-- La gestion des sessions des joueurs.
-- La synchronisation des joueurs connectés.
-- Les communications réseau.
-- Le chat et les signalements.
-- La gestion de la tontine.
-- Les visites et interactions réseau prévues par l'architecture.
-- La validation des opérations économiques.
+Routes disponibles :
+- `GET /api/health` : état du serveur.
+- `/api/session/*` : création, sauvegarde, lecture et suppression de la session.
+- `POST /api/economy/action` : actions économiques validées côté serveur.
 
 Le client et le serveur se partagent les responsabilités : les opérations sensibles ne doivent pas reposer uniquement sur les valeurs envoyées par le navigateur.
 
-Le fonctionnement de chaque fonctionnalité multijoueur doit être évalué séparément : la présence d'un système réseau ne signifie pas que tous les parcours multijoueurs sont finalisés.
+BLV est actuellement un jeu solo. L'ancien multijoueur (WebSocket, joueurs distants, chat, tontine, visites de maisons) a été retiré ; il sera repensé dans une future version.
 
 ---
 
@@ -228,11 +229,11 @@ Le fonctionnement de chaque fonctionnalité multijoueur doit être évalué sép
 | `src/3d/` | Scène Three.js, rendu, avatars et environnements |
 | `src/world/` | Géographie, ville, routes, chunks et habitations |
 | `src/physics/` | Interface TypeScript du moteur physique |
-| `src/network/` | Communication réseau côté client |
+| `src/network/` | Appels REST du client vers le serveur (session, économie) |
 | `physics/` | Source C++ et tests du moteur physique |
 | `public/` | Ressources publiques, WebAssembly et assets PWA |
 | `e2e/` | Tests de bout en bout |
-| `server.ts` | Serveur Express et WebSocket |
+| `server.ts` | Serveur Express (sessions, économie) |
 
 ---
 
@@ -302,7 +303,7 @@ Le projet possède déjà une base technique comprenant :
 - Des avatars animés.
 - Des habitations et certains intérieurs explorables.
 - Une interface adaptée aux écrans mobiles et aux ordinateurs.
-- Un backend Node.js avec WebSocket et SQLite.
+- Un backend Node.js avec SQLite.
 
 Certaines fonctionnalités et certains parcours restent en cours de développement, d'intégration ou de validation.
 
