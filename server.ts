@@ -6,8 +6,6 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import express from 'express';
-import { WebSocketServer, WebSocket } from 'ws';
-import { parseGender } from './src/core/profile';
 import {
   ALL_DESTINIES,
   IVORIAN_FOODS,
@@ -28,7 +26,6 @@ import {
   performWorkShift,
   playLotoAkwaba,
   repayDebt,
-  setHomeAccessMode,
   sleepAtHome,
   takeBankLoan,
   takeShower,
@@ -40,7 +37,6 @@ import { HomeType } from './src/world/abidjanGeography';
 import { strHash } from './src/world/rng';
 import {
   CribUpgrades,
-  HomeAccessMode,
   PlayerState,
   SapeOutfitId,
 } from './src/types/game';
@@ -67,52 +63,17 @@ db.exec(`
     token_hash TEXT NOT NULL,
     state_json TEXT NOT NULL,
     home_lot_id TEXT,
-    home_access TEXT NOT NULL DEFAULT 'open',
     updated_at INTEGER NOT NULL
   );
-  CREATE TABLE IF NOT EXISTS tontine_state (
-    id INTEGER PRIMARY KEY CHECK(id = 1),
-    round_number INTEGER NOT NULL,
-    weekly_dues INTEGER NOT NULL,
-    current_pot INTEGER NOT NULL,
-    current_turn_index INTEGER NOT NULL
-  );
-  CREATE TABLE IF NOT EXISTS tontine_members (
-    player_id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    has_paid INTEGER NOT NULL DEFAULT 0,
-    joined_at INTEGER NOT NULL
-  );
-  CREATE TABLE IF NOT EXISTS tontine_ledger (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    message TEXT NOT NULL,
-    created_at INTEGER NOT NULL
-  );
-  CREATE TABLE IF NOT EXISTS chat_reports (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    reporter_id TEXT NOT NULL,
-    message_id TEXT NOT NULL,
-    sender_id TEXT NOT NULL,
-    reason TEXT NOT NULL,
-    created_at INTEGER NOT NULL
-  );
 `);
-// Ancienne fonctionnalité de consentement/romance supprimée : on retire aussi les anciennes données.
-db.exec(`DROP TABLE IF EXISTS consent_requests;`);
-
-// Initialize tontine singleton with 0 fake NPCs
-db.prepare(`
-  INSERT OR IGNORE INTO tontine_state (id, round_number, weekly_dues, current_pot, current_turn_index)
-  VALUES (1, 1, 50000, 0, 0)
-`).run();
-
-const ledgerCount = db.prepare(`SELECT COUNT(*) as c FROM tontine_ledger`).get() as { c: number };
-if (ledgerCount.c === 0) {
-  db.prepare(`INSERT INTO tontine_ledger (message, created_at) VALUES (?, ?)`).run(
-    'Tontine multijoueur ouverte : rejoins avec d’autres citoyens réels (50 000 FCFA / tour).',
-    Date.now()
-  );
-}
+// Anciennes fonctionnalités supprimées (consentement/romance, multijoueur : tontine, chat) : on retire aussi leurs données.
+db.exec(`
+  DROP TABLE IF EXISTS consent_requests;
+  DROP TABLE IF EXISTS tontine_state;
+  DROP TABLE IF EXISTS tontine_members;
+  DROP TABLE IF EXISTS tontine_ledger;
+  DROP TABLE IF EXISTS chat_reports;
+`);
 
 // ───────────────────────── Crypto & Rate Limits ─────────────────────────
 
@@ -153,20 +114,18 @@ function getSessionRow(playerId: string): {
   token_hash: string;
   state_json: string;
   home_lot_id: string | null;
-  home_access: HomeAccessMode;
 } | null {
   const row = db
-    .prepare(`SELECT player_id, token_hash, state_json, home_lot_id, home_access FROM sessions WHERE player_id = ?`)
+    .prepare(`SELECT player_id, token_hash, state_json, home_lot_id FROM sessions WHERE player_id = ?`)
     .get(playerId) as
-    | { player_id: string; token_hash: string; state_json: string; home_lot_id: string | null; home_access: HomeAccessMode }
+    | { player_id: string; token_hash: string; state_json: string; home_lot_id: string | null }
     | undefined;
   return row ?? null;
 }
 
 function saveSessionState(playerId: string, state: PlayerState) {
-  db.prepare(`UPDATE sessions SET state_json = ?, home_access = ?, home_lot_id = ?, updated_at = ? WHERE player_id = ?`).run(
+  db.prepare(`UPDATE sessions SET state_json = ?, home_lot_id = ?, updated_at = ? WHERE player_id = ?`).run(
     JSON.stringify(state),
-    state.homeAccess || 'open',
     state.homeLotId || null,
     Date.now(),
     playerId
@@ -187,125 +146,14 @@ function reserveLotForState(playerId: string, state: PlayerState): string {
   return lot?.id ?? `lot_${playerId.slice(0, 8)}`;
 }
 
-// ───────────────────────── Tontine Snapshot Helper ─────────────────────────
-
-function getTontineSnapshot() {
-  const st = db
-    .prepare(`SELECT round_number, weekly_dues, current_pot, current_turn_index FROM tontine_state WHERE id = 1`)
-    .get() as { round_number: number; weekly_dues: number; current_pot: number; current_turn_index: number };
-  const members = db
-    .prepare(`SELECT player_id, name, has_paid FROM tontine_members ORDER BY joined_at ASC`)
-    .all() as Array<{ player_id: string; name: string; has_paid: number }>;
-  const logs = db
-    .prepare(`SELECT message FROM tontine_ledger ORDER BY id DESC LIMIT 12`)
-    .all() as Array<{ message: string }>;
-
-  return {
-    roundNumber: st.round_number,
-    weeklyDues: st.weekly_dues,
-    currentPot: st.current_pot,
-    currentTurnIndex: st.current_turn_index,
-    participants: members.map((m) => ({
-      id: m.player_id,
-      name: m.name,
-      hasPaid: Boolean(m.has_paid),
-      isRealPlayer: true,
-    })),
-    history: logs.map((l) => l.message),
-  };
-}
-
-function addTontineLog(message: string) {
-  db.prepare(`INSERT INTO tontine_ledger (message, created_at) VALUES (?, ?)`).run(message, Date.now());
-}
-
-// ───────────────────────── Connected Players & Spatial Filter ─────────────────────────
-
-interface ConnectedPlayer {
-  id: string;
-  name: string;
-  destinyName: string;
-  color: string;
-  x: number;
-  y: number;
-  z: number;
-  rotY: number;
-  isDriving: boolean;
-  vehicleType: string | null;
-  sapeOutfit: string;
-  /** Genre (avatar 3D) : lu une seule fois à la connexion, jamais dans les messages de position. */
-  gender?: 'homme' | 'femme';
-  homeType: HomeType;
-  homeLotId?: string;
-  homeAccess: HomeAccessMode;
-  cribUpgrades: CribUpgrades;
-  friendsIds: string[];
-  lastChatAt: number;
-  ws: WebSocket;
-}
-
-const players = new Map<string, ConnectedPlayer>();
-const SPATIAL_RANGE_M = 340;
-const PROFANITY_RE = /\b(connard|salope|putain|encule|bitch|fuck|nigger|fdp)\b/gi;
-
-function cleanChatText(raw: string): string {
-  return raw.trim().slice(0, 140).replace(PROFANITY_RE, '***');
-}
-
-function broadcast(msg: unknown, excludeId?: string) {
-  const raw = JSON.stringify(msg);
-  for (const [id, p] of players.entries()) {
-    if (id !== excludeId && p.ws.readyState === WebSocket.OPEN) {
-      p.ws.send(raw);
-    }
-  }
-}
-
-function broadcastAll(msg: unknown) {
-  const raw = JSON.stringify(msg);
-  for (const p of players.values()) {
-    if (p.ws.readyState === WebSocket.OPEN) {
-      p.ws.send(raw);
-    }
-  }
-}
-
-function broadcastNear(sender: ConnectedPlayer, msg: unknown) {
-  const raw = JSON.stringify(msg);
-  for (const [id, p] of players.entries()) {
-    if (id === sender.id || p.ws.readyState !== WebSocket.OPEN) continue;
-    if (Math.hypot(p.x - sender.x, p.z - sender.z) <= SPATIAL_RANGE_M) {
-      p.ws.send(raw);
-    }
-  }
-}
-
-function serializePlayers(excludeId?: string) {
-  const list: Array<Omit<ConnectedPlayer, 'ws' | 'lastChatAt'>> = [];
-  for (const [id, p] of players.entries()) {
-    if (id !== excludeId) {
-      const { ws: _ws, lastChatAt: _lc, ...rest } = p;
-      list.push(rest);
-    }
-  }
-  return list;
-}
-
-// ───────────────────────── Server Express + WS Setup ─────────────────────────
+// ───────────────────────── Server Express ─────────────────────────
 
 async function startServer() {
   const app = express();
   app.use(express.json({ limit: '1mb' }));
 
   app.get('/api/health', (_req, res) => {
-    const t = getTontineSnapshot();
-    res.json({
-      status: 'ok',
-      playersOnline: players.size,
-      tontineRound: t.roundNumber,
-      tontinePot: t.currentPot,
-      tontineMembers: t.participants.length,
-    });
+    res.json({ status: 'ok' });
   });
 
   // Server-Issued Session Init, Save, Fetch & RGPD Delete
@@ -336,8 +184,8 @@ async function startServer() {
     baseState.homeLotId = lotId;
 
     db.prepare(
-      `INSERT INTO sessions (player_id, token_hash, state_json, home_lot_id, home_access, updated_at) VALUES (?, ?, ?, ?, ?, ?)`
-    ).run(newId, sha256Hex(token), JSON.stringify(baseState), lotId, baseState.homeAccess || 'open', Date.now());
+      `INSERT INTO sessions (player_id, token_hash, state_json, home_lot_id, updated_at) VALUES (?, ?, ?, ?, ?)`
+    ).run(newId, sha256Hex(token), JSON.stringify(baseState), lotId, Date.now());
 
     res.json({
       ok: true,
@@ -387,8 +235,6 @@ async function startServer() {
     }
     const pid = req.params.playerId;
     db.prepare(`DELETE FROM sessions WHERE player_id = ?`).run(pid);
-    db.prepare(`DELETE FROM tontine_members WHERE player_id = ?`).run(pid);
-    players.delete(pid);
     res.json({ ok: true, purged: true });
   });
 
@@ -476,15 +322,6 @@ async function startServer() {
       case 'toilet':
         st = useToilet(st);
         break;
-      case 'set_home_access': {
-        const mode = String(payload?.mode || 'open') as HomeAccessMode;
-        if (mode === 'open' || mode === 'friends' || mode === 'closed') {
-          st = setHomeAccessMode(st, mode);
-          const cp = players.get(playerId);
-          if (cp) cp.homeAccess = mode;
-        }
-        break;
-      }
       case 'advance_time':
         st = advanceGameTime(st, Math.min(60, Math.max(1, Number(payload?.realSeconds || 6))), 1);
         break;
@@ -516,328 +353,6 @@ async function startServer() {
   }
 
   const server = http.createServer(app);
-  const wss = new WebSocketServer({ server, path: '/ws' });
-
-  wss.on('connection', (ws) => {
-    let myId: string | null = null;
-
-    ws.on('message', (data) => {
-      try {
-        const msg = JSON.parse(data.toString()) as { type: string; payload?: Record<string, unknown> };
-
-        if (msg.type === 'player:join' && msg.payload) {
-          const p = msg.payload;
-          const pid = String(p.id || '');
-          const authToken = String(p.authToken || '');
-          if (!pid || !verifySessionToken(pid, authToken)) {
-            ws.send(JSON.stringify({ type: 'error', payload: { message: 'Session WebSocket non authentifiée.' } }));
-            return;
-          }
-          myId = pid;
-          const row = getSessionRow(pid);
-          const dbState = row ? (JSON.parse(row.state_json) as PlayerState) : null;
-
-          const entry: ConnectedPlayer = {
-            id: pid,
-            name: String(p.name || 'Habitant de Babi').slice(0, 36),
-            destinyName: String(p.destinyName || 'Citoyen').slice(0, 48),
-            color: String(p.color || '#f97316'),
-            x: Number(p.x || 0),
-            y: Number(p.y || 0),
-            z: Number(p.z || 0),
-            rotY: Number(p.rotY || 0),
-            isDriving: Boolean(p.isDriving),
-            vehicleType: p.vehicleType ? String(p.vehicleType) : null,
-            sapeOutfit: String(p.sapeOutfit || 'standard'),
-            gender: parseGender(dbState?.gender) ?? parseGender(p.gender),
-            homeType: (dbState?.destiny.homeType || p.homeType || 'studio') as HomeType,
-            homeLotId: row?.home_lot_id ?? undefined,
-            homeAccess: dbState?.homeAccess ?? 'open',
-            cribUpgrades: dbState?.cribUpgrades ?? {
-              splitClim: false,
-              bafflesMaquis: false,
-              tv4k: false,
-              canapeCuir: false,
-            },
-            friendsIds: dbState?.friendsIds ?? [],
-            lastChatAt: 0,
-            ws,
-          };
-          players.set(pid, entry);
-
-          ws.send(
-            JSON.stringify({
-              type: 'world:init',
-              payload: {
-                players: serializePlayers(pid),
-                onlineCount: players.size,
-                tontine: getTontineSnapshot(),
-              },
-            })
-          );
-
-          const { ws: _w, lastChatAt: _lc, ...publicPlayer } = entry;
-          broadcast({ type: 'player:joined', payload: { player: publicPlayer, onlineCount: players.size } }, pid);
-        }
-
-        if (msg.type === 'player:move' && myId && msg.payload) {
-          const p = players.get(myId);
-          if (p) {
-            p.x = Number(msg.payload.x || 0);
-            p.y = Number(msg.payload.y || 0);
-            p.z = Number(msg.payload.z || 0);
-            p.rotY = Number(msg.payload.rotY || 0);
-            p.isDriving = Boolean(msg.payload.isDriving);
-            p.vehicleType = msg.payload.vehicleType ? String(msg.payload.vehicleType) : null;
-            p.sapeOutfit = String(msg.payload.sapeOutfit || p.sapeOutfit);
-
-            broadcastNear(p, {
-              type: 'player:moved',
-              payload: {
-                id: myId,
-                x: p.x,
-                y: p.y,
-                z: p.z,
-                rotY: p.rotY,
-                isDriving: p.isDriving,
-                vehicleType: p.vehicleType,
-                sapeOutfit: p.sapeOutfit,
-              },
-            });
-          }
-        }
-
-        if (msg.type === 'chat:send' && myId && msg.payload) {
-          const p = players.get(myId);
-          const now = Date.now();
-          if (!p || now - p.lastChatAt < 800) return;
-          const cleaned = cleanChatText(String(msg.payload.text || ''));
-          if (!cleaned) return;
-          p.lastChatAt = now;
-          broadcastAll({
-            type: 'chat:message',
-            payload: {
-              id: `chat_${now}_${Math.random().toString(36).slice(2, 6)}`,
-              senderId: myId,
-              senderName: p.name,
-              text: cleaned,
-              time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
-            },
-          });
-        }
-
-        if (msg.type === 'chat:report' && myId && msg.payload) {
-          db.prepare(
-            `INSERT INTO chat_reports (reporter_id, message_id, sender_id, reason, created_at) VALUES (?, ?, ?, ?, ?)`
-          ).run(
-            myId,
-            String(msg.payload.messageId || ''),
-            String(msg.payload.senderId || ''),
-            String(msg.payload.reason || 'Signalement citoyen').slice(0, 120),
-            Date.now()
-          );
-        }
-
-        // --- REAL MULTIPLAYER TONTINE (0 FAKE NPCS, SQLITE BALANCE VERIFIED) ---
-        if (msg.type === 'tontine:join' && myId) {
-          const p = players.get(myId);
-          db.prepare(`INSERT OR IGNORE INTO tontine_members (player_id, name, has_paid, joined_at) VALUES (?, ?, 0, ?)`).run(
-            myId,
-            p?.name || `Citoyen ${myId.slice(0, 6)}`,
-            Date.now()
-          );
-          addTontineLog(`${p?.name || myId} a rejoint la Tontine réelle d’Abidjan.`);
-          broadcastAll({ type: 'tontine:update', payload: getTontineSnapshot() });
-        }
-
-        if (msg.type === 'tontine:contribute' && myId) {
-          const member = db
-            .prepare(`SELECT player_id, name, has_paid FROM tontine_members WHERE player_id = ?`)
-            .get(myId) as { player_id: string; name: string; has_paid: number } | undefined;
-          const stRow = getSessionRow(myId);
-          const tState = db
-            .prepare(`SELECT round_number, weekly_dues, current_pot, current_turn_index FROM tontine_state WHERE id = 1`)
-            .get() as { round_number: number; weekly_dues: number; current_pot: number; current_turn_index: number };
-
-          if (!member || !stRow) {
-            ws.send(JSON.stringify({ type: 'tontine:error', payload: { message: 'Rejoins d’abord la Tontine.' } }));
-            return;
-          }
-          if (member.has_paid) {
-            ws.send(JSON.stringify({ type: 'tontine:error', payload: { message: 'Déjà cotisé pour ce tour.' } }));
-            return;
-          }
-          const playerState = JSON.parse(stRow.state_json) as PlayerState;
-          if (playerState.cash < tState.weekly_dues) {
-            ws.send(JSON.stringify({ type: 'tontine:error', payload: { message: 'Solde liquide insuffisant (50 000 FCFA requis).' } }));
-            return;
-          }
-
-          // Authoritative debit
-          playerState.cash -= tState.weekly_dues;
-          saveSessionState(myId, playerState);
-
-          db.prepare(`UPDATE tontine_members SET has_paid = 1 WHERE player_id = ?`).run(myId);
-          const newPot = tState.current_pot + tState.weekly_dues;
-          db.prepare(`UPDATE tontine_state SET current_pot = ? WHERE id = 1`).run(newPot);
-          addTontineLog(`💵 ${member.name} a cotisé ${tState.weekly_dues.toLocaleString('fr-FR')} FCFA.`);
-
-          const allMembers = db
-            .prepare(`SELECT player_id, name, has_paid FROM tontine_members ORDER BY joined_at ASC`)
-            .all() as Array<{ player_id: string; name: string; has_paid: number }>;
-
-          if (allMembers.length >= 2 && allMembers.every((m) => m.has_paid === 1)) {
-            const recipient = allMembers[tState.current_turn_index % allMembers.length];
-            const recRow = getSessionRow(recipient.player_id);
-            if (recRow) {
-              const recState = JSON.parse(recRow.state_json) as PlayerState;
-              recState.cash += newPot;
-              saveSessionState(recipient.player_id, recState);
-            }
-            addTontineLog(
-              `🎉 Tour #${tState.round_number} : ${recipient.name} ramasse ${newPot.toLocaleString('fr-FR')} FCFA !`
-            );
-            db.prepare(
-              `UPDATE tontine_state SET round_number = round_number + 1, current_pot = 0, current_turn_index = ? WHERE id = 1`
-            ).run((tState.current_turn_index + 1) % allMembers.length);
-            db.prepare(`UPDATE tontine_members SET has_paid = 0`).run();
-
-            const recPlayer = players.get(recipient.player_id);
-            if (recPlayer && recPlayer.ws.readyState === WebSocket.OPEN) {
-              recPlayer.ws.send(JSON.stringify({ type: 'tontine:payout', payload: { amount: newPot } }));
-            }
-          }
-
-          broadcastAll({ type: 'tontine:update', payload: getTontineSnapshot() });
-        }
-
-        if (msg.type === 'tontine:flee' && myId) {
-          const p = players.get(myId);
-          const tState = db
-            .prepare(`SELECT current_pot FROM tontine_state WHERE id = 1`)
-            .get() as { current_pot: number };
-          const stRow = getSessionRow(myId);
-          if (tState.current_pot > 0 && stRow && p) {
-            const stolen = tState.current_pot;
-            const playerState = JSON.parse(stRow.state_json) as PlayerState;
-            playerState.cash += stolen;
-            playerState.policeWanted = Math.min(5, playerState.policeWanted + 3);
-            saveSessionState(myId, playerState);
-
-            db.prepare(`UPDATE tontine_state SET current_pot = 0 WHERE id = 1`).run();
-            db.prepare(`UPDATE tontine_members SET has_paid = 0`).run();
-            addTontineLog(
-              `🚨 SCANDALE : ${p.name} s’est enfui avec la caisse (${stolen.toLocaleString('fr-FR')} F) !`
-            );
-            ws.send(JSON.stringify({ type: 'tontine:flee_result', payload: { amount: stolen } }));
-            broadcastAll({ type: 'tontine:update', payload: getTontineSnapshot() });
-          }
-        }
-
-        // --- HOUSE KNOCK & VISIT PERMISSIONS ---
-        if (msg.type === 'house:visit_request' && myId && msg.payload) {
-          const ownerId = String(msg.payload.ownerId || '');
-          const owner = players.get(ownerId);
-          const visitor = players.get(myId);
-          if (!owner || !visitor) return;
-
-          const ownerRow = getSessionRow(ownerId);
-          const ownerState = ownerRow ? (JSON.parse(ownerRow.state_json) as PlayerState) : null;
-          const access = ownerState?.homeAccess ?? owner.homeAccess;
-          const seedKey = `${ownerId}|${ownerState?.destiny.id || owner.destinyName}`;
-
-          if (access === 'closed') {
-            ws.send(
-              JSON.stringify({
-                type: 'house:visit_resolved',
-                payload: { approved: false, ownerName: owner.name, reason: 'Porte fermée à clé par le propriétaire.' },
-              })
-            );
-          } else if (access === 'open' || owner.friendsIds.includes(myId)) {
-            ws.send(
-              JSON.stringify({
-                type: 'house:visit_resolved',
-                payload: {
-                  approved: true,
-                  ownerId,
-                  ownerName: owner.name,
-                  homeType: ownerState?.destiny.homeType || owner.homeType,
-                  seedKey,
-                  upgrades: ownerState?.cribUpgrades || owner.cribUpgrades,
-                },
-              })
-            );
-          } else {
-            // 'friends' and not yet friend -> knock live
-            owner.ws.send(
-              JSON.stringify({
-                type: 'house:knock_incoming',
-                payload: {
-                  requestId: myId,
-                  fromPlayerId: myId,
-                  fromName: visitor.name,
-                  lotId: ownerRow?.home_lot_id || '',
-                },
-              })
-            );
-          }
-        }
-
-        if (msg.type === 'house:knock_respond' && myId && msg.payload) {
-          const visitorId = String(msg.payload.visitorId || '');
-          const accepted = Boolean(msg.payload.accepted);
-          const owner = players.get(myId);
-          const visitor = players.get(visitorId);
-          if (!owner || !visitor) return;
-
-          const ownerRow = getSessionRow(myId);
-          const ownerState = ownerRow ? (JSON.parse(ownerRow.state_json) as PlayerState) : null;
-
-          if (accepted) {
-            if (ownerState && !ownerState.friendsIds.includes(visitorId)) {
-              ownerState.friendsIds.push(visitorId);
-              saveSessionState(myId, ownerState);
-              owner.friendsIds = ownerState.friendsIds;
-            }
-            visitor.ws.send(
-              JSON.stringify({
-                type: 'house:visit_resolved',
-                payload: {
-                  approved: true,
-                  ownerId: myId,
-                  ownerName: owner.name,
-                  homeType: ownerState?.destiny.homeType || owner.homeType,
-                  seedKey: `${myId}|${ownerState?.destiny.id || owner.destinyName}`,
-                  upgrades: ownerState?.cribUpgrades || owner.cribUpgrades,
-                },
-              })
-            );
-          } else {
-            visitor.ws.send(
-              JSON.stringify({
-                type: 'house:visit_resolved',
-                payload: {
-                  approved: false,
-                  ownerName: owner.name,
-                  reason: `${owner.name} n’a pas ouvert la porte.`,
-                },
-              })
-            );
-          }
-        }
-      } catch {
-        // Ignore malformed frame
-      }
-    });
-
-    ws.on('close', () => {
-      if (myId) {
-        players.delete(myId);
-        broadcast({ type: 'player:left', payload: { id: myId, onlineCount: players.size } });
-      }
-    });
-  });
-
   server.listen(PORT, '0.0.0.0', () => {
     console.log(`🇨🇮 BLV Server listening on http://0.0.0.0:${PORT}`);
   });

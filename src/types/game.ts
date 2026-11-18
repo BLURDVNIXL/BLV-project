@@ -22,7 +22,6 @@ export type VehicleModelType =
   | 'supercar_madrid'
   | 'police_plcc';
 
-export type HomeAccessMode = 'open' | 'friends' | 'closed';
 
 export interface CribUpgrades {
   splitClim: boolean;
@@ -122,23 +121,6 @@ export interface MissionProgress {
   completed: boolean;
 }
 
-export interface TontineMember {
-  id: string;
-  name: string;
-  hasPaidThisRound: boolean;
-  isRealPlayer: boolean;
-}
-
-export interface TontineState {
-  joined: boolean;
-  weeklyDues: number;
-  currentPot: number;
-  roundNumber: number;
-  members: TontineMember[];
-  currentTurnIndex: number;
-  history: string[];
-}
-
 export interface FoodItem {
   id: string;
   name: string;
@@ -189,13 +171,10 @@ export interface PlayerState {
   engineStalled: boolean; // Caused by flood water on low cars
   weather: WeatherType;
   factions: FactionReputation;
-  tontine: TontineState;
   sapeOutfit: SapeOutfitId;
   ownedOutfits: SapeOutfitId[];
   cribUpgrades: CribUpgrades;
   homeLotId: string | null;
-  homeAccess: HomeAccessMode;
-  friendsIds: string[];
   activeMission: MissionProgress;
   completedMissions: string[];
   isDriving: boolean;
