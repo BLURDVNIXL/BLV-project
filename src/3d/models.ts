@@ -304,7 +304,7 @@ function buildWheel(radius = 0.38, width = 0.24): THREE.Group {
   return wheel;
 }
 
-function createExtrudedProfileMesh(
+export function createExtrudedProfileMesh(
   points: Array<[number, number]>,
   width: number,
   material: THREE.Material
@@ -323,9 +323,9 @@ function createExtrudedProfileMesh(
     bevelSize: 0.05,
     bevelSegments: 2,
   });
-  // ExtrudeGeometry extrudes along +Z, profile in XY -> rotate so length is Z, width is X
+  // ExtrudeGeometry extrudes along +Z, profile in XY -> -PI/2 maps +X (front of 2D profile) to +Z (vehicle forward)
   geo.translate(0, 0, -width / 2);
-  geo.rotateY(Math.PI / 2);
+  geo.rotateY(-Math.PI / 2);
   const mesh = new THREE.Mesh(geo, material);
   mesh.castShadow = true;
   mesh.receiveShadow = true;
