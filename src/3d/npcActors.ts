@@ -42,7 +42,27 @@ const ANIM_RANGE = 45;
 const HIDE_RANGE = 100;
 const FADE = 0.2;
 
-interface ManifestEntry { file: string; zone: string; moment: Moment }
+interface ManifestEntry { file: string; zone: string; moment: Moment; loadout?: { bodyId?: string } }
+
+/** Variation de taille (facteur de hauteur) selon le corps : [min, max]. Le reste varie de façon indépendante. */
+const HEIGHT_VARIATION: Record<string, [number, number]> = {
+  BODY_CHILD: [0.94, 1.06],
+  BODY_TEEN: [0.92, 1.1],
+  BODY_ELDERLY: [0.9, 1.04],
+  BODY_CORPULENT: [0.92, 1.1],
+};
+const DEFAULT_VARIATION: [number, number] = [0.88, 1.14];
+/** Variation de largeur (carrure) autour de 1, indépendante de la hauteur. */
+const WIDTH_VARIATION: [number, number] = [0.93, 1.08];
+
+/** Nombre pseudo-aléatoire stable [0,1) dérivé de la graine et d'un « sel » (même PNJ = même taille). */
+function rand01(seed: number, salt: number): number {
+  let h = (Math.imul(Math.floor(seed) ^ 0x9e3779b9, 2654435761) + Math.imul(salt, 40503)) >>> 0;
+  h ^= h >>> 15; h = Math.imul(h, 2246822519) >>> 0;
+  h ^= h >>> 13; h = Math.imul(h, 3266489917) >>> 0;
+  h ^= h >>> 16;
+  return (h >>> 0) / 4294967296;
+}
 
 export class NpcActor {
   ready = false;
@@ -52,13 +72,16 @@ export class NpcActor {
   private actions: { idle?: THREE.AnimationAction; walk?: THREE.AnimationAction; talk?: THREE.AnimationAction } = {};
   private current: THREE.AnimationAction | null = null;
 
-  constructor(private readonly owner: NpcActors, readonly file: string, template: GLTF) {
+  constructor(private readonly owner: NpcActors, readonly file: string, template: GLTF, bodyId: string | undefined, seed: number) {
     const root = cloneSkinned(template.scene);
     root.traverse((o) => {
       o.frustumCulled = false;
       o.castShadow = false;
     });
-    root.scale.setScalar(ACTOR_SCALE);
+    const [h0, h1] = (bodyId && HEIGHT_VARIATION[bodyId]) || DEFAULT_VARIATION;
+    const height = ACTOR_SCALE * (h0 + rand01(seed, 1) * (h1 - h0));
+    const width = ACTOR_SCALE * (WIDTH_VARIATION[0] + rand01(seed, 2) * (WIDTH_VARIATION[1] - WIDTH_VARIATION[0]));
+    root.scale.set(width, height, width);
     root.visible = false;
     const mixer = new THREE.AnimationMixer(root);
     for (const clip of template.animations) {
@@ -110,6 +133,7 @@ export class NpcActor {
 export class NpcActors {
   readonly group = new THREE.Group();
   private files = new Map<string, string[]>(); // `${zone}|${moment}` → fichiers
+  private bodies = new Map<string, string>(); // fichier → corps
   private templates = new Map<string, GLTF | 'loading' | 'failed'>();
   private loader = new GLTFLoader();
   private base: string;
@@ -139,6 +163,7 @@ export class NpcActors {
         const k = `${e.zone}|${e.moment}`;
         const arr = this.files.get(k) ?? [];
         arr.push(e.file);
+        if (e.loadout?.bodyId) this.bodies.set(e.file, e.loadout.bodyId);
         this.files.set(k, arr);
       }
       this.manifestState = 'ready';
@@ -171,7 +196,7 @@ export class NpcActors {
     if (t === undefined) { this.preload(file); return null; }
     if (t === 'loading' || t === 'failed') return null;
     this.count++;
-    return new NpcActor(this, file, t);
+    return new NpcActor(this, file, t, this.bodies.get(file), seed);
   }
 
   /** Appelé par un acteur qui se libère. */
