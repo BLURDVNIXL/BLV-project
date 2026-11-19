@@ -55,6 +55,18 @@ export interface HouseLot {
   homes: HomeType[];
 }
 
+export interface EmptyLot {
+  id: string;
+  x: number;
+  z: number;
+  w: number;
+  d: number;
+  /** Angle physique tel que +e2 pointe vers la rue la plus proche. */
+  angle: number;
+  district: string;
+  seed: number;
+}
+
 export interface WaterRun { x: number; z: number; hx: number; hz: number }
 
 export interface ChunkData {
@@ -63,6 +75,7 @@ export interface ChunkData {
   buildings: Building[];
   trees: Tree[];
   houseLots: HouseLot[];
+  emptyLots: EmptyLot[];
   water: WaterRun[];
 }
 
@@ -194,7 +207,7 @@ export interface GenerateOptions {
   reservedLots?: ReadonlySet<string>;
 }
 
-const empty = (cx: number, cz: number): ChunkData => ({ cx, cz, buildings: [], trees: [], houseLots: [], water: [] });
+const empty = (cx: number, cz: number): ChunkData => ({ cx, cz, buildings: [], trees: [], houseLots: [], emptyLots: [], water: [] });
 
 export function generateChunk(cx: number, cz: number, opts: GenerateOptions = {}): ChunkData {
   const out = empty(cx, cz);
@@ -300,8 +313,27 @@ export function generateChunk(cx: number, cz: number, opts: GenerateOptions = {}
               continue;
             }
 
-            if (r > dist.density) {                                  // parcelle vide : un arbre parfois
-              if (style === 'villa' || style === 'block') if (r2 < 0.5) addTree(out, p, dist, 5 + 4 * r3);
+            if (r > dist.density) {                                  // parcelle vide : commerce/terrain de quartier ou arbre
+              const dA = [a + 0.5, nU - a - 0.5, b + 0.5, nV - b - 0.5];
+              let k = 0;
+              for (let q = 1; q < 4; q++) if (dA[q] < dA[k]) k = q;
+              const vAngle = [angle + Math.PI / 2, angle - Math.PI / 2, angle + Math.PI, angle][k];
+              const lotW = (k <= 1 ? lv : lu) - 1.2;
+              const lotD = (k <= 1 ? lu : lv) - 1.2;
+              if (dA[k] < 1 && lotW >= 6.8 && lotD >= 6.8 && r2 >= 0.14 && footprintClear(p.x, p.z, lotW, lotD, vAngle, dist)) {
+                out.emptyLots.push({
+                  id,
+                  x: p.x,
+                  z: p.z,
+                  w: lotW,
+                  d: lotD,
+                  angle: vAngle,
+                  district: dist.id,
+                  seed: hash32(i * 73 + a, j * 97 + b, seed),
+                });
+              } else if (style === 'villa' || style === 'block') {
+                if (r2 < 0.5) addTree(out, p, dist, 5 + 4 * r3);
+              }
               continue;
             }
 
@@ -363,6 +395,7 @@ function applySpecials(out: ChunkData, x0: number, z0: number, x1: number, z1: n
   out.buildings = out.buildings.filter((b) => !overlaps(b.x, b.z, Math.hypot(b.w, b.d) / 2));
   out.trees = out.trees.filter((t) => !near.some((s) => insideSpecial({ x: t.x, z: t.z }, 4) === s));
   out.houseLots = out.houseLots.filter((l) => !overlaps(l.x, l.z, 8));
+  out.emptyLots = out.emptyLots.filter((l) => !overlaps(l.x, l.z, Math.hypot(l.w, l.d) / 2));
   for (const s of near) {
     if (!(s.x >= x0 && s.x < x1 && s.z >= z0 && s.z < z1)) continue;
     if (s.spec.containers) {

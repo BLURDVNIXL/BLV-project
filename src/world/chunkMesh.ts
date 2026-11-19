@@ -11,7 +11,16 @@
 
 import * as THREE from 'three';
 import { Building, ChunkData, CHUNK } from './city';
-import { ChunkDecorPlan, ChunkSolid, VILLA_WALLED_DISTRICTS, collectChunkDecor } from './chunkDecor';
+import {
+  ChunkDecorPlan,
+  ChunkSolid,
+  DumpsterDecor,
+  FoodVendorDecor,
+  SignDecor,
+  SignKind,
+  VILLA_WALLED_DISTRICTS,
+  collectChunkDecor,
+} from './chunkDecor';
 import { isHospitalId } from './hospitals';
 import { districtAt, isWater } from './abidjanGeography';
 import { roadAt } from './roads';
@@ -23,6 +32,7 @@ export interface ChunkMaterials {
   trees: THREE.MeshLambertMaterial;
   lamps: THREE.MeshStandardMaterial;
   puddles: THREE.MeshStandardMaterial;
+  signs: THREE.MeshStandardMaterial;
   setNight: (night: boolean) => void;
   setWetness: (wet: boolean) => void;
   /** Temps (secondes) pour le balancement des arbres et herbes dans le vent. */
@@ -83,8 +93,56 @@ function makeFacadeTextures(): { map: THREE.CanvasTexture; emissive: THREE.Canva
   return { map: mk(draw(false)), emissive: mk(draw(true)) };
 }
 
+const SIGN_SPECS: Array<{ kind: SignKind; label: string; bg: string; fg: string; border: string }> = [
+  { kind: 'boutique', label: 'BOUTIQUE', bg: '#0284c7', fg: '#ffffff', border: '#fef08a' },
+  { kind: 'superette', label: 'SUPERETTE', bg: '#15803d', fg: '#ffffff', border: '#bbf7d0' },
+  { kind: 'coiffure', label: 'SALON COIFFURE', bg: '#1e1b4b', fg: '#f472b6', border: '#38bdf8' },
+  { kind: 'transfert', label: 'TRANSFERT · MOMO · OM', bg: '#ea580c', fg: '#ffffff', border: '#fde047' },
+  { kind: 'garbadrome', label: 'GARBADROME', bg: '#92400e', fg: '#fef08a', border: '#f97316' },
+  { kind: 'allocodrome', label: 'ALLOCODROME', bg: '#c2410c', fg: '#ffffff', border: '#facc15' },
+  { kind: 'maquis', label: 'MAQUIS BAR', bg: '#7f1d1d', fg: '#fde047', border: '#fb923c' },
+];
+
+const SIGN_INDEX: Record<SignKind, number> = {
+  boutique: 0,
+  superette: 1,
+  coiffure: 2,
+  transfert: 3,
+  garbadrome: 4,
+  allocodrome: 5,
+  maquis: 6,
+};
+
+function makeSignAtlasTexture(): THREE.CanvasTexture {
+  const W = 512;
+  const stripH = 64;
+  const H = SIGN_SPECS.length * stripH;
+  const cv = document.createElement('canvas');
+  cv.width = W;
+  cv.height = H;
+  const g = cv.getContext('2d')!;
+  SIGN_SPECS.forEach((s, idx) => {
+    const y = idx * stripH;
+    g.fillStyle = s.bg;
+    g.fillRect(0, y, W, stripH);
+    g.strokeStyle = s.border;
+    g.lineWidth = 5;
+    g.strokeRect(4, y + 4, W - 8, stripH - 8);
+    g.fillStyle = s.fg;
+    g.font = 'bold 34px sans-serif';
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    g.fillText(s.label, W / 2, y + stripH / 2 + 2, W - 28);
+  });
+  const t = new THREE.CanvasTexture(cv);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 4;
+  return t;
+}
+
 export function createChunkMaterials(night: boolean, wind = false): ChunkMaterials {
   const tex = makeFacadeTextures();
+  const signTex = makeSignAtlasTexture();
   const facade = new THREE.MeshStandardMaterial({
     map: tex.map,
     vertexColors: true,
@@ -118,6 +176,14 @@ export function createChunkMaterials(night: boolean, wind = false): ChunkMateria
     opacity: 0.74,
     depthWrite: false,
   });
+  const signs = new THREE.MeshStandardMaterial({
+    map: signTex,
+    roughness: 0.42,
+    metalness: 0.05,
+    emissiveMap: signTex,
+    emissive: new THREE.Color(0xffffff),
+    emissiveIntensity: night ? 0.8 : 0.18,
+  });
 
   // Vent tropical : herbes (y < 1.3) et cimes d'arbres oscillent doucement dans le vertex shader.
   const windTime = { value: 0 };
@@ -145,6 +211,7 @@ export function createChunkMaterials(night: boolean, wind = false): ChunkMateria
   const setNight = (isNight: boolean) => {
     facade.emissiveIntensity = isNight ? 0.95 : 0.0;
     lamps.emissiveIntensity = isNight ? 1.15 : 0.0;
+    signs.emissiveIntensity = isNight ? 0.8 : 0.18;
   };
 
   const setWetness = (wet: boolean) => {
@@ -162,6 +229,7 @@ export function createChunkMaterials(night: boolean, wind = false): ChunkMateria
     trees,
     lamps,
     puddles,
+    signs,
     setNight,
     setWetness,
     setWindTime: (timeSec: number) => {
@@ -170,11 +238,13 @@ export function createChunkMaterials(night: boolean, wind = false): ChunkMateria
     dispose: () => {
       tex.map.dispose();
       tex.emissive.dispose();
+      signTex.dispose();
       facade.dispose();
       plain.dispose();
       trees.dispose();
       lamps.dispose();
       puddles.dispose();
+      signs.dispose();
     },
   };
 }
@@ -360,17 +430,25 @@ function addGableRoof(
 }
 
 function addShrubCluster(buf: Buf, x: number, z: number, r: number, h: number, color: THREE.Color): void {
-  const base = h * 0.22;
-  const apex = [x, h, z];
   const shade = color.clone().multiplyScalar(0.84);
-  const N = 5;
-  for (let i = 0; i < N; i++) {
-    const a0 = (i / N) * Math.PI * 2;
-    const a1 = ((i + 1) / N) * Math.PI * 2;
-    const p0 = [x + Math.cos(a0) * r, base, z + Math.sin(a0) * r];
-    const p1 = [x + Math.cos(a1) * r, base, z + Math.sin(a1) * r];
-    const am = (a0 + a1) / 2;
-    buf.tri(p0, apex, p1, [Math.cos(am) * 0.7, 0.7, Math.sin(am) * 0.7], i % 2 === 0 ? color : shade);
+  const bright = color.clone().multiplyScalar(1.1);
+  const lobes = [
+    { lx: x, lz: z, lr: r, lh: h, col: color },
+    { lx: x + r * 0.42, lz: z - r * 0.26, lr: r * 0.72, lh: h * 0.82, col: bright },
+    { lx: x - r * 0.36, lz: z + r * 0.3, lr: r * 0.68, lh: h * 0.76, col: shade },
+  ];
+  const N = 6;
+  for (const lobe of lobes) {
+    const base = 0.04;
+    const apex = [lobe.lx, lobe.lh, lobe.lz];
+    for (let i = 0; i < N; i++) {
+      const a0 = (i / N) * Math.PI * 2;
+      const a1 = ((i + 1) / N) * Math.PI * 2;
+      const p0 = [lobe.lx + Math.cos(a0) * lobe.lr, base, lobe.lz + Math.sin(a0) * lobe.lr];
+      const p1 = [lobe.lx + Math.cos(a1) * lobe.lr, base, lobe.lz + Math.sin(a1) * lobe.lr];
+      const am = (a0 + a1) / 2;
+      buf.tri(p0, apex, p1, [Math.cos(am) * 0.7, 0.7, Math.sin(am) * 0.7], i % 2 === 0 ? lobe.col : shade);
+    }
   }
 }
 
@@ -679,11 +757,116 @@ function addPuddle(puddles: Buf, x: number, z: number, rx: number, rz: number, s
   }
 }
 
+function addSignBoard(plain: Buf, signs: Buf, s: SignDecor): void {
+  const frameCol = new THREE.Color(0x1e293b);
+  addPrism(plain, s.x, s.z, s.w + 0.08, 0.1, s.y0 - 0.03, s.h + 0.06, s.angle, frameCol, frameCol, plain, false);
+
+  const c = Math.cos(s.angle);
+  const sn = Math.sin(s.angle);
+  const nx = -sn;
+  const nz = c;
+  const frontX = s.x + nx * 0.06;
+  const frontZ = s.z + nz * 0.06;
+  const hw = s.w / 2;
+  const v0 = [frontX - c * hw, s.y0, frontZ - sn * hw];
+  const v1 = [frontX + c * hw, s.y0, frontZ + sn * hw];
+  const v2 = [v1[0], s.y0 + s.h, v1[2]];
+  const v3 = [v0[0], s.y0 + s.h, v0[2]];
+  const N = SIGN_SPECS.length;
+  const idx = SIGN_INDEX[s.kind];
+  const pad = 0.04 / N;
+  const vTop = 1 - idx / N - pad;
+  const vBot = 1 - (idx + 1) / N + pad;
+  const white = new THREE.Color(0xffffff);
+  signs.quad(v0, v1, v2, v3, [nx, 0, nz], [0.01, vBot, 0.99, vBot, 0.99, vTop, 0.01, vTop], white);
+}
+
+function addDumpster(plain: Buf, d: DumpsterDecor): void {
+  const body = new THREE.Color(d.color);
+  const lid = new THREE.Color(0x1e293b);
+  const rim = new THREE.Color(0x94a3b8);
+  const wheel = new THREE.Color(0x0f172a);
+  const c = Math.cos(d.angle);
+  const s = Math.sin(d.angle);
+  addPrism(plain, d.x, d.z, 1.42, 0.88, 0.12, 0.9, d.angle, body, rim, plain, false);
+  addPrism(plain, d.x, d.z, 1.48, 0.94, 1.02, 0.12, d.angle, lid, lid, plain, false);
+  for (const sx of [-0.52, 0.52]) {
+    for (const sz of [-0.32, 0.32]) {
+      addPrism(plain, d.x + c * sx - s * sz, d.z + s * sx + c * sz, 0.12, 0.12, 0, 0.12, d.angle, wheel, wheel, plain, false);
+    }
+  }
+  if (d.hasCompanionBin) {
+    const bx = d.x + c * 1.08;
+    const bz = d.z + s * 1.08;
+    addPrism(plain, bx, bz, 0.5, 0.5, 0, 0.78, d.angle, new THREE.Color(0x16a34a), lid, plain, false);
+    addPrism(plain, bx, bz, 0.54, 0.54, 0.78, 0.07, d.angle, lid, lid, plain, false);
+  }
+}
+
+function addFoodVendor(plain: Buf, lamps: Buf, v: FoodVendorDecor): void {
+  const c = Math.cos(v.angle);
+  const s = Math.sin(v.angle);
+  const pt = (lu: number, lv: number): [number, number] => [v.x + lu * c - lv * s, v.z + lu * s + lv * c];
+  const wood = new THREE.Color(0x78350f);
+  const parasol = new THREE.Color(v.parasolColor);
+  const skin = new THREE.Color(0x5c3824);
+  const pagne = new THREE.Color(v.pagneColor);
+  const blouse = new THREE.Color(v.blouseColor);
+  const foulard = new THREE.Color(v.foulardColor);
+
+  // Parasol commun au-dessus du stand
+  const [px, pz] = pt(-0.35, -0.05);
+  addPrism(plain, px, pz, 0.08, 0.08, 0, 2.1, v.angle, wood, wood, plain, false);
+  addHipRoof(plain, px, pz, 2.0, 2.0, 2.08, 0.42, v.angle, parasol);
+
+  if (v.kind === 'galettes') {
+    // Table + vitrine à galettes + galettes dorées visibles à l'intérieur
+    const [tx, tz] = pt(0, 0.34);
+    addPrism(plain, tx, tz, 1.05, 0.65, 0, 0.74, v.angle, wood, new THREE.Color(0x92400e), plain, false);
+    addPrism(plain, tx, tz, 0.84, 0.5, 0.74, 0.32, v.angle, new THREE.Color(0xdbeafe), new THREE.Color(0xe2e8f0), plain, false);
+    const galCol = new THREE.Color(0xd97706);
+    const galTop = new THREE.Color(0xf59e0b);
+    for (const gx of [-0.22, 0.0, 0.22]) {
+      const [gpx, gpz] = pt(gx, 0.34);
+      addPrism(plain, gpx, gpz, 0.18, 0.18, 0.75, 0.18, v.angle, galCol, galTop, plain, false);
+    }
+  } else {
+    // Vendeuse de gnonmi : fourneau charbon incandescent + moule à gnonmi + boules dorées + cuvette
+    const [fx, fz] = pt(-0.28, 0.34);
+    const iron = new THREE.Color(0x334155);
+    addPrism(plain, fx, fz, 0.52, 0.52, 0, 0.54, v.angle, iron, new THREE.Color(0x1e293b), plain, false);
+    addPrism(lamps, fx, fz, 0.34, 0.34, 0.44, 0.1, v.angle, new THREE.Color(0xf97316), new THREE.Color(0xfbbf24), lamps, false);
+    addPrism(plain, fx, fz, 0.58, 0.58, 0.54, 0.08, v.angle, new THREE.Color(0x1e293b), iron, plain, false);
+    const gnonCol = new THREE.Color(0xfbbf24);
+    for (const [ox, oz] of [[-0.14, -0.14], [0.14, -0.14], [0, 0], [-0.14, 0.14], [0.14, 0.14]]) {
+      const [bx, bz] = pt(-0.28 + ox, 0.34 + oz);
+      addPrism(plain, bx, bz, 0.11, 0.11, 0.62, 0.09, v.angle, gnonCol, gnonCol, plain, false);
+    }
+    const [cx, cz] = pt(0.36, 0.34);
+    addPrism(plain, cx, cz, 0.58, 0.52, 0, 0.66, v.angle, wood, wood, plain, false);
+    addPrism(plain, cx, cz, 0.42, 0.42, 0.66, 0.14, v.angle, new THREE.Color(0x0ea5e9), new THREE.Color(0xf59e0b), plain, false);
+  }
+
+  // Vendeuse stylisée assise/debout derrière son étal, face à la rue (+e2)
+  const [wx, wz] = pt(0, -0.44);
+  addPrism(plain, wx, wz, 0.34, 0.34, 0, 0.36, v.angle, wood, wood, plain, false);
+  addPrism(plain, wx, wz, 0.42, 0.34, 0.36, 0.68, v.angle, pagne, pagne, plain, false);
+  addPrism(plain, wx, wz, 0.4, 0.26, 1.04, 0.42, v.angle, blouse, blouse, plain, false);
+  for (const side of [-1, 1]) {
+    const [ax, az] = pt(side * 0.22, -0.28);
+    addPrism(plain, ax, az, 0.1, 0.3, 1.12, 0.12, v.angle, skin, skin, plain, false);
+  }
+  addPrism(plain, wx, wz, 0.22, 0.22, 1.48, 0.24, v.angle, skin, skin, plain, false);
+  addPrism(plain, wx, wz, 0.26, 0.28, 1.7, 0.16, v.angle, foulard, foulard, plain, false);
+}
+
 function renderDecorPlan(
+  facade: Buf,
   plain: Buf,
   trees: Buf,
   lamps: Buf,
   puddles: Buf,
+  signs: Buf,
   plan: ChunkDecorPlan
 ): void {
   const poleMatCol = new THREE.Color(0x475569);
@@ -695,6 +878,11 @@ function renderDecorPlan(
   const shelterGlass = new THREE.Color(0x93c5fd);
   const binGreen = new THREE.Color(0x15803d);
 
+  for (const bx of plan.facadeBoxes) {
+    const col = new THREE.Color(bx.color);
+    const rCol = bx.roofColor !== undefined ? new THREE.Color(bx.roofColor) : col;
+    addPrism(facade, bx.x, bx.z, bx.w, bx.d, bx.y0, bx.h, bx.angle, col, rCol, plain, true);
+  }
   for (const bx of plan.buildingBoxes) {
     const col = new THREE.Color(bx.color);
     const rCol = bx.roofColor !== undefined ? new THREE.Color(bx.roofColor) : col;
@@ -703,6 +891,9 @@ function renderDecorPlan(
   for (const lp of plan.buildingLamps) {
     const col = new THREE.Color(lp.color);
     addPrism(lamps, lp.x, lp.z, lp.w, lp.d, lp.y0, lp.h, lp.angle, col, col, lamps, false);
+  }
+  for (const sg of plan.signs) {
+    addSignBoard(plain, signs, sg);
   }
   for (const sh of plan.buildingShrubs) {
     addShrubCluster(trees, sh.x, sh.z, sh.r, sh.h, new THREE.Color(sh.color));
@@ -740,6 +931,14 @@ function renderDecorPlan(
 
   for (const b of plan.bins) {
     addPrism(plain, b.x, b.z, 0.48, 0.48, 0, 0.78, b.angle, binGreen, poleMatCol, plain, false);
+  }
+
+  for (const d of plan.dumpsters) {
+    addDumpster(plain, d);
+  }
+
+  for (const fv of plan.foodVendors) {
+    addFoodVendor(plain, lamps, fv);
   }
 
   for (const sh of plan.shrubs) {
@@ -818,6 +1017,7 @@ export function buildChunkObjects(
   const tb = new Buf();
   const lamps = new Buf();
   const puddles = new Buf();
+  const signs = new Buf();
 
   data.buildings.forEach((b, i) => {
     if (b.landmark && (HERO_LANDMARKS.has(b.landmark) || isHospitalId(b.landmark))) return;
@@ -825,7 +1025,7 @@ export function buildChunkObjects(
   });
 
   const decorPlan = collectChunkDecor(data);
-  renderDecorPlan(plain, tb, lamps, puddles, decorPlan);
+  renderDecorPlan(facade, plain, tb, lamps, puddles, signs, decorPlan);
 
   const fg = facade.geometry();
   if (fg) {
@@ -843,6 +1043,13 @@ export function buildChunkObjects(
     m.receiveShadow = true;
     group.add(m);
     disposables.push(pg);
+  }
+
+  const sg = signs.geometry();
+  if (sg) {
+    const m = new THREE.Mesh(sg, mats.signs);
+    group.add(m);
+    disposables.push(sg);
   }
 
   const primaryDistrict = data.buildings[0]?.district ?? districtAt({ x: x0 + CHUNK / 2, z: z0 + CHUNK / 2 }).id;

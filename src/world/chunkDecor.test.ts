@@ -307,3 +307,90 @@ test('budget MAX_SOLIDS respecté dans les fenêtres 11×11 les plus denses', ()
     assert.ok(totalSolids < 24000, `${id}: fenêtre 11×11 trop chargée (${totalSolids} solides / 32768 max)`);
   }
 });
+
+test('espaces vides des rues : boutiques, superettes, coiffure, transfert, garbadrome, allocodrome, maquis, maracana, basket, buissons, bacs à ordures et vendeuses', async () => {
+  const urbanDistricts = ['yopougon', 'abobo', 'cocody', 'marcory', 'riviera', 'port_bouet', 'treichville', 'adjame'];
+
+  const findWide = (pred: (p: ChunkDecorPlan) => boolean): ChunkDecorPlan | null => {
+    for (const id of urbanDistricts) {
+      const d = DISTRICTS.find((x) => x.id === id)!;
+      const c = project(d.center.lat, d.center.lon);
+      const ccx = chunkOf(c.x);
+      const ccz = chunkOf(c.z);
+      for (let dx = -4; dx <= 4; dx++) {
+        for (let dz = -4; dz <= 4; dz++) {
+          const ch = generateChunk(ccx + dx, ccz + dz);
+          const plan = collectChunkDecor(ch);
+          if (pred(plan)) return plan;
+        }
+      }
+    }
+    return null;
+  };
+
+  const venueKinds = ['boutique', 'superette', 'coiffure', 'transfert', 'garbadrome', 'allocodrome', 'maquis_quartier', 'maracana', 'basket'] as const;
+  for (const kind of venueKinds) {
+    const plan = findWide((p) => p.venues.some((v) => v.kind === kind));
+    assert.ok(plan, `type absent sur la carte : ${kind}`);
+    const v = plan.venues.find((x) => x.kind === kind)!;
+    assert.equal(isWater(v), false, `${kind} dans l'eau`);
+    assert.equal(roadAt(v), 'none', `${kind} sur la route`);
+    // Au moins un solide associé bloque un piéton dans PhysicsCore
+    const nearbySolid = plan.solids.find((s) => Math.hypot(s.x - v.x, s.z - v.z) < Math.hypot(v.w, v.d) * 0.55);
+    assert.ok(nearbySolid, `${kind}: aucun solide associé`);
+    await assertSolidBlocksCharacter(nearbySolid, kind);
+  }
+
+  // Bacs à ordures, buissons de rue, vendeuses de galettes et vendeuses de gnonmi
+  const dumpPlan = findWide((p) => p.dumpsters.length > 0);
+  const bushPlan = findWide((p) => p.shrubs.length > 0);
+  const galettePlan = findWide((p) => p.foodVendors.some((f) => f.kind === 'galettes'));
+  const gnonmiPlan = findWide((p) => p.foodVendors.some((f) => f.kind === 'gnonmi'));
+  assert.ok(dumpPlan && bushPlan && galettePlan && gnonmiPlan, 'mobilier/vendeuses de rue introuvable');
+
+  const dump = dumpPlan.dumpsters[0];
+  const dumpSolid = dumpPlan.solids.find((s) => s.shape === 'box' && Math.hypot(s.x - dump.x, s.z - dump.z) < 0.1)!;
+  assert.ok(dumpSolid, 'solide bac à ordures manquant');
+  await assertSolidBlocksCharacter(dumpSolid, 'bac à ordures');
+
+  const bush = bushPlan.shrubs[0];
+  const bushSolid = bushPlan.solids.find((s) => s.shape === 'circle' && Math.hypot(s.x - bush.x, s.z - bush.z) < 0.1)!;
+  assert.ok(bushSolid, 'solide buisson de rue manquant');
+  await assertSolidBlocksCharacter(bushSolid, 'buisson de rue');
+
+  for (const [label, vPlan, kind] of [
+    ['vendeuse de galettes', galettePlan, 'galettes'],
+    ['vendeuse de gnonmi', gnonmiPlan, 'gnonmi'],
+  ] as const) {
+    const fv = vPlan.foodVendors.find((f) => f.kind === kind)!;
+    assert.equal(isWater(fv), false, `${label} dans l'eau`);
+    assert.equal(roadAt(fv), 'none', `${label} sur la route`);
+    const tableSolid = vPlan.solids.find((s) => s.shape === 'box' && Math.hypot(s.x - fv.x, s.z - fv.z) < 0.8)!;
+    const womanSolid = vPlan.solids.find((s) => s.shape === 'circle' && Math.hypot(s.x - fv.x, s.z - fv.z) < 0.8)!;
+    assert.ok(tableSolid && womanSolid, `${label}: solide table ou vendeuse manquant`);
+    await assertSolidBlocksCharacter(tableSolid, `${label} (étal)`);
+    await assertSolidBlocksCharacter(womanSolid, `${label} (personne)`);
+  }
+
+  // Entrée ouverte du mini terrain de maracana et de basket : le joueur peut entrer sur le terrain
+  for (const courtKind of ['maracana', 'basket'] as const) {
+    const cPlan = findWide((p) => p.venues.some((v) => v.kind === courtKind))!;
+    const court = cPlan.venues.find((v) => v.kind === courtKind)!;
+    const core = await PhysicsCore.fromBytes(wasmBytes);
+    for (const s of cPlan.solids) registerDecorSolid(core, s);
+    const dirInX = Math.sin(court.angle);
+    const dirInZ = -Math.cos(court.angle);
+    const startX = court.x - dirInX * (court.d / 2 + 1.1);
+    const startZ = court.z - dirInZ * (court.d / 2 + 1.1);
+    const ch = core.createCharacter(startX, startZ, 0.35);
+    const st = createCharacterState();
+    for (let i = 0; i < 80; i++) {
+      core.characterInput(ch, dirInX, dirInZ, 4.5, false);
+      core.step(1 / 60);
+    }
+    core.readCharacter(ch, st);
+    const distFromCenter = Math.hypot(st.x - court.x, st.z - court.z);
+    assert.ok(distFromCenter < 2.2, `${courtKind}: entrée bloquée (dist au centre=${distFromCenter.toFixed(2)}m)`);
+  }
+});
+
