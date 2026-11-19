@@ -25,7 +25,8 @@ export function JellyButton({ tone = 'sun', size = 'md', icon, children, classNa
   );
 }
 
-const ROUND: Record<JellySize, string> = {
+const ROUND: Record<'xs' | JellySize, string> = {
+  xs: 'h-7 w-7',
   sm: 'h-9 w-9',
   md: 'h-11 w-11',
   lg: 'h-14 w-14',
@@ -33,7 +34,7 @@ const ROUND: Record<JellySize, string> = {
 
 interface RoundIconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   tone?: JellyTone;
-  size?: JellySize;
+  size?: 'xs' | JellySize;
   /** Obligatoire : un bouton sans texte doit rester lisible par les lecteurs d'écran. */
   label: string;
   children: ReactNode;

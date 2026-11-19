@@ -918,6 +918,7 @@ export default function App() {
             nearbyHotspot={nearbyHotspot}
             nearbyVehicle={nearbyVehicle}
             getRadarSnapshot={getRadarSnapshot}
+            route={route}
             touchControls={touchControls}
             onInteractClick={() => sceneRef.current?.triggerInteract()}
             onRepairEngine={handleRepairStalledEngine}
