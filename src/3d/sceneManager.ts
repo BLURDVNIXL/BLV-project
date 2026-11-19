@@ -44,6 +44,11 @@ import { StreetAnimSystem } from './streetAnim';
 import { AvatarController, loadAvatar } from './avatars';
 import { getWasmCore } from '../wasm/wasmBridge';
 import {
+  type TimedBodyActionKind,
+  isTimedBodyAction,
+  timedActionBlocksMovement,
+} from '../core/timedActions';
+import {
   CharacterState,
   PhysicsCore,
   SolidFlag,
@@ -167,6 +172,10 @@ export interface SceneCallbacks {
   onPauseKey?: () => void;
   /** Cinématique du taxi (B3) : true = l'écran doit passer au noir, false = revenir à l'image. */
   onTaxiFade?: (dark: boolean) => void;
+  /** Cinématique du taxi démarrée (durée totale réelle en secondes). */
+  onTaxiRideStart?: (totalDurationS: number) => void;
+  /** Réparation d'un moteur noyé déclenchée depuis le jeu (touche E ou manette). */
+  onRepairStalledEngine?: () => void;
   /** Écran noir à l'arrivée : le joueur vient d'être déposé (le temps du trajet peut passer). */
   onTaxiRideArrived?: () => void;
   /** Cinématique terminée : le joueur est arrivé et peut de nouveau jouer. */
@@ -274,6 +283,8 @@ export class AbidjanSceneManager {
   private spawnedVehicles: Array<{ id: string; vehId: number; rig: VehicleRig }> = [];
   private drivingVehicle: { id: string; vehId: number; rig: VehicleRig } | null = null;
   private engineStalled = false;
+  private activeTimedActionKind: TimedBodyActionKind | null = null;
+  private activeTimedActionStartedAtMs = 0;
 
   private trafficCars: Array<RoadCar & { rig: VehicleRig }> = [];
   // Maison du joueur (façade extérieure fermée + intérieur dédié par destin et par étage)
@@ -694,16 +705,6 @@ export class AbidjanSceneManager {
         outRotY: -pMarche.angle,
         radius: 3.4,
         color: 0xf97316,
-      });
-      this.addBeaconHotspot({
-        id: 'work_adjame',
-        label: '💼 Grand Marché d’Adjamé (Commerce)',
-        district: 'Adjamé',
-        x: pMarche.x + vx * (pMarche.d / 2 + 10.5),
-        z: pMarche.z + vz * (pMarche.d / 2 + 10.5),
-        radius: 4.5,
-        type: 'work',
-        color: 0x10b981,
       });
     }
 
@@ -1828,10 +1829,11 @@ export class AbidjanSceneManager {
       this.scene.add(rig.group);
       heading = pointAlongPath(points, 0).heading;
     }
+    const totalS = taxiRideSeconds(route.distanceM);
     this.taxiRide = {
       phase: 'board',
       t: 0,
-      totalS: taxiRideSeconds(route.distanceM),
+      totalS,
       rig,
       points,
       length,
@@ -1843,6 +1845,7 @@ export class AbidjanSceneManager {
       endFade: false,
     };
     this.callbacks.onTaxiFade?.(true);
+    this.callbacks.onTaxiRideStart?.(totalS + AbidjanSceneManager.TAXI_FADE_S);
     return { distanceM: route.distanceM };
   }
 
@@ -2021,6 +2024,15 @@ export class AbidjanSceneManager {
   }
 
   public triggerInteract() {
+    if (this.activeTimedActionKind !== null || this.taxiRide !== null) return;
+    if (this.drivingVehicle) {
+      if (this.engineStalled) {
+        this.callbacks.onRepairStalledEngine?.();
+        return;
+      }
+      this.toggleVehicle();
+      return;
+    }
     const h = this.findNearestHotspot();
     if (h) {
       this.callbacks.onInteractionTriggered(h);
@@ -2030,7 +2042,7 @@ export class AbidjanSceneManager {
   }
 
   public triggerJump() {
-    if (this.taxiRide) return;
+    if (this.taxiRide || timedActionBlocksMovement(this.activeTimedActionKind)) return;
     if (this.drivingVehicle) {
       this.isHandbraking = true;
       window.setTimeout(() => {
@@ -2046,6 +2058,39 @@ export class AbidjanSceneManager {
 
   public triggerHorn() {
     this.callbacks.onHorn?.();
+  }
+
+  /** Verrouille les déplacements et lance l'animation corporelle d'une action chronométrée (null pour libérer). */
+  public setActiveTimedAction(kind: TimedBodyActionKind | null) {
+    this.activeTimedActionKind = kind;
+    this.activeTimedActionStartedAtMs = kind ? performance.now() : 0;
+    if (kind !== null) {
+      this.keys.clear();
+      this.jumpPending = false;
+      this.isSprinting = false;
+      this.isHandbraking = false;
+    }
+  }
+
+  /** Fait descendre le joueur face au capot pour réparer un moteur noyé sans lever encore l'état de panne. */
+  public prepareEngineRepair() {
+    if (!this.physics || !this.drivingVehicle) return;
+    const v = this.drivingVehicle;
+    const cs = this.physics.readVehicle(v.vehId, this.carState);
+    const ex = cs.x - Math.cos(cs.heading) * 2.1;
+    const ez = cs.z + Math.sin(cs.heading) * 2.1;
+    this.playerX = ex;
+    this.playerZ = ez;
+    this.playerRotY = Math.atan2(cs.x - ex, cs.z - ez);
+    if (this.playerCharId >= 0) {
+      this.physics.placeCharacter(this.playerCharId, ex, ez);
+      this.physics.setCharacterEnabled(this.playerCharId, true);
+    }
+    this.physics.vehicleInput(v.vehId, 0, 0, true);
+    this.playerRig.group.visible = true;
+    this.playerRig.group.position.set(ex, 0, ez);
+    this.drivingVehicle = null;
+    this.callbacks.onVehicleToggle(false);
   }
 
   public toggleVehicle() {
@@ -2207,7 +2252,9 @@ export class AbidjanSceneManager {
     if (code === 'KeyE') {
       this.triggerInteract();
     } else if (code === 'KeyF') {
-      this.toggleVehicle();
+      if (this.activeTimedActionKind === null && this.taxiRide === null) {
+        this.toggleVehicle();
+      }
     } else if (code === 'KeyH') {
       this.triggerHorn();
     }
@@ -2539,10 +2586,11 @@ export class AbidjanSceneManager {
 
     if (Math.abs(this.joystickVec.y) > 0.08) fwd = -this.joystickVec.y;
     if (Math.abs(this.joystickVec.x) > 0.08) turnRight = this.joystickVec.x;
-    // Pendant la cinématique du taxi, le joueur ne bouge pas.
-    if (this.taxiRide) {
+    // Pendant la cinématique du taxi ou une action chronométrée bloquante, le joueur ne bouge pas.
+    if (this.taxiRide || timedActionBlocksMovement(this.activeTimedActionKind)) {
       fwd = 0;
       turnRight = 0;
+      this.jumpPending = false;
     }
 
     const core = this.physics;
@@ -2640,8 +2688,14 @@ export class AbidjanSceneManager {
           playerScale * this.playerSquashY,
           playerScale / Math.sqrt(this.playerSquashY)
         );
-        this.playerRig.animateGait(this.walkPhase, moving ? 1 : 0, dt);
-        this.playerAvatarCtl?.update(dt, ps.speed, ps.grounded, knocked);
+        const bodyAction = isTimedBodyAction(this.activeTimedActionKind) && !knocked ? this.activeTimedActionKind : null;
+        const actionElapsedSec = bodyAction ? Math.max(0, (performance.now() - this.activeTimedActionStartedAtMs) / 1000) : 0;
+        if (bodyAction) {
+          this.playerRig.animateAction(bodyAction, actionElapsedSec, dt);
+        } else {
+          this.playerRig.animateGait(this.walkPhase, moving ? 1 : 0, dt);
+        }
+        this.playerAvatarCtl?.update(dt, ps.speed, ps.grounded, knocked, bodyAction, actionElapsedSec);
       }
 
       // Sync AI road traffic cars

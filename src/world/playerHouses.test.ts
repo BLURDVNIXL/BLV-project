@@ -4,7 +4,7 @@
  *
  * BLV
  * Tests complets des maisons de destins (phase pilote : poignon + golden_boy) :
- * 1) Complétude des données, origines physiques, unicité du mobilier, 4 points d'action.
+ * 1) Complétude des données, origines physiques, unicité du mobilier, 3 points d'action.
  * 2) Atteignabilité BFS sur grille fine 0,1 m (rayon 0,35 m), avec et sans améliorations.
  * 3) Façades fermées ≤ 13 × 11 m, accès depuis la rue/voiture et parcelles réelles.
  * 4) Test fumée sur le vrai moteur physique WASM (public/physics.wasm).
@@ -148,7 +148,7 @@ function bfsReachable(
   };
 }
 
-test('pilotes Poignon et Golden Boy : structure, origines, 4 actions et améliorations', () => {
+test('pilotes Poignon et Golden Boy : structure, origines, 3 actions et améliorations', () => {
   const poignon = HOUSE_SPECS.poignon;
   const golden = HOUSE_SPECS.golden_boy;
   assert.ok(poignon, 'poignon doit exister dans HOUSE_SPECS');
@@ -169,7 +169,7 @@ test('pilotes Poignon et Golden Boy : structure, origines, 4 actions et amélior
     }
   }
 
-  // Chaque maison possède les 4 points d'action obligatoires avec libellés exacts
+  // Chaque maison possède les 3 points d'action obligatoires avec libellés exacts
   const required = Object.values(HOUSE_REQUIRED_ACTIONS);
   const signatures = new Set<string>();
 

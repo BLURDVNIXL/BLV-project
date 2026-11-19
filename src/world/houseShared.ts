@@ -15,12 +15,11 @@ export const HOUSE_FLOOR_ORIGINS: ReadonlyArray<{ x: number; z: number }> = [
   { x: 2800, z: 2860 },
 ];
 
-/** Les 4 points d'action obligatoires de toute maison (ids, types et libellés d'origine conservés). */
+/** Les 3 points d'action obligatoires de toute maison (ids, types et libellés conservés). */
 export const HOUSE_REQUIRED_ACTIONS = {
   sleep: { id: 'home_bed', type: 'sleep' as const, label: '🛏️ Dormir au lit (Énergie +85%)', color: 0x6366f1 },
   eat: { id: 'home_fridge', type: 'eat' as const, label: '🧊 Réfrigérateur & Garba maison', color: 0xf97316 },
   shower: { id: 'home_shower', type: 'shower' as const, label: '🚿 Douche & Hygiène', color: 0x06b6d4 },
-  work: { id: 'home_pc', type: 'work' as const, label: '💻 Bureau PC / Télétravail', color: 0x10b981 },
 };
 
 export type HousePropKind =

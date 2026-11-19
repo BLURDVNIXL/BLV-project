@@ -310,17 +310,7 @@ export const MARCHE_INTERIOR: InteriorDef = {
   ],
   entry: { x: 0, z: 5.2, rotY: Math.PI },
   exit: { x: 0, z: 7.5, radius: 1.7 },
-  actions: [
-    {
-      id: 'work_adjame_hall',
-      label: '💼 Travailler — Halle d’Adjamé (Commerce)',
-      x: 0,
-      z: -4.4,
-      radius: 2.2,
-      type: 'work',
-      color: 0x10b981,
-    },
-  ],
+  actions: [],
   npcs: [
     // Vendeurs derrière leur étal (côté mur), patron derrière le comptoir nord
     still('vendeur', 3101, -11, 3, H),

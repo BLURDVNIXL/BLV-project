@@ -267,7 +267,6 @@ const MECANICIEN_TREICHVILLE_HOUSE: HouseSpec = {
       bed: { x: -1.45, z: -0.85, rotY: -Math.PI / 2 },
       actions: [
         { ...HOUSE_REQUIRED_ACTIONS.sleep, x: -1.45, z: -0.85, radius: 1.45 },
-        { ...HOUSE_REQUIRED_ACTIONS.work, x: 1.25, z: -1.25, radius: 1.45 },
         {
           id: 'stairs_to_0',
           label: '🪜 Descendre à l’atelier',
@@ -441,7 +440,6 @@ const BROUTEUR_HOUSE: HouseSpec = {
       actions: [
         { ...HOUSE_REQUIRED_ACTIONS.sleep, x: -2.05, z: -0.75, radius: 1.45 },
         { ...HOUSE_REQUIRED_ACTIONS.shower, x: -1.45, z: -1.0, radius: 1.4 },
-        { ...HOUSE_REQUIRED_ACTIONS.work, x: 2.65, z: -1.15, radius: 1.45 },
         { ...HOUSE_REQUIRED_ACTIONS.eat, x: 1.75, z: -1.35, radius: 1.45 },
       ],
       props: [
@@ -701,7 +699,6 @@ const DJASSAMAN_HOUSE: HouseSpec = {
       actions: [
         { ...HOUSE_REQUIRED_ACTIONS.sleep, x: 2.0, z: -0.9, radius: 1.45 },
         { ...HOUSE_REQUIRED_ACTIONS.shower, x: 2.0, z: 0.55, radius: 1.4 },
-        { ...HOUSE_REQUIRED_ACTIONS.work, x: -2.05, z: 1.15, radius: 1.45 },
         { ...HOUSE_REQUIRED_ACTIONS.eat, x: -1.35, z: 1.4, radius: 1.45 },
       ],
       props: [
@@ -960,7 +957,6 @@ const CLASSE_MOYENNE_ANGRE_HOUSE: HouseSpec = {
       actions: [
         { ...HOUSE_REQUIRED_ACTIONS.sleep, x: -2.65, z: -1.1, radius: 1.45 },
         { ...HOUSE_REQUIRED_ACTIONS.shower, x: -2.7, z: 1.4, radius: 1.4 },
-        { ...HOUSE_REQUIRED_ACTIONS.work, x: 0.05, z: -1.6, radius: 1.45 },
         { ...HOUSE_REQUIRED_ACTIONS.eat, x: 2.7, z: -1.6, radius: 1.45 },
       ],
       props: [
@@ -1462,7 +1458,6 @@ const GERANT_MAQUIS_HOUSE: HouseSpec = {
       bed: { x: -1.55, z: -1.35, rotY: -Math.PI / 2 },
       actions: [
         { ...HOUSE_REQUIRED_ACTIONS.sleep, x: -1.55, z: -1.35, radius: 1.45 },
-        { ...HOUSE_REQUIRED_ACTIONS.work, x: 1.05, z: -1.5, radius: 1.45 },
         {
           id: 'stairs_to_0',
           label: '🪜 Descendre au RDC',
@@ -1652,7 +1647,6 @@ const ELEVE_INPHB_HOUSE: HouseSpec = {
         { ...HOUSE_REQUIRED_ACTIONS.sleep, x: -2.8, z: -1.05, radius: 1.45 },
         { ...HOUSE_REQUIRED_ACTIONS.shower, x: -2.8, z: 1.4, radius: 1.4 },
         { ...HOUSE_REQUIRED_ACTIONS.eat, x: -0.9, z: -1.6, radius: 1.45 },
-        { ...HOUSE_REQUIRED_ACTIONS.work, x: 2.85, z: -1.45, radius: 1.45 },
       ],
       props: [
         {
@@ -2117,7 +2111,6 @@ const POLITICIEN_DECHU_HOUSE: HouseSpec = {
       bed: { x: -1.75, z: -1.4, rotY: -Math.PI / 2 },
       actions: [
         { ...HOUSE_REQUIRED_ACTIONS.sleep, x: -1.75, z: -1.4, radius: 1.45 },
-        { ...HOUSE_REQUIRED_ACTIONS.work, x: 1.15, z: -1.65, radius: 1.45 },
         {
           id: 'stairs_to_0',
           label: '🪜 Descendre au salon',

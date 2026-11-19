@@ -86,3 +86,45 @@ test('parseGender : seules les deux valeurs valides passent (message réseau, an
   assert.equal(parseGender('<script>'), undefined);
   assert.equal(parseGender(42), undefined);
 });
+
+import { computeActionPose } from './avatars';
+import type { TimedBodyActionKind } from '../core/timedActions';
+
+test('computeActionPose : toutes les actions corporelles retournent des poses valides et distinctes', () => {
+  const kinds: TimedBodyActionKind[] = [
+    'eat',
+    'toilet',
+    'loto',
+    'yannis_academy',
+    'shower',
+    'repair_engine',
+    'black_market',
+    'vieux_sage',
+    'sleep',
+  ];
+
+  for (const kind of kinds) {
+    const pose0 = computeActionPose(kind, 0.2);
+    const pose1 = computeActionPose(kind, 1.4);
+    for (const val of Object.values(pose0)) {
+      assert.ok(Number.isFinite(val), `${kind} doit produire uniquement des valeurs finies`);
+    }
+    assert.ok(Object.keys(pose1).length > 0);
+  }
+
+  const sleepPose = computeActionPose('sleep', 0.5);
+  assert.ok(sleepPose.rootPitchX < -1.4, 'sleep couche le personnage à l’horizontale');
+  assert.ok(sleepPose.rootOffsetY > 0.1, 'sleep ajuste la hauteur pour ne pas passer sous le sol');
+
+  const toiletPose = computeActionPose('toilet', 0.5);
+  assert.ok(toiletPose.hipOffsetY < -0.1, 'toilet abaisse les hanches');
+  assert.ok(toiletPose.leftUpLegX < -0.8 && toiletPose.leftLegX > 1.0, 'toilet fléchit les genoux');
+
+  const eatA = computeActionPose('eat', 0.1);
+  const eatB = computeActionPose('eat', 0.45);
+  assert.notEqual(eatA.rightForearmX, eatB.rightForearmX, 'eat anime l’avant-bras vers la bouche');
+
+  const showerPose = computeActionPose('shower', 0.3);
+  assert.ok(showerPose.leftArmX < -0.9 && showerPose.rightArmX < -0.9, 'shower lève les deux bras');
+});
+

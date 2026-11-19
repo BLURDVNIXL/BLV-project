@@ -198,7 +198,6 @@ const POIGNON_HOUSE: HouseSpec = {
         { ...HOUSE_REQUIRED_ACTIONS.sleep, x: -1.45, z: -0.25, radius: 1.4 },
         { ...HOUSE_REQUIRED_ACTIONS.eat, x: 1.15, z: -1.05, radius: 1.4 },
         { ...HOUSE_REQUIRED_ACTIONS.shower, x: 1.05, z: 0.85, radius: 1.4 },
-        { ...HOUSE_REQUIRED_ACTIONS.work, x: -1.05, z: 1.05, radius: 1.4 },
       ],
       props: [
         // Palette + matelas carton + couverture Baraka (h = 0,40 m → solide)
@@ -696,7 +695,6 @@ const GOLDEN_BOY_HOUSE: HouseSpec = {
       bed: { x: -1.35, z: -2.45, rotY: -Math.PI / 2 },
       actions: [
         { ...HOUSE_REQUIRED_ACTIONS.sleep, x: -1.35, z: -2.45, radius: 1.5 },
-        { ...HOUSE_REQUIRED_ACTIONS.work, x: 2.7, z: -2.15, radius: 1.5 },
         {
           id: 'stairs_to_0',
           label: '🪜 Descendre au rez-de-chaussée',

@@ -7,7 +7,6 @@ import {
   VolumeX,
   Dices,
   Pause,
-  Wrench,
   Sun,
   CloudRain,
   Waves,
@@ -17,22 +16,16 @@ import {
 import { PlayerState, WeatherType } from '../types/game';
 import { formatGameTime } from '../core/simulation';
 import { t } from '../core/i18n';
-import { CityHotspot, RadarSnapshot } from '../3d/sceneManager';
+import { RadarSnapshot } from '../3d/sceneManager';
 import type { Route } from '../world/routing';
 import { MinimapRadar } from './MinimapRadar';
-import { JellyButton, RoundIconButton } from './ui/Jelly';
+import { RoundIconButton } from './ui/Jelly';
 
 interface GameHUDProps {
   playerState: PlayerState;
   currentDistrict: string;
-  nearbyHotspot: CityHotspot | null;
-  nearbyVehicle: { id: string; label: string } | null;
   getRadarSnapshot: () => RadarSnapshot | null;
   route?: Route | null;
-  /** Commandes tactiles affichées : le bouton « Interagir » de la manette remplace l'invitation du haut. */
-  touchControls: boolean;
-  onInteractClick: () => void;
-  onRepairEngine: () => void;
   onOpenPhone: () => void;
   onOpenMap: () => void;
   onOpenSettings: () => void;
@@ -83,13 +76,8 @@ function MenuItem({ icon, label, detail, onClick }: MenuItemProps) {
 export const GameHUD: React.FC<GameHUDProps> = ({
   playerState,
   currentDistrict,
-  nearbyHotspot,
-  nearbyVehicle,
   getRadarSnapshot,
   route,
-  touchControls,
-  onInteractClick,
-  onRepairEngine,
   onOpenPhone,
   onOpenMap,
   onOpenSettings,
@@ -108,8 +96,6 @@ export const GameHUD: React.FC<GameHUDProps> = ({
     fn();
   };
 
-  const showInteractPrompt = !touchControls && (nearbyHotspot || nearbyVehicle || playerState.isDriving);
-
   return (
     <div className="pointer-events-none fixed inset-0 z-20 flex select-none flex-col justify-between p-3 md:p-4 short:p-2">
       {/* Fond invisible : un toucher en dehors du menu le referme */}
@@ -122,34 +108,8 @@ export const GameHUD: React.FC<GameHUDProps> = ({
           <MinimapRadar getSnapshot={getRadarSnapshot} district={currentDistrict} route={route} onOpen={onOpenMap} />
         </div>
 
-        {/* Haut centre : alertes, et invitation à agir quand il n'y a pas de manette tactile */}
-        <div className="flex flex-col items-center gap-2">
-          {playerState.engineStalled && (
-            <JellyButton tone="coral" size="sm" onClick={onRepairEngine} className="pointer-events-auto" icon={<Wrench className="h-4 w-4" />}>
-              {s.engineStalled} — Réparer (5 000 F)
-            </JellyButton>
-          )}
-
-          {showInteractPrompt && (
-            <JellyButton
-              tone="lagoon"
-              size="md"
-              onClick={onInteractClick}
-              className="pointer-events-auto"
-              icon={
-                <span className="flex h-7 w-7 items-center justify-center rounded-lg border-2 border-white bg-white/95 text-sm font-bold text-lagoon-600 shadow-sm">
-                  E
-                </span>
-              }
-            >
-              {playerState.isDriving ? s.exitVehicle : nearbyHotspot ? nearbyHotspot.label : `${s.enterVehicle} ${nearbyVehicle?.label || ''}`}
-            </JellyButton>
-          )}
-
-          {playerState.isDepressed && (
-            <div className="panel border-coral-400 px-3 py-1.5 text-xs font-bold text-coral-600">{s.depressedWarning}</div>
-          )}
-        </div>
+        {/* Haut centre laissé libre pour UniversalActionGauge (aucun bouton ni alerte). */}
+        <div />
 
         {/* Haut droite : heure, météo, son, menu ; recherche */}
         <div className="pointer-events-auto relative flex flex-col items-end gap-1.5 short:gap-1">

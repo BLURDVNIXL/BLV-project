@@ -105,8 +105,8 @@ test('Story mission progression advances steps and grants completion trophy & re
   st = eatFood(st, IVORIAN_FOODS[0]);
   assert.equal(st.activeMission.stepIndex, 1);
 
-  // Step 2: Work shift
-  st = performWorkShift(st);
+  // Step 2: Visit Adjamé
+  st = evaluateMissionProgress(st, 'adjame');
   assert.equal(st.activeMission.stepIndex, 2);
 
   // Step 3: Reach Plateau & >= 20,000 F in bank

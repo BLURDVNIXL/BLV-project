@@ -16,6 +16,8 @@ import {
   Zap,
   ShowerHead,
   Droplet,
+  CarTaxiFront,
+  Wrench,
 } from 'lucide-react';
 import {
   PlayerState,
@@ -52,6 +54,9 @@ interface MyOSPhoneProps {
   playerState: PlayerState;
   /** Lieux et perron de la maison, relevés à l'ouverture de l'application GPS. */
   getGpsSource: () => GpsSource;
+  taxiCall?: { districtName: string; remainingS: number } | null;
+  onCancelTaxi?: () => void;
+  onRepairEngine?: () => void;
   onClose: () => void;
   onEatFood: (foodId: string) => void;
   onFastTravel: (x: number, z: number, districtName: string, districtId: string) => void;
@@ -67,6 +72,9 @@ type PhoneApp = 'home' | 'eats' | 'gps' | 'sape' | 'customisation';
 export const MyOSPhone: React.FC<MyOSPhoneProps> = ({
   playerState,
   getGpsSource,
+  taxiCall = null,
+  onCancelTaxi,
+  onRepairEngine,
   onClose,
   onEatFood,
   onFastTravel,
@@ -257,6 +265,60 @@ export const MyOSPhone: React.FC<MyOSPhoneProps> = ({
                   onClick={handleSave}
                 />
               </div>
+
+              {/* TAXI ACTIF & PANNES */}
+              {taxiCall && (
+                <div className="flex items-center justify-between gap-2 rounded-2xl bg-lagoon-400/15 border border-lagoon-500/40 px-3 py-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <CarTaxiFront className="h-4 w-4 shrink-0 text-lagoon-600" />
+                    <div className="min-w-0 text-xs font-bold text-ink-800 truncate">
+                      {taxiCall.districtName} · {taxiCall.remainingS} s
+                    </div>
+                  </div>
+                  {onCancelTaxi && (
+                    <button
+                      type="button"
+                      onClick={onCancelTaxi}
+                      className="shrink-0 rounded-lg bg-coral-500 hover:bg-coral-600 px-2.5 py-1 text-xs font-bold text-white cursor-pointer"
+                    >
+                      {playerState.language === 'fr' ? 'Annuler le taxi' : 'Cancel taxi'}
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {playerState.engineStalled && onRepairEngine && (
+                <div className="flex items-center justify-between gap-2 rounded-2xl bg-coral-400/15 border border-coral-500/40 px-3 py-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Wrench className="h-4 w-4 shrink-0 text-coral-600" />
+                    <span className="text-xs font-bold text-coral-600 truncate">{s.engineStalled}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onRepairEngine();
+                    }}
+                    className="shrink-0 rounded-lg bg-coral-500 hover:bg-coral-600 px-2.5 py-1 text-xs font-bold text-white cursor-pointer"
+                  >
+                    {playerState.language === 'fr' ? 'Dépanner' : 'Repair'}
+                  </button>
+                </div>
+              )}
+
+              {/* JOURNAL RÉCENT */}
+              {playerState.logs.length > 0 && (
+                <div className="rounded-2xl bg-cream-100 p-2.5 border border-cream-200 space-y-1">
+                  <div className="text-[10px] font-bold uppercase tracking-wide text-ink-500">
+                    {playerState.language === 'fr' ? 'Journal' : 'Activity Log'}
+                  </div>
+                  {playerState.logs.slice(0, 3).map((entry) => (
+                    <div key={entry.id} className="text-[11px] leading-snug text-ink-700">
+                      <span className="font-bold tabular-nums text-ink-500">{entry.time}</span> · {entry.message}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -289,6 +351,20 @@ export const MyOSPhone: React.FC<MyOSPhoneProps> = ({
           {activeApp === 'gps' && (
             <div className="flex flex-col gap-2">
               <AppHeader title={s.gps} onBack={() => setActiveApp('home')} />
+              {taxiCall && onCancelTaxi && (
+                <div className="flex items-center justify-between gap-2 rounded-xl bg-lagoon-400/15 border border-lagoon-500/40 px-2.5 py-2">
+                  <span className="text-xs font-bold text-ink-800 truncate">
+                    🚖 {taxiCall.districtName} · {taxiCall.remainingS} s
+                  </span>
+                  <button
+                    type="button"
+                    onClick={onCancelTaxi}
+                    className="shrink-0 rounded-lg bg-coral-500 hover:bg-coral-600 px-2 py-1 text-xs font-bold text-white cursor-pointer"
+                  >
+                    {playerState.language === 'fr' ? 'Annuler le taxi' : 'Cancel taxi'}
+                  </button>
+                </div>
+              )}
               <div className="text-xs text-ink-600">
                 Taxi Express :{' '}
                 <strong className="text-sun-600">{FARE_SAME_COMMUNE.toLocaleString('fr-FR')} F</strong> dans ta commune,{' '}

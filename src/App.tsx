@@ -19,14 +19,13 @@ import {
   donateYannisAcademy,
   eatFood,
   evaluateMissionProgress,
+  hasUnlimitedPlatinum,
   payFastTravel,
   fastTravelFare,
   applyTaxiRideTime,
-  taxiRideGameMinutes,
   taxiWaitSeconds,
   taxiCallRefusal,
   performLavageEtoile,
-  performWorkShift,
   playLotoAkwaba,
   rollDestiny,
   sleepAtHome,
@@ -34,6 +33,11 @@ import {
   takeShower,
   useToilet,
 } from './core/simulation';
+import {
+  type TimedBodyActionKind,
+  canStartTimedAction,
+  timedActionDurationS,
+} from './core/timedActions';
 import { DISTRICTS } from './world/abidjanGeography';
 import { purgeAllDataRGPD } from './core/storage';
 import {
@@ -58,6 +62,7 @@ import { initServerSession, postEconomyAction } from './network/serverApi';
 import { TitleScreen } from './components/TitleScreen';
 import { JellyButton } from './components/ui/Jelly';
 import { GameHUD } from './components/GameHUD';
+import { UniversalActionGauge } from './components/UniversalActionGauge';
 import { ConsoleGamepad } from './components/ConsoleGamepad';
 import { useTouchControls } from './components/useTouchControls';
 import { MyOSPhone } from './components/MyOSPhone';
@@ -115,8 +120,6 @@ export default function App() {
   const [route, setRoute] = useState<Route | null>(null);
   const routeRef = useRef<Route | null>(null);
   routeRef.current = route;
-
-  const [toastNotification, setToastNotification] = useState<string | null>(null);
 
   // Audio & Settings
   const [isMuted, setIsMuted] = useState(false);
@@ -211,11 +214,8 @@ export default function App() {
   const screenStateRef = useRef<GameScreenState>(screenState);
   screenStateRef.current = screenState;
 
-  const showToast = useCallback((msg: string) => {
-    setToastNotification(msg);
-    setTimeout(() => {
-      setToastNotification((curr) => (curr === msg ? null : curr));
-    }, 3600);
+  const appendLog = useCallback((msg: string, type: 'neutral' | 'success' | 'danger' | 'star' = 'neutral') => {
+    setPlayerState((prev) => addLog(prev, msg, type));
   }, []);
 
   const syncEconomy = useCallback((action: string, payload: Record<string, unknown> = {}) => {
@@ -275,12 +275,15 @@ export default function App() {
       const fr = cur.language === 'fr';
       if (!ok && !saveFailWarnedRef.current) {
         saveFailWarnedRef.current = true;
-        showToast(fr ? '⚠️ Sauvegarde impossible sur cet appareil (stockage plein ou bloqué)' : '⚠️ Cannot save on this device (storage full or blocked)');
+        appendLog(
+          fr ? '⚠️ Sauvegarde impossible sur cet appareil (stockage plein ou bloqué)' : '⚠️ Cannot save on this device (storage full or blocked)',
+          'danger'
+        );
       }
       if (ok) saveFailWarnedRef.current = false;
       return ok;
     },
-    [persistServerState, showToast]
+    [persistServerState, appendLog]
   );
 
   const renameSlotName = useCallback((slotNo: number, name: string) => {
@@ -427,50 +430,130 @@ export default function App() {
     }, 280);
   }, []);
 
+  // Actions chronométrées avec animation 3D + blocage des mouvements
+  const [activeTimedAction, setActiveTimedAction] = useState<{
+    kind: TimedBodyActionKind;
+    startedAtMs: number;
+    durationMs: number;
+  } | null>(null);
+  const timedActionRef = useRef<{
+    kind: TimedBodyActionKind;
+    timeoutId: number;
+  } | null>(null);
+
+  const cancelActiveTimedAction = useCallback(() => {
+    if (timedActionRef.current) {
+      window.clearTimeout(timedActionRef.current.timeoutId);
+      timedActionRef.current = null;
+    }
+    setActiveTimedAction(null);
+    sceneRef.current?.setActiveTimedAction(null);
+  }, []);
+
+  useEffect(() => {
+    if (screenState !== 'playing') {
+      cancelActiveTimedAction();
+    }
+  }, [screenState, cancelActiveTimedAction]);
+
+  useEffect(() => cancelActiveTimedAction, [cancelActiveTimedAction]);
+
+  const startTimedBodyAction = useCallback(
+    (kind: TimedBodyActionKind, onComplete: () => void, customDurationS?: number): boolean => {
+      const currentKind = timedActionRef.current?.kind ?? (taxiCallRef.current ? 'taxi_wait' : taxiRideRef.current ? 'taxi_ride' : null);
+      if (!canStartTimedAction(currentKind, kind)) return false;
+      const durationMs = timedActionDurationS(kind, customDurationS) * 1000;
+      const startedAtMs = Date.now();
+      sceneRef.current?.setActiveTimedAction(kind);
+      setActiveTimedAction({ kind, startedAtMs, durationMs });
+      const timeoutId = window.setTimeout(() => {
+        timedActionRef.current = null;
+        setActiveTimedAction(null);
+        sceneRef.current?.setActiveTimedAction(null);
+        onComplete();
+      }, durationMs);
+      timedActionRef.current = { kind, timeoutId };
+      return true;
+    },
+    []
+  );
+
   // Hotspot Interaction Handler
   const handleHotspotAction = useCallback(
     (h: CityHotspot) => {
       const cur = playerStateRef.current;
+      const hasCash = (cost: number) => hasUnlimitedPlatinum(cur) || cur.cash >= cost;
+
       if (h.type === 'eat') {
         const meal = h.id === 'eat_maquis' ? IVORIAN_FOODS[1] : IVORIAN_FOODS[0];
-        setPlayerState((prev) => eatFood(prev, meal));
-        syncEconomy('eat', { foodId: meal.id });
-        soundEngine.playCashSound();
-        showToast(`🍽️ ${meal.name} savouré !`);
+        if (!hasCash(meal.price)) {
+          setPlayerState((prev) => eatFood(prev, meal));
+          return;
+        }
+        startTimedBodyAction('eat', () => {
+          setPlayerState((prev) => eatFood(prev, meal));
+          syncEconomy('eat', { foodId: meal.id });
+          soundEngine.playCashSound();
+        });
       } else if (h.type === 'loto') {
-        setPlayerState((prev) => playLotoAkwaba(prev));
-        syncEconomy('loto');
-        soundEngine.playCashSound();
+        if (!hasCash(2000)) {
+          setPlayerState((prev) => playLotoAkwaba(prev));
+          return;
+        }
+        startTimedBodyAction('loto', () => {
+          setPlayerState((prev) => playLotoAkwaba(prev));
+          syncEconomy('loto');
+          soundEngine.playCashSound();
+        });
       } else if (h.type === 'vieux_sage') {
-        setPlayerState((prev) => performLavageEtoile(prev));
-        syncEconomy('lavage_etoile');
-        soundEngine.playJingle();
-      } else if (h.type === 'work') {
-        setPlayerState((prev) => performWorkShift(prev));
-        syncEconomy('work');
-        soundEngine.playCashSound();
+        if (!hasCash(25000)) {
+          setPlayerState((prev) => performLavageEtoile(prev));
+          return;
+        }
+        startTimedBodyAction('vieux_sage', () => {
+          setPlayerState((prev) => performLavageEtoile(prev));
+          syncEconomy('lavage_etoile');
+          soundEngine.playJingle();
+        });
       } else if (h.type === 'bank') {
         setIsPhoneOpen(true);
       } else if (h.type === 'sleep') {
-        setPlayerState((prev) => sleepAtHome(prev));
-        syncEconomy('sleep');
-      } else if (h.type === 'shower' || h.type === 'toilet') {
-        setPlayerState((prev) => takeShower(useToilet(prev)));
-        syncEconomy('shower');
+        startTimedBodyAction('sleep', () => {
+          setPlayerState((prev) => sleepAtHome(prev));
+          syncEconomy('sleep');
+        });
+      } else if (h.type === 'shower') {
+        startTimedBodyAction('shower', () => {
+          setPlayerState((prev) => takeShower(prev));
+          syncEconomy('shower');
+        });
+      } else if (h.type === 'toilet') {
+        startTimedBodyAction('toilet', () => {
+          setPlayerState((prev) => useToilet(prev));
+          syncEconomy('toilet');
+        });
       } else if (h.type === 'black_market') {
-        if (cur.destiny.blackMarketAccess || cur.cash >= 35000) {
+        if (!(cur.destiny.blackMarketAccess || hasCash(35000))) {
+          appendLog('🕶️ Marché Noir réservé ou 35 000 F requis.', 'danger');
+          return;
+        }
+        startTimedBodyAction('black_market', () => {
           setPlayerState((prev) => clearPoliceViaNetwork(prev, true));
           syncEconomy('clear_police', { isBlackMarket: true });
-        } else {
-          showToast('🕶️ Marché Noir réservé ou 35 000 F requis.');
-        }
+        });
       } else if (h.type === 'yannis_academy') {
-        setPlayerState((prev) => donateYannisAcademy(prev));
-        syncEconomy('yannis_academy');
-        soundEngine.playJingle();
+        if (!hasCash(500000)) {
+          setPlayerState((prev) => donateYannisAcademy(prev));
+          return;
+        }
+        startTimedBodyAction('yannis_academy', () => {
+          setPlayerState((prev) => donateYannisAcademy(prev));
+          syncEconomy('yannis_academy');
+          soundEngine.playJingle();
+        });
       } else if (h.type === 'interior_door') {
         if (cur.isDriving) {
-          showToast('🚗 Descends de ton véhicule pour entrer.');
+          appendLog('🚗 Descends de ton véhicule pour entrer.', 'neutral');
         } else {
           runTransition(() => {
             sceneRef.current?.enterInterior(h.id);
@@ -486,8 +569,10 @@ export default function App() {
         });
       }
     },
-    [showToast, syncEconomy, runTransition]
+    [appendLog, startTimedBodyAction, syncEconomy, runTransition]
   );
+
+  const handleRepairStalledEngineRef = useRef<() => void>(() => {});
 
   // Mount Three.js AbidjanSceneManager ONCE
   useEffect(() => {
@@ -504,7 +589,6 @@ export default function App() {
             const next = evaluateMissionProgress(prev, match.id);
             if (next.activeMission.stepIndex !== prev.activeMission.stepIndex || next.activeMission.completed !== prev.activeMission.completed) {
               soundEngine.playJingle();
-              showToast(`🎯 Mission mise à jour à ${match.name} !`);
               syncEconomy('visit_district', { districtId: match.id });
             }
             return next;
@@ -516,23 +600,27 @@ export default function App() {
         setPlayerState((prev) =>
           addLog({ ...prev, cash: prev.cash + amount }, `💵 Liasse trouvée dans la rue : +${amount.toLocaleString('fr-FR')} FCFA !`, 'star')
         );
-        showToast(`💵 +${amount.toLocaleString('fr-FR')} F trouvés !`);
       },
       onEngineStallChange: (stalled) => {
-        setPlayerState((prev) => ({ ...prev, engineStalled: stalled }));
-        if (stalled) showToast('🌊 Moteur noyé par l’inondation !');
+        setPlayerState((prev) =>
+          stalled ? addLog({ ...prev, engineStalled: true }, '🌊 Moteur noyé par l’inondation !', 'danger') : { ...prev, engineStalled: false }
+        );
       },
+      onRepairStalledEngine: () => handleRepairStalledEngineRef.current(),
       onTaxiFade: (dark) => setTaxiFadeDark(dark),
+      onTaxiRideStart: (totalDurationS) => {
+        setTaxiRideGauge({ startedAtMs: Date.now(), durationMs: totalDurationS * 1000 });
+      },
       onTaxiRideArrived: () => {
         // Écran noir : le temps du trajet passe (heure de jeu, faim, énergie).
         const ride = taxiRideRef.current;
         if (!ride) return;
         setPlayerState((prev) => applyTaxiRideTime(prev, ride.distanceM));
-        showToast(`🚖 Trajet : ${taxiRideGameMinutes(ride.distanceM)} min de jeu`);
       },
       onTaxiRideEnd: () => {
         const dest = taxiRideRef.current;
         taxiRideRef.current = null;
+        setTaxiRideGauge(null);
         if (dest) setCurrentDistrict(districtAt({ x: dest.x, z: dest.z }).name);
       },
       onInteractionTriggered: (h) => handleHotspotAction(h),
@@ -597,7 +685,7 @@ export default function App() {
       mgr.dispose();
       sceneRef.current = null;
     };
-  }, [handleHotspotAction, isAutostart, showToast, syncEconomy]);
+  }, [handleHotspotAction, isAutostart, syncEconomy]);
 
   // Avatar 3D selon le genre choisi (Homme → garçon, Femme → fille)
   useEffect(() => {
@@ -665,10 +753,11 @@ export default function App() {
     const pick = pickSlotForNewGame(slotsRef.current);
     activeSlotRef.current = pick.slot;
     if (pick.replaces) {
-      showToast(
+      appendLog(
         fresh.language === 'fr'
           ? `Toutes les sauvegardes sont pleines : la sauvegarde ${pick.slot} est remplacée`
-          : `All saves are full: save ${pick.slot} is replaced`
+          : `All saves are full: save ${pick.slot} is replaced`,
+        'neutral'
       );
     }
     void saveNow({ state: fresh, fresh: true, useCurrentPosition: Boolean(lot) });
@@ -676,7 +765,6 @@ export default function App() {
     sceneRef.current?.syncCribUpgrades(fresh.cribUpgrades);
     sceneRef.current?.setCameraMode('follow');
     sceneRef.current?.setPaused(false);
-    showToast(`🇨🇮 Bienvenue${profile ? ` ${profile.name}` : ''} à ${destiny.district} (${destiny.name}) !`);
   };
 
   const handleContinueSavedGame = (slotNo: number) => {
@@ -729,42 +817,62 @@ export default function App() {
     setIsMuted(m);
   };
 
-  const handleRepairStalledEngine = () => {
-    const repairCost = playerState.destiny.id === 'mecanicien_treichville' ? 2500 : 5000;
-    const pay = spendCash(playerState, repairCost);
+  const handleRepairStalledEngine = useCallback(() => {
+    const cur = playerStateRef.current;
+    if (!cur.engineStalled) return;
+    const repairCost = cur.destiny.id === 'mecanicien_treichville' ? 2500 : 5000;
+    const pay = spendCash(cur, repairCost);
     if (!pay.ok) {
-      showToast(`❌ ${repairCost} FCFA requis pour dépanner le moteur noyé.`);
+      appendLog(`❌ ${repairCost} FCFA requis pour dépanner le moteur noyé.`, 'danger');
       return;
     }
-    sceneRef.current?.repairStalledEngine();
-    setPlayerState((prev) =>
-      addLog({ ...prev, cash: pay.nextCash, engineStalled: false }, `🔧 Moteur séché et réparé (-${repairCost} F) !`, 'success')
-    );
-  };
+    sceneRef.current?.prepareEngineRepair();
+    const started = startTimedBodyAction('repair_engine', () => {
+      const latest = playerStateRef.current;
+      const donePay = spendCash(latest, repairCost);
+      if (!donePay.ok) {
+        appendLog(`❌ ${repairCost} FCFA requis pour dépanner le moteur noyé.`, 'danger');
+        return;
+      }
+      sceneRef.current?.repairStalledEngine();
+      soundEngine.playCashSound();
+      setPlayerState((prev) =>
+        addLog({ ...prev, cash: donePay.nextCash, engineStalled: false }, `🔧 Moteur séché et réparé (-${repairCost} F) !`, 'success')
+      );
+    });
+    if (!started) {
+      appendLog('⏳ Une action est déjà en cours.', 'neutral');
+    }
+  }, [appendLog, startTimedBodyAction]);
+  handleRepairStalledEngineRef.current = handleRepairStalledEngine;
 
   // L'itinéraire choisi sur la carte est aussi tracé dans le monde 3D
   useEffect(() => {
     sceneRef.current?.setRoute(route ? route.points : null);
   }, [route]);
 
-  // Taxi appelé (étape B1) : compte à rebours, annulation libre, paiement seulement à la montée.
+  // Taxi appelé (étape B1) : compte à rebours, annulation libre dans MyOS, paiement seulement à la montée.
   const [taxiCall, setTaxiCall] = useState<{
     x: number;
     z: number;
     districtName: string;
     districtId: string;
+    startedAtMs: number;
+    durationMs: number;
     endsAt: number;
     remainingS: number;
   } | null>(null);
   const taxiCallRef = useRef(taxiCall);
   taxiCallRef.current = taxiCall;
-  // Cinématique du trajet (B3) : écran noir et destination de la course en cours.
+  // Cinématique du trajet (B3) : écran noir et jauge de trajet en cours.
   const [taxiFadeDark, setTaxiFadeDark] = useState(false);
+  const [taxiRideGauge, setTaxiRideGauge] = useState<{ startedAtMs: number; durationMs: number } | null>(null);
   const taxiRideRef = useRef<{ x: number; z: number; distanceM: number } | null>(null);
   useEffect(() => {
     // Hors du jeu (menu, fin de partie), plus de cinématique ni d'écran noir.
     if (screenState !== 'playing') {
       taxiRideRef.current = null;
+      setTaxiRideGauge(null);
       setTaxiFadeDark(false);
     }
   }, [screenState]);
@@ -773,8 +881,8 @@ export default function App() {
     taxiCallRef.current = null;
     setTaxiCall(null);
     sceneRef.current?.stopTaxiApproach();
-    if (message) showToast(message);
-  }, [showToast]);
+    if (message) appendLog(message, 'neutral');
+  }, [appendLog]);
 
   /** Montée dans le taxi : paie la course (une seule fois), puis téléporte comme avant. */
   const arriveTaxiRef = useRef<(call: { x: number; z: number; districtName: string; districtId: string }) => void>(() => {});
@@ -788,7 +896,6 @@ export default function App() {
     syncEconomy('fast_travel', { districtName: call.districtName, districtId: call.districtId, fromDistrictId });
     if (!res.ok) {
       sceneRef.current?.stopTaxiApproach();
-      showToast('❌ Pas assez d\u2019argent : le taxi repart sans toi.');
       return;
     }
     // Depuis un intérieur (hôpital), on en sort d'abord : sinon le joueur serait déposé dehors
@@ -915,13 +1022,8 @@ export default function App() {
           <GameHUD
             playerState={playerState}
             currentDistrict={currentDistrict}
-            nearbyHotspot={nearbyHotspot}
-            nearbyVehicle={nearbyVehicle}
             getRadarSnapshot={getRadarSnapshot}
             route={route}
-            touchControls={touchControls}
-            onInteractClick={() => sceneRef.current?.triggerInteract()}
-            onRepairEngine={handleRepairStalledEngine}
             onOpenPhone={() => setIsPhoneOpen(true)}
             onOpenMap={() => setIsMapOpen(true)}
             onOpenSettings={() => setIsSettingsOpen(true)}
@@ -934,6 +1036,7 @@ export default function App() {
           <ConsoleGamepad
             visible={touchControls}
             isDriving={playerState.isDriving}
+            engineStalled={playerState.engineStalled}
             canInteract={Boolean(nearbyHotspot || nearbyVehicle || playerState.isDriving)}
             onJoystickChange={(x, y) => sceneRef.current?.setJoystick(x, y)}
             onInteract={() => sceneRef.current?.triggerInteract()}
@@ -954,6 +1057,27 @@ export default function App() {
           />
         </>
       )}
+
+      {/* JAUGE CIRCULAIRE UNIVERSELLE (actions chronométrées et taxis, sans texte autour) */}
+      {screenState === 'playing' &&
+        showHud &&
+        (() => {
+          const gauge = activeTimedAction
+            ? activeTimedAction
+            : taxiRideGauge
+            ? { kind: 'taxi_ride' as const, startedAtMs: taxiRideGauge.startedAtMs, durationMs: taxiRideGauge.durationMs }
+            : taxiCall
+            ? { kind: 'taxi_wait' as const, startedAtMs: taxiCall.startedAtMs, durationMs: taxiCall.durationMs }
+            : null;
+          return gauge ? (
+            <UniversalActionGauge
+              kind={gauge.kind}
+              startedAtMs={gauge.startedAtMs}
+              durationMs={gauge.durationMs}
+              language={playerState.language}
+            />
+          ) : null;
+        })()}
 
       {/* PAUSED MODAL */}
       {screenState === 'paused' && (
@@ -983,17 +1107,27 @@ export default function App() {
         <MyOSPhone
           playerState={playerState}
           getGpsSource={getGpsSource}
+          taxiCall={taxiCall ? { districtName: taxiCall.districtName, remainingS: taxiCall.remainingS } : null}
+          onCancelTaxi={() => cancelTaxi('🚖 Taxi annulé, rien n\u2019a été débité.')}
+          onRepairEngine={handleRepairStalledEngine}
           onClose={() => setIsPhoneOpen(false)}
           onSaveGame={() => saveNow({ manual: true })}
           playerModelScale={playerModelScale}
           onPlayerModelScaleChange={handlePlayerModelScaleChange}
           onEatFood={(foodId) => {
             const f = IVORIAN_FOODS.find((x) => x.id === foodId);
-            if (f) {
+            if (!f) return;
+            const cur = playerStateRef.current;
+            if (!hasUnlimitedPlatinum(cur) && cur.cash < f.price) {
+              setPlayerState((prev) => eatFood(prev, f));
+              return;
+            }
+            setIsPhoneOpen(false);
+            startTimedBodyAction('eat', () => {
               soundEngine.playCashSound();
               setPlayerState((prev) => eatFood(prev, f));
               syncEconomy('eat', { foodId });
-            }
+            });
           }}
           onFastTravel={(x, z, districtName, districtId) => {
             // Étape B1 : on appelle le taxi, il arrive après 10 à 20 s ; le prix (500 F dans la commune,
@@ -1003,15 +1137,25 @@ export default function App() {
             const refusal = taxiCallRefusal(
               playerState,
               fastTravelFare(fromDistrictId, districtId),
-              taxiCallRef.current !== null || taxiRideRef.current !== null
+              taxiCallRef.current !== null || taxiRideRef.current !== null || timedActionRef.current !== null
             );
             if (refusal) {
-              showToast(refusal);
+              appendLog(refusal, 'danger');
               return;
             }
             const distanceM = snap ? Math.hypot(x - snap.playerX, z - snap.playerZ) : Infinity;
             const waitS = taxiWaitSeconds(distanceM);
-            const call = { x, z, districtName, districtId, endsAt: Date.now() + waitS * 1000, remainingS: waitS };
+            const nowMs = Date.now();
+            const call = {
+              x,
+              z,
+              districtName,
+              districtId,
+              startedAtMs: nowMs,
+              durationMs: waitS * 1000,
+              endsAt: nowMs + waitS * 1000,
+              remainingS: waitS,
+            };
             taxiCallRef.current = call;
             setTaxiCall(call);
             sceneRef.current?.startTaxiApproach(waitS);
@@ -1076,32 +1220,6 @@ export default function App() {
         aria-hidden="true"
         className={`fixed inset-0 z-[120] bg-black pointer-events-none transition-opacity duration-700 ${taxiFadeDark ? 'opacity-100' : 'opacity-0'}`}
       />
-
-      {/* TAXI APPELÉ : compte à rebours + annulation */}
-      {taxiCall && screenState === 'playing' && (
-        <div
-          data-testid="taxi-call-banner"
-          className="fixed top-28 left-1/2 -translate-x-1/2 z-[105] flex items-center gap-3 rounded-xl bg-ink-900/80 border border-sun-400/60 px-4 py-2 text-xs font-bold text-sun-600 shadow-2xl"
-        >
-          <span>
-            🚖 Taxi vers {taxiCall.districtName} dans {taxiCall.remainingS} s
-          </span>
-          <button
-            type="button"
-            onClick={() => cancelTaxi('🚖 Taxi annulé, rien n\u2019a été débité.')}
-            className="rounded-lg bg-white/15 hover:bg-white/25 px-2 py-1 text-white cursor-pointer"
-          >
-            Annuler
-          </button>
-        </div>
-      )}
-
-      {/* TRANSIENT EVENT TOAST */}
-      {toastNotification && (
-        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-[110] rounded-xl bg-ink-900/60 border border-sun-400/60 px-4 py-2 text-xs font-bold text-sun-600 shadow-2xl pointer-events-none">
-          {toastNotification}
-        </div>
-      )}
     </div>
   );
 }

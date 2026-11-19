@@ -69,7 +69,6 @@ const RESCAPE_BASFONDS_HOUSE: HouseSpec = {
         { ...HOUSE_REQUIRED_ACTIONS.sleep, x: -1.1, z: -0.35, radius: 1.35 },
         { ...HOUSE_REQUIRED_ACTIONS.eat, x: 1.05, z: -0.78, radius: 1.35 },
         { ...HOUSE_REQUIRED_ACTIONS.shower, x: 1.0, z: 0.82, radius: 1.35 },
-        { ...HOUSE_REQUIRED_ACTIONS.work, x: -1.0, z: 0.9, radius: 1.35 },
       ],
       props: [
         {
@@ -300,7 +299,6 @@ const BARON_OMBRE_HOUSE: HouseSpec = {
         { ...HOUSE_REQUIRED_ACTIONS.sleep, x: -1.45, z: -0.45, radius: 1.45 },
         { ...HOUSE_REQUIRED_ACTIONS.eat, x: 1.35, z: -1.1, radius: 1.45 },
         { ...HOUSE_REQUIRED_ACTIONS.shower, x: 1.25, z: 1.05, radius: 1.45 },
-        { ...HOUSE_REQUIRED_ACTIONS.work, x: -1.25, z: 1.15, radius: 1.45 },
       ],
       props: [
         {
@@ -528,7 +526,6 @@ const DEBROUILLARD_ABOBO_HOUSE: HouseSpec = {
         { ...HOUSE_REQUIRED_ACTIONS.sleep, x: -1.2, z: -0.35, radius: 1.35 },
         { ...HOUSE_REQUIRED_ACTIONS.eat, x: 1.05, z: -0.78, radius: 1.35 },
         { ...HOUSE_REQUIRED_ACTIONS.shower, x: 1.0, z: 0.85, radius: 1.35 },
-        { ...HOUSE_REQUIRED_ACTIONS.work, x: -1.05, z: 0.88, radius: 1.35 },
       ],
       props: [
         {
@@ -758,7 +755,6 @@ const CHAUFFEUR_WORO_HOUSE: HouseSpec = {
         { ...HOUSE_REQUIRED_ACTIONS.sleep, x: -1.2, z: -0.35, radius: 1.35 },
         { ...HOUSE_REQUIRED_ACTIONS.eat, x: 1.05, z: -0.78, radius: 1.35 },
         { ...HOUSE_REQUIRED_ACTIONS.shower, x: 1.0, z: 0.85, radius: 1.35 },
-        { ...HOUSE_REQUIRED_ACTIONS.work, x: -1.05, z: 0.88, radius: 1.35 },
       ],
       props: [
         {
@@ -987,7 +983,6 @@ const COMMERCANT_ADJAME_HOUSE: HouseSpec = {
         { ...HOUSE_REQUIRED_ACTIONS.sleep, x: -1.45, z: -0.4, radius: 1.4 },
         { ...HOUSE_REQUIRED_ACTIONS.eat, x: 1.35, z: -0.9, radius: 1.4 },
         { ...HOUSE_REQUIRED_ACTIONS.shower, x: 1.25, z: 0.95, radius: 1.4 },
-        { ...HOUSE_REQUIRED_ACTIONS.work, x: -1.25, z: 1.05, radius: 1.4 },
       ],
       props: [
         {
@@ -1216,7 +1211,6 @@ const ETUDIANT_UFHB_HOUSE: HouseSpec = {
         { ...HOUSE_REQUIRED_ACTIONS.sleep, x: -1.35, z: -0.4, radius: 1.4 },
         { ...HOUSE_REQUIRED_ACTIONS.eat, x: 1.2, z: -0.9, radius: 1.4 },
         { ...HOUSE_REQUIRED_ACTIONS.shower, x: 1.15, z: 0.95, radius: 1.4 },
-        { ...HOUSE_REQUIRED_ACTIONS.work, x: -1.05, z: 1.05, radius: 1.4 },
       ],
       props: [
         {
@@ -1444,7 +1438,6 @@ const STYLISTE_MARCORY_HOUSE: HouseSpec = {
         { ...HOUSE_REQUIRED_ACTIONS.sleep, x: -1.45, z: -0.45, radius: 1.45 },
         { ...HOUSE_REQUIRED_ACTIONS.eat, x: 1.35, z: -1.1, radius: 1.45 },
         { ...HOUSE_REQUIRED_ACTIONS.shower, x: 1.25, z: 1.05, radius: 1.45 },
-        { ...HOUSE_REQUIRED_ACTIONS.work, x: -1.25, z: 1.15, radius: 1.45 },
       ],
       props: [
         {

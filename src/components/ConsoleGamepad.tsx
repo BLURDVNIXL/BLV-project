@@ -1,11 +1,12 @@
 import React, { useRef, useState } from 'react';
-import { Backpack, Bell, ChevronsUp, CircleParking, DoorOpen, Footprints, Hand, Smartphone } from 'lucide-react';
+import { Backpack, Bell, ChevronsUp, CircleParking, DoorOpen, Footprints, Hand, Smartphone, Wrench } from 'lucide-react';
 import { RoundIconButton } from './ui/Jelly';
 
 interface ConsoleGamepadProps {
   /** Affichage décidé par le parent (appareil tactile ou option des réglages). */
   visible: boolean;
   isDriving: boolean;
+  engineStalled?: boolean;
   /** Vrai quand « Interagir » a une cible (repère proche, véhicule proche ou conducteur). */
   canInteract: boolean;
   onJoystickChange: (x: number, y: number) => void;
@@ -25,6 +26,7 @@ interface ConsoleGamepadProps {
 export const ConsoleGamepad: React.FC<ConsoleGamepadProps> = ({
   visible,
   isDriving,
+  engineStalled = false,
   canInteract,
   onJoystickChange,
   onInteract,
@@ -150,8 +152,8 @@ export const ConsoleGamepad: React.FC<ConsoleGamepadProps> = ({
             <div className="flex h-[4.5rem] w-[4.5rem] items-center justify-center short:h-14 short:w-14">
               <button
                 type="button"
-                aria-label={isDriving ? 'Sortir du véhicule' : 'Interagir'}
-                title={isDriving ? 'Sortir du véhicule' : 'Interagir'}
+                aria-label={isDriving ? (engineStalled ? 'Réparer le moteur' : 'Sortir du véhicule') : 'Interagir'}
+                title={isDriving ? (engineStalled ? 'Réparer le moteur' : 'Sortir du véhicule') : 'Interagir'}
                 aria-hidden={!canInteract}
                 tabIndex={canInteract ? 0 : -1}
                 onClick={onInteract}
@@ -160,7 +162,7 @@ export const ConsoleGamepad: React.FC<ConsoleGamepadProps> = ({
                 }`}
               >
                 <span className="relative flex items-center justify-center">
-                  {isDriving ? <DoorOpen className="h-7 w-7" /> : <Hand className="h-7 w-7" />}
+                  {isDriving ? (engineStalled ? <Wrench className="h-7 w-7" /> : <DoorOpen className="h-7 w-7" />) : <Hand className="h-7 w-7" />}
                 </span>
               </button>
             </div>

@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { SapeOutfitId, VehicleModelType } from '../types/game';
 import { SAPE_OUTFITS } from '../core/destinies';
+import type { TimedBodyActionKind } from '../core/timedActions';
+import { computeActionPose } from './avatars';
 import { createContactShadow, getSurfaceBumpTexture, getWaxFabricTexture } from './materials';
 
 /**
@@ -25,6 +27,7 @@ export interface CharacterRig {
   pantsMeshes: THREE.MeshStandardMaterial[];
   applyOutfit: (outfitId: SapeOutfitId) => void;
   animateGait: (phase: number, speedFactor: number, dt: number) => void;
+  animateAction: (kind: TimedBodyActionKind, elapsedSec: number, dt: number) => void;
 }
 
 export function createCharacterModel(
@@ -233,6 +236,8 @@ export function createCharacterModel(
   applyOutfit(initialOutfit);
 
   const animateGait = (phase: number, speedFactor: number, dt: number) => {
+    bodyPivot.rotation.set(0, 0, 0);
+    headGroup.rotation.set(0, 0, 0);
     const amp = Math.min(1, speedFactor);
     const swing = Math.sin(phase) * 0.65 * amp;
     leftLeg.hipPivot.rotation.x = swing;
@@ -240,14 +245,32 @@ export function createCharacterModel(
     leftLeg.shinPivot.rotation.x = Math.max(0, -Math.cos(phase) * 0.6 * amp);
     rightLeg.shinPivot.rotation.x = Math.max(0, Math.cos(phase) * 0.6 * amp);
 
-    leftArm.shoulderPivot.rotation.x = -swing * 0.85;
-    rightArm.shoulderPivot.rotation.x = swing * 0.85;
+    leftArm.shoulderPivot.rotation.set(-swing * 0.85, 0, 0);
+    rightArm.shoulderPivot.rotation.set(swing * 0.85, 0, 0);
     leftArm.forearmPivot.rotation.x = -0.25 - Math.abs(swing) * 0.35;
     rightArm.forearmPivot.rotation.x = -0.25 - Math.abs(swing) * 0.35;
 
     // Gentle idle breathing / walk bob
     const bob = amp > 0.05 ? Math.abs(Math.sin(phase)) * 0.045 * amp : Math.sin(performance.now() * 0.003) * 0.015;
     bodyPivot.position.y = THREE.MathUtils.lerp(bodyPivot.position.y, bob, 1 - Math.exp(-12 * dt));
+  };
+
+  const animateAction = (kind: TimedBodyActionKind, elapsedSec: number, dt: number) => {
+    const p = computeActionPose(kind, elapsedSec);
+    const alpha = 1 - Math.exp(-14 * dt);
+    bodyPivot.rotation.x = THREE.MathUtils.lerp(bodyPivot.rotation.x, p.rootPitchX + p.spineX, alpha);
+    bodyPivot.rotation.y = THREE.MathUtils.lerp(bodyPivot.rotation.y, p.spineY, alpha);
+    bodyPivot.position.y = THREE.MathUtils.lerp(bodyPivot.position.y, p.rootOffsetY + p.hipOffsetY, alpha);
+    headGroup.rotation.set(p.headX, p.headY, 0);
+    // Notice: fallback buildArm puts leftArm at -X and rightArm at +X, opposite Z sign to Mixamo.
+    leftArm.shoulderPivot.rotation.set(p.leftArmX, 0, -p.leftArmZ);
+    leftArm.forearmPivot.rotation.x = p.leftForearmX;
+    rightArm.shoulderPivot.rotation.set(p.rightArmX, 0, -p.rightArmZ);
+    rightArm.forearmPivot.rotation.x = p.rightForearmX;
+    leftLeg.hipPivot.rotation.x = p.leftUpLegX;
+    leftLeg.shinPivot.rotation.x = p.leftLegX;
+    rightLeg.hipPivot.rotation.x = p.rightUpLegX;
+    rightLeg.shinPivot.rotation.x = p.rightLegX;
   };
 
   return {
@@ -266,6 +289,7 @@ export function createCharacterModel(
     pantsMeshes: [pantsMat],
     applyOutfit,
     animateGait,
+    animateAction,
   };
 }
 

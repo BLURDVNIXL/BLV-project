@@ -80,7 +80,6 @@ const CADRE_PLATEAU_HOUSE: HouseSpec = {
       actions: [
         { ...HOUSE_REQUIRED_ACTIONS.sleep, x: -2.05, z: -0.9, radius: 1.45 },
         { ...HOUSE_REQUIRED_ACTIONS.shower, x: -2.15, z: 1.55, radius: 1.4 },
-        { ...HOUSE_REQUIRED_ACTIONS.work, x: 2.2, z: -1.4, radius: 1.45 },
         { ...HOUSE_REQUIRED_ACTIONS.eat, x: 2.25, z: -0.1, radius: 1.45 },
       ],
       props: [
@@ -570,7 +569,6 @@ const LATE_COCODY_HOUSE: HouseSpec = {
       bed: { x: -1.35, z: -2.25, rotY: -Math.PI / 2 },
       actions: [
         { ...HOUSE_REQUIRED_ACTIONS.sleep, x: -1.35, z: -2.25, radius: 1.5 },
-        { ...HOUSE_REQUIRED_ACTIONS.work, x: 2.45, z: -2.15, radius: 1.45 },
         {
           id: 'stairs_to_0',
           label: '🪜 Descendre au RDC',
@@ -1002,7 +1000,6 @@ const YANNIS_DIOMANDE_HOUSE: HouseSpec = {
       bed: { x: -1.35, z: -2.45, rotY: -Math.PI / 2 },
       actions: [
         { ...HOUSE_REQUIRED_ACTIONS.sleep, x: -1.35, z: -2.45, radius: 1.5 },
-        { ...HOUSE_REQUIRED_ACTIONS.work, x: 2.45, z: -2.25, radius: 1.45 },
         {
           id: 'stairs_to_0',
           label: '🪜 Descendre au hall des trophées',
