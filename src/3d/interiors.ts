@@ -96,7 +96,9 @@ const COMMISSARIAT_MATS = {
   policeBlue: std(0x1d4ed8, { rough: 0.5 }),
   glass: std(0x38bdf8, { rough: 0.2, metal: 0.12 }),
   doorGlass: std(0x0f172a, { rough: 0.2 }),
-  beacon: std(0x3b82f6, { emissive: 0x2563eb, glow: 0.85, rough: 0.2 }),
+  beacon: std(0x3b82f6, { emissive: 0x2563eb, glow: 0.9, rough: 0.2 }),
+  beaconRed: std(0xef4444, { emissive: 0xdc2626, glow: 0.9, rough: 0.2 }),
+  goldCrest: std(0xf59e0b, { rough: 0.3, metal: 0.35 }),
   chrome: std(0xe2e8f0, { rough: 0.25, metal: 0.45 }),
   flagOrange: std(0xf97316, { rough: 0.55 }),
   flagWhite: std(0xffffff, { rough: 0.55 }),
@@ -137,9 +139,20 @@ export function createCommissariatExterior(w: number, d: number, h: number, name
     g.add(box(0.34, 0.14, 0.34, policeBlue, bx, 0.76, d / 2 + 1.8, false));
   }
 
-  // Gyrophare / balise bleue sur le toit
-  g.add(box(2.4, 0.35, 0.7, trim, 0, h + 0.55, d / 2 - 0.9, false));
-  g.add(box(1.6, 0.34, 0.55, beacon, 0, h + 0.88, d / 2 - 0.9, false));
+  // Barreaux de sécurité sur les baies du rez-de-chaussée + écusson doré au-dessus de l'auvent
+  for (const bx of [-w * 0.28, w * 0.28]) {
+    g.add(box(0.08, 1.12, 0.12, trim, bx, h * 0.42, d / 2 + 0.06, false));
+  }
+  const crest = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 0.14, 12), COMMISSARIAT_MATS.goldCrest);
+  crest.rotation.x = Math.PI / 2;
+  crest.position.set(0, 3.72, d / 2 + 0.14);
+  g.add(crest);
+
+  // Rampe gyrophare bicolore rouge/bleu sur le toit
+  g.add(box(2.6, 0.3, 0.72, trim, 0, h + 0.52, d / 2 - 0.9, false));
+  g.add(box(0.95, 0.34, 0.52, COMMISSARIAT_MATS.beaconRed, -0.68, h + 0.84, d / 2 - 0.9, false));
+  g.add(box(0.38, 0.34, 0.52, chrome, 0, h + 0.84, d / 2 - 0.9, false));
+  g.add(box(0.95, 0.34, 0.52, beacon, 0.68, h + 0.84, d / 2 - 0.9, false));
 
   // Enseigne
   const shortLabel = name.replace(/^Commissariat\s+(du|de la|de l’|de|d’)\s*/i, '').toUpperCase();

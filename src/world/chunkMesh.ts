@@ -712,33 +712,65 @@ function addTree(buf: Buf, x: number, z: number, h: number, hash: number, distri
 
 function addBeachedPirogue(plain: Buf, x: number, z: number, angle: number, hullCol: THREE.Color): void {
   const trim = new THREE.Color(0xd97706);
+  const accent = new THREE.Color(0xfef08a);
   const bench = new THREE.Color(0x92400e);
   addPrism(plain, x, z, 3.6, 0.92, 0.04, 0.42, angle, hullCol, hullCol, plain, false);
+  addPrism(plain, x, z, 3.5, 0.94, 0.34, 0.08, angle, accent, trim, plain, false);
   const c = Math.cos(angle), s = Math.sin(angle);
   addPrism(plain, x + c * 2.1, z + s * 2.1, 0.9, 0.54, 0.1, 0.4, angle, trim, trim, plain, false);
   addPrism(plain, x - c * 2.1, z - s * 2.1, 0.9, 0.54, 0.1, 0.36, angle, trim, trim, plain, false);
-  addPrism(plain, x, z, 0.42, 0.88, 0.42, 0.08, angle, bench, bench, plain, false);
+  for (const bx of [-0.75, 0.75]) {
+    addPrism(plain, x + c * bx, z + s * bx, 0.34, 0.86, 0.42, 0.07, angle, bench, bench, plain, false);
+  }
+  // Pagaie posée sur les bancs
+  addPrism(plain, x + c * 0.25, z + s * 0.25, 1.55, 0.1, 0.49, 0.05, angle + 0.14, trim, trim, plain, false);
+  addPrism(plain, x - c * 0.6, z - s * 0.6, 0.42, 0.2, 0.49, 0.04, angle + 0.14, accent, accent, plain, false);
 }
 
-/** Voiture garée compacte (décorative en bord de rue locale, avec roues et feux). */
+/** Voiture garée compacte style chibi (pare-chocs, calandre, rétros, jantes et feux). */
 function addParkedCar(plain: Buf, lamps: Buf, x: number, z: number, angle: number, bodyCol: THREE.Color): void {
   const c = Math.cos(angle), s = Math.sin(angle);
-  const glass = new THREE.Color(0x1e293b);
+  const pt = (lu: number, lv: number): [number, number] => [x + c * lu - s * lv, z + s * lu + c * lv];
+  const glass = new THREE.Color(0x0f172a);
+  const bumper = new THREE.Color(0x1e293b);
+  const chrome = new THREE.Color(0xe2e8f0);
   const tire = new THREE.Color(0x18181b);
   const head = new THREE.Color(0xfef08a);
   const tail = new THREE.Color(0xef4444);
-  addPrism(plain, x, z, 3.6, 1.62, 0.24, 0.62, angle, bodyCol, bodyCol, plain, false);
-  addPrism(plain, x - c * 0.15, z - s * 0.15, 1.9, 1.44, 0.86, 0.5, angle, glass, bodyCol, plain, false);
-  for (const sx of [-1.1, 1.1]) {
+  const plate = new THREE.Color(0xf8fafc);
+
+  // Coque principale + pare-chocs avant/arrière (dans l'emprise 3.6 × 1.62)
+  addPrism(plain, x, z, 3.54, 1.6, 0.24, 0.62, angle, bodyCol, bodyCol, plain, false);
+  addPrism(plain, ...pt(1.74, 0), 0.14, 1.58, 0.22, 0.18, angle, bumper, bumper, plain, false);
+  addPrism(plain, ...pt(-1.74, 0), 0.14, 1.58, 0.22, 0.18, angle, bumper, bumper, plain, false);
+
+  // Cabine vitrée + pavillon peint + montant B
+  addPrism(plain, ...pt(-0.15, 0), 1.88, 1.42, 0.86, 0.46, angle, glass, bodyCol, plain, false);
+  addPrism(plain, ...pt(-0.18, 0), 1.24, 1.4, 1.31, 0.06, angle, bodyCol, bodyCol, plain, false);
+  addPrism(plain, ...pt(-0.15, 0), 0.1, 1.46, 0.86, 0.46, angle, bumper, bumper, plain, false);
+
+  // Calandre chromée + plaques + poignées + rétroviseurs
+  addPrism(plain, ...pt(1.79, 0), 0.06, 0.68, 0.46, 0.22, angle, chrome, chrome, plain, false);
+  addPrism(plain, ...pt(1.81, 0), 0.04, 0.4, 0.28, 0.11, angle, plate, plate, plain, false);
+  for (const side of [-1, 1]) {
+    addPrism(plain, ...pt(0.48, side * 0.85), 0.12, 0.14, 0.84, 0.1, angle, bumper, bumper, plain, false);
+    addPrism(plain, ...pt(0.05, side * 0.81), 0.18, 0.04, 0.66, 0.05, angle, chrome, chrome, plain, false);
+  }
+
+  // 4 roues avec jantes alliage
+  for (const sx of [-1.08, 1.08]) {
     for (const sz of [-0.74, 0.74]) {
-      const wx = x + c * sx - s * sz;
-      const wz = z + s * sx + c * sz;
+      const [wx, wz] = pt(sx, sz);
       addPrism(plain, wx, wz, 0.52, 0.2, 0, 0.46, angle, tire, tire, plain, false);
+      const [rx, rz] = pt(sx, sz + Math.sign(sz) * 0.02);
+      addPrism(plain, rx, rz, 0.26, 0.18, 0.12, 0.22, angle, chrome, chrome, plain, false);
     }
   }
-  // Petits feux avant/arrière pour le soir
-  addPrism(lamps, x + c * 1.82, z + s * 1.82, 0.08, 1.15, 0.44, 0.14, angle, head, head, lamps, false);
-  addPrism(lamps, x - c * 1.82, z - s * 1.82, 0.08, 1.15, 0.46, 0.14, angle, tail, tail, lamps, false);
+  // Feux avant/arrière séparés gauche & droite
+  for (const side of [-0.55, 0.55]) {
+    addPrism(lamps, ...pt(1.79, side), 0.07, 0.28, 0.48, 0.14, angle, head, head, lamps, false);
+    addPrism(lamps, ...pt(-1.79, side), 0.07, 0.28, 0.5, 0.14, angle, tail, tail, lamps, false);
+  }
 }
 
 /** Flaque d'eau miroitante posée dans un caniveau / bord de rue. */
@@ -790,7 +822,15 @@ function addDumpster(plain: Buf, d: DumpsterDecor): void {
   const c = Math.cos(d.angle);
   const s = Math.sin(d.angle);
   addPrism(plain, d.x, d.z, 1.42, 0.88, 0.12, 0.9, d.angle, body, rim, plain, false);
-  addPrism(plain, d.x, d.z, 1.48, 0.94, 1.02, 0.12, d.angle, lid, lid, plain, false);
+  // Nervures latérales + poignées de manutention + couvercle bombé
+  for (const rx of [-0.42, 0, 0.42]) {
+    addPrism(plain, d.x + c * rx, d.z + s * rx, 0.08, 0.92, 0.2, 0.74, d.angle, rim, rim, plain, false);
+  }
+  for (const sx of [-0.74, 0.74]) {
+    addPrism(plain, d.x + c * sx, d.z + s * sx, 0.08, 0.28, 0.68, 0.08, d.angle, wheel, wheel, plain, false);
+  }
+  addPrism(plain, d.x, d.z, 1.48, 0.94, 1.02, 0.1, d.angle, lid, lid, plain, false);
+  addPrism(plain, d.x, d.z, 1.28, 0.74, 1.12, 0.06, d.angle, lid, rim, plain, false);
   for (const sx of [-0.52, 0.52]) {
     for (const sz of [-0.32, 0.32]) {
       addPrism(plain, d.x + c * sx - s * sz, d.z + s * sx + c * sz, 0.12, 0.12, 0, 0.12, d.angle, wheel, wheel, plain, false);
@@ -800,6 +840,7 @@ function addDumpster(plain: Buf, d: DumpsterDecor): void {
     const bx = d.x + c * 1.08;
     const bz = d.z + s * 1.08;
     addPrism(plain, bx, bz, 0.5, 0.5, 0, 0.78, d.angle, new THREE.Color(0x16a34a), lid, plain, false);
+    addPrism(plain, bx, bz, 0.52, 0.52, 0.58, 0.07, d.angle, new THREE.Color(0xfacc15), new THREE.Color(0xfacc15), plain, false);
     addPrism(plain, bx, bz, 0.54, 0.54, 0.78, 0.07, d.angle, lid, lid, plain, false);
   }
 }
@@ -821,23 +862,30 @@ function addFoodVendor(plain: Buf, lamps: Buf, v: FoodVendorDecor): void {
   addHipRoof(plain, px, pz, 2.0, 2.0, 2.08, 0.42, v.angle, parasol);
 
   if (v.kind === 'galettes') {
-    // Table + vitrine à galettes + galettes dorées visibles à l'intérieur
+    // Table + vitrine à galettes + bocaux de piment rouge + galettes dorées visibles à l'intérieur
     const [tx, tz] = pt(0, 0.34);
     addPrism(plain, tx, tz, 1.05, 0.65, 0, 0.74, v.angle, wood, new THREE.Color(0x92400e), plain, false);
     addPrism(plain, tx, tz, 0.84, 0.5, 0.74, 0.32, v.angle, new THREE.Color(0xdbeafe), new THREE.Color(0xe2e8f0), plain, false);
+    addPrism(plain, tx, tz, 0.88, 0.54, 1.04, 0.04, v.angle, new THREE.Color(0x92400e), new THREE.Color(0x92400e), plain, false);
     const galCol = new THREE.Color(0xd97706);
     const galTop = new THREE.Color(0xf59e0b);
     for (const gx of [-0.22, 0.0, 0.22]) {
       const [gpx, gpz] = pt(gx, 0.34);
       addPrism(plain, gpx, gpz, 0.18, 0.18, 0.75, 0.18, v.angle, galCol, galTop, plain, false);
     }
+    const [pxJar, pzJar] = pt(0.45, 0.48);
+    addPrism(plain, pxJar, pzJar, 0.1, 0.1, 0.74, 0.16, v.angle, new THREE.Color(0xdc2626), new THREE.Color(0xfef08a), plain, false);
   } else {
-    // Vendeuse de gnonmi : fourneau charbon incandescent + moule à gnonmi + boules dorées + cuvette
+    // Vendeuse de gnonmi : fourneau charbon incandescent + moule à gnonmi + boules dorées + cuvette + bouteille d'huile
     const [fx, fz] = pt(-0.28, 0.34);
     const iron = new THREE.Color(0x334155);
     addPrism(plain, fx, fz, 0.52, 0.52, 0, 0.54, v.angle, iron, new THREE.Color(0x1e293b), plain, false);
     addPrism(lamps, fx, fz, 0.34, 0.34, 0.44, 0.1, v.angle, new THREE.Color(0xf97316), new THREE.Color(0xfbbf24), lamps, false);
     addPrism(plain, fx, fz, 0.58, 0.58, 0.54, 0.08, v.angle, new THREE.Color(0x1e293b), iron, plain, false);
+    for (const side of [-0.32, 0.32]) {
+      const [hx, hz] = pt(-0.28 + side, 0.34);
+      addPrism(plain, hx, hz, 0.08, 0.14, 0.56, 0.06, v.angle, iron, iron, plain, false);
+    }
     const gnonCol = new THREE.Color(0xfbbf24);
     for (const [ox, oz] of [[-0.14, -0.14], [0.14, -0.14], [0, 0], [-0.14, 0.14], [0.14, 0.14]]) {
       const [bx, bz] = pt(-0.28 + ox, 0.34 + oz);
@@ -846,19 +894,25 @@ function addFoodVendor(plain: Buf, lamps: Buf, v: FoodVendorDecor): void {
     const [cx, cz] = pt(0.36, 0.34);
     addPrism(plain, cx, cz, 0.58, 0.52, 0, 0.66, v.angle, wood, wood, plain, false);
     addPrism(plain, cx, cz, 0.42, 0.42, 0.66, 0.14, v.angle, new THREE.Color(0x0ea5e9), new THREE.Color(0xf59e0b), plain, false);
+    const [bxOil, bzOil] = pt(0.58, 0.18);
+    addPrism(plain, bxOil, bzOil, 0.1, 0.1, 0.66, 0.22, v.angle, new THREE.Color(0xfacc15), new THREE.Color(0xdc2626), plain, false);
   }
 
-  // Vendeuse stylisée assise/debout derrière son étal, face à la rue (+e2)
+  // Vendeuse chibi stylisée assise/debout derrière son étal, face à la rue (+e2)
   const [wx, wz] = pt(0, -0.44);
   addPrism(plain, wx, wz, 0.34, 0.34, 0, 0.36, v.angle, wood, wood, plain, false);
   addPrism(plain, wx, wz, 0.42, 0.34, 0.36, 0.68, v.angle, pagne, pagne, plain, false);
+  addPrism(plain, wx, wz, 0.43, 0.35, 0.44, 0.08, v.angle, foulard, foulard, plain, false);
   addPrism(plain, wx, wz, 0.4, 0.26, 1.04, 0.42, v.angle, blouse, blouse, plain, false);
+  addPrism(plain, wx, wz, 0.16, 0.16, 1.44, 0.05, v.angle, new THREE.Color(0xfbbf24), new THREE.Color(0xfbbf24), plain, false);
   for (const side of [-1, 1]) {
     const [ax, az] = pt(side * 0.22, -0.28);
     addPrism(plain, ax, az, 0.1, 0.3, 1.12, 0.12, v.angle, skin, skin, plain, false);
   }
   addPrism(plain, wx, wz, 0.22, 0.22, 1.48, 0.24, v.angle, skin, skin, plain, false);
   addPrism(plain, wx, wz, 0.26, 0.28, 1.7, 0.16, v.angle, foulard, foulard, plain, false);
+  const [kx, kz] = pt(0.06, -0.42);
+  addPrism(plain, kx, kz, 0.12, 0.12, 1.84, 0.1, v.angle, foulard, foulard, plain, false);
 }
 
 function renderDecorPlan(
@@ -909,6 +963,8 @@ function renderDecorPlan(
   for (const s of plan.shelters) {
     addPrism(plain, s.x, s.z, 3.6, 1.35, 2.35, 0.18, s.angle, shelterBlue, shelterBlue, plain, false);
     addPrism(plain, s.backX, s.backZ, 3.4, 0.14, 0, 2.35, s.angle, shelterGlass, poleMatCol, plain, false);
+    addPrism(plain, s.backX, s.backZ, 1.4, 0.18, 1.65, 0.42, s.angle, shelterBench, shelterBench, plain, false);
+    addPrism(lamps, s.x, s.z, 2.2, 0.24, 2.28, 0.08, s.angle, bulbCol, bulbCol, lamps, false);
     addPrism(plain, s.x, s.z, 2.6, 0.45, 0.42, 0.14, s.angle, shelterBench, shelterBench, plain, false);
     addPrism(plain, s.post1X, s.post1Z, 0.14, 0.14, 0, 2.35, s.angle, poleMatCol, poleMatCol, plain, false);
     addPrism(plain, s.post2X, s.post2Z, 0.14, 0.14, 0, 2.35, s.angle, poleMatCol, poleMatCol, plain, false);
@@ -923,15 +979,26 @@ function renderDecorPlan(
     }
   }
 
+  const produceRed = new THREE.Color(0xef4444);
+  const produceGold = new THREE.Color(0xfacc15);
+  const produceGreen = new THREE.Color(0x22c55e);
   for (const st of plan.stalls) {
     const tarp = new THREE.Color(st.tarpColor);
+    const sc = Math.cos(st.angle), ss = Math.sin(st.angle);
     addPrism(plain, st.x, st.z, 1.45, 0.85, 0, 0.8, st.angle, woodPoleCol, woodPoleCol, plain, false);
     addPrism(plain, st.x, st.z, 0.1, 0.1, 0.8, 1.35, st.angle, woodPoleCol, woodPoleCol, plain, false);
+    // Paniers/tas de fruits et tissus colorés posés sur l'étal + petite ampoule sous le parasol
+    addPrism(plain, st.x - sc * 0.42, st.z - ss * 0.42, 0.36, 0.36, 0.8, 0.2, st.angle, produceRed, produceGold, plain, false);
+    addPrism(plain, st.x + sc * 0.42, st.z + ss * 0.42, 0.34, 0.34, 0.8, 0.18, st.angle, produceGreen, produceGold, plain, false);
+    addPrism(lamps, st.x, st.z, 0.14, 0.14, 1.98, 0.12, st.angle, bulbCol, bulbCol, lamps, false);
     addHipRoof(plain, st.x, st.z, 2.0, 2.0, 2.1, 0.45, st.angle, tarp);
   }
 
+  const binBand = new THREE.Color(0xfacc15);
   for (const b of plan.bins) {
     addPrism(plain, b.x, b.z, 0.48, 0.48, 0, 0.78, b.angle, binGreen, poleMatCol, plain, false);
+    addPrism(plain, b.x, b.z, 0.5, 0.5, 0.56, 0.08, b.angle, binBand, binBand, plain, false);
+    addPrism(plain, b.x, b.z, 0.52, 0.52, 0.78, 0.07, b.angle, wireCol, wireCol, plain, false);
   }
 
   for (const d of plan.dumpsters) {

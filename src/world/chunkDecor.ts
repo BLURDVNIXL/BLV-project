@@ -585,6 +585,14 @@ function emitMaracanaCourt(plan: ChunkDecorPlan, lot: EmptyLot): void {
     pushBox(plan, cx, cz, a, gateHalf + segW / 2, d / 2, segW, 0.2, 0, fenceH, 0xe2e8f0, METAL_SLATE, true, false);
   }
 
+  // 4 fanions de corner posés au sommet du muret périmétrique (au-dessus des solides, 0 obstacle au sol)
+  for (const sx of [-1, 1]) {
+    for (const sz of [-1, 1]) {
+      pushBox(plan, cx, cz, a, sx * (w / 2 - 0.06), sz * (d / 2 - 0.06), 0.06, 0.06, fenceH, 0.55, 0xf8fafc, 0xf8fafc, false, false);
+      pushBox(plan, cx, cz, a, sx * (w / 2 - 0.2), sz * (d / 2 - 0.06), 0.22, 0.04, fenceH + 0.38, 0.16, 0xf97316, 0xf97316, false, false);
+    }
+  }
+
   // 2 mâts d'éclairage nocturne
   for (const side of [-1, 1]) {
     const lu = side * (w / 2 - 0.35);
@@ -624,6 +632,8 @@ function emitBasketballCourt(plan: ChunkDecorPlan, lot: EmptyLot): void {
     pushBox(plan, cx, cz, a, px - side * 0.85, 0, 0.08, 1.5, 2.7, 1.0, 0xf8fafc, 0xf8fafc, false, false);
     pushBox(plan, cx, cz, a, px - side * 0.9, 0, 0.04, 0.56, 2.86, 0.44, 0xef4444, 0xef4444, false, false);
     pushBox(plan, cx, cz, a, px - side * 1.15, 0, 0.48, 0.48, 2.82, 0.07, 0xf97316, 0xf97316, false, false);
+    // Filet blanc suspendu sous l'arceau (y >= 2.52m, au-dessus du joueur)
+    pushBox(plan, cx, cz, a, px - side * 1.15, 0, 0.34, 0.34, 2.54, 0.28, 0xf8fafc, 0xe2e8f0, false, false);
   }
 
   // Banc des joueurs + bordure basse avec large entrée de 4 m côté rue (+e2) + 2 projecteurs
