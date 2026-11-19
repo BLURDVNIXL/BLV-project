@@ -58,6 +58,11 @@ import { WorldStreamer } from '../world/WorldStreamer';
 import { ChunkMaterials, createChunkMaterials } from '../world/chunkMesh';
 import { daylight, sampleAmbient, sunDirection } from './ambiance';
 import { createSkyDome, SkyDome } from './sky';
+import {
+  MANUAL_CAM_COOLDOWN_S,
+  adaptCameraYaw,
+  stepManualCamCooldown,
+} from './cameraFollow';
 import { createChunkProvider } from '../world/chunkProvider';
 import {
   HouseLot,
@@ -331,6 +336,8 @@ export class AbidjanSceneManager {
   private camLook = new THREE.Vector3(0, 10, 0);
   private flyoverCenter = project(5.3258, -4.0185);
   private isDraggingCam = false;
+  /** Délai (s) avant reprise du suivi automatique après rotation manuelle de la caméra. */
+  private manualCamCooldown = 0;
   /** Doigt / pointeur qui oriente la caméra : les autres (joystick, 2e doigt) sont ignorés. */
   private camPointerId: number | null = null;
   /** Réglage du joueur (0,5 à 2,5), 1 = normal. */
@@ -1271,7 +1278,10 @@ export class AbidjanSceneManager {
         this.playerRotY = validRestore.rotY;
         this.playerRig.group.rotation.y = validRestore.rotY;
         core.faceCharacter(this.playerCharId, validRestore.rotY, true);
+        this.camYaw = validRestore.rotY + Math.PI;
+        this.computeFollowCamera(validRestore.x, 0, validRestore.z, this.camPos, this.camLook, true);
       }
+      this.manualCamCooldown = 0;
     } else {
       // Pre-warm chunks immediately around porch
       this.streamer?.update(porch.x, porch.z, 9);
@@ -1539,6 +1549,7 @@ export class AbidjanSceneManager {
     this.camYaw = at.rotY + Math.PI;
     this.camPitch = 0.16;
     this.camDist = 3.2;
+    this.manualCamCooldown = 0;
     this.computeFollowCamera(w.x, this.playerY, w.z, this.camPos, this.camLook, false);
     return true;
   }
@@ -1633,6 +1644,7 @@ export class AbidjanSceneManager {
     this.camYaw = at.rotY + Math.PI;
     this.camPitch = 0.16;
     this.camDist = 3.2;
+    this.manualCamCooldown = 0;
     this.computeFollowCamera(w.x, this.playerY, w.z, this.camPos, this.camLook, false);
     return { ok: true };
   }
@@ -1676,6 +1688,7 @@ export class AbidjanSceneManager {
     this.camDist = a.prevDist;
     this.playerRotY = a.returnRotY;
     this.camYaw = a.returnRotY + Math.PI;
+    this.manualCamCooldown = 0;
     this.physics.faceCharacter(this.playerCharId, a.returnRotY, true);
     this.teleportPlayer(a.returnX, a.returnZ);
     this.playerRig.group.rotation.y = a.returnRotY;
@@ -2064,6 +2077,7 @@ export class AbidjanSceneManager {
         this.spawnedVehicles.push(nearest);
       }
       this.drivingVehicle = nearest;
+      this.manualCamCooldown = 0;
       if (this.playerCharId >= 0) {
         this.physics.setCharacterEnabled(this.playerCharId, false);
       }
@@ -2238,6 +2252,7 @@ export class AbidjanSceneManager {
     const gain = this.camSensitivity * (e.pointerType === 'touch' ? AbidjanSceneManager.TOUCH_CAM_GAIN : 1);
     this.camYaw -= dx * 0.0065 * gain;
     this.camPitch = THREE.MathUtils.clamp(this.camPitch + dy * 0.005 * gain, -0.18, 1.05);
+    this.manualCamCooldown = MANUAL_CAM_COOLDOWN_S;
   };
 
   private onPointerUp = (e: PointerEvent) => {
@@ -2576,6 +2591,7 @@ export class AbidjanSceneManager {
       core.drainEvents(() => {});
 
       // Sync player vehicles
+      let drivingForwardSpeed = 0;
       for (const v of this.spawnedVehicles) {
         const vs = core.readVehicle(v.vehId, this.carState);
         v.rig.group.position.set(vs.x, 0, vs.z);
@@ -2587,16 +2603,21 @@ export class AbidjanSceneManager {
           this.playerY = 0;
           this.playerZ = vs.z;
           this.playerRotY = vs.heading;
+          drivingForwardSpeed = vs.forwardSpeed;
         }
       }
 
       // Sync player character
+      let footSpeed = 0;
+      let footKnocked = false;
       if (!this.drivingVehicle) {
         const ps = core.readCharacter(this.playerCharId, this.charState);
         this.playerX = ps.x;
         this.playerY = ps.y;
         this.playerZ = ps.z;
         const knocked = ps.stun > 0;
+        footSpeed = ps.speed;
+        footKnocked = knocked;
         const moving = ps.speed > 0.35 && ps.grounded && !knocked;
         if (moving) {
           this.walkPhase += ps.speed * dt * 2.5;
@@ -2629,6 +2650,20 @@ export class AbidjanSceneManager {
           this.animalSystem.pushThreat(ts.x, ts.z, Math.abs(ts.forwardSpeed)); // les animaux fuient la circulation
         }
       }
+
+      // Adaptation douce de la caméra au sens de déplacement du joueur ou du véhicule
+      this.manualCamCooldown = stepManualCamCooldown(this.manualCamCooldown, this.isDraggingCam, dt);
+      this.camYaw = adaptCameraYaw({
+        camYaw: this.camYaw,
+        dt,
+        driving: this.drivingVehicle !== null,
+        heading: this.playerRotY,
+        speed: this.drivingVehicle ? drivingForwardSpeed : footSpeed,
+        knocked: footKnocked,
+        isDragging: this.isDraggingCam,
+        manualCooldownS: this.manualCamCooldown,
+        indoor: this.activeInterior !== null,
+      });
     }
 
     // Cinématique du taxi (B3) : caméra de poursuite, aucune position envoyée aux autres joueurs.
