@@ -13,8 +13,9 @@ import { CHUNK, ChunkData, chunkOf } from './city';
 import { ChunkSolid, StreetVenueDecor } from './chunkDecor';
 import { ChunkMaterials, ChunkObjects, buildChunkObjects } from './chunkMesh';
 import { ChunkProvider, GROUND_SIZE, ChunkPayload } from './chunkProvider';
+import { OCCLUDER_MIN_HEIGHT, occluderOf, type Occluder } from './pedVisibility';
 
-interface Loaded { objects: ChunkObjects; solids: number[] }
+interface Loaded { objects: ChunkObjects; solids: number[]; occluders: Occluder[] }
 
 const key = (cx: number, cz: number): string => `${cx},${cz}`;
 
@@ -51,6 +52,20 @@ export class WorldStreamer {
     return out;
   }
 
+  /** Remplit `out` avec les emprises de bâtiments hauts des chunks chargés dans `rings` autour du point (visibilité des PNJ). */
+  collectOccluders(px: number, pz: number, rings: number, out: Occluder[]): Occluder[] {
+    out.length = 0;
+    const ccx = chunkOf(px);
+    const ccz = chunkOf(pz);
+    for (let dx = -rings; dx <= rings; dx++) {
+      for (let dz = -rings; dz <= rings; dz++) {
+        const l = this.loaded.get(key(ccx + dx, ccz + dz));
+        if (l) for (const o of l.occluders) out.push(o);
+      }
+    }
+    return out;
+  }
+
   /** Vrai si tous les chunks dans le rayon donné (en chunks) autour du point sont chargés. */
   isReady(px: number, pz: number, rings: number): boolean {
     const ccx = chunkOf(px);
@@ -80,7 +95,8 @@ export class WorldStreamer {
     if (this.loaded.has(k) || this.disposed) return;
     const objects = buildChunkObjects(payload.data, payload.ground, GROUND_SIZE, this.mats);
     this.scene.add(objects.group);
-    this.loaded.set(k, { objects, solids: this.registerSolids(payload.data, objects.solids) });
+    const occluders = payload.data.buildings.filter((b) => b.solid && b.h >= OCCLUDER_MIN_HEIGHT).map(occluderOf);
+    this.loaded.set(k, { objects, solids: this.registerSolids(payload.data, objects.solids), occluders });
     if (objects.venues.length > 0) this.venuesVersion++;
   }
 

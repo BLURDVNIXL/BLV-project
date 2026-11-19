@@ -27,6 +27,8 @@ import {
   NPC_CROWD_CAPACITY, NPC_DESPAWN_DIST, NPC_FAR_AI_DIST, NPC_MARKET_DIST, NPC_POOL_SIZE, NPC_SPAWN_MAX, NPC_SPAWN_MIN,
 } from '../world/budgets';
 import { bridgeAt, roadAt } from '../world/roads';
+import { isHiddenFromView, type Occluder, type ViewState } from '../world/pedVisibility';
+import { nearestNode, nodePos, pickNextNode, randomNodeInRing, type SwNode } from '../world/sidewalks';
 import { NpcCrowd, type NpcHandle } from './npcInstances';
 
 /** Budgets (nombre, distances, fréquence d'IA, capacité) : tous réglés dans `src/world/budgets.ts`. */
@@ -42,10 +44,21 @@ const FAN_STOP_DIST = 3.6;
 /** Blocage : en `STUCK_WINDOW` s, moins de `STUCK_MIN_MOVE` m alors qu'il veut avancer. */
 const STUCK_WINDOW = 1.0;
 const STUCK_MIN_MOVE = 0.15;
-const SPAWNS_PER_FRAME = 6;
+/** Une seule apparition à la fois, espacée dans le temps : pas de petits groupes qui surgissent d'un coup. */
+const SPAWN_COOLDOWN = 0.3;
+/** Délai entre deux apparitions quand la rue est presque vide (remplissage plus rapide). */
+const SPAWN_COOLDOWN_EMPTY = 0.08;
+const SPAWN_EMPTY_BELOW = 8;
+/** Au-delà de cette distance (m), un piéton est retiré même s'il est visible. */
+const DESPAWN_HARD_DIST = 120;
+/** Marge de champ (rad) ajoutée au cône de la caméra, plus la rotation attendue sur ce délai (s). */
+const VIEW_MARGIN = 0.5;
+const VIEW_MARGIN_LOOKAHEAD = 0.6;
+/** Rayon (en chunks) des bâtiments pris en compte pour l'occlusion. */
+const OCCLUDER_RINGS = 2;
+/** Un piéton à moins de cette distance (m) de son nœud cible passe au suivant. */
+const NODE_ADVANCE_DIST = 2.5;
 const FALL_TILT = 1.35;
-/** Demi-angle du champ de vue évité à la réapparition. */
-const VIEW_COS = Math.cos(THREE.MathUtils.degToRad(40));
 const VENDOR_RADIUS = 0.35;
 const VENDOR_HEIGHT = 1.8;
 
@@ -81,6 +94,9 @@ interface MobileNpc {
   /** Trajet en boucle (coordonnées MONDE) d'un PNJ d'intérieur ; `null` en extérieur. */
   route: Array<{ x: number; z: number }> | null;
   routeIdx: number;
+  /** Trottoir : nœud visé et nœud précédent (piétons de rue uniquement). */
+  swNode: SwNode | null;
+  swPrev: SwNode | null;
 }
 
 interface MarketVendorNpc {
@@ -134,6 +150,14 @@ export class NpcSystem {
   private readonly scratch: CharacterState = createCharacterState();
   /** Point réutilisé pour `isWater` / `bridgeAt` (évite une allocation par test). */
   private readonly pt = { x: 0, z: 0 };
+  /** Caméra (plan) pour la règle « jamais vu », et source des bâtiments hauts autour du joueur. */
+  private view: ViewState | null = null;
+  private occluderSource: ((x: number, z: number, rings: number, out: Occluder[]) => Occluder[]) | null = null;
+  private readonly occluders: Occluder[] = [];
+  private occluderFrame = -1;
+  private lastYaw: number | null = null;
+  private yawRate = 0;
+  private spawnCd = 0;
 
   constructor(scene: THREE.Scene, poolSize = NPC_POOL_SIZE) {
     scene.add(this.crowd.group);
@@ -193,6 +217,7 @@ export class NpcSystem {
         stuckT: 0, anchorX: 0, anchorZ: 0,
         sideT: 0, sideX: 0, sideZ: 0,
         route: null, routeIdx: 0,
+        swNode: null, swPrev: null,
       });
     }
   }
@@ -290,26 +315,43 @@ export class NpcSystem {
     return fallback;
   }
 
-  /** Point d'apparition autour du joueur, en privilégiant les rues et trottoirs. */
-  private findSpawnSpot(px: number, pz: number, camYaw: number): { x: number; z: number } | null {
-    const fx = -Math.sin(camYaw);
-    const fz = -Math.cos(camYaw);
-    let fallback: { x: number; z: number } | null = null;
-    for (let attempt = 0; attempt < 24; attempt++) {
-      const a = this.nextRand() * Math.PI * 2;
-      const r = SPAWN_MIN + this.nextRand() * (SPAWN_MAX - SPAWN_MIN);
-      const ca = Math.cos(a);
-      const sa = Math.sin(a);
-      if (attempt < 6 && r < 24 && ca * fx + sa * fz > VIEW_COS) continue;
-      const x = px + ca * r;
-      const z = pz + sa * r;
-      if (!this.isDry(x, z) || this.insideHall(x, z)) continue;
-      this.pt.x = x;
-      this.pt.z = z;
-      if (roadAt(this.pt) !== 'none') return { x, z };
-      if (!fallback) fallback = { x, z };
+  // ───────────── Vue et règle « jamais vu » ─────────────
+
+  /** Donne la caméra (plan) et la source des bâtiments hauts. À appeler avant `update` à chaque image. */
+  setView(view: ViewState, occluderSource?: (x: number, z: number, rings: number, out: Occluder[]) => Occluder[]): void {
+    this.view = view;
+    if (occluderSource) this.occluderSource = occluderSource;
+  }
+
+  /** Bâtiments hauts autour du joueur, collectés au plus une fois par image. */
+  private currentOccluders(px: number, pz: number): Occluder[] {
+    if (this.occluderFrame !== this.frame) {
+      this.occluderFrame = this.frame;
+      if (this.occluderSource) this.occluderSource(px, pz, OCCLUDER_RINGS, this.occluders);
+      else this.occluders.length = 0;
     }
-    return fallback;
+    return this.occluders;
+  }
+
+  /** Marge angulaire (rad) : fixe, plus la rotation de caméra attendue pendant `VIEW_MARGIN_LOOKAHEAD` s. */
+  private viewMargin(): number {
+    return VIEW_MARGIN + Math.min(Math.abs(this.yawRate), 4) * VIEW_MARGIN_LOOKAHEAD;
+  }
+
+  /** Le point est invisible pour la caméra (on n'apparaît et ne disparaît que là). */
+  private isHidden(x: number, z: number, px: number, pz: number): boolean {
+    const view = this.view;
+    if (!view) return false;
+    return isHiddenFromView(view, x, z, this.viewMargin(), this.currentOccluders(px, pz));
+  }
+
+  /** Nœud de trottoir où un piéton peut apparaître : dans la zone d'apparition ET invisible. `null` si aucun. */
+  private findSpawnNode(px: number, pz: number): SwNode | null {
+    return randomNodeInRing(
+      px, pz, SPAWN_MIN, SPAWN_MAX, () => this.nextRand(),
+      (_n, x, z) => this.isDry(x, z) && !this.insideHall(x, z) && this.isHidden(x, z, px, pz),
+      32,
+    );
   }
 
   // ───────────── Pool ─────────────
@@ -361,6 +403,8 @@ export class NpcSystem {
   private deactivate(n: MobileNpc): void {
     this.crowd.release(n.handle);
     n.handle = null;
+    n.swNode = null;
+    n.swPrev = null;
     if (this.core && n.charId >= 0) {
       this.core.characterInput(n.charId, 0, 0, 0);
       this.core.setCharacterEnabled(n.charId, false);
@@ -381,11 +425,42 @@ export class NpcSystem {
       n.targetZ = g.z;
       return;
     }
+    if (n.swNode) {
+      this.pickSidewalkGoal(n, x, z);
+      return;
+    }
     const g = this.findDrySpotNear(x, z, 12, 30);
     if (g) {
       n.targetX = g.x;
       n.targetZ = g.z;
     }
+  }
+
+  /**
+   * Marche de nœud en nœud sur le réseau de trottoirs. Près du nœud visé : on passe au suivant (tout droit de
+   * préférence). Loin du nœud (blocage, joueur planté devant) : on repart du nœud le plus proche.
+   */
+  private pickSidewalkGoal(n: MobileNpc, x: number, z: number): void {
+    const cur = n.swNode;
+    if (!cur) return;
+    const tp = nodePos(cur);
+    let from: SwNode = cur;
+    let prev: SwNode | null = n.swPrev;
+    if (Math.hypot(tp.x - x, tp.z - z) > NODE_ADVANCE_DIST) {
+      from = nearestNode(x, z, 12) ?? cur;
+      prev = null;
+    }
+    const next = pickNextNode(from, prev, () => this.nextRand());
+    if (!next) {
+      n.targetX = tp.x;
+      n.targetZ = tp.z;
+      return;
+    }
+    n.swPrev = from;
+    n.swNode = next;
+    const np = nodePos(next);
+    n.targetX = np.x;
+    n.targetZ = np.z;
   }
 
   private resetStuck(n: MobileNpc, st: CharacterState): void {
@@ -549,7 +624,10 @@ export class NpcSystem {
     const d = Math.hypot(gx0, gz0);
     if (!fan && d < (n.route ? 0.4 : 1.2)) {
       n.state = 'wait';
-      n.waitT = 0.4 + this.nextRand() * 2.2;
+      // Sur trottoir : on enchaîne les nœuds, avec une pause de temps en temps (vitrine, téléphone)
+      n.waitT = n.swNode
+        ? (this.nextRand() < 0.12 ? 0.8 + this.nextRand() * 2.4 : 0.02)
+        : 0.4 + this.nextRand() * 2.2;
       core.characterInput(id, 0, 0, 0);
       this.resetStuck(n, st);
       return;
@@ -667,6 +745,15 @@ export class NpcSystem {
     this.frame++;
     const core = this.core;
 
+    // Vitesse de rotation de la caméra : élargit la marge « hors champ » quand elle tourne vite
+    if (this.lastYaw !== null && dt > 0) {
+      const w = angleDiff(camYaw, this.lastYaw) / dt;
+      this.yawRate += (w - this.yawRate) * Math.min(1, 10 * dt);
+    }
+    this.lastYaw = camYaw;
+    if (!this.view) this.view = { x: playerX, z: playerZ, yaw: camYaw, halfFov: 0.8 };
+    this.spawnCd -= dt;
+
     // Foule du Grand Marché Ouvert d'Adjamé : vendeurs statiques et clients actifs à proximité seulement
     if (this.marketCenter) {
       const nearMarket = Math.hypot(playerX - this.marketCenter.x, playerZ - this.marketCenter.z) < MARKET_DIST;
@@ -685,26 +772,46 @@ export class NpcSystem {
     }
 
     if (core) {
-      let spawnsLeft = SPAWNS_PER_FRAME;
+      let walkers = 0;
+      for (const n of this.mobile) if (n.handle && !n.shopper) walkers++;
+      let canSpawn = worldReady && this.spawnCd <= 0;
       for (let i = 0; i < this.mobile.length; i++) {
         const n = this.mobile[i];
         if (n.charId < 0) continue;
 
-        // Retrait : clients quand le marché est loin, piétons au-delà de 115 m
+        // Retrait : clients quand le marché est loin ; piétons seulement HORS de la vue du joueur
         if (n.handle) {
-          if (n.shopper ? !this.marketActive : Math.hypot(n.x - playerX, n.z - playerZ) > DESPAWN_DIST) this.deactivate(n);
+          if (n.shopper) {
+            if (!this.marketActive) this.deactivate(n);
+          } else {
+            const dist = Math.hypot(n.x - playerX, n.z - playerZ);
+            if (dist > DESPAWN_HARD_DIST || (dist > DESPAWN_DIST && this.isHidden(n.x, n.z, playerX, playerZ))) {
+              this.deactivate(n);
+              walkers--;
+            }
+          }
         }
 
-        // Apparition
+        // Apparition (une à la fois, sur un nœud de trottoir invisible)
         if (!n.handle) {
-          if (spawnsLeft <= 0 || !worldReady) continue;
+          if (!canSpawn) continue;
           if (n.shopper) {
             if (!this.marketActive) continue;
             const s = this.pickOpenMarketPoint();
-            if (this.activate(n, n.seed, 'client', 'adjame', s.x, s.z)) spawnsLeft--;
+            if (this.activate(n, n.seed, 'client', 'adjame', s.x, s.z)) canSpawn = false;
           } else {
-            const spot = this.findSpawnSpot(playerX, playerZ, camYaw);
-            if (spot && this.activate(n, this.nextSeed(), 'passant', districtAt(spot).id, spot.x, spot.z)) spawnsLeft--;
+            const node = this.findSpawnNode(playerX, playerZ);
+            if (!node) continue;
+            const p = nodePos(node);
+            n.swNode = node;
+            n.swPrev = null;
+            if (this.activate(n, this.nextSeed(), 'passant', districtAt(p).id, p.x, p.z)) {
+              canSpawn = false;
+              walkers++;
+              this.spawnCd = walkers < SPAWN_EMPTY_BELOW ? SPAWN_COOLDOWN_EMPTY : SPAWN_COOLDOWN;
+            } else {
+              n.swNode = null;
+            }
           }
           continue;
         }

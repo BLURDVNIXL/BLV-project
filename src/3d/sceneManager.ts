@@ -60,6 +60,7 @@ import {
   loadPhysics,
 } from '../physics/PhysicsCore';
 import { WorldStreamer } from '../world/WorldStreamer';
+import { horizontalHalfFov } from '../world/pedVisibility';
 import { ChunkMaterials, createChunkMaterials } from '../world/chunkMesh';
 import { daylight, sampleAmbient, sunDirection } from './ambiance';
 import { createSkyDome, SkyDome } from './sky';
@@ -2557,6 +2558,11 @@ export class AbidjanSceneManager {
     // 6. Walking Pedestrians
     if (!this.activeInterior) {
       const worldReady = this.streamer?.isReady(this.playerX, this.playerZ, 2) ?? false;
+      // Règle « jamais vu » : les PNJ n'apparaissent et ne disparaissent qu'hors du champ de la caméra ou derrière un bâtiment
+      this.npcSystem.setView(
+        { x: this.camPos.x, z: this.camPos.z, yaw: this.camYaw, halfFov: horizontalHalfFov(this.camera.fov, this.camera.aspect) },
+        (x, z, rings, out) => this.streamer?.collectOccluders(x, z, rings, out) ?? out,
+      );
       this.npcSystem.update(dt, this.playerX, this.playerZ, this.isSuperstar, this.camYaw, worldReady);
       this.animalSystem.update(dt, this.playerX, this.playerZ, this.camYaw, worldReady);
     } else {
