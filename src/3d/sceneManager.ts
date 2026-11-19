@@ -1378,6 +1378,7 @@ export class AbidjanSceneManager {
       const isNight = mood === 'night';
       this.chunkMats.setNight(isNight);
       this.waterTraffic.setNight(isNight);
+      this.npcSystem.setNight(isNight);
       this.bridgeSetNights.forEach((fn) => fn(isNight));
     }
     this.chunkMats.setWetness(weather === 'pluie' || weather === 'inondation');

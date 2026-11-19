@@ -27,6 +27,7 @@ import {
   NPC_CROWD_CAPACITY, NPC_DESPAWN_DIST, NPC_FAR_AI_DIST, NPC_MARKET_DIST, NPC_POOL_SIZE, NPC_SPAWN_MAX, NPC_SPAWN_MIN,
 } from '../world/budgets';
 import { bridgeAt, roadAt } from '../world/roads';
+import { NpcActors, type NpcActor } from './npcActors';
 import { isHiddenFromView, type Occluder, type ViewState } from '../world/pedVisibility';
 import { nearestNode, nodePos, pickNextNode, randomNodeInRing, type SwNode } from '../world/sidewalks';
 import { NpcCrowd, type NpcHandle } from './npcInstances';
@@ -97,6 +98,8 @@ interface MobileNpc {
   /** Trottoir : nœud visé et nœud précédent (piétons de rue uniquement). */
   swNode: SwNode | null;
   swPrev: SwNode | null;
+  /** Personnage chibi (acteur) ; `null` : PNJ de la foule instanciée. */
+  actor: NpcActor | null;
 }
 
 interface MarketVendorNpc {
@@ -150,6 +153,7 @@ export class NpcSystem {
   private readonly scratch: CharacterState = createCharacterState();
   /** Point réutilisé pour `isWater` / `bridgeAt` (évite une allocation par test). */
   private readonly pt = { x: 0, z: 0 };
+  private readonly actors: NpcActors;
   /** Caméra (plan) pour la règle « jamais vu », et source des bâtiments hauts autour du joueur. */
   private view: ViewState | null = null;
   private occluderSource: ((x: number, z: number, rings: number, out: Occluder[]) => Occluder[]) | null = null;
@@ -161,6 +165,7 @@ export class NpcSystem {
 
   constructor(scene: THREE.Scene, poolSize = NPC_POOL_SIZE) {
     scene.add(this.crowd.group);
+    this.actors = new NpcActors(scene);
 
     const fp = SPECIAL_FOOTPRINTS.find((f) => f.spec.id === 'marche_adjame');
     let shopperCount = 0;
@@ -217,7 +222,7 @@ export class NpcSystem {
         stuckT: 0, anchorX: 0, anchorZ: 0,
         sideT: 0, sideX: 0, sideZ: 0,
         route: null, routeIdx: 0,
-        swNode: null, swPrev: null,
+        swNode: null, swPrev: null, actor: null,
       });
     }
   }
@@ -237,6 +242,9 @@ export class NpcSystem {
       n.charRadius = 0.35;
     }
   }
+
+  /** Jour / nuit : choisit les profils des prochains acteurs (ceux déjà en place gardent leur apparence). */
+  setNight(night: boolean): void { this.actors.setMoment(night); }
 
   /** PNJ réservés dans la foule (mobiles actifs + vendeurs). */
   get activeCount(): number { return this.crowd.activeCount; }
@@ -383,6 +391,8 @@ export class NpcSystem {
     core.setCharacterEnabled(n.charId, true);
 
     n.handle = handle;
+    // Piéton de rue (ni client, ni intérieur) : personnage chibi si son modèle est déjà chargé
+    n.actor = !n.shopper && !n.route ? this.actors.request(districtId, seed) : null;
     n.x = x;
     n.z = z;
     n.state = 'walk';
@@ -402,6 +412,8 @@ export class NpcSystem {
 
   private deactivate(n: MobileNpc): void {
     this.crowd.release(n.handle);
+    n.actor?.release();
+    n.actor = null;
     n.handle = null;
     n.swNode = null;
     n.swPrev = null;
@@ -731,6 +743,12 @@ export class NpcSystem {
     if (!knocked && st.speed > 0.4) n.cap += angleDiff(st.heading, n.cap) * Math.min(1, 12 * dt);
     n.tilt += ((knocked ? FALL_TILT : 0) - n.tilt) * Math.min(1, 8 * dt);
     this.crowd.setPose(handle, st.x, st.z, n.cap, n.phase, moving ? 0.85 : 0, n.tilt);
+    const actor = n.actor;
+    if (actor) {
+      this.crowd.setVisible(handle, !actor.ready);
+      const talk = n.state === 'wait' && Math.floor(handle.idle * 10) % 3 === 0;
+      actor.pose(st.x, st.z, n.cap, n.tilt, knocked ? 'idle' : moving ? 'walk' : talk ? 'talk' : 'idle', st.speed, dt, dist);
+    }
   }
 
   // ───────────── Mise à jour ─────────────
@@ -831,5 +849,6 @@ export class NpcSystem {
     }
     this.core = null;
     this.crowd.dispose();
+    this.actors.dispose();
   }
 }
