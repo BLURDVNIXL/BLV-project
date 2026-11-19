@@ -312,12 +312,12 @@ export class AbidjanSceneManager {
     updateUpgrades: (u: CribUpgrades) => void;
   } | null = null;
 
-  // Camera state: flyover (Title) vs follow (360° mouse drag + wheel zoom + building ray pull-in)
+  // Camera state: flyover (Title) vs follow (over-the-shoulder 360° orbit + wheel zoom + building ray pull-in)
   private cameraMode: 'flyover' | 'follow' = 'flyover';
   private isPaused = false;
   private camYaw = 0.25;
-  private camPitch = 0.34;
-  private camDist = 11.5;
+  private camPitch = 0.12;
+  private camDist = 3.2;
   private camPos = new THREE.Vector3(0, 32, 65);
   private camLook = new THREE.Vector3(0, 10, 0);
   private flyoverCenter = project(5.3258, -4.0185);
@@ -1124,16 +1124,11 @@ export class AbidjanSceneManager {
       this.spawnedVehicles.push({ id: `player_v2_${secondaryVehicle}`, vehId, rig });
     }
 
-    // 5. Caméra derrière le joueur (côté rue), face à la façade
+    // 5. Caméra à l'épaule derrière le joueur (côté rue), face à la façade
     this.camYaw = lot.rotationY;
-    this.camPitch = 0.32;
-    this.camDist = 9.5;
-    this.camPos.set(
-      porch.x + Math.sin(this.camYaw) * 9.5,
-      5.2,
-      porch.z + Math.cos(this.camYaw) * 9.5
-    );
-    this.camLook.set(porch.x, 1.5, porch.z);
+    this.camPitch = 0.12;
+    this.camDist = 3.2;
+    this.computeFollowCamera(porch.x, 0, porch.z, this.camPos, this.camLook, false);
 
     // 6. Reprise d'une sauvegarde : on téléporte d'abord avant de charger les chunks pour ne pas saturer le worker avec le perron
     if (validRestore) {
@@ -1156,12 +1151,7 @@ export class AbidjanSceneManager {
   public setCameraMode(mode: 'flyover' | 'follow') {
     this.cameraMode = mode;
     if (mode === 'follow') {
-      this.camPos.set(
-        this.playerX + Math.sin(this.camYaw) * 9.5,
-        this.playerY + 5,
-        this.playerZ + Math.cos(this.camYaw) * 9.5
-      );
-      this.camLook.set(this.playerX, this.playerY + 1.5, this.playerZ);
+      this.computeFollowCamera(this.playerX, this.playerY, this.playerZ, this.camPos, this.camLook, true);
     }
   }
 
@@ -1413,14 +1403,9 @@ export class AbidjanSceneManager {
     this.playerRig.group.position.set(w.x, 0, w.z);
     this.playerRig.group.rotation.y = at.rotY;
     this.camYaw = at.rotY + Math.PI;
-    this.camPitch = 0.5;
-    this.camDist = 8.2;
-    this.camPos.set(
-      w.x + Math.sin(this.camYaw) * Math.cos(this.camPitch) * this.camDist,
-      this.playerY + 1.55 + Math.sin(this.camPitch) * this.camDist,
-      w.z + Math.cos(this.camYaw) * Math.cos(this.camPitch) * this.camDist
-    );
-    this.camLook.set(w.x, 1.55, w.z);
+    this.camPitch = 0.16;
+    this.camDist = 3.2;
+    this.computeFollowCamera(w.x, this.playerY, w.z, this.camPos, this.camLook, false);
     return true;
   }
 
@@ -1512,14 +1497,9 @@ export class AbidjanSceneManager {
     this.playerRig.group.position.set(w.x, 0, w.z);
     this.playerRig.group.rotation.y = at.rotY;
     this.camYaw = at.rotY + Math.PI;
-    this.camPitch = 0.5;
-    this.camDist = 8.5;
-    this.camPos.set(
-      w.x + Math.sin(this.camYaw) * Math.cos(this.camPitch) * this.camDist,
-      this.playerY + 1.55 + Math.sin(this.camPitch) * this.camDist,
-      w.z + Math.cos(this.camYaw) * Math.cos(this.camPitch) * this.camDist
-    );
-    this.camLook.set(w.x, 1.55, w.z);
+    this.camPitch = 0.16;
+    this.camDist = 3.2;
+    this.computeFollowCamera(w.x, this.playerY, w.z, this.camPos, this.camLook, false);
     return { ok: true };
   }
 
@@ -1810,6 +1790,59 @@ export class AbidjanSceneManager {
     this.dirLight.target.position.set(r.x, 0, r.z);
   }
 
+  /** Calcule la position et la cible de la caméra : vue à l'épaule à pied, vue poursuite en véhicule. */
+  private computeFollowCamera(
+    px: number,
+    py: number,
+    pz: number,
+    outPos: THREE.Vector3,
+    outLook: THREE.Vector3,
+    checkBuildings: boolean
+  ) {
+    const driving = this.drivingVehicle !== null;
+    const scale = this.playerModelScale;
+    const lookY = driving ? py + 1.35 : py + 1.18 * scale;
+    const desiredDist = driving ? Math.max(this.camDist + 4.2, 7.2) : this.camDist;
+
+    let anchorX = px;
+    let anchorZ = pz;
+    if (driving) {
+      outLook.set(px, lookY, pz);
+    } else {
+      const forwardX = -Math.sin(this.camYaw);
+      const forwardZ = -Math.cos(this.camYaw);
+      const rightX = Math.cos(this.camYaw);
+      const rightZ = -Math.sin(this.camYaw);
+      const shoulderRight = 0.56 * scale;
+      anchorX = px + rightX * shoulderRight;
+      anchorZ = pz + rightZ * shoulderRight;
+      outLook.set(anchorX + forwardX * 2.4, lookY + 0.04, anchorZ + forwardZ * 2.4);
+    }
+
+    let cx = anchorX + Math.sin(this.camYaw) * Math.cos(this.camPitch) * desiredDist;
+    let cy = Math.max(driving ? 1.2 : 0.75, lookY + Math.sin(this.camPitch) * desiredDist);
+    let cz = anchorZ + Math.cos(this.camYaw) * Math.cos(this.camPitch) * desiredDist;
+
+    const core = this.physics;
+    if (checkBuildings && core) {
+      const horiz = Math.hypot(cx - px, cz - pz);
+      if (horiz > 0.5) {
+        const hit = core.ray(px, pz, cx - px, cz - pz, horiz, SolidFlag.BUILDING);
+        if (hit >= 0) {
+          const heightAtHit = lookY + (cy - lookY) * (hit / horiz);
+          if (core.solidHeight(core.lastRayHitId) > heightAtHit - 0.3) {
+            const k = Math.max(0.28, (hit - 0.65) / horiz);
+            cx = px + (cx - px) * k;
+            cy = lookY + (cy - lookY) * k;
+            cz = pz + (cz - pz) * k;
+          }
+        }
+      }
+    }
+
+    outPos.set(cx, cy, cz);
+  }
+
   public teleportPlayer(x: number, z: number) {
     if (this.drivingVehicle && this.physics) {
       this.physics.placeVehicle(this.drivingVehicle.vehId, x, z, this.playerRotY);
@@ -1821,8 +1854,8 @@ export class AbidjanSceneManager {
     this.playerY = 0;
     this.playerZ = z;
     this.playerRig.group.position.set(x, 0, z);
-    this.camPos.set(x + Math.sin(this.camYaw) * 10, 6, z + Math.cos(this.camYaw) * 10);
-    this.camLook.set(x, 1.8, z);
+    this.camPos.set(x, 1.8, z);
+    this.computeFollowCamera(x, 0, z, this.camPos, this.camLook, true);
     this.streamer?.update(x, z, 9);
   }
 
@@ -2070,7 +2103,7 @@ export class AbidjanSceneManager {
 
     const gain = this.camSensitivity * (e.pointerType === 'touch' ? AbidjanSceneManager.TOUCH_CAM_GAIN : 1);
     this.camYaw -= dx * 0.0065 * gain;
-    this.camPitch = THREE.MathUtils.clamp(this.camPitch + dy * 0.005 * gain, 0.08, 1.25);
+    this.camPitch = THREE.MathUtils.clamp(this.camPitch + dy * 0.005 * gain, -0.18, 1.05);
   };
 
   private onPointerUp = (e: PointerEvent) => {
@@ -2081,7 +2114,7 @@ export class AbidjanSceneManager {
 
   private onWheel = (e: WheelEvent) => {
     if (this.cameraMode !== 'follow') return;
-    this.camDist = THREE.MathUtils.clamp(this.camDist + e.deltaY * 0.012, 5.5, 34);
+    this.camDist = THREE.MathUtils.clamp(this.camDist + e.deltaY * 0.008, 2.0, 14.0);
   };
 
   private onWindowBlur = () => {
@@ -2398,39 +2431,8 @@ export class AbidjanSceneManager {
       return;
     }
 
-    // 8. 360° Orbital Third-Person Camera with Exponential Damping + Building Raycast Pull-in
-    const desiredDist = this.drivingVehicle ? this.camDist + 3.2 : this.camDist;
-    const lookY = this.playerY + (this.drivingVehicle ? 1.3 : 1.55);
-    this.scratchTarget.set(this.playerX, lookY, this.playerZ);
-
-    let cx = this.playerX + Math.sin(this.camYaw) * Math.cos(this.camPitch) * desiredDist;
-    let cy = Math.max(1.2, lookY + Math.sin(this.camPitch) * desiredDist);
-    let cz = this.playerZ + Math.cos(this.camYaw) * Math.cos(this.camPitch) * desiredDist;
-
-    if (core) {
-      const horiz = Math.hypot(cx - this.playerX, cz - this.playerZ);
-      if (horiz > 0.6) {
-        const hit = core.ray(
-          this.playerX,
-          this.playerZ,
-          cx - this.playerX,
-          cz - this.playerZ,
-          horiz,
-          SolidFlag.BUILDING
-        );
-        if (hit >= 0) {
-          const heightAtHit = lookY + (cy - lookY) * (hit / horiz);
-          if (core.solidHeight(core.lastRayHitId) > heightAtHit - 0.3) {
-            const k = Math.max(0.22, (hit - 0.65) / horiz);
-            cx = this.playerX + (cx - this.playerX) * k;
-            cy = lookY + (cy - lookY) * k;
-            cz = this.playerZ + (cz - this.playerZ) * k;
-          }
-        }
-      }
-    }
-
-    this.scratchVec.set(cx, cy, cz);
+    // 8. Over-the-shoulder Third-Person Camera (on foot) / Chase Camera (driving) + Building Raycast Pull-in
+    this.computeFollowCamera(this.playerX, this.playerY, this.playerZ, this.scratchVec, this.scratchTarget, true);
     const k = 1 - Math.exp(-10 * dt);
     this.camPos.lerp(this.scratchVec, k);
     this.camLook.lerp(this.scratchTarget, k);

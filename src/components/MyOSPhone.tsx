@@ -28,6 +28,8 @@ import {
 } from '../core/gpsDestinations';
 import { FARE_BETWEEN_COMMUNES, FARE_SAME_COMMUNE, fastTravelFare, formatGameTime } from '../core/simulation';
 import { t } from '../core/i18n';
+import { BarGauge } from './ui/Gauge';
+import { StarBadge } from './ui/icons';
 
 interface MyOSPhoneProps {
   playerState: PlayerState;
@@ -110,6 +112,17 @@ export const MyOSPhone: React.FC<MyOSPhoneProps> = ({
                 <div className="flex items-center justify-between text-xs mt-1.5 tabular-nums">
                   <span className="text-palm-600 font-bold">{Math.round(playerState.cash).toLocaleString('fr-FR')} F</span>
                   <span className="text-lagoon-600">{s.bankBalance}: {Math.round(playerState.bankCash).toLocaleString('fr-FR')} F</span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2.5 rounded-2xl bg-cream-100 p-3 border border-sun-400/30">
+                <StarBadge className="h-8 w-8 shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-baseline justify-between gap-2 whitespace-nowrap text-xs font-bold">
+                    <span className="text-ink-600">{s.starLabel}</span>
+                    <span className="tabular-nums text-sun-600">{Math.round(playerState.star)}</span>
+                  </div>
+                  <BarGauge value={playerState.star} tone="sun" label={s.starLabel} className="mt-1" />
                 </div>
               </div>
 

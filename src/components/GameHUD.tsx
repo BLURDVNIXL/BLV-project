@@ -28,7 +28,7 @@ import { CityHotspot, RadarSnapshot } from '../3d/sceneManager';
 import { MinimapRadar } from './MinimapRadar';
 import { JellyButton, RoundIconButton } from './ui/Jelly';
 import { BarGauge, RingGauge } from './ui/Gauge';
-import { FcfaCoin, StarBadge } from './ui/icons';
+import { FcfaCoin } from './ui/icons';
 import { useMediaQuery } from './useMediaQuery';
 
 interface GameHUDProps {
@@ -284,7 +284,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({
           )}
         </div>
 
-        {/* Haut droite : heure, météo, son, menu ; Étoile ; recherche et joueurs */}
+        {/* Haut droite : heure, météo, son, menu ; recherche */}
         <div className="pointer-events-auto relative flex flex-col items-end gap-2 short:gap-1">
           <div className="panel flex items-center gap-2.5 px-3 py-2 short:gap-1.5 short:px-2 short:py-1">
             <WeatherIcon weather={playerState.weather} />
@@ -325,17 +325,6 @@ export const GameHUD: React.FC<GameHUDProps> = ({
               <MenuItem icon={<Dices className="h-4 w-4" />} label={s.destinyBtn} onClick={runAndClose(onOpenRoulette)} />
             </div>
           )}
-
-          <div className="panel flex items-center gap-2.5 px-3 py-2 short:gap-1.5 short:px-2 short:py-1">
-            <StarBadge className="h-8 w-8 shrink-0 short:h-6 short:w-6" />
-            <div className="w-36 short:w-32">
-              <div className="flex items-baseline justify-between gap-2 whitespace-nowrap text-xs font-bold">
-                <span className="text-ink-600">{s.starLabel}</span>
-                <span className="tabular-nums text-sun-600">{Math.round(playerState.star)}</span>
-              </div>
-              <BarGauge value={playerState.star} tone="sun" label={s.starLabel} />
-            </div>
-          </div>
 
           <div className="flex items-center gap-2">
             {playerState.policeWanted > 0 && (
