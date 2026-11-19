@@ -10,11 +10,11 @@
  */
 
 import * as THREE from 'three';
-import { Building, ChunkData, CHUNK, insideSpecial } from './city';
+import { Building, ChunkData, CHUNK } from './city';
+import { ChunkDecorPlan, ChunkSolid, VILLA_WALLED_DISTRICTS, collectChunkDecor } from './chunkDecor';
 import { isHospitalId } from './hospitals';
-import { districtAt, isWater, projected } from './abidjanGeography';
-import { ARTERIALS, GRIDS, bridgeAt, frameFor, roadAt } from './roads';
-import { distanceToSegment } from './geo';
+import { districtAt, isWater } from './abidjanGeography';
+import { roadAt } from './roads';
 import { hash32 } from './rng';
 
 export interface ChunkMaterials {
@@ -232,14 +232,7 @@ const TILE_W = 14;
 const TILE_H = 3.5;
 const PLAIN_KINDS = new Set(['shack', 'container', 'warehouse']);
 const COASTAL_DISTRICTS = new Set(['plateau', 'cocody', 'riviera', 'port_bouet', 'grand_bassam', 'marcory']);
-const NEON_DISTRICTS = new Set(['yopougon', 'treichville', 'marcory', 'adjame', 'abobo']);
-const VILLA_WALLED_DISTRICTS = new Set(['cocody', 'riviera', 'grand_bassam']);
-const AWNING_COLORS = [0xea580c, 0x16a34a, 0x2563eb, 0xd97706, 0xdc2626];
-const NEON_SIGN_COLORS = [0xf97316, 0x38bdf8, 0xf43f5e, 0xfacc15, 0x34d399];
 const SHACK_ROOF_COLORS = [0x9a8f86, 0xa5623f, 0x5b8291, 0x6d7f5a, 0x8b4a32];
-const PARASOL_COLORS = [0xef4444, 0x0ea5e9, 0xf59e0b, 0x10b981, 0xf97316];
-const BOUGAINVILLEA_COLORS = [0xd946ef, 0xf43f5e, 0xf97316, 0xa855f7];
-const PARKED_CAR_COLORS = [0xeab308, 0x2563eb, 0xdc2626, 0xf8fafc, 0x64748b, 0x059669];
 
 function addPrism(
   buf: Buf,
@@ -468,43 +461,8 @@ function addBuilding(
     const roofColor = new THREE.Color(roofHex);
     addPrism(facade, b.x, b.z, b.w, b.d, 0, b.h, b.angle, color, roofColor, plain, true);
     addHipRoof(plain, b.x, b.z, b.w, b.d, b.h, b.kind === 'villa' ? 2.4 : 1.7, b.angle, roofColor);
-
-    // Corniche de rive sous toiture
+    // Corniche de rive sous toiture (piliers, murets & bougainvilliers gérés par collectChunkDecor)
     addPrism(plain, b.x, b.z, b.w * 1.03, b.d * 1.03, b.h - 0.22, 0.24, b.angle, creamTrim, roofColor, plain, false);
-
-    if (b.kind === 'villa') {
-      const vx = b.x - s * (b.d * 0.56);
-      const vz = b.z + c * (b.d * 0.56);
-      addPrism(plain, vx, vz, b.w * 0.58, 1.8, 2.5, 0.28, b.angle, new THREE.Color(0xd97706), roofColor, plain, false);
-      // Colonnes de véranda + seuil d'entrée
-      for (const side of [-1, 1]) {
-        const px = vx + c * side * (b.w * 0.25);
-        const pz = vz + s * side * (b.w * 0.25);
-        addPrism(plain, px, pz, 0.24, 0.24, 0, 2.5, b.angle, creamTrim, creamTrim, plain, false);
-      }
-      if (VILLA_WALLED_DISTRICTS.has(b.district)) {
-        const wallCol = new THREE.Color(0xe7dfd1);
-        const wallCap = new THREE.Color(0x9a442c);
-        const backX = b.x + s * (b.d * 0.5 + 1.2);
-        const backZ = b.z - c * (b.d * 0.5 + 1.2);
-        if (!isWater({ x: backX, z: backZ }) && roadAt({ x: backX, z: backZ }) === 'none') {
-          addPrism(plain, backX, backZ, b.w + 2.4, 0.35, 0, 1.35, b.angle, wallCol, wallCap, plain, false);
-        }
-        for (const side of [-1, 1]) {
-          const sx = b.x + c * side * (b.w * 0.5 + 1.1);
-          const sz = b.z + s * side * (b.w * 0.5 + 1.1);
-          if (!isWater({ x: sx, z: sz }) && roadAt({ x: sx, z: sz }) === 'none') {
-            addPrism(plain, sx, sz, 0.35, b.d + 1.8, 0, 1.35, b.angle, wallCol, wallCap, plain, false);
-          }
-          const fx = b.x + c * side * (b.w * 0.45 + 0.8) - s * (b.d * 0.52);
-          const fz = b.z + s * side * (b.w * 0.45 + 0.8) + c * (b.d * 0.52);
-          if (!isWater({ x: fx, z: fz }) && roadAt({ x: fx, z: fz }) === 'none') {
-            const flower = new THREE.Color(BOUGAINVILLEA_COLORS[(seedIdx + (side > 0 ? 1 : 0)) % BOUGAINVILLEA_COLORS.length]);
-            addShrubCluster(trees, fx, fz, 0.78, 1.4, flower);
-          }
-        }
-      }
-    }
     return;
   }
 
@@ -517,9 +475,6 @@ function addBuilding(
       const pz = b.z + c * (b.d * 0.52 + 0.55);
       if (!isWater({ x: px, z: pz }) && roadAt({ x: px, z: pz }) === 'none') {
         addPrism(plain, px, pz, b.w * 0.55, 1.05, 1.95, 0.16, b.angle, zincColor, zincColor, plain, false);
-        // Poteaux de véranda + bidon bleu / caisse
-        addPrism(plain, px + c * (b.w * 0.22), pz + s * (b.w * 0.22), 0.12, 0.12, 0, 1.95, b.angle, new THREE.Color(0x78350f), zincColor, plain, false);
-        addPrism(plain, px - c * (b.w * 0.22), pz - s * (b.w * 0.22), 0.42, 0.36, 0, 0.52, b.angle, new THREE.Color(0x2563eb), new THREE.Color(0x1d4ed8), plain, false);
       }
     }
     return;
@@ -538,63 +493,10 @@ function addBuilding(
     return;
   }
 
-  // Bloc urbain (Adjamé / Yopougon / Treichville / Marcory / Abobo) : corniches, balcons, portiques, château d'eau
+  // Bloc urbain : corps principal et parapet (corniches, balcons, piliers, néons & kiosques gérés par collectChunkDecor)
   const parapetColor = color.clone().multiplyScalar(0.6);
   addPrism(walls, b.x, b.z, b.w, b.d, 0, b.h, b.angle, color, parapetColor, plain, true);
   addPrism(plain, b.x, b.z, b.w * 1.04, b.d * 1.04, b.h, 0.55, b.angle, parapetColor, parapetColor, plain, false);
-
-  // Corniche d'étage et balcons filants à garde-corps sur les immeubles à étages
-  if (b.h >= 6.5) {
-    addPrism(plain, b.x, b.z, b.w * 1.03, b.d * 1.03, 3.25, 0.24, b.angle, creamTrim, parapetColor, plain, false);
-    const balX = b.x - s * (b.d * 0.5 + 0.45);
-    const balZ = b.z + c * (b.d * 0.5 + 0.45);
-    addPrism(plain, balX, balZ, b.w * 0.62, 0.9, 3.35, 0.16, b.angle, creamTrim, creamTrim, plain, false);
-    addPrism(plain, balX - s * 0.38, balZ + c * 0.38, b.w * 0.62, 0.08, 3.5, 0.68, b.angle, trimColor, trimColor, plain, false);
-  }
-
-  // Réservoir d'eau (château d'eau bleu/noir en polyéthylène sur le toit) sur certains immeubles
-  if (seedIdx % 3 === 1) {
-    const tx = b.x + c * (b.w * 0.24);
-    const tz = b.z + s * (b.w * 0.24);
-    const tankCol = new THREE.Color(seedIdx % 2 === 0 ? 0x1d4ed8 : 0x1e293b);
-    addPrism(plain, tx, tz, 1.35, 1.35, b.h + 0.55, 1.45, b.angle, tankCol, tankCol, plain, false);
-  }
-
-  // Auvent de façade + piliers de porche
-  const ax = b.x - s * (b.d * 0.5 + 0.72);
-  const az = b.z + c * (b.d * 0.5 + 0.72);
-  if (seedIdx % 2 === 0) {
-    const awnColor = new THREE.Color(AWNING_COLORS[seedIdx % AWNING_COLORS.length]);
-    addPrism(plain, ax, az, b.w * 0.78, 1.45, 2.8, 0.25, b.angle, awnColor, awnColor, plain, false);
-    for (const side of [-1, 1]) {
-      const px = ax + c * side * (b.w * 0.34);
-      const pz = az + s * side * (b.w * 0.34);
-      const pp = { x: px, z: pz };
-      if (!isWater(pp) && roadAt(pp) === 'none') {
-        addPrism(plain, px, pz, 0.18, 0.18, 0, 2.8, b.angle, creamTrim, creamTrim, plain, false);
-      }
-    }
-  }
-
-  if (NEON_DISTRICTS.has(b.district) && seedIdx % 2 === 0) {
-    const neonCol = new THREE.Color(NEON_SIGN_COLORS[seedIdx % NEON_SIGN_COLORS.length]);
-    const nx = b.x - s * (b.d * 0.5 + 0.16);
-    const nz = b.z + c * (b.d * 0.5 + 0.16);
-    addPrism(lamps, nx, nz, Math.min(4.2, b.w * 0.55), 0.18, 3.25, 0.45, b.angle, neonCol, neonCol, lamps, false);
-  }
-
-  if (NEON_DISTRICTS.has(b.district) && seedIdx % 5 === 1) {
-    const kx = b.x - s * (b.d * 0.5 + 1.55) + c * (b.w * 0.22);
-    const kz = b.z + c * (b.d * 0.5 + 1.55) + s * (b.w * 0.22);
-    const kp = { x: kx, z: kz };
-    if (!isWater(kp) && roadAt(kp) === 'none' && !insideSpecial(kp, 2)) {
-      const wood = new THREE.Color(0x92400e);
-      const tarp = new THREE.Color(PARASOL_COLORS[seedIdx % PARASOL_COLORS.length]);
-      addPrism(plain, kx, kz, 1.6, 0.9, 0, 0.85, b.angle, wood, wood, plain, false);
-      addPrism(plain, kx, kz, 0.1, 0.1, 0.85, 1.45, b.angle, wood, wood, plain, false);
-      addPrism(plain, kx, kz, 1.9, 1.9, 2.25, 0.16, b.angle, tarp, tarp, plain, false);
-    }
-  }
 }
 
 function addTree(buf: Buf, x: number, z: number, h: number, hash: number, districtId: string): void {
@@ -727,12 +629,6 @@ function addTree(buf: Buf, x: number, z: number, h: number, hash: number, distri
       buf.tri(p0, apex, p1, [Math.cos(am) * 0.7, 0.7, Math.sin(am) * 0.7], lobe.col);
     }
   }
-
-  if (isBanco && hash % 2 === 0) {
-    const bushCol = new THREE.Color(0x2f6b31);
-    const ba = (hash % 12) * 0.52;
-    addShrubCluster(buf, x + Math.cos(ba) * 1.4, z + Math.sin(ba) * 1.4, 1.1, 1.65, bushCol);
-  }
 }
 
 function addBeachedPirogue(plain: Buf, x: number, z: number, angle: number, hullCol: THREE.Color): void {
@@ -783,21 +679,13 @@ function addPuddle(puddles: Buf, x: number, z: number, rx: number, rz: number, s
   }
 }
 
-function addChunkDecor(
+function renderDecorPlan(
   plain: Buf,
   trees: Buf,
   lamps: Buf,
   puddles: Buf,
-  data: ChunkData,
-  x0: number,
-  z0: number,
-  x1: number,
-  z1: number
+  plan: ChunkDecorPlan
 ): void {
-  const inChunk = (x: number, z: number) => x >= x0 && x < x1 && z >= z0 && z < z1;
-  const nearBuilding = (x: number, z: number, margin = 1.9) =>
-    data.buildings.some((b) => Math.hypot(b.x - x, b.z - z) < Math.hypot(b.w, b.d) * 0.5 + margin);
-
   const poleMatCol = new THREE.Color(0x475569);
   const woodPoleCol = new THREE.Color(0x6b4423);
   const wireCol = new THREE.Color(0x1e293b);
@@ -807,242 +695,83 @@ function addChunkDecor(
   const shelterGlass = new THREE.Color(0x93c5fd);
   const binGreen = new THREE.Color(0x15803d);
 
-  // 1. Grands axes : lampadaires, abribus SOTRA & touffes d'herbe sur les terre-pleins
-  for (const art of ARTERIALS) {
-    const half = art.width / 2;
-    for (let i = 0; i < art.points.length - 1; i++) {
-      const a = art.points[i];
-      const b = art.points[i + 1];
-      if (Math.max(a.x, b.x) < x0 - 16 || Math.min(a.x, b.x) > x1 + 16) continue;
-      if (Math.max(a.z, b.z) < z0 - 16 || Math.min(a.z, b.z) > z1 + 16) continue;
-      const dx = b.x - a.x, dz = b.z - a.z;
-      const len = Math.hypot(dx, dz);
-      if (len < 12) continue;
-      const ux = dx / len, uz = dz / len;
-      const nx = -uz, nz = ux;
-      const roadAngle = Math.atan2(uz, ux);
-      const step = 28;
-      const nSteps = Math.floor(len / step);
+  for (const bx of plan.buildingBoxes) {
+    const col = new THREE.Color(bx.color);
+    const rCol = bx.roofColor !== undefined ? new THREE.Color(bx.roofColor) : col;
+    addPrism(plain, bx.x, bx.z, bx.w, bx.d, bx.y0, bx.h, bx.angle, col, rCol, plain, false);
+  }
+  for (const lp of plan.buildingLamps) {
+    const col = new THREE.Color(lp.color);
+    addPrism(lamps, lp.x, lp.z, lp.w, lp.d, lp.y0, lp.h, lp.angle, col, col, lamps, false);
+  }
+  for (const sh of plan.buildingShrubs) {
+    addShrubCluster(trees, sh.x, sh.z, sh.r, sh.h, new THREE.Color(sh.color));
+  }
 
-      for (let k = 1; k < nSteps; k++) {
-        const distAlong = k * step;
-        const side = k % 2 === 0 ? 1 : -1;
-        const lx = a.x + ux * distAlong + nx * side * (half + 0.65);
-        const lz = a.z + uz * distAlong + nz * side * (half + 0.65);
-        if (!inChunk(lx, lz)) continue;
-        const lp = { x: lx, z: lz };
-        if (isWater(lp) || bridgeAt(lp, 2.5) || insideSpecial(lp, 2)) continue;
+  for (const sl of plan.streetlamps) {
+    addPrism(plain, sl.poleX, sl.poleZ, 0.22, 0.22, 0, 5.4, sl.angle, poleMatCol, poleMatCol, plain, false);
+    addPrism(plain, sl.armX, sl.armZ, 0.2, 1.5, 5.25, 0.16, sl.angle, poleMatCol, poleMatCol, plain, false);
+    addPrism(lamps, sl.bulbX, sl.bulbZ, 0.38, 0.56, 5.1, 0.18, sl.angle, bulbCol, bulbCol, lamps, false);
+  }
 
-        addPrism(plain, lx, lz, 0.22, 0.22, 0, 5.4, roadAngle, poleMatCol, poleMatCol, plain, false);
-        const armX = lx - nx * side * 0.75;
-        const armZ = lz - nz * side * 0.75;
-        addPrism(plain, armX, armZ, 0.2, 1.5, 5.25, 0.16, roadAngle, poleMatCol, poleMatCol, plain, false);
-        const bx = lx - nx * side * 1.25;
-        const bz = lz - nz * side * 1.25;
-        addPrism(lamps, bx, bz, 0.38, 0.56, 5.1, 0.18, roadAngle, bulbCol, bulbCol, lamps, false);
+  for (const s of plan.shelters) {
+    addPrism(plain, s.x, s.z, 3.6, 1.35, 2.35, 0.18, s.angle, shelterBlue, shelterBlue, plain, false);
+    addPrism(plain, s.backX, s.backZ, 3.4, 0.14, 0, 2.35, s.angle, shelterGlass, poleMatCol, plain, false);
+    addPrism(plain, s.x, s.z, 2.6, 0.45, 0.42, 0.14, s.angle, shelterBench, shelterBench, plain, false);
+    addPrism(plain, s.post1X, s.post1Z, 0.14, 0.14, 0, 2.35, s.angle, poleMatCol, poleMatCol, plain, false);
+    addPrism(plain, s.post2X, s.post2Z, 0.14, 0.14, 0, 2.35, s.angle, poleMatCol, poleMatCol, plain, false);
+  }
 
-        if (k % 5 === 2) {
-          const sx = a.x + ux * distAlong + nx * side * (half + 2.1);
-          const sz = a.z + uz * distAlong + nz * side * (half + 2.1);
-          const sp = { x: sx, z: sz };
-          if (
-            inChunk(sx, sz) &&
-            !isWater(sp) &&
-            !bridgeAt(sp, 4) &&
-            roadAt(sp) === 'none' &&
-            !insideSpecial(sp, 3) &&
-            !nearBuilding(sx, sz, 2.4)
-          ) {
-            addPrism(plain, sx, sz, 3.6, 1.35, 2.35, 0.18, roadAngle, shelterBlue, shelterBlue, plain, false);
-            addPrism(plain, sx + nx * side * 0.55, sz + nz * side * 0.55, 3.4, 0.14, 0, 2.35, roadAngle, shelterGlass, poleMatCol, plain, false);
-            addPrism(plain, sx, sz, 2.6, 0.45, 0.42, 0.14, roadAngle, shelterBench, shelterBench, plain, false);
-            addPrism(plain, sx - ux * 1.55, sz - uz * 1.55, 0.14, 0.14, 0, 2.35, roadAngle, poleMatCol, poleMatCol, plain, false);
-            addPrism(plain, sx + ux * 1.55, sz + uz * 1.55, 0.14, 0.14, 0, 2.35, roadAngle, poleMatCol, poleMatCol, plain, false);
-          }
-        }
-      }
+  for (const p of plan.poles) {
+    addPrism(plain, p.x, p.z, 0.2, 0.2, 0, 5.2, p.angle, woodPoleCol, woodPoleCol, plain, false);
+    addPrism(plain, p.x, p.z, 0.85, 0.14, 4.9, 0.12, p.angle, poleMatCol, poleMatCol, plain, false);
+    addPrism(lamps, p.bulbX, p.bulbZ, 0.3, 0.35, 4.72, 0.14, p.angle, bulbCol, bulbCol, lamps, false);
+    if (p.wireMidX !== undefined && p.wireMidZ !== undefined && p.wireLen !== undefined) {
+      addPrism(plain, p.wireMidX, p.wireMidZ, 0.05, p.wireLen, 4.98, 0.04, p.angle, wireCol, wireCol, plain, false);
     }
   }
 
-  // 2. Rues locales : poteaux & câbles électriques, lampadaires de quartier, étals, bacs à fleurs, voitures garées, flaques & vraies herbes
-  const centre = { x: x0 + CHUNK / 2, z: z0 + CHUNK / 2 };
-  const cDist = districtAt(centre);
-  const g = GRIDS[cDist.id];
-  const grassCol = new THREE.Color(
-    cDist.id === 'banco' ? 0x2d6a2e : cDist.social === 'luxury' ? 0x4b8f38 : 0x5f8c3a
-  );
-
-  if (g && g.style !== 'none') {
-    const f = frameFor(cDist.id);
-    const angle = Math.atan2(f.s, f.c);
-    const half = f.street / 2;
-    const toWorld = (u: number, v: number) => ({
-      x: f.ox + u * f.c - v * f.s,
-      z: f.oz + u * f.s + v * f.c,
-    });
-
-    let umin = Infinity, umax = -Infinity, vmin = Infinity, vmax = -Infinity;
-    for (const [px, pz] of [[x0, z0], [x1, z0], [x0, z1], [x1, z1]]) {
-      const dx = px - f.ox, dz = pz - f.oz;
-      const u = dx * f.c + dz * f.s;
-      const v = -dx * f.s + dz * f.c;
-      umin = Math.min(umin, u); umax = Math.max(umax, u);
-      vmin = Math.min(vmin, v); vmax = Math.max(vmax, v);
-    }
-    const iMin = Math.floor(umin / f.pitch) - 1;
-    const iMax = Math.floor(umax / f.pitch) + 1;
-    const jMin = Math.floor(vmin / f.pitch) - 1;
-    const jMax = Math.floor(vmax / f.pitch) + 1;
-
-    for (let i = iMin; i <= iMax; i++) {
-      for (let j = jMin; j <= jMax; j++) {
-        const blockHash = hash32(i, j, cDist.id.charCodeAt(0));
-
-        // Poteaux électriques + lampes + câbles le long de l'axe V (rue à u = i * pitch)
-        const uPole = i * f.pitch + half + 0.55;
-        const vMid = (j + 0.5) * f.pitch;
-        const vQuarter1 = (j + 0.25) * f.pitch;
-        const vQuarter3 = (j + 0.75) * f.pitch;
-
-        for (const [idxV, vPos] of [vQuarter1, vQuarter3].entries()) {
-          const pw = toWorld(uPole, vPos);
-          if (
-            inChunk(pw.x, pw.z) &&
-            districtAt(pw).id === cDist.id &&
-            !isWater(pw) &&
-            !bridgeAt(pw, 3) &&
-            !insideSpecial(pw, 2)
-          ) {
-            // Poteau bois/béton + traverse + lampe de quartier
-            addPrism(plain, pw.x, pw.z, 0.2, 0.2, 0, 5.2, angle, woodPoleCol, woodPoleCol, plain, false);
-            addPrism(plain, pw.x, pw.z, 0.85, 0.14, 4.9, 0.12, angle, poleMatCol, poleMatCol, plain, false);
-            addPrism(lamps, pw.x - f.c * 0.35, pw.z - f.s * 0.35, 0.3, 0.35, 4.72, 0.14, angle, bulbCol, bulbCol, lamps, false);
-
-            // Câble aérien reliant vers le poteau suivant le long de la rue
-            if (idxV === 0) {
-              const wireMid = toWorld(uPole, vMid);
-              addPrism(plain, wireMid.x, wireMid.z, 0.05, f.pitch * 0.5, 4.98, 0.04, angle, wireCol, wireCol, plain, false);
-            }
-          }
-        }
-
-        // Touffes d'herbe réelles en bordure extérieure des trottoirs le long du bloc
-        for (let gStep = 0; gStep < 6; gStep++) {
-          const gv = j * f.pitch + half + 2.4 + (gStep / 6) * (f.pitch - f.street - 4.8);
-          const gu = i * f.pitch + (gStep % 2 === 0 ? half + 1.65 : -(half + 1.65));
-          const gp = toWorld(gu, gv);
-          if (
-            inChunk(gp.x, gp.z) &&
-            districtAt(gp).id === cDist.id &&
-            !isWater(gp) &&
-            roadAt(gp) === 'none' &&
-            !insideSpecial(gp, 2) &&
-            !nearBuilding(gp.x, gp.z, 0.9)
-          ) {
-            addGrassTuft(trees, gp.x, gp.z, 0.85 + (gStep % 3) * 0.25, grassCol);
-          }
-        }
-
-        // Micro-étals de quartier / poubelles / bacs fleuris sur le trottoir de la rue horizontale (v = j * pitch)
-        const vSide = j * f.pitch + half + 0.9;
-        const stallU = i * f.pitch + f.pitch * 0.36;
-        const sp = toWorld(stallU, vSide);
-        if (
-          inChunk(sp.x, sp.z) &&
-          districtAt(sp).id === cDist.id &&
-          !isWater(sp) &&
-          !bridgeAt(sp, 3) &&
-          !insideSpecial(sp, 3) &&
-          !nearBuilding(sp.x, sp.z, 1.5)
-        ) {
-          if ((blockHash & 3) === 0) {
-            // Petit étal d'alloco / fruits + parasol + tabouret
-            const tarp = new THREE.Color(PARASOL_COLORS[blockHash % PARASOL_COLORS.length]);
-            addPrism(plain, sp.x, sp.z, 1.45, 0.85, 0, 0.8, angle, woodPoleCol, woodPoleCol, plain, false);
-            addPrism(plain, sp.x, sp.z, 0.1, 0.1, 0.8, 1.35, angle, woodPoleCol, woodPoleCol, plain, false);
-            addHipRoof(plain, sp.x, sp.z, 2.0, 2.0, 2.1, 0.45, angle, tarp);
-          } else if ((blockHash & 3) === 1) {
-            // Poubelle verte + bac fleuri
-            addPrism(plain, sp.x, sp.z, 0.48, 0.48, 0, 0.78, angle, binGreen, poleMatCol, plain, false);
-            const flowerCol = new THREE.Color(BOUGAINVILLEA_COLORS[blockHash % BOUGAINVILLEA_COLORS.length]);
-            addShrubCluster(trees, sp.x - f.s * 0.9, sp.z + f.c * 0.9, 0.52, 0.95, flowerCol);
-          }
-        }
-
-        // Voiture garée en bord de rue (côté trottoir, hors carrefour)
-        if ((blockHash % 5) === 0) {
-          const carPos = toWorld(i * f.pitch + f.pitch * 0.62, j * f.pitch - (half - 0.92));
-          if (
-            inChunk(carPos.x, carPos.z) &&
-            districtAt(carPos).id === cDist.id &&
-            !isWater(carPos) &&
-            !bridgeAt(carPos, 4) &&
-            !insideSpecial(carPos, 4)
-          ) {
-            const carCol = new THREE.Color(PARKED_CAR_COLORS[blockHash % PARKED_CAR_COLORS.length]);
-            addParkedCar(plain, lamps, carPos.x, carPos.z, angle, carCol);
-          }
-        }
-
-        // Flaque d'eau en caniveau sur certaines rues
-        if ((blockHash % 3) === 0) {
-          const pud = toWorld(i * f.pitch + f.pitch * 0.45, j * f.pitch + (half - 0.45));
-          if (inChunk(pud.x, pud.z) && !isWater(pud) && !bridgeAt(pud, 2)) {
-            addPuddle(puddles, pud.x, pud.z, 1.4, 0.7, blockHash);
-          }
-        }
-      }
-    }
+  for (const st of plan.stalls) {
+    const tarp = new THREE.Color(st.tarpColor);
+    addPrism(plain, st.x, st.z, 1.45, 0.85, 0, 0.8, st.angle, woodPoleCol, woodPoleCol, plain, false);
+    addPrism(plain, st.x, st.z, 0.1, 0.1, 0.8, 1.35, st.angle, woodPoleCol, woodPoleCol, plain, false);
+    addHipRoof(plain, st.x, st.z, 2.0, 2.0, 2.1, 0.45, st.angle, tarp);
   }
 
-  // 3. Touffes d'herbe sur les parcelles & sous-bois autour des arbres
-  for (let i = 0; i < data.trees.length; i++) {
-    const t = data.trees[i];
-    const h = hash32(Math.floor(t.x), Math.floor(t.z), i);
-    for (let k = 0; k < 2; k++) {
-      const a = ((h + k * 97) % 360) * (Math.PI / 180);
-      const r = 1.1 + ((h >> (k * 3)) & 3) * 0.45;
-      const gx = t.x + Math.cos(a) * r;
-      const gz = t.z + Math.sin(a) * r;
-      if (inChunk(gx, gz) && !isWater({ x: gx, z: gz }) && roadAt({ x: gx, z: gz }) === 'none') {
-        addGrassTuft(trees, gx, gz, 0.9 + (k % 2) * 0.35, grassCol);
-      }
-    }
+  for (const b of plan.bins) {
+    addPrism(plain, b.x, b.z, 0.48, 0.48, 0, 0.78, b.angle, binGreen, poleMatCol, plain, false);
   }
 
-  // 4. Plage atlantique (Port-Bouët / Grand-Bassam / Vridi) : parasols, pirogues & herbes dunaires
-  if (cDist.id === 'grand_bassam' || cDist.id === 'port_bouet' || cDist.id === 'vridi') {
-    const coast = projected.coast;
-    let minChunkCoast = Infinity;
-    for (let i = 0; i < coast.length - 1; i++) {
-      minChunkCoast = Math.min(minChunkCoast, distanceToSegment(centre, coast[i], coast[i + 1]).dist);
-    }
-    if (minChunkCoast < 90) {
-      for (let slot = 0; slot < 4; slot++) {
-        const rx = ((hash32(data.cx, data.cz, slot * 17 + 3) & 255) / 255) * (CHUNK - 10) + 5;
-        const rz = ((hash32(data.cx, data.cz, slot * 17 + 9) & 255) / 255) * (CHUNK - 10) + 5;
-        const px = x0 + rx, pz = z0 + rz;
-        const p = { x: px, z: pz };
-        if (isWater(p) || roadAt(p) !== 'none' || insideSpecial(p, 3) || nearBuilding(px, pz, 2.5)) continue;
-        let minC = Infinity;
-        for (let i = 0; i < coast.length - 1; i++) minC = Math.min(minC, distanceToSegment(p, coast[i], coast[i + 1]).dist);
-        if (minC < 14 || minC > 42) continue;
+  for (const sh of plan.shrubs) {
+    addShrubCluster(trees, sh.x, sh.z, sh.r, sh.h, new THREE.Color(sh.color));
+  }
 
-        if (slot === 0) {
-          const hullCol = new THREE.Color(hash32(data.cx, data.cz, 99) % 2 === 0 ? 0x1d4ed8 : 0x7c2d12);
-          addBeachedPirogue(plain, px, pz, ((slot + data.cx) % 5) * 0.25, hullCol);
-        } else {
-          const parasolCol = new THREE.Color(PARASOL_COLORS[(slot + Math.abs(data.cx + data.cz)) % PARASOL_COLORS.length]);
-          addPrism(plain, px, pz, 0.14, 0.14, 0, 2.15, 0, woodPoleCol, woodPoleCol, plain, false);
-          addHipRoof(plain, px, pz, 2.6, 2.6, 2.1, 0.55, slot * 0.4, parasolCol);
-        }
-      }
-    }
+  for (const car of plan.parkedCars) {
+    addParkedCar(plain, lamps, car.x, car.z, car.angle, new THREE.Color(car.color));
+  }
+
+  for (const pir of plan.pirogues) {
+    addBeachedPirogue(plain, pir.x, pir.z, pir.angle, new THREE.Color(pir.color));
+  }
+
+  for (const par of plan.parasols) {
+    const parasolCol = new THREE.Color(par.color);
+    addPrism(plain, par.x, par.z, 0.14, 0.14, 0, 2.15, 0, woodPoleCol, woodPoleCol, plain, false);
+    addHipRoof(plain, par.x, par.z, 2.6, 2.6, 2.1, 0.55, par.angle, parasolCol);
+  }
+
+  for (const g of plan.grass) {
+    addGrassTuft(trees, g.x, g.z, g.scale, new THREE.Color(g.color));
+  }
+
+  for (const pud of plan.puddles) {
+    addPuddle(puddles, pud.x, pud.z, pud.rx, pud.rz, pud.seed);
   }
 }
 
 export interface ChunkObjects {
   group: THREE.Group;
+  solids: ChunkSolid[];
   dispose(): void;
 }
 
@@ -1095,7 +824,8 @@ export function buildChunkObjects(
     addBuilding(facade, plain, tb, lamps, b, i);
   });
 
-  addChunkDecor(plain, tb, lamps, puddles, data, x0, z0, x1, z1);
+  const decorPlan = collectChunkDecor(data);
+  renderDecorPlan(plain, tb, lamps, puddles, decorPlan);
 
   const fg = facade.geometry();
   if (fg) {
@@ -1142,5 +872,5 @@ export function buildChunkObjects(
     disposables.push(wpg);
   }
 
-  return { group, dispose: () => disposables.forEach((d) => d.dispose()) };
+  return { group, solids: decorPlan.solids, dispose: () => disposables.forEach((d) => d.dispose()) };
 }

@@ -39,7 +39,7 @@ const POLYS: Poly[] = ARTERIALS.map((art) => {
 });
 
 const LANE_OFFSET = 3.4;
-const LOCAL_LANE_OFFSET = 1.65;
+const LOCAL_LANE_OFFSET = 1.30;
 const tmp: VehicleState = createVehicleState();
 const tmp2: VehicleState = createVehicleState();
 

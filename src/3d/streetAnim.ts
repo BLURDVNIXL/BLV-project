@@ -9,7 +9,9 @@
  */
 
 import * as THREE from 'three';
-import { ARTERIALS } from '../world/roads';
+import { isWater } from '../world/abidjanGeography';
+import { insideSpecial } from '../world/city';
+import { ARTERIALS, bridgeAt, roadAt } from '../world/roads';
 
 interface Bird {
   group: THREE.Group;
@@ -111,15 +113,22 @@ export class StreetAnimSystem {
     const boxMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.5 });
     this.disposables.push(poleGeo, boxGeo, lensGeo, poleMat, boxMat);
 
-    // Extraire les noeuds d'intersection uniques des grands axes
+    // Extraire les noeuds d'intersection uniques des grands axes (uniquement sur trottoir/terre ferme hors voirie)
     const seen = new Set<string>();
     const junctions: Array<{ x: number; z: number }> = [];
+    const offsets: Array<[number, number]> = [[8.6, 8.6], [-8.6, 8.6], [8.6, -8.6], [-8.6, -8.6]];
     for (const art of ARTERIALS) {
       for (const p of art.points) {
         const key = `${Math.round(p.x / 12)}:${Math.round(p.z / 12)}`;
         if (seen.has(key)) continue;
         seen.add(key);
-        junctions.push({ x: p.x + 8.6, z: p.z + 8.6 });
+        for (const [ox, oz] of offsets) {
+          const c = { x: p.x + ox, z: p.z + oz };
+          if (!isWater(c) && !bridgeAt(c, 3) && !insideSpecial(c, 2) && roadAt(c) === 'none') {
+            junctions.push(c);
+            break;
+          }
+        }
       }
     }
 
@@ -156,6 +165,10 @@ export class StreetAnimSystem {
       this.scene.add(group);
       this.signals.push({ group, redMat, amberMat, greenMat, x: j.x, z: j.z, phase: i * 1.7 });
     }
+  }
+
+  public getSignalPositions(): Array<{ x: number; z: number }> {
+    return this.signals.map((s) => ({ x: s.x, z: s.z }));
   }
 
   public update(nowSec: number, focusX: number, focusZ: number, visible: boolean, isRain: boolean, isNight: boolean): void {

@@ -833,7 +833,7 @@ export class AbidjanSceneManager {
     }
   }
 
-  /** Enregistre les solides des structures extérieures (une fois : la scène statique n'est jamais rechargée). */
+  /** Enregistre les solides des structures extérieures et des poteaux de feux tricolores. */
   private registerExteriorSolids(core: PhysicsCore) {
     for (const id of this.exteriorColliderIds) core.removeSolid(id);
     this.exteriorColliderIds = [];
@@ -841,6 +841,10 @@ export class AbidjanSceneManager {
       const id = s.shape === 'box'
         ? core.addBox(s.x, s.z, s.hx, s.hz, s.angle, s.h, SolidFlag.PROP)
         : core.addCircle(s.x, s.z, s.r, s.h, SolidFlag.PROP);
+      if (id >= 0) this.exteriorColliderIds.push(id);
+    }
+    for (const sig of this.streetAnim.getSignalPositions()) {
+      const id = core.addCircle(sig.x, sig.z, 0.14, 4.4, SolidFlag.PROP);
       if (id >= 0) this.exteriorColliderIds.push(id);
     }
   }

@@ -10,6 +10,7 @@
 import * as THREE from 'three';
 import { PhysicsCore, SolidFlag } from '../physics/PhysicsCore';
 import { CHUNK, ChunkData, chunkOf } from './city';
+import { ChunkSolid } from './chunkDecor';
 import { ChunkMaterials, ChunkObjects, buildChunkObjects } from './chunkMesh';
 import { ChunkProvider, GROUND_SIZE, ChunkPayload } from './chunkProvider';
 
@@ -47,7 +48,7 @@ export class WorldStreamer {
     return true;
   }
 
-  private registerSolids(data: ChunkData): number[] {
+  private registerSolids(data: ChunkData, decorSolids: ChunkSolid[]): number[] {
     const ids: number[] = [];
     const add = (id: number): void => { if (id >= 0) ids.push(id); };
     for (const b of data.buildings) {
@@ -55,6 +56,10 @@ export class WorldStreamer {
       add(this.physics.addBox(b.x, b.z, b.w / 2, b.d / 2, b.angle, b.h, SolidFlag.BUILDING));
     }
     for (const t of data.trees) add(this.physics.addCircle(t.x, t.z, t.r, t.h, SolidFlag.PROP));
+    for (const s of decorSolids) {
+      if (s.shape === 'box') add(this.physics.addBox(s.x, s.z, s.hx, s.hz, s.angle, s.h, SolidFlag.PROP));
+      else add(this.physics.addCircle(s.x, s.z, s.r, s.h, SolidFlag.PROP));
+    }
     for (const w of data.water) add(this.physics.addBox(w.x, w.z, w.hx, w.hz, 0, 3, SolidFlag.WATER));
     return ids;
   }
@@ -64,7 +69,7 @@ export class WorldStreamer {
     if (this.loaded.has(k) || this.disposed) return;
     const objects = buildChunkObjects(payload.data, payload.ground, GROUND_SIZE, this.mats);
     this.scene.add(objects.group);
-    this.loaded.set(k, { objects, solids: this.registerSolids(payload.data) });
+    this.loaded.set(k, { objects, solids: this.registerSolids(payload.data, objects.solids) });
   }
 
   private unload(k: string): void {

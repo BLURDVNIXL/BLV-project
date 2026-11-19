@@ -33,15 +33,17 @@ export function localToWorld(cx: number, cz: number, rotationY: number, lx: numb
 
 // ───────────── Marché d'Adjamé (createMarketStallCluster) ─────────────
 
-/** Table (3,4 × 1,7 × 0,88) et caisse au sol (0,65 × 0,55 × 0,45) d'un étal ; le poteau est dans la table. */
+/** Table (3,4 × 1,7 × 0,88), caisse (0,65 × 0,55 × 0,45) et sacs empilés (0,58 × 0,44 × 0,60) d'un étal. */
 function stallSolids(sx: number, sz: number, rotY: number): LocalSolid[] {
   const c = Math.cos(rotY);
   const s = Math.sin(rotY);
   const at = (a: number, b: number): { x: number; z: number } => ({ x: sx + a * c + b * s, z: sz - a * s + b * c });
   const crate = at(1.15, 1.05);
+  const sacks = at(-1.18, 1.02);
   return [
     { shape: 'box', x: sx, z: sz, hx: 1.7, hz: 0.85, rotY, h: 0.88 },
     { shape: 'box', x: crate.x, z: crate.z, hx: 0.325, hz: 0.275, rotY, h: 0.45 },
+    { shape: 'box', x: sacks.x, z: sacks.z, hx: 0.30, hz: 0.23, rotY, h: 0.60 },
   ];
 }
 
@@ -71,8 +73,15 @@ function maquisLocal(w: number, d: number): LocalSolid[] {
   }
   // 2 baffles géantes encadrant la façade
   for (const sx of [-4.4, 4.4]) out.push({ shape: 'box', x: sx, z: d / 2 + 0.48, hx: 0.55, hz: 0.45, rotY: 0, h: 2.1 });
-  // 2 mange-debout (plateau r 0,65 à 0,95 m)
-  for (const tx of [-4.6, 4.6]) out.push({ shape: 'circle', x: tx, z: d / 2 + 3.2, r: 0.65, h: 0.95 });
+  // 2 mange-debout (plateau r 0,65 à 0,95 m) + 4 tabourets colorés
+  for (const tx of [-4.6, 4.6]) {
+    out.push({ shape: 'circle', x: tx, z: d / 2 + 3.2, r: 0.65, h: 0.95 });
+    const sideDir = tx < 0 ? -1 : 1;
+    out.push({ shape: 'circle', x: tx + sideDir * 0.95, z: d / 2 + 2.85, r: 0.28, h: 0.48 });
+    out.push({ shape: 'circle', x: tx + sideDir * 0.95, z: d / 2 + 3.65, r: 0.28, h: 0.48 });
+  }
+  // Brasero à charbon incandescent (côté droit de la terrasse)
+  out.push({ shape: 'box', x: postX - 0.9, z: d / 2 + 1.9, hx: 0.575, hz: 0.325, rotY: 0, h: 0.81 });
   return out;
 }
 
