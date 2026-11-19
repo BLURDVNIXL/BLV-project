@@ -10,6 +10,12 @@ import {
   Wifi,
   Battery,
   SlidersHorizontal,
+  Flame,
+  Trophy,
+  Utensils,
+  Zap,
+  ShowerHead,
+  Droplet,
 } from 'lucide-react';
 import {
   PlayerState,
@@ -26,10 +32,21 @@ import {
   type GpsKind,
   type GpsSource,
 } from '../core/gpsDestinations';
-import { FARE_BETWEEN_COMMUNES, FARE_SAME_COMMUNE, fastTravelFare, formatGameTime } from '../core/simulation';
+import { FARE_BETWEEN_COMMUNES, FARE_SAME_COMMUNE, fastTravelFare, formatGameTime, hasUnlimitedPlatinum } from '../core/simulation';
+import { getMissionForDestiny } from '../core/missions';
 import { t } from '../core/i18n';
-import { BarGauge } from './ui/Gauge';
-import { StarBadge } from './ui/icons';
+import { BarGauge, RingGauge } from './ui/Gauge';
+import { FcfaCoin, StarBadge } from './ui/icons';
+
+function IvoryFlag({ className = '' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 30 20" className={className} aria-hidden="true">
+      <rect width="10" height="20" fill="#f77f00" />
+      <rect x="10" width="10" height="20" fill="#ffffff" />
+      <rect x="20" width="10" height="20" fill="#009e60" />
+    </svg>
+  );
+}
 
 interface MyOSPhoneProps {
   playerState: PlayerState;
@@ -80,6 +97,16 @@ export const MyOSPhone: React.FC<MyOSPhoneProps> = ({
   const gpsShown = useMemo(() => searchGpsDestinations(gpsList, gpsQuery), [gpsList, gpsQuery]);
 
   const s = t(playerState.language);
+  const platinumActive = hasUnlimitedPlatinum(playerState);
+  const mission = getMissionForDestiny(playerState.destiny.id);
+  const missionIdx = Math.min(playerState.activeMission.stepIndex, mission.steps.length - 1);
+  const missionStep = mission.steps[missionIdx];
+  const vitals = [
+    { label: s.hunger, value: playerState.needs.hunger, tone: 'palm' as const, icon: <Utensils className="h-4 w-4" /> },
+    { label: s.energy, value: playerState.needs.energy, tone: 'sun' as const, icon: <Zap className="h-4 w-4" /> },
+    { label: s.hygiene, value: playerState.needs.hygiene, tone: 'lagoon' as const, icon: <ShowerHead className="h-4 w-4" /> },
+    { label: s.bladder, value: playerState.needs.bladder, tone: 'plum' as const, icon: <Droplet className="h-4 w-4" /> },
+  ];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 md:p-6 bg-ink-900/60">
@@ -105,28 +132,109 @@ export const MyOSPhone: React.FC<MyOSPhoneProps> = ({
         {/* BODY */}
         <div className="flex-1 overflow-y-auto px-4 py-3 no-scrollbar">
           {activeApp === 'home' && (
-            <div className="flex flex-col gap-3">
-              <div className="rounded-2xl bg-cream-100 p-3 border border-sun-400/30">
-                <div className="text-xs uppercase font-bold text-sun-600">{playerState.destiny.district}</div>
-                <div className="text-sm font-bold text-ink-800 mt-0.5">{playerState.destiny.name}</div>
-                <div className="flex items-center justify-between text-xs mt-1.5 tabular-nums">
-                  <span className="text-palm-600 font-bold">{Math.round(playerState.cash).toLocaleString('fr-FR')} F</span>
-                  <span className="text-lagoon-600">{s.bankBalance}: {Math.round(playerState.bankCash).toLocaleString('fr-FR')} F</span>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2.5 rounded-2xl bg-cream-100 p-3 border border-sun-400/30">
-                <StarBadge className="h-8 w-8 shrink-0" />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-baseline justify-between gap-2 whitespace-nowrap text-xs font-bold">
-                    <span className="text-ink-600">{s.starLabel}</span>
-                    <span className="tabular-nums text-sun-600">{Math.round(playerState.star)}</span>
+            <div className="flex flex-col gap-2.5">
+              {/* DESTIN, FINANCES & MISSION */}
+              <div className="rounded-2xl bg-cream-100 p-3 border border-sun-400/30 space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div
+                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border-2 border-white shadow-sm"
+                      style={{ backgroundColor: playerState.destiny.color }}
+                      aria-hidden="true"
+                    >
+                      <IvoryFlag className="h-5 w-7 rounded-sm border border-white/80" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[11px] uppercase font-bold text-sun-600 truncate">{playerState.destiny.district}</span>
+                        <span className="shrink-0 rounded-full bg-sun-300 px-1.5 py-0.5 text-[10px] font-bold uppercase text-sun-600">
+                          {playerState.destiny.rarity}
+                        </span>
+                      </div>
+                      <div className="text-sm font-bold text-ink-800 truncate">{playerState.destiny.name}</div>
+                      {playerState.playerName && (
+                        <div className="text-[11px] font-semibold text-ink-500 truncate">{playerState.playerName}</div>
+                      )}
+                    </div>
                   </div>
-                  <BarGauge value={playerState.star} tone="sun" label={s.starLabel} className="mt-1" />
+                  <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-white bg-sun-300 px-2.5 py-1 text-xs font-bold tabular-nums text-sun-600 shadow-xs">
+                    <Trophy className="h-3.5 w-3.5" />
+                    {playerState.activeMission.completed ? 'Fini' : `${missionIdx + 1}/${mission.steps.length}`}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between gap-2 text-xs tabular-nums">
+                  <span className="inline-flex items-center gap-1 text-palm-600 font-bold">
+                    <FcfaCoin className="h-4 w-4 shrink-0" />
+                    {Math.round(playerState.cash).toLocaleString('fr-FR')} F
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-lagoon-600 font-semibold">{s.bankBalance}: {Math.round(playerState.bankCash).toLocaleString('fr-FR')} F</span>
+                    {playerState.debt > 0 && <span className="text-coral-600 font-semibold">−{Math.round(playerState.debt).toLocaleString('fr-FR')}</span>}
+                  </div>
+                </div>
+
+                {playerState.destiny.englishLock && (
+                  <div className={`text-[11px] font-semibold ${platinumActive ? 'text-sun-600' : 'text-coral-600'}`}>
+                    {platinumActive ? `${s.platinumActive} (${playerState.goldenBoyDaysLeft}d)` : s.platinumExpired}
+                  </div>
+                )}
+                {playerState.destiny.rehabJourney && (
+                  <div className={`text-[11px] font-semibold ${playerState.redemptionTrophyUnlocked ? 'text-palm-600' : 'text-sun-600'}`}>
+                    {playerState.redemptionTrophyUnlocked ? 'Trophée Rédemption débloqué' : `Sevrage : ${playerState.cleanDaysStreak}/7 jours`}
+                  </div>
+                )}
+                {playerState.destiny.realMadridSuperstar && (
+                  <div className="text-[11px] font-semibold text-lagoon-600">Académie niveau {playerState.yannisAcademyLevel}/3</div>
+                )}
+
+                <div className="rounded-xl bg-cream-50/90 px-2.5 py-2 border border-cream-200">
+                  <div className="text-[11px] font-bold text-ink-500 uppercase tracking-wide truncate">{mission.title}</div>
+                  {playerState.activeMission.completed ? (
+                    <div className="text-xs font-bold text-palm-600 mt-0.5">Trophée : {mission.finalTrophy}</div>
+                  ) : (
+                    <>
+                      <div className="text-xs font-bold text-ink-800 leading-snug mt-0.5">{missionStep.title}</div>
+                      <div className="text-[11px] font-medium text-ink-600 leading-snug">{missionStep.description}</div>
+                    </>
+                  )}
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-2.5">
+              {/* JAUGE D'ENVIE UNIVERSELLE + BESOINS + ÉTOILE */}
+              <div className="rounded-2xl bg-cream-100 p-3 border border-sun-400/30 space-y-2.5">
+                <div className="flex items-center gap-2">
+                  <Flame className="h-5 w-5 shrink-0 text-sun-500" />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-baseline justify-between text-xs font-bold text-ink-600">
+                      <span className="truncate">{s.envyGauge}</span>
+                      <span className={`tabular-nums ${playerState.needs.envy < 30 ? 'text-coral-600' : 'text-sun-600'}`}>
+                        {Math.round(playerState.needs.envy)}%
+                      </span>
+                    </div>
+                    <BarGauge value={playerState.needs.envy} tone={playerState.needs.envy < 30 ? 'coral' : 'sun'} label={s.envyGauge} className="mt-1" />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-around gap-1.5">
+                  {vitals.map((v) => (
+                    <RingGauge key={v.label} value={v.value} tone={v.tone} label={v.label} icon={v.icon} size={40} />
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-2 border-t border-cream-200 pt-2">
+                  <StarBadge className="h-7 w-7 shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-baseline justify-between gap-2 whitespace-nowrap text-xs font-bold">
+                      <span className="text-ink-600">{s.starLabel}</span>
+                      <span className="tabular-nums text-sun-600">{Math.round(playerState.star)}</span>
+                    </div>
+                    <BarGauge value={playerState.star} tone="sun" label={s.starLabel} className="mt-1" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2.5 pt-0.5">
                 <AppIcon label={s.eats} icon={<UtensilsCrossed className="h-6 w-6" />} tone="sun" onClick={() => setActiveApp('eats')} />
                 <AppIcon label={s.gps} icon={<MapPin className="h-6 w-6" />} tone="lagoon" onClick={() => setActiveApp('gps')} />
                 <AppIcon label={s.sape} icon={<Shirt className="h-6 w-6" />} tone="plum" onClick={() => setActiveApp('sape')} />

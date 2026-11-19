@@ -342,6 +342,8 @@ export class AbidjanSceneManager {
   private camPointerId: number | null = null;
   /** Réglage du joueur (0,5 à 2,5), 1 = normal. */
   private camSensitivity = 1;
+  /** Sensibilité du suivi automatique de la caméra (0 à 2,5), 1 = normal. */
+  private autoCamSensitivity = 1;
   private lastMouseX = 0;
   private lastMouseY = 0;
 
@@ -2226,6 +2228,10 @@ export class AbidjanSceneManager {
     this.camSensitivity = THREE.MathUtils.clamp(value, 0.3, 3);
   }
 
+  public setAutoCameraSensitivity(value: number) {
+    this.autoCamSensitivity = THREE.MathUtils.clamp(value, 0, 2.5);
+  }
+
   public setControlsMode(mode: 'zqsl' | 'arrows') {
     this.controlsMode = mode;
   }
@@ -2663,6 +2669,7 @@ export class AbidjanSceneManager {
         isDragging: this.isDraggingCam,
         manualCooldownS: this.manualCamCooldown,
         indoor: this.activeInterior !== null,
+        autoSensitivity: this.autoCamSensitivity,
       });
     }
 

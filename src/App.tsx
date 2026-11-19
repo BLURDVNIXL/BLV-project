@@ -148,6 +148,16 @@ export default function App() {
       return 1;
     }
   });
+  const [autoCameraSensitivity, setAutoCameraSensitivity] = useState<number>(() => {
+    try {
+      const raw = localStorage.getItem('blv_auto_camera_sensitivity');
+      if (raw === null) return 1;
+      const v = Number(raw);
+      return Number.isFinite(v) && v >= 0 && v <= 2.5 ? v : 1;
+    } catch {
+      return 1;
+    }
+  });
     const [playerModelScale, setPlayerModelScale] = useState<number>(() => {
       localStorage.removeItem('blv_player_model_scale');
       return 1.2;
@@ -156,6 +166,15 @@ export default function App() {
     setCameraSensitivity(v);
     try {
       localStorage.setItem('blv_camera_sensitivity', String(v));
+    } catch {
+      /* stockage indisponible : le réglage vaut pour la session */
+    }
+  };
+  const handleAutoCameraSensitivityChange = (v: number) => {
+    const clamped = Math.max(0, Math.min(2.5, v));
+    setAutoCameraSensitivity(clamped);
+    try {
+      localStorage.setItem('blv_auto_camera_sensitivity', String(clamped));
     } catch {
       /* stockage indisponible : le réglage vaut pour la session */
     }
@@ -300,6 +319,10 @@ export default function App() {
   useEffect(() => {
     sceneRef.current?.setCameraSensitivity(cameraSensitivity);
   }, [cameraSensitivity, screenState]);
+
+  useEffect(() => {
+    sceneRef.current?.setAutoCameraSensitivity(autoCameraSensitivity);
+  }, [autoCameraSensitivity, screenState]);
 
   useEffect(() => {
     sceneRef.current?.setPlayerModelScale(playerModelScale);
@@ -1020,6 +1043,8 @@ export default function App() {
           onChangeControlsMode={(mode) => setPcControlsMode(mode)}
           cameraSensitivity={cameraSensitivity}
           onCameraSensitivityChange={handleCameraSensitivityChange}
+          autoCameraSensitivity={autoCameraSensitivity}
+          onAutoCameraSensitivityChange={handleAutoCameraSensitivityChange}
           onToggleForceGamepad={() => setForceGamepad((v) => !v)}
           onToggleLanguage={() =>
             setPlayerState((prev) => ({

@@ -20,6 +20,9 @@ interface SettingsModalProps {
   /** 0,5 à 2,5 ; 1 = normal. */
   cameraSensitivity: number;
   onCameraSensitivityChange: (value: number) => void;
+  /** 0 à 2,5 ; 1 = normal (0 = désactivée). */
+  autoCameraSensitivity: number;
+  onAutoCameraSensitivityChange: (value: number) => void;
   onResetGame: () => void;
 }
 
@@ -37,6 +40,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onChangeControlsMode,
   cameraSensitivity,
   onCameraSensitivityChange,
+  autoCameraSensitivity,
+  onAutoCameraSensitivityChange,
   onResetGame,
 }) => {
   const [confirmPurge, setConfirmPurge] = useState(false);
@@ -112,6 +117,30 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             className="h-2 w-28 cursor-pointer accent-sun-500"
           />
           <span className="w-10 text-right text-xs font-bold tabular-nums">{cameraSensitivity.toFixed(1)}×</span>
+        </div>
+      </SettingRow>
+
+      <SettingRow
+        title={playerState.language === 'en' ? 'Auto camera rotation' : 'Rotation auto de la caméra'}
+        description={
+          playerState.language === 'en'
+            ? 'Speed of automatic follow while moving (0× = off)'
+            : 'Sensibilité du suivi automatique en mouvement (0× = désactivée)'
+        }
+      >
+        <div className="flex items-center gap-2">
+          <Move3d className="h-4 w-4 text-ink-600" aria-hidden="true" />
+          <input
+            type="range"
+            min={0}
+            max={2.5}
+            step={0.1}
+            value={autoCameraSensitivity}
+            onChange={(e) => onAutoCameraSensitivityChange(Number(e.target.value))}
+            aria-label={playerState.language === 'en' ? 'Auto camera rotation' : 'Rotation auto de la caméra'}
+            className="h-2 w-28 cursor-pointer accent-sun-500"
+          />
+          <span className="w-10 text-right text-xs font-bold tabular-nums">{autoCameraSensitivity.toFixed(1)}×</span>
         </div>
       </SettingRow>
 

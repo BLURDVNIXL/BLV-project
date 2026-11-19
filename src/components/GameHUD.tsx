@@ -3,33 +3,23 @@ import {
   Smartphone,
   Settings,
   SlidersHorizontal,
-  Flame,
   Volume2,
   VolumeX,
   Dices,
   Pause,
   Wrench,
-  Utensils,
-  Zap,
-  ShowerHead,
-  Droplet,
   Sun,
   CloudRain,
   Waves,
   Wind,
   Star,
-  Trophy,
 } from 'lucide-react';
 import { PlayerState, WeatherType } from '../types/game';
-import { formatGameTime, hasUnlimitedPlatinum } from '../core/simulation';
-import { getMissionForDestiny } from '../core/missions';
+import { formatGameTime } from '../core/simulation';
 import { t } from '../core/i18n';
 import { CityHotspot, RadarSnapshot } from '../3d/sceneManager';
 import { MinimapRadar } from './MinimapRadar';
 import { JellyButton, RoundIconButton } from './ui/Jelly';
-import { BarGauge, RingGauge } from './ui/Gauge';
-import { FcfaCoin } from './ui/icons';
-import { useMediaQuery } from './useMediaQuery';
 
 interface GameHUDProps {
   playerState: PlayerState;
@@ -50,7 +40,7 @@ interface GameHUDProps {
   isMuted: boolean;
 }
 
-type OpenPanel = null | 'flag' | 'mission' | 'menu';
+type OpenPanel = null | 'menu';
 
 const WEATHER_LABEL: Record<'fr' | 'en', Record<WeatherType, string>> = {
   fr: { soleil: 'Ensoleillé', pluie: 'Pluie', inondation: 'Inondation', harmattan: 'Harmattan' },
@@ -63,17 +53,6 @@ function WeatherIcon({ weather }: { weather: WeatherType }) {
   if (weather === 'pluie') return <CloudRain className={`${cls} text-lagoon-500`} />;
   if (weather === 'inondation') return <Waves className={`${cls} text-lagoon-600`} />;
   return <Wind className={`${cls} text-sun-600`} />;
-}
-
-/** Drapeau de la Côte d'Ivoire (orange, blanc, vert) dessiné en SVG : pas d'emoji, rendu identique partout. */
-function IvoryFlag({ className = '' }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 30 20" className={className} aria-hidden="true">
-      <rect width="10" height="20" fill="#f77f00" />
-      <rect x="10" width="10" height="20" fill="#ffffff" />
-      <rect x="20" width="10" height="20" fill="#009e60" />
-    </svg>
-  );
 }
 
 interface MenuItemProps {
@@ -117,13 +96,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({
   isMuted,
 }) => {
   const [openPanel, setOpenPanel] = useState<OpenPanel>(null);
-  /** Téléphone en paysage : le HUD se resserre pour laisser voir le paysage. */
-  const compact = useMediaQuery('(max-height: 480px)');
   const s = t(playerState.language);
-  const platinumActive = hasUnlimitedPlatinum(playerState);
-  const mission = getMissionForDestiny(playerState.destiny.id);
-  const missionIdx = Math.min(playerState.activeMission.stepIndex, mission.steps.length - 1);
-  const missionStep = mission.steps[missionIdx];
 
   const toggle = (panel: Exclude<OpenPanel, null>) => setOpenPanel((p) => (p === panel ? null : panel));
   const closePanel = () => setOpenPanel(null);
@@ -132,127 +105,18 @@ export const GameHUD: React.FC<GameHUDProps> = ({
     fn();
   };
 
-  const vitals = [
-    { label: s.hunger, value: playerState.needs.hunger, tone: 'palm' as const, icon: <Utensils className={compact ? 'h-4 w-4' : 'h-5 w-5'} /> },
-    { label: s.energy, value: playerState.needs.energy, tone: 'sun' as const, icon: <Zap className={compact ? 'h-4 w-4' : 'h-5 w-5'} /> },
-    { label: s.hygiene, value: playerState.needs.hygiene, tone: 'lagoon' as const, icon: <ShowerHead className={compact ? 'h-4 w-4' : 'h-5 w-5'} /> },
-    { label: s.bladder, value: playerState.needs.bladder, tone: 'plum' as const, icon: <Droplet className={compact ? 'h-4 w-4' : 'h-5 w-5'} /> },
-  ];
-
   const showInteractPrompt = !touchControls && (nearbyHotspot || nearbyVehicle || playerState.isDriving);
 
   return (
     <div className="pointer-events-none fixed inset-0 z-20 flex select-none flex-col justify-between p-3 md:p-4 short:p-2">
-      {/* Fond invisible : un toucher en dehors d'une fiche ou du menu la referme */}
+      {/* Fond invisible : un toucher en dehors du menu le referme */}
       {openPanel && <div className="pointer-events-auto absolute inset-0 z-0" onClick={closePanel} aria-hidden="true" />}
 
       {/* ── HAUT ─────────────────────────────────────────── */}
       <div className="relative z-10 flex w-full items-start justify-between gap-3">
-        {/* Haut gauche : radar, pastilles destin et mission, besoins */}
+        {/* Haut gauche : radar */}
         <div className="flex items-start gap-2">
           <MinimapRadar getSnapshot={getRadarSnapshot} district={currentDistrict} onOpen={onOpenMap} />
-
-          <div className="relative flex flex-col gap-2 short:gap-1">
-            <div className="flex items-center gap-2 short:gap-1.5">
-              <button
-                type="button"
-                onClick={() => toggle('flag')}
-                aria-expanded={openPanel === 'flag'}
-                aria-label={`${playerState.destiny.name} : voir la fiche`}
-                title={playerState.destiny.name}
-                className="pointer-events-auto flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border-2 border-white shadow-md transition-transform active:scale-95 short:h-9 short:w-9 short:rounded-xl"
-                style={{ backgroundColor: playerState.destiny.color }}
-              >
-                <IvoryFlag className="h-6 w-9 rounded-sm border border-white/80 short:h-4 short:w-6" />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => toggle('mission')}
-                aria-expanded={openPanel === 'mission'}
-                aria-label="Voir la mission en cours"
-                className="pointer-events-auto flex h-10 items-center gap-1 rounded-full border-2 border-white bg-sun-300 px-3 text-sm font-bold tabular-nums text-sun-600 shadow-md transition-transform active:scale-95 short:h-8 short:px-2 short:text-xs"
-              >
-                <Trophy className="h-4 w-4" />
-                {playerState.activeMission.completed ? 'Fini' : `${missionIdx + 1}/${mission.steps.length}`}
-              </button>
-            </div>
-
-            {openPanel === 'flag' && (
-              <div className="panel panel-solid pointer-events-auto absolute left-0 top-14 z-30 short:top-11 w-64 space-y-1.5 p-3">
-                {playerState.playerName && (
-                  <div className="truncate text-xs font-bold uppercase tracking-wider text-ink-600">{playerState.playerName}</div>
-                )}
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="font-display text-base font-semibold leading-tight">{playerState.destiny.name}</span>
-                  <span className="shrink-0 rounded-full bg-sun-300 px-2 py-0.5 text-[11px] font-bold uppercase text-sun-600">
-                    {playerState.destiny.rarity}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5 tabular-nums">
-                  <FcfaCoin className="h-6 w-6 shrink-0" />
-                  <span className="font-display text-2xl font-bold leading-none text-palm-600">
-                    {Math.round(playerState.cash).toLocaleString('fr-FR')}
-                  </span>
-                </div>
-                {(playerState.bankCash > 0 || playerState.debt > 0) && (
-                  <div className="flex gap-2 text-xs font-semibold tabular-nums">
-                    {playerState.bankCash > 0 && (
-                      <span className="text-lagoon-600">
-                        {s.bankBalance} : {Math.round(playerState.bankCash).toLocaleString('fr-FR')}
-                      </span>
-                    )}
-                    {playerState.debt > 0 && <span className="text-coral-600">−{Math.round(playerState.debt).toLocaleString('fr-FR')}</span>}
-                  </div>
-                )}
-                {playerState.destiny.englishLock && (
-                  <div className={`text-xs font-semibold ${platinumActive ? 'text-sun-600' : 'text-coral-600'}`}>
-                    {platinumActive ? `${s.platinumActive} (${playerState.goldenBoyDaysLeft}d)` : s.platinumExpired}
-                  </div>
-                )}
-                {playerState.destiny.rehabJourney && (
-                  <div className={`text-xs font-semibold ${playerState.redemptionTrophyUnlocked ? 'text-palm-600' : 'text-sun-600'}`}>
-                    {playerState.redemptionTrophyUnlocked ? 'Trophée Rédemption débloqué' : `Sevrage : ${playerState.cleanDaysStreak}/7 jours`}
-                  </div>
-                )}
-                {playerState.destiny.realMadridSuperstar && (
-                  <div className="text-xs font-semibold text-lagoon-600">Académie niveau {playerState.yannisAcademyLevel}/3</div>
-                )}
-              </div>
-            )}
-
-            {openPanel === 'mission' && (
-              <div className="panel panel-solid pointer-events-auto absolute left-0 top-14 z-30 short:top-11 w-64 space-y-1 p-3">
-                <div className="font-display text-sm font-semibold leading-tight text-ink-600">{mission.title}</div>
-                {playerState.activeMission.completed ? (
-                  <div className="text-sm font-bold text-palm-600">Trophée : {mission.finalTrophy}</div>
-                ) : (
-                  <>
-                    <div className="text-sm font-bold leading-tight">{missionStep.title}</div>
-                    <div className="text-xs font-semibold text-ink-600">{missionStep.description}</div>
-                  </>
-                )}
-              </div>
-            )}
-
-            <div className="panel pointer-events-auto hidden flex-col gap-2 p-2.5 sm:flex short:gap-1 short:p-1.5">
-              <div className="flex items-center gap-2">
-                <Flame className="h-5 w-5 shrink-0 text-sun-500 short:h-4 short:w-4" />
-                <div className="w-44 short:w-32">
-                  <div className="flex items-baseline justify-between text-xs font-bold text-ink-600">
-                    <span className="truncate short:hidden">{s.envyGauge}</span>
-                    {playerState.needs.envy < 30 && <span className="tabular-nums text-coral-600">{Math.round(playerState.needs.envy)}%</span>}
-                  </div>
-                  <BarGauge value={playerState.needs.envy} tone={playerState.needs.envy < 30 ? 'coral' : 'sun'} label={s.envyGauge} />
-                </div>
-              </div>
-              <div className="flex items-center justify-between gap-1.5 short:gap-1">
-                {vitals.map((v) => (
-                  <RingGauge key={v.label} value={v.value} tone={v.tone} label={v.label} icon={v.icon} size={compact ? 32 : 42} />
-                ))}
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Haut centre : alertes, et invitation à agir quand il n'y a pas de manette tactile */}

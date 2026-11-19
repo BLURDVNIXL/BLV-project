@@ -27,7 +27,7 @@ export function MinimapRadar({ getSnapshot, district, onOpen }: MinimapRadarProp
         if (ctx) {
           const w = canvas.width;
           const h = canvas.height;
-          const scale = 0.095; // ~1600m span visible around player on 160px radar
+          const scale = 0.08; // ~2000m span visible around player on 160px radar
           const mapX = (wx: number) => (wx - snap.playerX) * scale + w / 2;
           const mapY = (wz: number) => (wz - snap.playerZ) * scale + h / 2;
 
@@ -137,17 +137,17 @@ export function MinimapRadar({ getSnapshot, district, onOpen }: MinimapRadarProp
 
   return (
     <div
-      className={`panel pointer-events-auto w-40 shrink-0 overflow-hidden p-1.5 md:w-52 short:w-28 short:p-1 ${onOpen ? 'cursor-pointer' : ''}`}
+      className={`panel pointer-events-auto w-32 shrink-0 overflow-hidden p-1 md:w-40 short:w-24 short:p-1 ${onOpen ? 'cursor-pointer' : ''}`}
       role={onOpen ? 'button' : undefined}
       tabIndex={onOpen ? 0 : undefined}
       aria-label={onOpen ? 'Ouvrir la carte' : undefined}
       onClick={onOpen}
       onKeyDown={onOpen ? (e) => { if (e.key === 'Enter' || e.key === ' ') onOpen(); } : undefined}
     >
-      <canvas ref={canvasRef} width={208} height={156} className="block aspect-[4/3] w-full rounded-xl object-cover short:aspect-[16/10]" />
-      <div className="flex items-center justify-between px-1.5 pt-1 text-xs short:px-1 short:pt-0.5">
-        <span className="truncate font-display text-sm font-semibold text-ink-800 short:text-xs">{district}</span>
-        <span className="flex items-center gap-0.5 font-semibold text-ink-400">Carte<Maximize2 className="h-3 w-3" /></span>
+      <canvas ref={canvasRef} width={160} height={120} className="block aspect-[4/3] w-full rounded-xl object-cover short:aspect-[16/10]" />
+      <div className="flex items-center justify-between px-1 pt-0.5 text-[11px] short:px-0.5">
+        <span className="truncate font-display text-xs font-semibold text-ink-800 short:text-[11px]">{district}</span>
+        <span className="flex items-center gap-0.5 font-semibold text-ink-400">Carte<Maximize2 className="h-2.5 w-2.5" /></span>
       </div>
     </div>
   );

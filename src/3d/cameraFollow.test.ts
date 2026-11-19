@@ -133,3 +133,45 @@ test('stepManualCamCooldown maintient le délai pendant le drag puis décrément
   assert.ok(Math.abs(after - (MANUAL_CAM_COOLDOWN_S - 0.5)) < 1e-6);
   assert.equal(stepManualCamCooldown(0.1, false, 0.5), 0);
 });
+
+test('autoSensitivity règle la vitesse de rotation automatique et 0 la désactive', () => {
+  const disabled = adaptCameraYaw({
+    camYaw: 0,
+    dt: 0.1,
+    driving: true,
+    heading: Math.PI / 2,
+    speed: 10,
+    knocked: false,
+    isDragging: false,
+    manualCooldownS: 0,
+    indoor: false,
+    autoSensitivity: 0,
+  });
+  assert.equal(disabled, 0);
+
+  const slow = adaptCameraYaw({
+    camYaw: 0,
+    dt: 0.1,
+    driving: false,
+    heading: Math.PI / 2,
+    speed: 6.2,
+    knocked: false,
+    isDragging: false,
+    manualCooldownS: 0,
+    indoor: false,
+    autoSensitivity: 0.5,
+  });
+  const fast = adaptCameraYaw({
+    camYaw: 0,
+    dt: 0.1,
+    driving: false,
+    heading: Math.PI / 2,
+    speed: 6.2,
+    knocked: false,
+    isDragging: false,
+    manualCooldownS: 0,
+    indoor: false,
+    autoSensitivity: 2.0,
+  });
+  assert.ok(Math.abs(fast) > Math.abs(slow) * 2, `fast (${fast}) doit tourner nettement plus vite que slow (${slow})`);
+});
