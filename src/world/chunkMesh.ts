@@ -22,6 +22,7 @@ import {
   collectChunkDecor,
 } from './chunkDecor';
 import { isHospitalId } from './hospitals';
+import { isCommissariatId, isMairieId } from './civicSites';
 import { districtAt, isWater } from './abidjanGeography';
 import { roadAt } from './roads';
 import { hash32 } from './rng';
@@ -1020,7 +1021,7 @@ export function buildChunkObjects(
   const signs = new Buf();
 
   data.buildings.forEach((b, i) => {
-    if (b.landmark && (HERO_LANDMARKS.has(b.landmark) || isHospitalId(b.landmark))) return;
+    if (b.landmark && (HERO_LANDMARKS.has(b.landmark) || isHospitalId(b.landmark) || isMairieId(b.landmark) || isCommissariatId(b.landmark))) return;
     addBuilding(facade, plain, tb, lamps, b, i);
   });
 

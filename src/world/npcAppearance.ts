@@ -24,7 +24,8 @@ export type NpcRole =
   | 'enseignant'
   | 'soignant'
   | 'agent_mairie'
-  | 'serveur_maquis';
+  | 'serveur_maquis'
+  | 'policier';
 
 export type HairStyleId = 'rase' | 'court' | 'afro' | 'tresses' | 'foulard' | 'casquette' | 'bonnet' | 'chauve';
 export type TopId =
@@ -82,7 +83,7 @@ export interface NpcContext {
 export const NPC_SKIN_TONES: readonly number[] = [0x4a2c1d, 0x6b422a, 0x3b2316, 0x7c4f33, 0x5c3824, 0x2b170d, 0x8a5a3c, 0x9a6a47];
 export const NPC_HAIR_STYLES: readonly HairStyleId[] = ['rase', 'court', 'afro', 'tresses', 'foulard', 'casquette', 'bonnet', 'chauve'];
 export const NPC_AGE_GROUPS: readonly AgeGroup[] = ['enfant', 'ado', 'adulte', 'aine'];
-export const NPC_ROLES: readonly NpcRole[] = ['passant', 'vendeur', 'client', 'eleve', 'enseignant', 'soignant', 'agent_mairie', 'serveur_maquis'];
+export const NPC_ROLES: readonly NpcRole[] = ['passant', 'vendeur', 'client', 'eleve', 'enseignant', 'soignant', 'agent_mairie', 'serveur_maquis', 'policier'];
 export const NPC_ACCESSORIES: readonly AccessoryId[] = ['lunettes', 'sac', 'panier_tete', 'chapeau', 'telephone', 'canne'];
 export const MOTIF_PATTERN_IDS: readonly string[] = ['motif_1', 'motif_2', 'motif_3', 'motif_4'];
 
@@ -226,6 +227,7 @@ export const ROLE_RULES: Record<NpcRole, RoleRule> = {
   soignant: { ages: ['adulte'], ageWeights: { enfant: 0, ado: 0, adulte: 100, aine: 0 }, top: ['blouse'], bottom: ['pantalon_blanc'], shoes: ['baskets', 'mocassins'], noHair: ['bonnet'], accessories: ['lunettes', 'telephone'] },
   agent_mairie: { ages: ['adulte', 'aine'], ageWeights: { enfant: 0, ado: 0, adulte: 85, aine: 15 }, top: ['veste_costume'], bottom: ['pantalon_costume'], shoes: ['mocassins'], noHair: ['bonnet', 'casquette'], accessories: ['lunettes', 'sac'] },
   serveur_maquis: { ages: ['adulte'], ageWeights: { enfant: 0, ado: 0, adulte: 100, aine: 0 }, top: ['tablier'], bottom: ['jean', 'pantalon_toile'], shoes: ['baskets'], accessories: ['telephone'] },
+  policier: { ages: ['adulte'], ageWeights: { enfant: 0, ado: 0, adulte: 100, aine: 0 }, top: ['uniforme_haut'], bottom: ['uniforme_bas'], shoes: ['mocassins', 'baskets'], noHair: ['bonnet', 'chauve'], accessories: ['lunettes', 'telephone'] },
 };
 
 // ───────────── Génération ─────────────

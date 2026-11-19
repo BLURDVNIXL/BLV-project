@@ -807,12 +807,17 @@ export function createTourPostelLandmark(): THREE.Group {
 
 const chromeMaterialShared = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.25, metalness: 0.25 });
 
-export function createMairiePlateauLandmark(): THREE.Group {
+const mairieSharedMats = {
+  wall: new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.68 }),
+  roof: new THREE.MeshStandardMaterial({ color: 0x0f766e, roughness: 0.55 }),
+  trim: new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.8 }),
+  glass: new THREE.MeshStandardMaterial({ color: 0x0f172a, emissive: 0xfef08a, emissiveIntensity: 0.16, roughness: 0.25 }),
+  flags: [0xf97316, 0xffffff, 0x16a34a].map((c) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.5 })),
+};
+
+export function createMairiePlateauLandmark(label?: string): THREE.Group {
   const g = new THREE.Group();
-  const wallMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.68 });
-  const roofMat = new THREE.MeshStandardMaterial({ color: 0x0f766e, roughness: 0.55 });
-  const trimMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.8 });
-  const glassMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, emissive: 0xfef08a, emissiveIntensity: 0.16, roughness: 0.25 });
+  const { wall: wallMat, roof: roofMat, trim: trimMat, glass: glassMat } = mairieSharedMats;
 
   const base = new THREE.Mesh(new THREE.BoxGeometry(18, 0.8, 12), trimMat);
   base.position.y = 0.4;
@@ -852,11 +857,18 @@ export function createMairiePlateauLandmark(): THREE.Group {
   pole.position.set(7.2, 5.5, 6.2);
   g.add(pole);
 
-  [0xf97316, 0xffffff, 0x16a34a].forEach((c, idx) => {
-    const strip = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.6, 0.08), new THREE.MeshStandardMaterial({ color: c, roughness: 0.5 }));
+  mairieSharedMats.flags.forEach((mat, idx) => {
+    const strip = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.6, 0.08), mat);
     strip.position.set(6.3 + idx * 0.9, 10.1, 6.25);
     g.add(strip);
   });
+
+  if (label && typeof document !== 'undefined') {
+    const badge = createFloatingNameplate(label.toUpperCase(), '#0f766e');
+    badge.position.set(0, 6.8, 5.3);
+    badge.scale.set(6.4, 1.35, 1);
+    g.add(badge);
+  }
 
   return g;
 }

@@ -3,7 +3,9 @@ import assert from 'node:assert/strict';
 import { INTERIORS, hitsInteriorBox, insideInterior, interiorToWorld } from './interiors';
 import { HOSPITAL_SITES } from './hospitals';
 import { SPECIAL_FOOTPRINTS, generateChunk, chunkOf } from './city';
-import { isOutsideMap, isWater } from './abidjanGeography';
+import { DISTRICTS, districtAt, isOutsideMap, isWater } from './abidjanGeography';
+import { COMMISSARIAT_SITES, MAIRIE_SITES } from './civicSites';
+import { exteriorSolidsFor } from './exteriorSolids';
 
 const PHYS_HALF = 3072; // WORLD_HALF du moteur physique (physics.cpp)
 
@@ -190,6 +192,61 @@ test('les 3 lycées ont une emprise sur la carte et une porte libre hors de l’
           const ox = p.x - b.x, oz = p.z - b.z;
           const lx = ox * c + oz * s, lz = -ox * s + oz * c;
           assert.ok(!(Math.abs(lx) < b.w / 2 + 0.6 && Math.abs(lz) < b.d / 2 + 0.6), `${id}.${name} bloqué par ${b.id}`);
+        }
+      }
+    }
+  }
+});
+
+
+test('chaque commune urbaine possède 1 mairie et 2 commissariats accessibles (hors eau, routes, autres bâtiments et solides extérieurs)', () => {
+  const urbanDistricts = DISTRICTS.filter((d) => d.id !== 'banco').map((d) => d.id);
+  const allMairies = [
+    { id: 'mairie', districtId: 'plateau', name: 'Mairie du Plateau', solidId: 'mairie' as const },
+    ...MAIRIE_SITES.map((s) => ({ ...s, solidId: 'mairie' as const })),
+  ];
+  assert.equal(allMairies.length, urbanDistricts.length);
+  assert.equal(COMMISSARIAT_SITES.length, urbanDistricts.length * 2);
+
+  for (const distId of urbanDistricts) {
+    assert.equal(allMairies.filter((m) => m.districtId === distId).length, 1, `${distId} : 1 mairie`);
+    assert.equal(COMMISSARIAT_SITES.filter((c) => c.districtId === distId).length, 2, `${distId} : 2 commissariats`);
+  }
+
+  const allCivic = [
+    ...allMairies,
+    ...COMMISSARIAT_SITES.map((s) => ({ ...s, solidId: 'commissariat' as const })),
+  ];
+  for (const site of allCivic) {
+    const fp = SPECIAL_FOOTPRINTS.find((f) => f.spec.id === site.id);
+    assert.ok(fp, `${site.id} : pas d’emprise dans SPECIAL_FOOTPRINTS`);
+    assert.equal(districtAt({ x: fp.x, z: fp.z }).id, site.districtId, `${site.id} : mauvaise commune`);
+    assert.ok(fp.w >= 14 && fp.d >= 10, `${site.id} : emprise trop petite (${fp.w}×${fp.d})`);
+    assert.ok(!isWater({ x: fp.x, z: fp.z }), `${site.id} : dans l’eau`);
+    const vx = -Math.sin(fp.angle), vz = Math.cos(fp.angle);
+    const door = { x: fp.x + vx * (fp.d / 2 + 2.4), z: fp.z + vz * (fp.d / 2 + 2.4) };
+    const out = { x: fp.x + vx * (fp.d / 2 + 3.8), z: fp.z + vz * (fp.d / 2 + 3.8) };
+    const solids = exteriorSolidsFor(site.solidId, fp.x, fp.z, -fp.angle, fp.w, fp.d);
+    for (const [name, p] of [['porte', door], ['sortie', out]] as const) {
+      assert.ok(!isWater(p), `${site.id}.${name} dans l’eau`);
+      for (const s of solids) {
+        if (s.shape === 'circle') {
+          assert.ok(Math.hypot(p.x - s.x, p.z - s.z) >= s.r + 0.45, `${site.id}.${name} bloqué par solide extérieur`);
+        } else {
+          const c = Math.cos(-s.angle), sn = Math.sin(-s.angle);
+          const ox = p.x - s.x, oz = p.z - s.z;
+          const lx = ox * c + oz * sn, lz = -ox * sn + oz * c;
+          assert.ok(!(Math.abs(lx) < s.hx + 0.45 && Math.abs(lz) < s.hz + 0.45), `${site.id}.${name} bloqué par pilier`);
+        }
+      }
+      const cx = chunkOf(p.x), cz = chunkOf(p.z);
+      for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) {
+        for (const b of generateChunk(cx + dx, cz + dz).buildings) {
+          if (!b.solid) continue;
+          const c = Math.cos(b.angle), s = Math.sin(b.angle);
+          const ox = p.x - b.x, oz = p.z - b.z;
+          const lx = ox * c + oz * s, lz = -ox * s + oz * c;
+          assert.ok(!(Math.abs(lx) < b.w / 2 + 0.6 && Math.abs(lz) < b.d / 2 + 0.6), `${site.id}.${name} bloqué par ${b.id}`);
         }
       }
     }

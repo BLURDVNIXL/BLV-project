@@ -84,8 +84,9 @@ import {
 } from '../world/taxiApproach';
 import { exteriorSolidsFor, type ExteriorSolid, type ExteriorSolidId } from '../world/exteriorSolids';
 import { HOSPITAL_SITES } from '../world/hospitals';
+import { COMMISSARIAT_SITES, MAIRIE_SITES } from '../world/civicSites';
 import { INTERIORS, InteriorDef, InteriorId, PublicInteriorId, interiorToWorld } from '../world/interiors';
-import { InteriorRig, createHospitalExterior, createInteriorRig } from './interiors';
+import { InteriorRig, createCommissariatExterior, createHospitalExterior, createInteriorRig } from './interiors';
 import {
   HouseSpec,
   buildHouseFloorDef,
@@ -557,7 +558,17 @@ export class AbidjanSceneManager {
 
     const mairieFp = SPECIAL_FOOTPRINTS.find((f) => f.spec.id === 'mairie');
     if (mairieFp) {
-      placeSpecial('mairie', createMairiePlateauLandmark(), 'mairie');
+      placeSpecial('mairie', createMairiePlateauLandmark('Mairie du Plateau'), 'mairie');
+    }
+    for (const site of MAIRIE_SITES) {
+      const fp = SPECIAL_FOOTPRINTS.find((f) => f.spec.id === site.id);
+      if (!fp) continue;
+      placeSpecial(site.id, createMairiePlateauLandmark(site.name), 'mairie');
+    }
+    for (const site of COMMISSARIAT_SITES) {
+      const fp = SPECIAL_FOOTPRINTS.find((f) => f.spec.id === site.id);
+      if (!fp) continue;
+      placeSpecial(site.id, createCommissariatExterior(fp.w, fp.d, fp.spec.h, site.name), 'commissariat');
     }
 
     const maquisFp = SPECIAL_FOOTPRINTS.find((f) => f.spec.id === 'maquis');
@@ -679,6 +690,48 @@ export class AbidjanSceneManager {
         outRotY: -pMairie.angle,
         radius: 3.4,
         color: 0x0f766e,
+      });
+    }
+    for (const site of MAIRIE_SITES) {
+      const fp = SPECIAL_FOOTPRINTS.find((f) => f.spec.id === site.id);
+      if (!fp) continue;
+      const vx = -Math.sin(fp.angle);
+      const vz = Math.cos(fp.angle);
+      this.registerInteriorDoor({
+        id: `door_${site.id}`,
+        interiorId: 'mairie',
+        siteId: site.id,
+        name: site.name,
+        label: `🏛️ Entrer — ${site.name}`,
+        district: districtAt({ x: fp.x, z: fp.z }).name,
+        doorX: fp.x + vx * (fp.d / 2 + 2.4),
+        doorZ: fp.z + vz * (fp.d / 2 + 2.4),
+        outX: fp.x + vx * (fp.d / 2 + 3.8),
+        outZ: fp.z + vz * (fp.d / 2 + 3.8),
+        outRotY: -fp.angle,
+        radius: 3.4,
+        color: 0x0f766e,
+      });
+    }
+    for (const site of COMMISSARIAT_SITES) {
+      const fp = SPECIAL_FOOTPRINTS.find((f) => f.spec.id === site.id);
+      if (!fp) continue;
+      const vx = -Math.sin(fp.angle);
+      const vz = Math.cos(fp.angle);
+      this.registerInteriorDoor({
+        id: `door_${site.id}`,
+        interiorId: 'commissariat',
+        siteId: site.id,
+        name: site.name,
+        label: `🚓 Entrer — ${site.name}`,
+        district: districtAt({ x: fp.x, z: fp.z }).name,
+        doorX: fp.x + vx * (fp.d / 2 + 2.4),
+        doorZ: fp.z + vz * (fp.d / 2 + 2.4),
+        outX: fp.x + vx * (fp.d / 2 + 3.8),
+        outZ: fp.z + vz * (fp.d / 2 + 3.8),
+        outRotY: -fp.angle,
+        radius: 3.4,
+        color: 0x1d4ed8,
       });
     }
 

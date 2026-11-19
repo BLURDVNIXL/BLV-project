@@ -15,6 +15,7 @@
 
 import { Building, ChunkData, CHUNK, EmptyLot, carSpotForLot, insideSpecial } from './city';
 import { isHospitalId } from './hospitals';
+import { isCommissariatId, isMairieId } from './civicSites';
 import { districtAt, isWater, projected } from './abidjanGeography';
 import { ARTERIALS, ARTERIAL_WIDTH, GRIDS, bridgeAt, frameFor, nearestArterial, roadAt } from './roads';
 import { distanceToSegment } from './geo';
@@ -745,7 +746,7 @@ export function collectChunkDecor(data: ChunkData): ChunkDecorPlan {
 
   // 0. Détails architecturaux attachés aux bâtiments (piliers, murets, bougainvilliers, bidons, kiosques)
   data.buildings.forEach((b, seedIdx) => {
-    if (b.landmark && (HERO_LANDMARKS.has(b.landmark) || isHospitalId(b.landmark))) return;
+    if (b.landmark && (HERO_LANDMARKS.has(b.landmark) || isHospitalId(b.landmark) || isMairieId(b.landmark) || isCommissariatId(b.landmark))) return;
     const c = Math.cos(b.angle);
     const s = Math.sin(b.angle);
 

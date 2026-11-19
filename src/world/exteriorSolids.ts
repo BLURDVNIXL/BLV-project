@@ -12,7 +12,7 @@
  * (|x| < 8,5 m) restent libres.
  */
 
-export type ExteriorSolidId = 'marche_adjame' | 'maquis' | 'lycee' | 'hopital' | 'mairie' | 'pyramide' | 'postel';
+export type ExteriorSolidId = 'marche_adjame' | 'maquis' | 'lycee' | 'hopital' | 'mairie' | 'commissariat' | 'pyramide' | 'postel';
 
 /** Solide en coordonnées MONDE, prêt pour `addBox` / `addCircle` (angle de boîte = −rotation.y de Three.js). */
 export type ExteriorSolid =
@@ -106,6 +106,18 @@ function mairieLocal(): LocalSolid[] {
   return [{ shape: 'circle', x: 7.2, z: 6.2, r: 0.12, h: 11 }];
 }
 
+// ───────────── Commissariats (createCommissariatExterior, src/3d/interiors.ts) ─────────────
+/** 2 piliers du portique (±2,6 ; d/2 + 2,0), mât de drapeau à droite (6,2 ; 5,4) et 2 bornes latérales (±4,5 ; d/2 + 1,8). */
+function commissariatLocal(d: number): LocalSolid[] {
+  return [
+    { shape: 'box', x: -2.6, z: d / 2 + 2.0, hx: 0.16, hz: 0.16, rotY: 0, h: 3.4 },
+    { shape: 'box', x: 2.6, z: d / 2 + 2.0, hx: 0.16, hz: 0.16, rotY: 0, h: 3.4 },
+    { shape: 'circle', x: 6.2, z: 5.4, r: 0.10, h: 9.5 },
+    { shape: 'circle', x: -4.5, z: d / 2 + 1.8, r: 0.22, h: 0.85 },
+    { shape: 'circle', x: 4.5, z: d / 2 + 1.8, r: 0.22, h: 0.85 },
+  ];
+}
+
 // ───────────── Repères hors `SPECIALS` ─────────────
 
 /** Pyramide : soubassement 16 × 16 × 4 (les gradins sont au-dessus). */
@@ -130,6 +142,7 @@ export function exteriorSolidsFor(id: ExteriorSolidId, cx: number, cz: number, r
     case 'lycee': local = lyceeLocal(d); break;
     case 'hopital': local = hopitalLocal(d); break;
     case 'mairie': local = mairieLocal(); break;
+    case 'commissariat': local = commissariatLocal(d); break;
     case 'pyramide': local = pyramideLocal(); break;
     case 'postel': local = postelLocal(); break;
   }

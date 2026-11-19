@@ -12,6 +12,7 @@
 
 import { LatLon, Vec2, project, unproject } from './geo';
 import { HOSPITAL_SITES } from './hospitals';
+import { COMMISSARIAT_SITES, MAIRIE_SITES } from './civicSites';
 import { DISTRICTS, District, HomeType, LANDMARKS, districtAt, districtsForHome, isWater } from './abidjanGeography';
 import { GRIDS, Frame, frameFor, isOpenWater, roadAt, bridgeAt } from './roads';
 import { hash32, rand01 } from './rng';
@@ -130,7 +131,11 @@ export const SPECIALS: SpecialSpec[] = [
   // Mairie du Plateau : hôtel de ville visitable (hall d'honneur hors carte)
   { id: 'mairie', name: 'Mairie du Plateau', at: { lat: 5.3275, lon: -4.0188 }, w: 18, d: 12, h: 11, angleDeg: 0, color: 0xf8fafc, snapToBlock: true, clearRadius: 16, plazaW: 24, plazaD: 22 },
   // Hôpitaux : bâtiments à porte d'entrée (intérieur partagé, voir interiors.ts)
-  ...HOSPITAL_SITES.map((h): SpecialSpec => ({ id: h.id, name: h.name, at: { lat: h.lat, lon: h.lon }, w: h.w, d: h.d, h: h.h, angleDeg: 0, color: 0xf2efe8, snapToBlock: true }))
+  ...HOSPITAL_SITES.map((h): SpecialSpec => ({ id: h.id, name: h.name, at: { lat: h.lat, lon: h.lon }, w: h.w, d: h.d, h: h.h, angleDeg: 0, color: 0xf2efe8, snapToBlock: true })),
+  // Mairies complémentaires (1 mairie par commune urbaine, hall d'honneur partagé)
+  ...MAIRIE_SITES.map((m): SpecialSpec => ({ id: m.id, name: m.name, at: { lat: m.lat, lon: m.lon }, w: m.w, d: m.d, h: m.h, angleDeg: 0, color: 0xf8fafc, snapToBlock: true, clearRadius: 16, plazaW: 24, plazaD: 22 })),
+  // Commissariats (2 par commune urbaine, poste de police visitable)
+  ...COMMISSARIAT_SITES.map((c): SpecialSpec => ({ id: c.id, name: c.name, at: { lat: c.lat, lon: c.lon }, w: c.w, d: c.d, h: c.h, angleDeg: 0, color: 0xf1f5f9, snapToBlock: true, clearRadius: 15, plazaW: 22, plazaD: 20 }))
 ];
 
 export interface SpecialFootprint { spec: SpecialSpec; x: number; z: number; w: number; d: number; angle: number }

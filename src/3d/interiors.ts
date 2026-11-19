@@ -87,6 +87,77 @@ export function createHospitalExterior(w: number, d: number, h: number, name: st
   return g;
 }
 
+
+// ───────────── Commissariat : extérieur (bâtiment héros) ─────────────
+
+const COMMISSARIAT_MATS = {
+  wall: std(0xf1f5f9, { rough: 0.78 }),
+  trim: std(0x334155, { rough: 0.72 }),
+  policeBlue: std(0x1d4ed8, { rough: 0.5 }),
+  glass: std(0x38bdf8, { rough: 0.2, metal: 0.12 }),
+  doorGlass: std(0x0f172a, { rough: 0.2 }),
+  beacon: std(0x3b82f6, { emissive: 0x2563eb, glow: 0.85, rough: 0.2 }),
+  chrome: std(0xe2e8f0, { rough: 0.25, metal: 0.45 }),
+  flagOrange: std(0xf97316, { rough: 0.55 }),
+  flagWhite: std(0xffffff, { rough: 0.55 }),
+  flagGreen: std(0x16a34a, { rough: 0.55 }),
+};
+
+/** Façade +z. Centre du modèle = centre de l'emprise, base à y = 0. */
+export function createCommissariatExterior(w: number, d: number, h: number, name: string): THREE.Group {
+  const g = new THREE.Group();
+  const { wall, trim, policeBlue, glass, doorGlass, beacon, chrome } = COMMISSARIAT_MATS;
+
+  g.add(box(w, h, d, wall, 0, h / 2, 0));
+  g.add(box(w + 0.6, 0.38, d + 0.6, trim, 0, h + 0.19, 0));
+  g.add(box(w + 0.3, 0.5, d + 0.3, trim, 0, 0.25, 0, false));
+  // Bandeau bleu police sous corniche
+  g.add(box(w + 0.14, 0.65, d + 0.14, policeBlue, 0, h - 0.55, 0, false));
+
+  // Fenêtres (2 niveaux sur les 4 faces)
+  for (const y of [h * 0.42, h * 0.74]) {
+    g.add(box(w * 0.78, 1.1, 0.08, glass, 0, y, d / 2 + 0.04, false));
+    g.add(box(w * 0.78, 1.1, 0.08, glass, 0, y, -d / 2 - 0.04, false));
+    g.add(box(0.08, 1.1, d * 0.68, glass, w / 2 + 0.04, y, 0, false));
+    g.add(box(0.08, 1.1, d * 0.68, glass, -w / 2 - 0.04, y, 0, false));
+  }
+
+  // Entrée vitrée + auvent bleu + 2 piliers (alignés sur commissariatLocal)
+  g.add(box(2.8, 2.7, 0.12, doorGlass, 0, 1.5, d / 2 + 0.06, false));
+  g.add(box(5.8, 0.28, 2.2, policeBlue, 0, 3.35, d / 2 + 1.1));
+  for (const sx of [-2.6, 2.6]) {
+    g.add(box(0.32, 3.4, 0.32, trim, sx, 1.7, d / 2 + 2.0));
+  }
+
+  // Bornes de sécurité devant les ailes (alignées sur commissariatLocal)
+  for (const bx of [-4.5, 4.5]) {
+    const bollard = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.22, 0.85, 8), trim);
+    bollard.position.set(bx, 0.425, d / 2 + 1.8);
+    g.add(bollard);
+    g.add(box(0.34, 0.14, 0.34, policeBlue, bx, 0.76, d / 2 + 1.8, false));
+  }
+
+  // Gyrophare / balise bleue sur le toit
+  g.add(box(2.4, 0.35, 0.7, trim, 0, h + 0.55, d / 2 - 0.9, false));
+  g.add(box(1.6, 0.34, 0.55, beacon, 0, h + 0.88, d / 2 - 0.9, false));
+
+  // Enseigne
+  const shortLabel = name.replace(/^Commissariat\s+(du|de la|de l’|de|d’)\s*/i, '').toUpperCase();
+  const board = sign(`POLICE · ${shortLabel}`, '#1e3a8a', '#ffffff', 7.4, 1.45, 0.45);
+  board.position.set(0, 4.65, d / 2 + 0.12);
+  g.add(board);
+
+  // Mât et drapeau ivoirien à droite (aligné sur commissariatLocal)
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 9.5, 6), chrome);
+  pole.position.set(6.2, 4.75, 5.4);
+  g.add(pole);
+  [COMMISSARIAT_MATS.flagOrange, COMMISSARIAT_MATS.flagWhite, COMMISSARIAT_MATS.flagGreen].forEach((m, idx) => {
+    g.add(box(0.75, 1.35, 0.08, m, 5.45 + idx * 0.75, 8.75, 5.45, false));
+  });
+
+  return g;
+}
+
 // ───────────── Intérieurs ─────────────
 
 export type InteriorFurnitureBuilder = (g: THREE.Group, def: InteriorDef) => ((nowSec: number, dt: number) => void) | void;
@@ -99,6 +170,7 @@ const FURNITURE_BUILDERS: Record<PublicInteriorId, InteriorFurnitureBuilder> = {
   lycee_caiman: buildLyceeCaimanFurniture,
   lycee_alysma: buildLyceeAlysmaFurniture,
   lycee_alex: buildLyceeAlexFurniture,
+  commissariat: buildCommissariatFurniture,
 };
 
 export interface InteriorRig {
@@ -395,7 +467,7 @@ function buildMairieFurniture(g: THREE.Group, def: InteriorDef): void {
   mairieBoard.position.set(0, 2.75, -def.halfD + 0.22);
   g.add(mairieBoard);
 
-  const tribuneBoard = sign('PLATEAU', '#451a03', '#fef08a', 2.2, 0.48, 0.65);
+  const tribuneBoard = sign('HOTEL DE VILLE', '#451a03', '#fef08a', 2.2, 0.48, 0.65);
   tribuneBoard.position.set(0, 0.62, -4.16);
   g.add(tribuneBoard);
 
@@ -606,4 +678,70 @@ function buildLyceeAlexFurniture(g: THREE.Group, def: InteriorDef): void {
   }
 
   // Enseignant et étudiants : déclarés dans `InteriorDef.npcs` (animés par `NpcSystem`).
+}
+
+function buildCommissariatFurniture(g: THREE.Group, def: InteriorDef): void {
+  const navy = std(0x1e3a8a, { emissive: 0x1e3a8a, glow: 0.14, rough: 0.6 });
+  const policeBlue = std(0x1d4ed8, { emissive: 0x1d4ed8, glow: 0.22, rough: 0.45 });
+  const lightCounter = std(0xe2e8f0, { rough: 0.45 });
+  const slate = std(0x334155, { rough: 0.6 });
+  const metal = std(0x94a3b8, { metal: 0.5, rough: 0.35 });
+  const woodDark = std(0x5c2c16, { rough: 0.65 });
+  const screenMat = std(0x38bdf8, { emissive: 0x0ea5e9, glow: 0.55 });
+
+  // Enseigne principale mur nord + drapeaux ivoiriens
+  const mainBoard = sign('COMMISSARIAT', '#1e3a8a', '#ffffff', 4.4, 0.82, 0.7);
+  mainBoard.position.set(0, 2.75, -def.halfD + 0.22);
+  g.add(mainBoard);
+
+  for (const fx of [-3.4, 3.4]) {
+    [0xf97316, 0xffffff, 0x16a34a].forEach((c, idx) => {
+      g.add(box(0.3, 1.9, 0.08, std(c, { emissive: c, glow: 0.2 }), fx - 0.3 + idx * 0.3, 2.15, -def.halfD + 0.22, false));
+    });
+  }
+
+  // Comptoir d'accueil / plaintes à l'ouest (-6.4, 2.2)
+  g.add(box(3.1, 1.0, 1.3, navy, -6.4, 0.55, 2.2));
+  g.add(box(3.3, 0.12, 1.5, lightCounter, -6.4, 1.11, 2.2));
+  g.add(box(0.7, 0.44, 0.08, screenMat, -7.0, 1.39, 1.9, false));
+  const accueilSign = sign('PLAINTE · ACCUEIL', '#1d4ed8', '#ffffff', 2.4, 0.48, 0.68);
+  accueilSign.position.set(-6.4, 0.62, 2.88);
+  g.add(accueilSign);
+
+  // Bancs d'attente à l'est (6.6, 1.4) et (6.6, 3.4)
+  for (const bz of [1.4, 3.4]) {
+    g.add(box(2.9, 0.12, 0.85, slate, 6.6, 0.48, bz));
+    g.add(box(2.9, 0.42, 0.12, slate, 6.6, 0.74, bz + 0.36));
+    for (const sx of [-1.2, 1.2]) g.add(box(0.12, 0.42, 0.75, metal, 6.6 + sx, 0.24, bz, false));
+  }
+
+  // Bureau du commissaire au nord (0, -4.8)
+  g.add(box(4.6, 0.96, 1.45, woodDark, 0, 0.53, -4.8));
+  g.add(box(4.8, 0.1, 1.6, lightCounter, 0, 1.06, -4.8));
+  g.add(box(0.72, 0.45, 0.08, screenMat, 0.8, 1.35, -4.95, false));
+  const commBoard = sign('COMMISSAIRE', '#0f172a', '#93c5fd', 2.4, 0.46, 0.65);
+  commBoard.position.set(0, 0.58, -4.04);
+  g.add(commBoard);
+
+  // Armoire d'archives au nord-ouest (-7.6, -5.2)
+  g.add(box(2.3, 2.15, 1.1, slate, -7.6, 1.12, -5.2));
+  g.add(box(2.1, 0.12, 1.14, policeBlue, -7.6, 1.85, -5.2, false));
+
+  // Cellule de garde à vue au nord-est : socles bas + rails + barreaux verticaux + banc intérieur
+  g.add(box(0.28, 0.45, 3.7, slate, 4.5, 0.275, -4.9));
+  g.add(box(0.28, 0.16, 3.7, slate, 4.5, 3.05, -4.9, false));
+  for (let bz = -6.5; bz <= -3.2; bz += 0.47) {
+    g.add(box(0.08, 2.55, 0.08, metal, 4.5, 1.75, bz, false));
+  }
+
+  g.add(box(5.1, 0.45, 0.28, slate, 7.1, 0.275, -3.0));
+  g.add(box(5.1, 0.16, 0.28, slate, 7.1, 3.05, -3.0, false));
+  for (let bx = 4.9; bx <= 9.4; bx += 0.5) {
+    g.add(box(0.08, 2.55, 0.08, metal, bx, 1.75, -3.0, false));
+  }
+  const cellSign = sign('GARDE A VUE', '#334155', '#f8fafc', 2.1, 0.42, 0.45);
+  cellSign.position.set(7.1, 2.45, -2.84);
+  g.add(cellSign);
+
+  g.add(box(3.1, 0.45, 0.9, slate, 7.4, 0.275, -5.6));
 }

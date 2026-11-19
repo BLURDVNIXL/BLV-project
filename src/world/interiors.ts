@@ -18,7 +18,8 @@ export type PublicInteriorId =
   | 'mairie'
   | 'lycee_caiman'
   | 'lycee_alysma'
-  | 'lycee_alex';
+  | 'lycee_alex'
+  | 'commissariat';
 
 export type HouseInteriorId = 'house_floor_0' | 'house_floor_1';
 
@@ -335,7 +336,7 @@ export const MARCHE_INTERIOR: InteriorDef = {
 /** Mairie du Plateau : hall d'apparat solennel visitable (guichet état civil, bancs d'attente et tribune). */
 export const MAIRIE_INTERIOR: InteriorDef = {
   id: 'mairie',
-  label: 'Mairie du Plateau',
+  label: 'Mairie',
   origin: { x: 2680, z: 2960 },
   halfW: 10,
   halfD: 7,
@@ -552,6 +553,65 @@ export const LYCEE_ALEX_INTERIOR: InteriorDef = {
   ],
 };
 
+
+/** Commissariat de Police : hall des plaintes au sud, bureau du commissaire au nord, cellule à l'est. */
+export const COMMISSARIAT_INTERIOR: InteriorDef = {
+  id: 'commissariat',
+  label: 'Commissariat',
+  origin: { x: 2920, z: 2960 },
+  halfW: 10,
+  halfD: 7,
+  wallH: 3.8,
+  doorWidth: 2.6,
+  theme: {
+    floorColor: 0xe2e8f0,
+    floorGlow: 0.18,
+    runnerColor: 0x1d4ed8,
+    runnerGlow: 0.22,
+    wallColor: 0xf1f5f9,
+    wallGlow: 0.28,
+    partitionColor: 0x1e3a8a,
+    ceilingColor: 0xffffff,
+    ceilingGlow: 0.26,
+  },
+  boxes: [
+    // Murs extérieurs (mur sud coupé par la porte de 2,6 m centrée en x = 0)
+    { x: 0, z: -7, hx: 10, hz: W, h: 3.8, kind: 'wall' },
+    { x: -10, z: 0, hx: W, hz: 7, h: 3.8, kind: 'wall' },
+    { x: 10, z: 0, hx: W, hz: 7, h: 3.8, kind: 'wall' },
+    { x: -5.65, z: 7, hx: 4.35, hz: W, h: 3.8, kind: 'wall' },
+    { x: 5.65, z: 7, hx: 4.35, hz: W, h: 3.8, kind: 'wall' },
+    // Cloisons basses séparant le hall d'accueil de la zone administrative (allée centrale libre)
+    { x: -6.2, z: -1.6, hx: 2.6, hz: W, h: 1.05, kind: 'partition' },
+    { x: 6.2, z: -1.6, hx: 2.6, hz: W, h: 1.05, kind: 'partition' },
+    // Comptoir d'accueil / plaintes à l'ouest
+    { x: -6.4, z: 2.2, hx: 1.6, hz: 0.7, h: 1.1, kind: 'prop' },
+    // Bancs d'attente à l'est
+    { x: 6.6, z: 1.4, hx: 1.5, hz: 0.5, h: 0.5, kind: 'prop' },
+    { x: 6.6, z: 3.4, hx: 1.5, hz: 0.5, h: 0.5, kind: 'prop' },
+    // Bureau du commissaire au nord
+    { x: 0, z: -4.8, hx: 2.4, hz: 0.8, h: 1.05, kind: 'prop' },
+    // Armoire d'archives au nord-ouest
+    { x: -7.6, z: -5.2, hx: 1.2, hz: 0.6, h: 2.2, kind: 'prop' },
+    // Cellule de garde à vue au nord-est (cloisons à barreaux + banc intérieur)
+    { x: 4.5, z: -4.9, hx: 0.16, hz: 1.9, h: 3.2, kind: 'prop' },
+    { x: 7.1, z: -3.0, hx: 2.6, hz: 0.16, h: 3.2, kind: 'prop' },
+    { x: 7.4, z: -5.6, hx: 1.6, hz: 0.5, h: 0.5, kind: 'prop' },
+  ],
+  entry: { x: 0, z: 3.2, rotY: Math.PI },
+  exit: { x: 0, z: 5.7, radius: 1.6 },
+  npcs: [
+    still('policier', 8101, -6.4, 0.8, 0),
+    still('policier', 8102, 0, -6.1, 0),
+    walk('policier', 8103, [[-2.6, -2.8], [2.6, -2.8]]),
+    walk('policier', 8104, [[-2.4, 0.4], [2.4, 0.4]]),
+    still('client', 8105, -4.1, 2.2, -H),
+    still('client', 8106, 4.4, 1.4, H),
+    talk('client', 8107, -7.8, -0.4, H),
+    talk('client', 8108, -6.9, -0.4, -H),
+  ],
+};
+
 export const INTERIORS: Record<PublicInteriorId, InteriorDef> = {
   hopital: HOSPITAL_INTERIOR,
   maquis: MAQUIS_INTERIOR,
@@ -560,6 +620,7 @@ export const INTERIORS: Record<PublicInteriorId, InteriorDef> = {
   lycee_caiman: LYCEE_CAIMAN_INTERIOR,
   lycee_alysma: LYCEE_ALYSMA_INTERIOR,
   lycee_alex: LYCEE_ALEX_INTERIOR,
+  commissariat: COMMISSARIAT_INTERIOR,
 };
 
 export const interiorToWorld = (def: InteriorDef, lx: number, lz: number): { x: number; z: number } =>
