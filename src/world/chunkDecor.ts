@@ -15,7 +15,7 @@
 
 import { Building, ChunkData, CHUNK, EmptyLot, carSpotForLot, insideSpecial } from './city';
 import { isHospitalId } from './hospitals';
-import { isCommissariatId, isMairieId } from './civicSites';
+import { isCommissariatId, isMairieId, isPetitHotelId } from './civicSites';
 import { districtAt, isWater, projected } from './abidjanGeography';
 import { ARTERIALS, ARTERIAL_WIDTH, GRIDS, bridgeAt, frameFor, nearestArterial, roadAt } from './roads';
 import { distanceToSegment } from './geo';
@@ -93,6 +93,11 @@ export interface StreetVenueDecor {
   w: number;
   d: number;
   angle: number;
+  doorX?: number;
+  doorZ?: number;
+  outX?: number;
+  outZ?: number;
+  outRotY?: number;
 }
 
 export interface DumpsterDecor {
@@ -218,7 +223,7 @@ export const NEON_DISTRICTS = new Set(['yopougon', 'treichville', 'marcory', 'ad
 
 const HERO_LANDMARKS = new Set([
   'port_collider', 'stade', 'cathedrale', 'hotel_ivoire', 'lycee_caiman', 'lycee_alysma',
-  'lycee_alex', 'marche_adjame', 'port', 'maquis', 'mairie',
+  'lycee_alex', 'marche_adjame', 'port', 'maquis', 'mairie', 'palais_culture', 'aeroport',
 ]);
 
 const AWNING_COLORS = [0xea580c, 0x16a34a, 0x2563eb, 0xd97706, 0xdc2626];
@@ -376,7 +381,9 @@ function emitBoutique(plan: ChunkDecorPlan, lot: EmptyLot): void {
       pushBush(plan, bp.x, bp.z, 0.65, 1.1, BUSH_GREENS[lot.seed % BUSH_GREENS.length]);
     }
   }
-  plan.venues.push({ kind: 'boutique', x: lot.x, z: lot.z, w, d, angle: lot.angle });
+  const doorPt = localToWorldPt(lot.x, lot.z, lot.angle, 0, vOff + d / 2 + 1.45);
+  const outPt = localToWorldPt(lot.x, lot.z, lot.angle, 0, vOff + d / 2 + 2.25);
+  plan.venues.push({ kind: 'boutique', x: lot.x, z: lot.z, w, d, angle: lot.angle, doorX: doorPt.x, doorZ: doorPt.z, outX: outPt.x, outZ: outPt.z, outRotY: -lot.angle });
 }
 
 function emitSuperette(plan: ChunkDecorPlan, lot: EmptyLot): void {
@@ -404,7 +411,9 @@ function emitSuperette(plan: ChunkDecorPlan, lot: EmptyLot): void {
   // Frigo boissons extérieur avec vitre avant sur le côté droit
   pushBox(plan, lot.x, lot.z, lot.angle, w * 0.36, vFront + 0.55, 1.15, 0.7, 0, 1.45, 0xdc2626, CREAM_TRIM, true, false);
   pushBox(plan, lot.x, lot.z, lot.angle, w * 0.36, vFront + 0.91, 0.85, 0.05, 0.28, 0.96, 0xbae6fd, 0xbae6fd, false, false);
-  plan.venues.push({ kind: 'superette', x: lot.x, z: lot.z, w, d, angle: lot.angle });
+  const doorPt = localToWorldPt(lot.x, lot.z, lot.angle, 0, vFront + 1.45);
+  const outPt = localToWorldPt(lot.x, lot.z, lot.angle, 0, vFront + 2.55);
+  plan.venues.push({ kind: 'superette', x: lot.x, z: lot.z, w, d, angle: lot.angle, doorX: doorPt.x, doorZ: doorPt.z, outX: outPt.x, outZ: outPt.z, outRotY: -lot.angle });
 }
 
 function emitCoiffure(plan: ChunkDecorPlan, lot: EmptyLot): void {
@@ -429,7 +438,9 @@ function emitCoiffure(plan: ChunkDecorPlan, lot: EmptyLot): void {
   plan.solids.push({ shape: 'circle', x: pp.x, z: pp.z, r: 0.15, h: 2.22 });
   // Banc d'attente devant le salon
   pushBox(plan, lot.x, lot.z, lot.angle, -w * 0.22, vFront + 0.65, 1.45, 0.44, 0, 0.46, WOOD_DARK, WOOD_DARK, true, false);
-  plan.venues.push({ kind: 'coiffure', x: lot.x, z: lot.z, w, d, angle: lot.angle });
+  const doorPt = localToWorldPt(lot.x, lot.z, lot.angle, 0, vFront + 1.35);
+  const outPt = localToWorldPt(lot.x, lot.z, lot.angle, 0, vFront + 2.15);
+  plan.venues.push({ kind: 'coiffure', x: lot.x, z: lot.z, w, d, angle: lot.angle, doorX: doorPt.x, doorZ: doorPt.z, outX: outPt.x, outZ: outPt.z, outRotY: -lot.angle });
 }
 
 function emitTransfertKiosk(plan: ChunkDecorPlan, cx: number, cz: number, angle: number, seed: number, withLotDecor = false): void {
@@ -543,7 +554,9 @@ function emitMaquisQuartier(plan: ChunkDecorPlan, lot: EmptyLot): void {
   }
   pushBox(plan, lot.x, lot.z, lot.angle, w * 0.36, patioV - patioD * 0.2, 0.85, 0.5, 0, 0.8, TRIM_DARK, 0x1e293b, true, false);
   pushLamp(plan, lot.x, lot.z, lot.angle, w * 0.36, patioV - patioD * 0.2, 0.65, 0.35, 0.75, 0.1, 0xf97316);
-  plan.venues.push({ kind: 'maquis_quartier', x: lot.x, z: lot.z, w, d, angle: lot.angle });
+  const doorPt = localToWorldPt(lot.x, lot.z, lot.angle, 0, d / 2 + 1.15);
+  const outPt = localToWorldPt(lot.x, lot.z, lot.angle, 0, d / 2 + 2.05);
+  plan.venues.push({ kind: 'maquis_quartier', x: lot.x, z: lot.z, w, d, angle: lot.angle, doorX: doorPt.x, doorZ: doorPt.z, outX: outPt.x, outZ: outPt.z, outRotY: -lot.angle });
 }
 
 function emitMaracanaCourt(plan: ChunkDecorPlan, lot: EmptyLot): void {
@@ -756,7 +769,7 @@ export function collectChunkDecor(data: ChunkData): ChunkDecorPlan {
 
   // 0. Détails architecturaux attachés aux bâtiments (piliers, murets, bougainvilliers, bidons, kiosques)
   data.buildings.forEach((b, seedIdx) => {
-    if (b.landmark && (HERO_LANDMARKS.has(b.landmark) || isHospitalId(b.landmark) || isMairieId(b.landmark) || isCommissariatId(b.landmark))) return;
+    if (b.landmark && (HERO_LANDMARKS.has(b.landmark) || isHospitalId(b.landmark) || isMairieId(b.landmark) || isCommissariatId(b.landmark) || isPetitHotelId(b.landmark))) return;
     const c = Math.cos(b.angle);
     const s = Math.sin(b.angle);
 

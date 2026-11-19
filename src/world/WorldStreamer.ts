@@ -10,7 +10,7 @@
 import * as THREE from 'three';
 import { PhysicsCore, SolidFlag } from '../physics/PhysicsCore';
 import { CHUNK, ChunkData, chunkOf } from './city';
-import { ChunkSolid } from './chunkDecor';
+import { ChunkSolid, StreetVenueDecor } from './chunkDecor';
 import { ChunkMaterials, ChunkObjects, buildChunkObjects } from './chunkMesh';
 import { ChunkProvider, GROUND_SIZE, ChunkPayload } from './chunkProvider';
 
@@ -23,6 +23,7 @@ export class WorldStreamer {
   private pending = new Set<string>();
   private arrived: Array<{ cx: number; cz: number; payload: ChunkPayload }> = [];
   private disposed = false;
+  private venuesVersion = 0;
   /** Rayon de chargement (en chunks de 64 m). */
   radius: number;
   /** Nombre maximal de requêtes simultanées auprès du Worker. */
@@ -39,6 +40,16 @@ export class WorldStreamer {
   }
 
   get loadedCount(): number { return this.loaded.size; }
+
+  getVenuesVersion(): number { return this.venuesVersion; }
+
+  getLoadedVenues(): StreetVenueDecor[] {
+    const out: StreetVenueDecor[] = [];
+    for (const l of this.loaded.values()) {
+      for (const v of l.objects.venues) out.push(v);
+    }
+    return out;
+  }
 
   /** Vrai si tous les chunks dans le rayon donné (en chunks) autour du point sont chargés. */
   isReady(px: number, pz: number, rings: number): boolean {
@@ -70,6 +81,7 @@ export class WorldStreamer {
     const objects = buildChunkObjects(payload.data, payload.ground, GROUND_SIZE, this.mats);
     this.scene.add(objects.group);
     this.loaded.set(k, { objects, solids: this.registerSolids(payload.data, objects.solids) });
+    if (objects.venues.length > 0) this.venuesVersion++;
   }
 
   private unload(k: string): void {
@@ -78,6 +90,7 @@ export class WorldStreamer {
     this.scene.remove(l.objects.group);
     l.objects.dispose();
     for (const id of l.solids) this.physics.removeSolid(id);
+    if (l.objects.venues.length > 0) this.venuesVersion++;
     this.loaded.delete(k);
   }
 

@@ -12,7 +12,7 @@
 
 import { LatLon, Vec2, project, unproject } from './geo';
 import { HOSPITAL_SITES } from './hospitals';
-import { COMMISSARIAT_SITES, MAIRIE_SITES } from './civicSites';
+import { COMMISSARIAT_SITES, HOTEL_SITES, MAIRIE_SITES } from './civicSites';
 import { DISTRICTS, District, HomeType, LANDMARKS, districtAt, districtsForHome, isWater } from './abidjanGeography';
 import { GRIDS, Frame, frameFor, isOpenWater, roadAt, bridgeAt } from './roads';
 import { hash32, rand01 } from './rng';
@@ -117,7 +117,7 @@ const landmark = (id: string): LatLon => LANDMARKS.find((l) => l.id === id)!.at;
 export const SPECIALS: SpecialSpec[] = [
   { id: 'stade', name: 'Stade Félix Houphouët-Boigny', at: landmark('stade'), w: 90, d: 64, h: 24, angleDeg: 8, color: 0xdedbd2, snapToBlock: false },
   { id: 'cathedrale', name: 'Cathédrale Saint-Paul', at: landmark('cathedrale'), w: 26, d: 44, h: 52, angleDeg: 8, color: 0xd2cbbb, snapToBlock: false },
-  { id: 'hotel_ivoire', name: 'Hôtel Ivoire', at: landmark('hotel_ivoire'), w: 46, d: 30, h: 72, angleDeg: -12, color: 0xe5e0d0, snapToBlock: false },
+  { id: 'hotel_ivoire', name: 'Grand Hôtel Ivoire', at: landmark('hotel_ivoire'), w: 46, d: 30, h: 72, angleDeg: -12, color: 0xe5e0d0, snapToBlock: false },
   { id: 'marche_adjame', name: "Marché d'Adjamé", at: landmark('marche_adjame'), w: 36, d: 18, h: 9.5, angleDeg: 0, color: 0xb85c38, snapToBlock: false, clearRadius: 50, plazaW: 70, plazaD: 50 },
   { id: 'palais_culture', name: 'Palais de la Culture', at: landmark('palais_sports'), w: 60, d: 40, h: 20, angleDeg: 0, color: 0xd8d4c8, snapToBlock: false },
   { id: 'aeroport', name: 'Aéroport Félix Houphouët-Boigny', at: landmark('airport'), w: 130, d: 44, h: 18, angleDeg: 12, color: 0xc9d1d8, snapToBlock: false },
@@ -135,7 +135,9 @@ export const SPECIALS: SpecialSpec[] = [
   // Mairies complémentaires (1 mairie par commune urbaine, hall d'honneur partagé)
   ...MAIRIE_SITES.map((m): SpecialSpec => ({ id: m.id, name: m.name, at: { lat: m.lat, lon: m.lon }, w: m.w, d: m.d, h: m.h, angleDeg: 0, color: 0xf8fafc, snapToBlock: true, clearRadius: 16, plazaW: 24, plazaD: 22 })),
   // Commissariats (2 par commune urbaine, poste de police visitable)
-  ...COMMISSARIAT_SITES.map((c): SpecialSpec => ({ id: c.id, name: c.name, at: { lat: c.lat, lon: c.lon }, w: c.w, d: c.d, h: c.h, angleDeg: 0, color: 0xf1f5f9, snapToBlock: true, clearRadius: 15, plazaW: 22, plazaD: 20 }))
+  ...COMMISSARIAT_SITES.map((c): SpecialSpec => ({ id: c.id, name: c.name, at: { lat: c.lat, lon: c.lon }, w: c.w, d: c.d, h: c.h, angleDeg: 0, color: 0xf1f5f9, snapToBlock: true, clearRadius: 15, plazaW: 22, plazaD: 20 })),
+  // Petits hôtels de quartier (1 par commune urbaine, visitables avec chambre)
+  ...HOTEL_SITES.map((ht): SpecialSpec => ({ id: ht.id, name: ht.name, at: { lat: ht.lat, lon: ht.lon }, w: ht.w, d: ht.d, h: ht.h, angleDeg: 0, color: 0xfef3c7, snapToBlock: true, clearRadius: 14, plazaW: 20, plazaD: 18 }))
 ];
 
 export interface SpecialFootprint { spec: SpecialSpec; x: number; z: number; w: number; d: number; angle: number }

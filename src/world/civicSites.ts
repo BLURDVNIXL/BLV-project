@@ -65,8 +65,29 @@ export const COMMISSARIAT_SITES: CivicSite[] = [
   { id: 'commissariat_vridi_2', districtId: 'vridi', name: 'Commissariat de Vridi Canal', lat: 5.24801, lon: -4.00095, w: 16, d: 11, h: 8.5 },
 ];
 
+
+/** 13 petits hôtels / résidences de quartier (1 par commune urbaine hors Grand Hôtel Ivoire). */
+export const HOTEL_SITES: CivicSite[] = [
+  { id: 'hotel_plateau', districtId: 'plateau', name: 'Hôtel Résidence Plateau', lat: 5.31992, lon: -4.02673, w: 14, d: 10, h: 7.2 },
+  { id: 'hotel_adjame', districtId: 'adjame', name: 'Hôtel Le Carrefour · Adjamé', lat: 5.34377, lon: -4.02969, w: 14, d: 10, h: 7.2 },
+  { id: 'hotel_attecoube', districtId: 'attecoube', name: 'Auberge d’Attécoubé', lat: 5.32656, lon: -4.04831, w: 14, d: 10, h: 7.2 },
+  { id: 'hotel_yopougon', districtId: 'yopougon', name: 'Hôtel Princesse · Yopougon', lat: 5.32528, lon: -4.08627, w: 14, d: 10, h: 7.2 },
+  { id: 'hotel_abobo', districtId: 'abobo', name: 'Résidence Abobo', lat: 5.40485, lon: -4.02922, w: 14, d: 10, h: 7.2 },
+  { id: 'hotel_cocody', districtId: 'cocody', name: 'Auberge Deux-Plateaux · Cocody', lat: 5.34875, lon: -4.00789, w: 14, d: 10, h: 7.2 },
+  { id: 'hotel_riviera', districtId: 'riviera', name: 'Hôtel La Palmeraie · Riviera', lat: 5.33254, lon: -3.97177, w: 14, d: 10, h: 7.2 },
+  { id: 'hotel_treichville', districtId: 'treichville', name: 'Hôtel Le Port · Treichville', lat: 5.29866, lon: -4.02441, w: 14, d: 10, h: 7.2 },
+  { id: 'hotel_marcory', districtId: 'marcory', name: 'Résidence Zone 4 · Marcory', lat: 5.28765, lon: -3.99461, w: 14, d: 10, h: 7.2 },
+  { id: 'hotel_koumassi', districtId: 'koumassi', name: 'Hôtel Koumassi', lat: 5.28861, lon: -3.96209, w: 14, d: 10, h: 7.2 },
+  { id: 'hotel_port_bouet', districtId: 'port_bouet', name: 'Hôtel Océan · Port-Bouët', lat: 5.24988, lon: -3.95687, w: 14, d: 10, h: 7.2 },
+  { id: 'hotel_grand_bassam', districtId: 'grand_bassam', name: 'Hôtel La Côtière · Bassam', lat: 5.24109, lon: -3.91322, w: 14, d: 10, h: 7.2 },
+  { id: 'hotel_vridi', districtId: 'vridi', name: 'Hôtel Canal · Vridi', lat: 5.24403, lon: -4.00095, w: 14, d: 10, h: 7.2 },
+];
+
 export const isMairieId = (id: string | undefined): boolean =>
   id === 'mairie' || (!!id && id.startsWith('mairie_'));
 
 export const isCommissariatId = (id: string | undefined): boolean =>
   !!id && id.startsWith('commissariat_');
+
+export const isPetitHotelId = (id: string | undefined): boolean =>
+  !!id && id.startsWith('hotel_') && id !== 'hotel_ivoire';

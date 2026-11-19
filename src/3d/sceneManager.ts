@@ -13,10 +13,12 @@ import {
   createBassamFuturisticSchool,
   createBridgeModel,
   createCashPickupMesh,
+  createAeroportLandmark,
   createCathedralLandmark,
   createCharacterModel,
   createClassicLyceeStructure,
   createHotelIvoireLandmark,
+  createPalaisCultureLandmark,
   createLaPyramideLandmark,
   createMairiePlateauLandmark,
   createMaquisStructure,
@@ -84,9 +86,9 @@ import {
 } from '../world/taxiApproach';
 import { exteriorSolidsFor, type ExteriorSolid, type ExteriorSolidId } from '../world/exteriorSolids';
 import { HOSPITAL_SITES } from '../world/hospitals';
-import { COMMISSARIAT_SITES, MAIRIE_SITES } from '../world/civicSites';
+import { COMMISSARIAT_SITES, HOTEL_SITES, MAIRIE_SITES } from '../world/civicSites';
 import { INTERIORS, InteriorDef, InteriorId, PublicInteriorId, interiorToWorld } from '../world/interiors';
-import { InteriorRig, createCommissariatExterior, createHospitalExterior, createInteriorRig } from './interiors';
+import { InteriorRig, createCommissariatExterior, createHospitalExterior, createInteriorRig, createPetitHotelExterior } from './interiors';
 import {
   HouseSpec,
   buildHouseFloorDef,
@@ -282,6 +284,12 @@ export class AbidjanSceneManager {
 
   private staticHotspots: CityHotspot[] = [];
   private homeHotspots: CityHotspot[] = [];
+  private streamedHotspots: CityHotspot[] = [];
+  private streamedDoorIds: string[] = [];
+  private streamedVenueRings: THREE.Mesh[] = [];
+  private streamedVenueRingGeo: THREE.RingGeometry | null = null;
+  private streamedVenueRingMats = new Map<number, THREE.MeshBasicMaterial>();
+  private lastVenuesVersion = -1;
   /** Portes des intérieurs (id de zone d'action → type d'intérieur, nom et point de retour devant la porte). */
   private interiorDoors = new Map<string, {
     interiorId: InteriorId;
@@ -513,7 +521,20 @@ export class AbidjanSceneManager {
 
     placeSpecial('stade', createStadeFhbLandmark());
     placeSpecial('cathedrale', createCathedralLandmark());
-    placeSpecial('hotel_ivoire', createHotelIvoireLandmark());
+    const hotelIvoireFp = SPECIAL_FOOTPRINTS.find((f) => f.spec.id === 'hotel_ivoire');
+    placeSpecial(
+      'hotel_ivoire',
+      createHotelIvoireLandmark(hotelIvoireFp?.w ?? 46, hotelIvoireFp?.d ?? 30),
+      'hotel_ivoire'
+    );
+    const palaisFp = SPECIAL_FOOTPRINTS.find((f) => f.spec.id === 'palais_culture');
+    if (palaisFp) {
+      placeSpecial('palais_culture', createPalaisCultureLandmark(palaisFp.w, palaisFp.d, palaisFp.spec.h), 'palais_culture');
+    }
+    const aeroFp = SPECIAL_FOOTPRINTS.find((f) => f.spec.id === 'aeroport');
+    if (aeroFp) {
+      placeSpecial('aeroport', createAeroportLandmark(aeroFp.w, aeroFp.d, aeroFp.spec.h), 'aeroport');
+    }
     placeSpecial('lycee_alex', createBassamFuturisticSchool());
     const caimanFp = SPECIAL_FOOTPRINTS.find((f) => f.spec.id === 'lycee_caiman');
     if (caimanFp) {
@@ -569,6 +590,11 @@ export class AbidjanSceneManager {
       const fp = SPECIAL_FOOTPRINTS.find((f) => f.spec.id === site.id);
       if (!fp) continue;
       placeSpecial(site.id, createCommissariatExterior(fp.w, fp.d, fp.spec.h, site.name), 'commissariat');
+    }
+    for (const site of HOTEL_SITES) {
+      const fp = SPECIAL_FOOTPRINTS.find((f) => f.spec.id === site.id);
+      if (!fp) continue;
+      placeSpecial(site.id, createPetitHotelExterior(fp.w, fp.d, fp.spec.h, site.name), 'petit_hotel');
     }
 
     const maquisFp = SPECIAL_FOOTPRINTS.find((f) => f.spec.id === 'maquis');
@@ -732,6 +758,61 @@ export class AbidjanSceneManager {
         outRotY: -fp.angle,
         radius: 3.4,
         color: 0x1d4ed8,
+      });
+    }
+
+    for (const site of HOTEL_SITES) {
+      const fp = SPECIAL_FOOTPRINTS.find((f) => f.spec.id === site.id);
+      if (!fp) continue;
+      const vx = -Math.sin(fp.angle);
+      const vz = Math.cos(fp.angle);
+      this.registerInteriorDoor({
+        id: `door_${site.id}`,
+        interiorId: 'petit_hotel',
+        siteId: site.id,
+        name: site.name,
+        label: `🏨 Entrer — ${site.name}`,
+        district: districtAt({ x: fp.x, z: fp.z }).name,
+        doorX: fp.x + vx * (fp.d / 2 + 2.4),
+        doorZ: fp.z + vz * (fp.d / 2 + 2.4),
+        outX: fp.x + vx * (fp.d / 2 + 3.8),
+        outZ: fp.z + vz * (fp.d / 2 + 3.8),
+        outRotY: -fp.angle,
+        radius: 3.4,
+        color: 0xf59e0b,
+      });
+    }
+
+    const extraHeroDoors: Array<{
+      siteId: string;
+      interiorId: PublicInteriorId;
+      label: string;
+      color: number;
+    }> = [
+      { siteId: 'hotel_ivoire', interiorId: 'hotel_ivoire', label: '🏨 Entrer — Grand Hôtel Ivoire', color: 0xf59e0b },
+      { siteId: 'cathedrale', interiorId: 'cathedrale', label: '⛪ Entrer — Cathédrale Saint-Paul', color: 0x0284c7 },
+      { siteId: 'palais_culture', interiorId: 'palais_culture', label: '🎭 Entrer — Palais de la Culture', color: 0xb91c1c },
+      { siteId: 'aeroport', interiorId: 'aeroport', label: '✈️ Entrer — Aéroport FHB', color: 0x0ea5e9 },
+    ];
+    for (const ed of extraHeroDoors) {
+      const fp = SPECIAL_FOOTPRINTS.find((f) => f.spec.id === ed.siteId);
+      if (!fp) continue;
+      const vx = -Math.sin(fp.angle);
+      const vz = Math.cos(fp.angle);
+      this.registerInteriorDoor({
+        id: `door_${ed.siteId}`,
+        interiorId: ed.interiorId,
+        siteId: ed.siteId,
+        name: fp.spec.name,
+        label: ed.label,
+        district: districtAt({ x: fp.x, z: fp.z }).name,
+        doorX: fp.x + vx * (fp.d / 2 + 2.4),
+        doorZ: fp.z + vz * (fp.d / 2 + 2.4),
+        outX: fp.x + vx * (fp.d / 2 + 3.8),
+        outZ: fp.z + vz * (fp.d / 2 + 3.8),
+        outRotY: -fp.angle,
+        radius: 3.6,
+        color: ed.color,
       });
     }
 
@@ -2194,11 +2275,82 @@ export class AbidjanSceneManager {
     dom.addEventListener('wheel', this.onWheel, { passive: true });
   }
 
+  private clearStreamedVenueDoors(): void {
+    for (const id of this.streamedDoorIds) this.interiorDoors.delete(id);
+    this.streamedDoorIds = [];
+    this.streamedHotspots = [];
+    for (const r of this.streamedVenueRings) this.scene.remove(r);
+    this.streamedVenueRings = [];
+  }
+
+  private syncStreamedVenueDoors(): void {
+    if (!this.streamer) return;
+    const ver = this.streamer.getVenuesVersion();
+    if (ver === this.lastVenuesVersion) return;
+    this.lastVenuesVersion = ver;
+    this.clearStreamedVenueDoors();
+
+    if (!this.streamedVenueRingGeo) {
+      this.streamedVenueRingGeo = new THREE.RingGeometry(0.85, 1.25, 20);
+    }
+
+    for (const v of this.streamer.getLoadedVenues()) {
+      if (v.doorX === undefined || v.doorZ === undefined || v.outX === undefined || v.outZ === undefined || v.outRotY === undefined) {
+        continue;
+      }
+      let meta: { interiorId: PublicInteriorId; name: string; label: string; color: number } | null = null;
+      if (v.kind === 'boutique') {
+        meta = { interiorId: 'boutique', name: 'Boutique de Quartier', label: '🛒 Entrer — Boutique de Quartier', color: 0x0ea5e9 };
+      } else if (v.kind === 'superette') {
+        meta = { interiorId: 'superette', name: 'Supérette', label: '🏪 Entrer — Supérette', color: 0x16a34a };
+      } else if (v.kind === 'coiffure') {
+        meta = { interiorId: 'coiffure', name: 'Salon de Coiffure', label: '💈 Entrer — Salon de Coiffure', color: 0xec4899 };
+      } else if (v.kind === 'maquis_quartier') {
+        meta = { interiorId: 'maquis', name: 'Maquis de Quartier', label: '🍗 Entrer — Maquis de Quartier', color: 0xf97316 };
+      }
+      if (!meta) continue;
+
+      const id = `venue_${v.kind}_${Math.round(v.x * 10)}_${Math.round(v.z * 10)}`;
+      this.interiorDoors.set(id, {
+        interiorId: meta.interiorId,
+        siteId: id,
+        name: meta.name,
+        outX: v.outX,
+        outZ: v.outZ,
+        outRotY: v.outRotY,
+      });
+      this.streamedDoorIds.push(id);
+      this.streamedHotspots.push({
+        id,
+        label: meta.label,
+        district: districtAt({ x: v.x, z: v.z }).name,
+        x: v.doorX,
+        z: v.doorZ,
+        radius: 2.8,
+        type: 'interior_door',
+        color: meta.color,
+      });
+
+      let mat = this.streamedVenueRingMats.get(meta.color);
+      if (!mat) {
+        mat = new THREE.MeshBasicMaterial({ color: meta.color, side: THREE.DoubleSide, transparent: true, opacity: 0.72 });
+        this.streamedVenueRingMats.set(meta.color, mat);
+      }
+      const ring = new THREE.Mesh(this.streamedVenueRingGeo, mat);
+      ring.rotation.x = -Math.PI / 2;
+      ring.position.set(v.doorX, 0.08, v.doorZ);
+      this.scene.add(ring);
+      this.streamedVenueRings.push(ring);
+    }
+  }
+
   private findNearestHotspot(): CityHotspot | null {
     if (this.taxiRide) return null;
     let best: CityHotspot | null = null;
     let bestD = Infinity;
-    const pool = this.activeInterior ? this.activeInterior.hotspots : [...this.homeHotspots, ...this.staticHotspots];
+    const pool = this.activeInterior
+      ? this.activeInterior.hotspots
+      : [...this.homeHotspots, ...this.staticHotspots, ...this.streamedHotspots];
     for (const h of pool) {
       const d = Math.hypot(this.playerX - h.x, this.playerZ - h.z);
       if (d <= h.radius && d < bestD) {
@@ -2332,6 +2484,7 @@ export class AbidjanSceneManager {
     } else if (!this.activeInterior) {
       this.streamer?.update(this.playerX, this.playerZ, this.streamer.loadedCount < 25 ? 8 : this.isSoftwareGl ? 3 : 4);
     }
+    this.syncStreamedVenueDoors();
 
     // 6. Walking Pedestrians
     if (!this.activeInterior) {
@@ -2594,6 +2747,11 @@ export class AbidjanSceneManager {
 
     this.stopTaxiApproach();
     this.taxiRide = null;
+    this.clearStreamedVenueDoors();
+    this.streamedVenueRingGeo?.dispose();
+    this.streamedVenueRingGeo = null;
+    for (const m of this.streamedVenueRingMats.values()) m.dispose();
+    this.streamedVenueRingMats.clear();
     this.streamer?.dispose();
     this.disposeOwnHouse();
     if (this.physics) {

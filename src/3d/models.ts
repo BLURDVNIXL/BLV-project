@@ -1725,10 +1725,46 @@ export function createBridgeModel(
   };
 }
 
+function createLandmarkSignBoard(text: string, bg: string, fg: string, w: number, h: number): THREE.Mesh {
+  if (typeof document === 'undefined') {
+    return new THREE.Mesh(
+      new THREE.PlaneGeometry(w, h),
+      new THREE.MeshStandardMaterial({ color: bg, roughness: 0.5 })
+    );
+  }
+  const c = document.createElement('canvas');
+  c.width = 640;
+  c.height = 144;
+  const ctx = c.getContext('2d')!;
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, c.width, c.height);
+  ctx.strokeStyle = fg;
+  ctx.lineWidth = 7;
+  ctx.strokeRect(10, 10, c.width - 20, c.height - 20);
+  ctx.fillStyle = fg;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  let size = 62;
+  ctx.font = `bold ${size}px sans-serif`;
+  while (ctx.measureText(text).width > c.width - 64 && size > 20) {
+    size -= 4;
+    ctx.font = `bold ${size}px sans-serif`;
+  }
+  ctx.fillText(text, c.width / 2, c.height / 2 + 3);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return new THREE.Mesh(
+    new THREE.PlaneGeometry(w, h),
+    new THREE.MeshStandardMaterial({ map: tex, emissiveMap: tex, emissive: 0xffffff, emissiveIntensity: 0.38, roughness: 0.5 })
+  );
+}
+
 export function createCathedralLandmark(): THREE.Group {
   const g = new THREE.Group();
   const stoneMat = new THREE.MeshStandardMaterial({ color: 0xe7e5e4, roughness: 0.65 });
+  const trimMat = new THREE.MeshStandardMaterial({ color: 0xd6d3d1, roughness: 0.6 });
   const roofMat = new THREE.MeshStandardMaterial({ color: 0x0369a1, roughness: 0.45 });
+  const stainedMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, emissive: 0x0284c7, emissiveIntensity: 0.42, roughness: 0.2 });
   const nave = new THREE.Mesh(new THREE.BoxGeometry(16, 14, 34), stoneMat);
   nave.position.y = 7;
   nave.castShadow = true;
@@ -1742,7 +1778,22 @@ export function createCathedralLandmark(): THREE.Group {
   crossV.position.set(0, 44.5, 15);
   const crossH = new THREE.Mesh(new THREE.BoxGeometry(3, 0.6, 0.6), crossV.material);
   crossH.position.set(0, 45.2, 15);
-  g.add(nave, sweepingRoof, bellTower, crossV, crossH);
+
+  // Parvis & portail d'entrée aligné sur l'emprise d = 44 (façade à z = +22)
+  const narthex = new THREE.Mesh(new THREE.BoxGeometry(14, 9.5, 6), stoneMat);
+  narthex.position.set(0, 4.75, 19);
+  narthex.castShadow = true;
+  const portalFrame = new THREE.Mesh(new THREE.BoxGeometry(5.6, 5.2, 0.45), trimMat);
+  portalFrame.position.set(0, 2.6, 22.02);
+  const portalDoor = new THREE.Mesh(new THREE.BoxGeometry(3.8, 4.1, 0.2), stainedMat);
+  portalDoor.position.set(0, 2.15, 22.2);
+  const roseWindow = new THREE.Mesh(new THREE.CylinderGeometry(1.7, 1.7, 0.25, 16), stainedMat);
+  roseWindow.rotation.x = Math.PI / 2;
+  roseWindow.position.set(0, 7.2, 22.05);
+  const cathSign = createLandmarkSignBoard('CATHEDRALE SAINT-PAUL', '#0c4a6e', '#fef08a', 6.8, 1.15);
+  cathSign.position.set(0, 5.65, 22.3);
+
+  g.add(nave, sweepingRoof, bellTower, crossV, crossH, narthex, portalFrame, portalDoor, roseWindow, cathSign);
   return g;
 }
 
@@ -1762,19 +1813,176 @@ export function createStadeFhbLandmark(): THREE.Group {
   return g;
 }
 
-export function createHotelIvoireLandmark(): THREE.Group {
+export function createHotelIvoireLandmark(w = 46, d = 30): THREE.Group {
   const g = new THREE.Group();
-  const wallMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.48 });
-  const glassMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.18, metalness: 0.2 });
-  const podium = new THREE.Mesh(new THREE.BoxGeometry(38, 6, 24), wallMat);
-  podium.position.y = 3;
-  const tower = new THREE.Mesh(new THREE.BoxGeometry(20, 58, 12), wallMat);
-  tower.position.set(-4, 32, 0);
+  const wallMat = new THREE.MeshStandardMaterial({ color: 0xfaf7f0, roughness: 0.48 });
+  const travertineMat = new THREE.MeshStandardMaterial({ color: 0xe7dfd0, roughness: 0.58 });
+  const glassMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.16, metalness: 0.25 });
+  const warmGlass = new THREE.MeshStandardMaterial({ color: 0xfef3c7, emissive: 0xf59e0b, emissiveIntensity: 0.35, roughness: 0.22 });
+  const goldMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, emissive: 0xb45309, emissiveIntensity: 0.25, roughness: 0.28, metalness: 0.45 });
+
+  // Grand podium travertin aligné 1:1 sur l'emprise (46 × 30)
+  const podium = new THREE.Mesh(new THREE.BoxGeometry(w, 6.4, d), travertineMat);
+  podium.position.y = 3.2;
+  podium.castShadow = true;
+  podium.receiveShadow = true;
+  g.add(podium);
+
+  // Baies vitrées panoramiques du hall sur les 4 faces du podium
+  const frontGlassL = new THREE.Mesh(new THREE.BoxGeometry(12, 3.8, 0.14), warmGlass);
+  frontGlassL.position.set(-12, 3.1, d / 2 + 0.06);
+  const frontGlassR = new THREE.Mesh(new THREE.BoxGeometry(12, 3.8, 0.14), warmGlass);
+  frontGlassR.position.set(12, 3.1, d / 2 + 0.06);
+  const backGlass = new THREE.Mesh(new THREE.BoxGeometry(w * 0.78, 3.6, 0.14), glassMat);
+  backGlass.position.set(0, 3.1, -d / 2 - 0.06);
+  g.add(frontGlassL, frontGlassR, backGlass);
+
+  // Grande tour Ivoire + ailes vitrées + anneaux dorés d'étages
+  const tower = new THREE.Mesh(new THREE.BoxGeometry(22, 60, 14), wallMat);
+  tower.position.set(-5, 36, -1);
   tower.castShadow = true;
-  const glassWing = new THREE.Mesh(new THREE.BoxGeometry(14, 46, 10), glassMat);
-  glassWing.position.set(10, 26, 2);
-  const crown = new THREE.Mesh(new THREE.CylinderGeometry(7, 7, 3, 16), new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.3 }));
-  crown.position.set(-4, 62.5, 0);
-  g.add(podium, tower, glassWing, crown);
+  g.add(tower);
+
+  for (let fy = 12; fy <= 60; fy += 6) {
+    const band = new THREE.Mesh(new THREE.BoxGeometry(22.6, 0.55, 14.6), fy % 12 === 0 ? goldMat : glassMat);
+    band.position.set(-5, fy, -1);
+    g.add(band);
+  }
+
+  const glassWing = new THREE.Mesh(new THREE.BoxGeometry(15, 48, 12), glassMat);
+  glassWing.position.set(11, 30, 1.5);
+  glassWing.castShadow = true;
+  g.add(glassWing);
+
+  // Couronne dorée panoramique + flèche sommitale
+  const crown = new THREE.Mesh(new THREE.CylinderGeometry(8.2, 8.2, 3.8, 20), goldMat);
+  crown.position.set(-5, 67.8, -1);
+  const crownRing = new THREE.Mesh(new THREE.CylinderGeometry(8.8, 8.8, 1.2, 20), warmGlass);
+  crownRing.position.set(-5, 67.5, -1);
+  const spire = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.45, 7, 8), goldMat);
+  spire.position.set(-5, 73, -1);
+  g.add(crown, crownRing, spire);
+
+  // Portique VIP d'entrée avant (z = d/2 .. d/2 + 2.6), 2 piliers à (±3.4, d/2 + 2.4) alignés sur hotelIvoireLocal
+  const doorGlass = new THREE.Mesh(new THREE.BoxGeometry(4.4, 3.8, 0.18), warmGlass);
+  doorGlass.position.set(0, 2.0, d / 2 + 0.08);
+  const canopy = new THREE.Mesh(new THREE.BoxGeometry(9.6, 0.42, 3.2), goldMat);
+  canopy.position.set(0, 4.4, d / 2 + 1.5);
+  canopy.castShadow = true;
+  g.add(doorGlass, canopy);
+
+  for (const px of [-3.4, 3.4]) {
+    const pillar = new THREE.Mesh(new THREE.BoxGeometry(0.44, 4.2, 0.44), travertineMat);
+    pillar.position.set(px, 2.1, d / 2 + 2.4);
+    pillar.castShadow = true;
+    g.add(pillar);
+  }
+
+  const signBoard = createLandmarkSignBoard('GRAND HOTEL IVOIRE', '#78350f', '#fef08a', 9.2, 1.65);
+  signBoard.position.set(0, 5.55, d / 2 + 0.12);
+  g.add(signBoard);
+  return g;
+}
+
+export function createPalaisCultureLandmark(w = 60, d = 40, h = 20): THREE.Group {
+  const g = new THREE.Group();
+  const wallMat = new THREE.MeshStandardMaterial({ color: 0xf5ebe0, roughness: 0.65 });
+  const terracotta = new THREE.MeshStandardMaterial({ color: 0xb91c1c, roughness: 0.55 });
+  const goldMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.35, metalness: 0.25 });
+  const glassMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, emissive: 0x0284c7, emissiveIntensity: 0.3, roughness: 0.2 });
+
+  const baseH = Math.max(12, h * 0.72);
+  const mainHall = new THREE.Mesh(new THREE.BoxGeometry(w, baseH, d), wallMat);
+  mainHall.position.y = baseH / 2;
+  mainHall.castShadow = true;
+  mainHall.receiveShadow = true;
+  g.add(mainHall);
+
+  const roofTrim = new THREE.Mesh(new THREE.BoxGeometry(w + 1.4, 0.9, d + 1.4), terracotta);
+  roofTrim.position.y = baseH + 0.45;
+  g.add(roofTrim);
+
+  // Coupole culturelle centrale
+  const dome = new THREE.Mesh(new THREE.CylinderGeometry(11, 15, 6.2, 16), terracotta);
+  dome.position.y = baseH + 3.6;
+  const domeCrown = new THREE.Mesh(new THREE.CylinderGeometry(3.2, 3.6, 1.4, 12), goldMat);
+  domeCrown.position.y = baseH + 7.2;
+  g.add(dome, domeCrown);
+
+  // Colonnes rythmant la façade avant
+  for (let cx = -w * 0.38; cx <= w * 0.38; cx += w * 0.19) {
+    if (Math.abs(cx) < 4.5) continue;
+    const rib = new THREE.Mesh(new THREE.BoxGeometry(1.1, baseH - 1, 0.6), terracotta);
+    rib.position.set(cx, baseH / 2, d / 2 + 0.25);
+    g.add(rib);
+  }
+
+  // Entrée principale + auvent + 2 piliers à (±3.6, d/2 + 2.4) alignés sur palaisCultureLocal
+  const doorGlass = new THREE.Mesh(new THREE.BoxGeometry(4.8, 3.8, 0.2), glassMat);
+  doorGlass.position.set(0, 2.0, d / 2 + 0.08);
+  const canopy = new THREE.Mesh(new THREE.BoxGeometry(10.2, 0.45, 3.2), terracotta);
+  canopy.position.set(0, 4.7, d / 2 + 1.5);
+  g.add(doorGlass, canopy);
+
+  for (const px of [-3.6, 3.6]) {
+    const pillar = new THREE.Mesh(new THREE.BoxGeometry(0.48, 4.6, 0.48), wallMat);
+    pillar.position.set(px, 2.3, d / 2 + 2.4);
+    pillar.castShadow = true;
+    g.add(pillar);
+  }
+
+  const signBoard = createLandmarkSignBoard('PALAIS DE LA CULTURE', '#7f1d1d', '#fef3c7', 10.5, 1.8);
+  signBoard.position.set(0, 6.2, d / 2 + 0.14);
+  g.add(signBoard);
+  return g;
+}
+
+export function createAeroportLandmark(w = 130, d = 44, h = 18): THREE.Group {
+  const g = new THREE.Group();
+  const bodyMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.45, metalness: 0.18 });
+  const roofMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.5, metalness: 0.22 });
+  const glassMat = new THREE.MeshStandardMaterial({ color: 0x0ea5e9, emissive: 0x0369a1, emissiveIntensity: 0.35, roughness: 0.16, metalness: 0.25 });
+  const orangeMat = new THREE.MeshStandardMaterial({ color: 0xf97316, roughness: 0.45 });
+
+  const termH = Math.max(11, h * 0.65);
+  const terminal = new THREE.Mesh(new THREE.BoxGeometry(w, termH, d), bodyMat);
+  terminal.position.y = termH / 2;
+  terminal.castShadow = true;
+  terminal.receiveShadow = true;
+  g.add(terminal);
+
+  // Longue baie vitrée aérogare + grand toit débordant
+  const facadeGlass = new THREE.Mesh(new THREE.BoxGeometry(w * 0.88, termH * 0.58, 0.2), glassMat);
+  facadeGlass.position.set(0, termH * 0.54, d / 2 + 0.08);
+  const wingRoof = new THREE.Mesh(new THREE.BoxGeometry(w + 4, 1.1, d + 3), roofMat);
+  wingRoof.position.y = termH + 0.55;
+  g.add(facadeGlass, wingRoof);
+
+  // Tour de contrôle aérienne (ATC) sur le toit à l'est
+  const atcShaft = new THREE.Mesh(new THREE.CylinderGeometry(3.2, 4.2, 20, 12), bodyMat);
+  atcShaft.position.set(w * 0.28, termH + 10, -d * 0.16);
+  const atcCab = new THREE.Mesh(new THREE.CylinderGeometry(5.6, 4.2, 3.8, 12), glassMat);
+  atcCab.position.set(w * 0.28, termH + 21.5, -d * 0.16);
+  const atcCap = new THREE.Mesh(new THREE.CylinderGeometry(5.9, 5.9, 0.7, 12), orangeMat);
+  atcCap.position.set(w * 0.28, termH + 23.8, -d * 0.16);
+  g.add(atcShaft, atcCab, atcCap);
+
+  // Dépose-minute avant : auvent + 2 piliers à (±4.0, d/2 + 2.4) alignés sur aeroportLocal
+  const doorGlass = new THREE.Mesh(new THREE.BoxGeometry(5.6, 3.8, 0.2), glassMat);
+  doorGlass.position.set(0, 2.0, d / 2 + 0.1);
+  const dropCanopy = new THREE.Mesh(new THREE.BoxGeometry(12.0, 0.45, 3.2), orangeMat);
+  dropCanopy.position.set(0, 4.6, d / 2 + 1.5);
+  g.add(doorGlass, dropCanopy);
+
+  for (const px of [-4.0, 4.0]) {
+    const pillar = new THREE.Mesh(new THREE.BoxGeometry(0.48, 4.5, 0.48), bodyMat);
+    pillar.position.set(px, 2.25, d / 2 + 2.4);
+    pillar.castShadow = true;
+    g.add(pillar);
+  }
+
+  const signBoard = createLandmarkSignBoard('AEROPORT FHB · ABIDJAN', '#0f172a', '#f8fafc', 12.5, 1.9);
+  signBoard.position.set(0, 6.2, d / 2 + 0.16);
+  g.add(signBoard);
   return g;
 }

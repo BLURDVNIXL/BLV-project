@@ -171,6 +171,45 @@ export function createCommissariatExterior(w: number, d: number, h: number, name
   return g;
 }
 
+// ───────────── Petit hôtel de quartier : extérieur ─────────────
+
+/** Façade +z. 2 piliers d'auvent à (±2,2 ; d/2 + 1,8) alignés sur `petitHotelLocal`. */
+export function createPetitHotelExterior(w: number, d: number, h: number, name: string): THREE.Group {
+  const g = new THREE.Group();
+  const wall = std(0xfef3c7, { rough: 0.72 });
+  const trim = std(0xb45309, { rough: 0.65 });
+  const roof = std(0x9a3412, { rough: 0.58 });
+  const glass = std(0x38bdf8, { rough: 0.2, metal: 0.12 });
+  const warmWin = std(0xfef08a, { emissive: 0xf59e0b, glow: 0.4, rough: 0.25 });
+
+  g.add(box(w, h, d, wall, 0, h / 2, 0));
+  g.add(box(w + 0.6, 0.42, d + 0.6, roof, 0, h + 0.21, 0));
+  g.add(box(w + 0.3, 0.45, d + 0.3, trim, 0, 0.225, 0, false));
+
+  // Fenêtres (2 niveaux sur les 4 faces)
+  for (const y of [h * 0.4, h * 0.74]) {
+    g.add(box(w * 0.72, 1.0, 0.08, y > h * 0.5 ? warmWin : glass, 0, y, d / 2 + 0.04, false));
+    g.add(box(w * 0.72, 1.0, 0.08, glass, 0, y, -d / 2 - 0.04, false));
+    g.add(box(0.08, 1.0, d * 0.64, glass, w / 2 + 0.04, y, 0, false));
+    g.add(box(0.08, 1.0, d * 0.64, glass, -w / 2 - 0.04, y, 0, false));
+  }
+  // Balconnet supérieur
+  g.add(box(w * 0.76, 0.2, 0.55, trim, 0, h * 0.6, d / 2 + 0.25, false));
+
+  // Entrée vitrée + auvent brique + 2 piliers alignés sur petitHotelLocal
+  g.add(box(2.5, 2.5, 0.12, warmWin, 0, 1.4, d / 2 + 0.06, false));
+  g.add(box(5.0, 0.26, 2.0, roof, 0, 3.25, d / 2 + 1.0));
+  for (const sx of [-2.2, 2.2]) {
+    g.add(box(0.32, 3.3, 0.32, trim, sx, 1.65, d / 2 + 1.8));
+  }
+
+  const shortLabel = name.replace(/^Hôtel\s+(de l’|de la|du|de|d’|d')?\s*/i, '').toUpperCase();
+  const board = sign(`HOTEL · ${shortLabel}`, '#78350f', '#fef08a', 6.4, 1.2, 0.48);
+  board.position.set(0, 4.3, d / 2 + 0.12);
+  g.add(board);
+  return g;
+}
+
 // ───────────── Intérieurs ─────────────
 
 export type InteriorFurnitureBuilder = (g: THREE.Group, def: InteriorDef) => ((nowSec: number, dt: number) => void) | void;
@@ -184,6 +223,14 @@ const FURNITURE_BUILDERS: Record<PublicInteriorId, InteriorFurnitureBuilder> = {
   lycee_alysma: buildLyceeAlysmaFurniture,
   lycee_alex: buildLyceeAlexFurniture,
   commissariat: buildCommissariatFurniture,
+  hotel_ivoire: buildHotelIvoireFurniture,
+  petit_hotel: buildPetitHotelFurniture,
+  boutique: buildBoutiqueFurniture,
+  superette: buildSuperetteFurniture,
+  coiffure: buildCoiffureFurniture,
+  cathedrale: buildCathedraleFurniture,
+  palais_culture: buildPalaisCultureFurniture,
+  aeroport: buildAeroportFurniture,
 };
 
 export interface InteriorRig {
@@ -480,7 +527,7 @@ function buildMairieFurniture(g: THREE.Group, def: InteriorDef): void {
   mairieBoard.position.set(0, 2.75, -def.halfD + 0.22);
   g.add(mairieBoard);
 
-  const tribuneBoard = sign('HOTEL DE VILLE', '#451a03', '#fef08a', 2.2, 0.48, 0.65);
+  const tribuneBoard = sign('SALLE DU CONSEIL', '#451a03', '#fef08a', 2.4, 0.48, 0.65);
   tribuneBoard.position.set(0, 0.62, -4.16);
   g.add(tribuneBoard);
 
@@ -757,4 +804,268 @@ function buildCommissariatFurniture(g: THREE.Group, def: InteriorDef): void {
   g.add(cellSign);
 
   g.add(box(3.1, 0.45, 0.9, slate, 7.4, 0.275, -5.6));
+}
+
+function buildHotelIvoireFurniture(g: THREE.Group, def: InteriorDef): void {
+  const marble = std(0xfaf7f0, { rough: 0.35 });
+  const gold = std(0xf59e0b, { emissive: 0xb45309, glow: 0.25, rough: 0.28, metal: 0.4 });
+  const mahogany = std(0x5c2c16, { rough: 0.6 });
+  const velvet = std(0x881337, { rough: 0.72 });
+  const linen = std(0xfefce8, { rough: 0.75 });
+  const warmGlow = std(0xfef08a, { emissive: 0xf59e0b, glow: 0.55 });
+
+  // Enseignes murales (y >= 1.5)
+  const mainSign = sign('GRAND HOTEL IVOIRE', '#78350f', '#fef08a', 5.2, 0.9, 0.65);
+  mainSign.position.set(0, 3.3, -def.halfD + 0.22);
+  g.add(mainSign);
+  const suiteSign = sign('SUITE VIP', '#881337', '#fef08a', 2.4, 0.48, 0.55);
+  suiteSign.position.set(-7.2, 2.8, -def.halfD + 0.22);
+  g.add(suiteSign);
+  const restoSign = sign('RESTAURANT', '#78350f', '#ffffff', 2.6, 0.48, 0.55);
+  restoSign.position.set(7.4, 2.8, -def.halfD + 0.22);
+  g.add(restoSign);
+
+  // Lustre central suspendu (y >= 3.3)
+  g.add(box(2.4, 0.2, 2.4, gold, 0, 3.9, 0, false));
+  g.add(box(1.8, 0.28, 1.8, warmGlow, 0, 3.65, 0, false));
+
+  // Réception marbre & or à l'ouest (-7.4, 2.6) hx=2.1, hz=0.75
+  g.add(box(4.1, 1.0, 1.4, mahogany, -7.4, 0.55, 2.6));
+  g.add(box(4.2, 0.14, 1.5, marble, -7.4, 1.12, 2.6));
+  const recSign = sign('RECEPTION', '#78350f', '#fef08a', 2.2, 0.46, 0.6);
+  recSign.position.set(-7.4, 0.62, 3.32);
+  g.add(recSign);
+
+  // Salon VIP (canapé + table basse) à l'est (7.4, 2.6) hx=1.8, hz=1.1
+  g.add(box(3.3, 0.42, 1.0, velvet, 7.4, 0.26, 3.1));
+  g.add(box(3.3, 0.42, 0.25, velvet, 7.4, 0.56, 3.48));
+  g.add(box(2.2, 0.42, 0.85, gold, 7.4, 0.26, 2.0));
+
+  // Lit king-size (-7.8, -5.4) hx=1.4, hz=1.15 + table de chevet (-10.2, -5.4) hx=0.45, hz=0.45
+  g.add(box(2.7, 0.36, 2.2, mahogany, -7.8, 0.23, -5.4));
+  g.add(box(2.5, 0.26, 2.0, linen, -7.8, 0.54, -5.4));
+  g.add(box(2.7, 0.55, 0.2, gold, -7.8, 0.65, -6.4));
+  g.add(box(0.85, 0.58, 0.85, mahogany, -10.2, 0.34, -5.4));
+  g.add(box(0.32, 0.25, 0.32, warmGlow, -10.2, 0.76, -5.4, false));
+
+  // Table gastronomique (7.6, -5.4) hx=1.5, hz=0.9 + buffet (10.6, -5.4) hx=0.5, hz=1.3
+  g.add(box(2.9, 0.14, 1.7, linen, 7.6, 0.78, -5.4));
+  g.add(box(1.8, 0.68, 1.1, mahogany, 7.6, 0.39, -5.4));
+  g.add(box(0.95, 1.05, 2.5, mahogany, 10.6, 0.57, -5.4));
+  g.add(box(0.95, 0.12, 2.5, gold, 10.6, 1.14, -5.4));
+
+  // Colonnes de marbre décoratives (±2.8, -5.8) hx=0.45, hz=0.45
+  for (const sx of [-2.8, 2.8]) {
+    g.add(box(0.88, 4.1, 0.88, marble, sx, 2.1, -5.8));
+    g.add(box(1.0, 0.24, 1.0, gold, sx, 4.1, -5.8, false));
+  }
+}
+
+function buildPetitHotelFurniture(g: THREE.Group, def: InteriorDef): void {
+  const wood = std(0x78350f, { rough: 0.65 });
+  const cream = std(0xfef3c7, { rough: 0.5 });
+  const cushion = std(0xb45309, { rough: 0.75 });
+  const linen = std(0xffffff, { rough: 0.72 });
+  const tile = std(0xbae6fd, { rough: 0.3 });
+  const chrome = std(0xcbd5e1, { metal: 0.4, rough: 0.3 });
+
+  const hSign = sign('ACCUEIL HOTEL', '#78350f', '#fef08a', 3.4, 0.68, 0.55);
+  hSign.position.set(0, 2.75, -def.halfD + 0.22);
+  g.add(hSign);
+
+  // Réception (-5.4, 2.4) hx=1.8, hz=0.65
+  g.add(box(3.5, 0.96, 1.25, wood, -5.4, 0.53, 2.4));
+  g.add(box(3.6, 0.12, 1.32, cream, -5.4, 1.07, 2.4));
+
+  // Salon d'attente (5.4, 2.4) hx=1.5, hz=0.85
+  g.add(box(2.9, 0.45, 0.9, cushion, 5.4, 0.275, 2.75));
+  g.add(box(2.9, 0.35, 0.22, cushion, 5.4, 0.6, 3.1));
+  g.add(box(2.2, 0.38, 0.65, wood, 5.4, 0.24, 1.9));
+
+  // Lit chambre (-5.6, -4.2) hx=1.15, hz=0.95 & armoire (-7.8, -4.8) hx=0.55, hz=0.95
+  g.add(box(2.25, 0.36, 1.85, wood, -5.6, 0.23, -4.2));
+  g.add(box(2.1, 0.24, 1.7, linen, -5.6, 0.52, -4.2));
+  g.add(box(1.05, 1.85, 1.85, wood, -7.8, 0.975, -4.8));
+
+  // Cabine de douche (6.2, -4.5) hx=0.95, hz=0.95 & lavabo (3.4, -5.3) hx=0.75, hz=0.5
+  g.add(box(1.85, 0.2, 1.85, linen, 6.2, 0.15, -4.5));
+  g.add(box(1.85, 1.85, 0.12, tile, 6.2, 1.15, -5.35));
+  g.add(box(0.12, 1.85, 1.85, tile, 7.05, 1.15, -4.5));
+  g.add(box(1.45, 0.85, 0.95, linen, 3.4, 0.475, -5.3));
+  g.add(box(1.0, 0.85, 0.08, chrome, 3.4, 1.95, -5.75, false));
+}
+
+function buildBoutiqueFurniture(g: THREE.Group, def: InteriorDef): void {
+  const counterMat = std(0x0284c7, { rough: 0.45 });
+  const shelfMat = std(0x92400e, { rough: 0.65 });
+  const fridgeMat = std(0xe0f2fe, { emissive: 0x38bdf8, glow: 0.35, rough: 0.2 });
+  const fridgeFrame = std(0xdc2626, { rough: 0.45 });
+  const packColors = [0xf59e0b, 0x16a34a, 0xef4444, 0x2563eb];
+
+  const bSign = sign('BOUTIQUE DE QUARTIER', '#0284c7', '#ffffff', 3.8, 0.7, 0.55);
+  bSign.position.set(0, 2.55, -def.halfD + 0.22);
+  g.add(bSign);
+
+  // Comptoir (-4.0, 2.2) hx=1.5, hz=0.65
+  g.add(box(2.95, 0.96, 1.25, counterMat, -4.0, 0.53, 2.2));
+  g.add(box(3.0, 0.1, 1.3, std(0xf8fafc, { rough: 0.4 }), -4.0, 1.06, 2.2));
+
+  // Deux rayons d'épicerie (-3.6, -2.4) et (3.6, -2.4) hx=1.6, hz=0.65
+  for (const sx of [-3.6, 3.6]) {
+    g.add(box(3.15, 1.8, 1.25, shelfMat, sx, 0.95, -2.4));
+    for (let k = 0; k < 4; k++) {
+      const m = std(packColors[k % packColors.length], { rough: 0.5 });
+      g.add(box(0.55, 0.35, 0.4, m, sx - 1.05 + k * 0.7, 1.95, -2.4, false));
+    }
+  }
+
+  // Frigo boissons (4.8, 1.8) hx=0.9, hz=0.65
+  g.add(box(1.75, 1.95, 1.25, fridgeFrame, 4.8, 1.025, 1.8));
+  g.add(box(1.4, 1.45, 0.08, fridgeMat, 4.8, 1.1, 1.15, false));
+}
+
+function buildSuperetteFurniture(g: THREE.Group, def: InteriorDef): void {
+  const metal = std(0xe2e8f0, { rough: 0.4, metal: 0.2 });
+  const green = std(0x16a34a, { rough: 0.45 });
+  const chiller = std(0xbae6fd, { emissive: 0x38bdf8, glow: 0.35, rough: 0.2 });
+  const items = [0xef4444, 0xf59e0b, 0x2563eb, 0x10b981];
+
+  const sSign = sign('SUPERETTE · RAYONS', '#16a34a', '#ffffff', 4.4, 0.75, 0.55);
+  sSign.position.set(0, 2.75, -def.halfD + 0.22);
+  g.add(sSign);
+
+  // Caisse (-5.8, 2.8) hx=2.0, hz=0.7
+  g.add(box(3.9, 0.98, 1.35, green, -5.8, 0.54, 2.8));
+  g.add(box(3.95, 0.1, 1.4, metal, -5.8, 1.08, 2.8));
+
+  // 3 gondoles (-4.2, -2.0), (0.4, -2.0), (5.0, -2.0) hx=0.7, hz=2.4
+  for (const gx of [-4.2, 0.4, 5.0]) {
+    g.add(box(1.35, 1.65, 4.7, metal, gx, 0.875, -2.0));
+    g.add(box(1.4, 0.14, 4.75, green, gx, 1.72, -2.0, false));
+    for (let j = 0; j < 4; j++) {
+      g.add(box(0.5, 0.35, 0.65, std(items[j % items.length], { rough: 0.5 }), gx, 1.9, -3.5 + j * 1.0, false));
+    }
+  }
+
+  // Vitrines réfrigérées mur est (8.6, -1.8) hx=0.65, hz=3.4
+  g.add(box(1.25, 2.05, 6.7, metal, 8.6, 1.075, -1.8));
+  g.add(box(0.08, 1.55, 6.2, chiller, 7.95, 1.15, -1.8, false));
+}
+
+function buildCoiffureFurniture(g: THREE.Group, def: InteriorDef): void {
+  const pink = std(0xec4899, { rough: 0.45 });
+  const dark = std(0x1e293b, { rough: 0.5 });
+  const chrome = std(0xe2e8f0, { metal: 0.5, rough: 0.25 });
+  const mirrorGlow = std(0xe0f2fe, { emissive: 0xbae6fd, glow: 0.45, rough: 0.15 });
+
+  const cSign = sign('SALON DE COIFFURE', '#be185d', '#ffffff', 3.8, 0.68, 0.55);
+  cSign.position.set(0, 2.65, -def.halfD + 0.22);
+  g.add(cSign);
+
+  // Accueil (-4.4, 2.2) hx=1.4, hz=0.65 & banquette (4.4, 2.2) hx=1.4, hz=0.6
+  g.add(box(2.75, 0.98, 1.25, pink, -4.4, 0.54, 2.2));
+  g.add(box(2.75, 0.6, 1.15, dark, 4.4, 0.35, 2.2));
+
+  // 3 postes de coiffure (-4.0, -3.4), (0, -3.4), (4.0, -3.4) hx=0.7, hz=0.7
+  for (const sx of [-4.0, 0, 4.0]) {
+    g.add(box(1.3, 0.95, 1.3, dark, sx, 0.525, -3.4));
+    g.add(box(0.95, 0.22, 0.95, pink, sx, 0.68, -3.3));
+    // Miroir mural au nord (y >= 1.5)
+    g.add(box(1.4, 1.25, 0.1, chrome, sx, 2.15, -def.halfD + 0.2, false));
+    g.add(box(1.22, 1.08, 0.12, mirrorGlow, sx, 2.15, -def.halfD + 0.22, false));
+  }
+}
+
+function buildCathedraleFurniture(g: THREE.Group, def: InteriorDef): void {
+  const stone = std(0xe7e5e4, { rough: 0.65 });
+  const wood = std(0x78350f, { rough: 0.62 });
+  const gold = std(0xfbbf24, { emissive: 0xd97706, glow: 0.38, rough: 0.3 });
+  const blueGlass = std(0x38bdf8, { emissive: 0x0284c7, glow: 0.5, rough: 0.2 });
+
+  const cSign = sign('CATHEDRALE SAINT-PAUL', '#0369a1', '#fef08a', 4.8, 0.82, 0.55);
+  cSign.position.set(0, 4.1, -def.halfD + 0.24);
+  g.add(cSign);
+
+  // Grande croix dorée sur le mur nord (min.y >= 1.8)
+  g.add(box(0.32, 2.1, 0.12, gold, 0, 2.95, -def.halfD + 0.24, false));
+  g.add(box(1.3, 0.3, 0.12, gold, 0, 3.3, -def.halfD + 0.24, false));
+
+  // Vitraux sur les murs latéraux (min.y >= 1.6, épaisseur <= 0.16)
+  for (const wx of [-def.halfW + 0.2, def.halfW - 0.2]) {
+    for (const wz of [-4.4, 0, 4.4]) {
+      g.add(box(0.12, 2.4, 1.4, blueGlass, wx, 2.9, wz, false));
+    }
+  }
+
+  // Autel (0, -5.8) hx=2.6, hz=1.1
+  g.add(box(5.1, 1.05, 2.1, stone, 0, 0.575, -5.8));
+  g.add(box(5.2, 0.12, 2.2, gold, 0, 1.12, -5.8, false));
+
+  // 6 bancs de bois (±5.6, -2.0 / 0.6 / 3.2) hx=2.8, hz=0.5
+  for (const bz of [-2.0, 0.6, 3.2]) {
+    for (const bx of [-5.6, 5.6]) {
+      g.add(box(5.5, 0.55, 0.95, wood, bx, 0.325, bz));
+      g.add(box(5.5, 0.35, 0.16, wood, bx, 0.72, bz + 0.36));
+    }
+  }
+}
+
+function buildPalaisCultureFurniture(g: THREE.Group, def: InteriorDef): void {
+  const red = std(0xb91c1c, { rough: 0.55 });
+  const wood = std(0x78350f, { rough: 0.62 });
+  const gold = std(0xf59e0b, { emissive: 0xd97706, glow: 0.3, rough: 0.32 });
+  const cream = std(0xfef3c7, { rough: 0.5 });
+
+  const pSign = sign('PALAIS DE LA CULTURE', '#7f1d1d', '#fef3c7', 5.0, 0.85, 0.55);
+  pSign.position.set(0, 3.6, -def.halfD + 0.24);
+  g.add(pSign);
+
+  // Scène de spectacle (0, -5.8) hx=5.0, hz=1.5
+  g.add(box(9.8, 0.82, 2.9, wood, 0, 0.46, -5.8));
+  g.add(box(9.9, 0.12, 3.0, red, 0, 0.92, -5.8, false));
+
+  // Socles d'œuvres (±8.2, -5.4) hx=0.7, hz=0.7
+  for (const sx of [-8.2, 8.2]) {
+    g.add(box(1.3, 1.1, 1.3, cream, sx, 0.6, -5.4));
+    g.add(box(0.65, 0.65, 0.65, gold, sx, 1.48, -5.4, false));
+  }
+
+  // Rangées de fauteuils rouges (±5.2, -0.6 / 1.8) hx=2.6, hz=0.65
+  for (const rz of [-0.6, 1.8]) {
+    for (const rx of [-5.2, 5.2]) {
+      g.add(box(5.1, 0.55, 1.25, red, rx, 0.325, rz));
+      g.add(box(5.1, 0.35, 0.2, red, rx, 0.72, rz + 0.5));
+    }
+  }
+}
+
+function buildAeroportFurniture(g: THREE.Group, def: InteriorDef): void {
+  const slate = std(0x1e293b, { rough: 0.45 });
+  const metal = std(0xcbd5e1, { metal: 0.45, rough: 0.3 });
+  const blue = std(0x0284c7, { rough: 0.45 });
+  const orange = std(0xf97316, { rough: 0.45 });
+  const screenMat = std(0x38bdf8, { emissive: 0x0ea5e9, glow: 0.55 });
+
+  const flightBoard = sign('AEROPORT FHB · VOLS ABJ', '#0f172a', '#fde047', 5.6, 0.95, 0.65);
+  flightBoard.position.set(0, 3.3, -def.halfD + 0.24);
+  g.add(flightBoard);
+
+  // 2 comptoirs d'enregistrement (±6.2, -5.2) hx=3.2, hz=0.8
+  for (const cx of [-6.2, 6.2]) {
+    g.add(box(6.3, 1.0, 1.5, blue, cx, 0.55, -5.2));
+    g.add(box(6.4, 0.12, 1.6, metal, cx, 1.11, -5.2));
+    g.add(box(0.8, 0.45, 0.08, screenMat, cx, 1.4, -5.3, false));
+  }
+
+  // Tapis bagages central (0, -1.4) hx=3.4, hz=1.0
+  g.add(box(6.7, 0.6, 1.95, slate, 0, 0.35, -1.4));
+  g.add(box(0.85, 0.45, 0.65, orange, -1.8, 0.87, -1.4, false));
+  g.add(box(0.75, 0.4, 0.6, blue, 0.4, 0.85, -1.4, false));
+  g.add(box(0.9, 0.45, 0.65, std(0x16a34a, { rough: 0.5 }), 2.0, 0.87, -1.4, false));
+
+  // Banquettes d'attente (±7.2, 2.2) hx=2.4, hz=0.65
+  for (const bx of [-7.2, 7.2]) {
+    g.add(box(4.75, 0.52, 1.25, metal, bx, 0.31, 2.2));
+    g.add(box(4.6, 0.12, 1.1, blue, bx, 0.62, 2.2, false));
+  }
 }

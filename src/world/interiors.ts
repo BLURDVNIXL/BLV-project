@@ -19,7 +19,15 @@ export type PublicInteriorId =
   | 'lycee_caiman'
   | 'lycee_alysma'
   | 'lycee_alex'
-  | 'commissariat';
+  | 'commissariat'
+  | 'hotel_ivoire'
+  | 'petit_hotel'
+  | 'boutique'
+  | 'superette'
+  | 'coiffure'
+  | 'cathedrale'
+  | 'palais_culture'
+  | 'aeroport';
 
 export type HouseInteriorId = 'house_floor_0' | 'house_floor_1';
 
@@ -612,6 +620,420 @@ export const COMMISSARIAT_INTERIOR: InteriorDef = {
   ],
 };
 
+
+/** Grand Hôtel Ivoire (Cocody) : hall marbre & or, salon VIP, suite présidentielle et table gastronomique. */
+export const HOTEL_IVOIRE_INTERIOR: InteriorDef = {
+  id: 'hotel_ivoire',
+  label: 'Grand Hôtel Ivoire',
+  origin: { x: 2440, z: 2960 },
+  halfW: 12,
+  halfD: 8,
+  wallH: 4.4,
+  doorWidth: 3.0,
+  theme: {
+    floorColor: 0xf8f4ec,
+    floorGlow: 0.22,
+    runnerColor: 0x881337,
+    runnerGlow: 0.22,
+    wallColor: 0xfefce8,
+    wallGlow: 0.3,
+    partitionColor: 0xb45309,
+    ceilingColor: 0xffffff,
+    ceilingGlow: 0.3,
+  },
+  boxes: [
+    { x: 0, z: -8, hx: 12, hz: W, h: 4.4, kind: 'wall' },
+    { x: -12, z: 0, hx: W, hz: 8, h: 4.4, kind: 'wall' },
+    { x: 12, z: 0, hx: W, hz: 8, h: 4.4, kind: 'wall' },
+    { x: -6.75, z: 8, hx: 5.25, hz: W, h: 4.4, kind: 'wall' },
+    { x: 6.75, z: 8, hx: 5.25, hz: W, h: 4.4, kind: 'wall' },
+    // Cloisons basses séparant le hall de la suite et du restaurant au nord
+    { x: -7.2, z: -1.6, hx: 3.6, hz: W, h: 1.2, kind: 'partition' },
+    { x: 7.2, z: -1.6, hx: 3.6, hz: W, h: 1.2, kind: 'partition' },
+    // Réception marbre & or à l'ouest
+    { x: -7.4, z: 2.6, hx: 2.1, hz: 0.75, h: 1.15, kind: 'prop' },
+    // Salon VIP (canapés & table basse) à l'est
+    { x: 7.4, z: 2.6, hx: 1.8, hz: 1.1, h: 0.75, kind: 'prop' },
+    // Lit king-size + table de chevet dans la suite nord-ouest
+    { x: -7.8, z: -5.4, hx: 1.4, hz: 1.15, h: 0.7, kind: 'prop' },
+    { x: -10.2, z: -5.4, hx: 0.45, hz: 0.45, h: 0.65, kind: 'prop' },
+    // Table gastronomique + buffet dans le coin nord-est
+    { x: 7.6, z: -5.4, hx: 1.5, hz: 0.9, h: 0.85, kind: 'prop' },
+    { x: 10.6, z: -5.4, hx: 0.5, hz: 1.3, h: 1.1, kind: 'prop' },
+    // Piliers de marbre décoratifs encadrant le grand escalier nord
+    { x: -2.8, z: -5.8, hx: 0.45, hz: 0.45, h: 4.2, kind: 'prop' },
+    { x: 2.8, z: -5.8, hx: 0.45, hz: 0.45, h: 4.2, kind: 'prop' },
+  ],
+  entry: { x: 0, z: 4.2, rotY: Math.PI },
+  exit: { x: 0, z: 6.7, radius: 1.6 },
+  actions: [
+    { id: 'hotel_ivoire_sleep', label: '🛏️ Se reposer · Suite Hôtel Ivoire', x: -7.8, z: -3.2, radius: 2.1, type: 'sleep', color: 0xf59e0b },
+    { id: 'hotel_ivoire_eat', label: '🍽️ Dîner · Restaurant Ivoire', x: 7.6, z: -3.2, radius: 2.1, type: 'eat', color: 0xef4444 },
+  ],
+  npcs: [
+    still('agent_mairie', 9101, -7.4, 1.1, 0),
+    still('serveur_maquis', 9102, 7.6, -6.9, 0),
+    walk('client', 9103, [[-2.6, 1.4], [2.6, 1.4], [2.6, -2.6], [-2.6, -2.6]]),
+    walk('passant', 9104, [[-4.0, 4.6], [4.0, 4.6]]),
+    still('client', 9105, -4.4, 2.6, -H),
+    still('client', 9106, 4.8, 2.6, H),
+    talk('client', 9107, -4.4, -0.4, H),
+    talk('client', 9108, -3.5, -0.4, -H),
+  ],
+};
+
+/** Petit hôtel de quartier : accueil chaleureux, salon d'attente, chambre confortable et salle d'eau. */
+export const PETIT_HOTEL_INTERIOR: InteriorDef = {
+  id: 'petit_hotel',
+  label: 'Hôtel de Quartier',
+  origin: { x: 2380, z: 2960 },
+  halfW: 9,
+  halfD: 6.5,
+  wallH: 3.6,
+  doorWidth: 2.4,
+  theme: {
+    floorColor: 0xf5efe6,
+    floorGlow: 0.18,
+    runnerColor: 0xb45309,
+    runnerGlow: 0.2,
+    wallColor: 0xfef3c7,
+    wallGlow: 0.28,
+    partitionColor: 0x92400e,
+    ceilingColor: 0xffffff,
+    ceilingGlow: 0.24,
+  },
+  boxes: [
+    { x: 0, z: -6.5, hx: 9, hz: W, h: 3.6, kind: 'wall' },
+    { x: -9, z: 0, hx: W, hz: 6.5, h: 3.6, kind: 'wall' },
+    { x: 9, z: 0, hx: W, hz: 6.5, h: 3.6, kind: 'wall' },
+    { x: -5.1, z: 6.5, hx: 3.9, hz: W, h: 3.6, kind: 'wall' },
+    { x: 5.1, z: 6.5, hx: 3.9, hz: W, h: 3.6, kind: 'wall' },
+    // Cloison basse accueil / chambres
+    { x: -4.8, z: -1.0, hx: 3.2, hz: W, h: 1.15, kind: 'partition' },
+    { x: 4.8, z: -1.0, hx: 3.2, hz: W, h: 1.15, kind: 'partition' },
+    // Réception à l'ouest
+    { x: -5.4, z: 2.4, hx: 1.8, hz: 0.65, h: 1.08, kind: 'prop' },
+    // Salon d'attente à l'est
+    { x: 5.4, z: 2.4, hx: 1.5, hz: 0.85, h: 0.72, kind: 'prop' },
+    // Chambre au nord-ouest : lit + armoire
+    { x: -5.6, z: -4.2, hx: 1.15, hz: 0.95, h: 0.65, kind: 'prop' },
+    { x: -7.8, z: -4.8, hx: 0.55, hz: 0.95, h: 1.9, kind: 'prop' },
+    // Salle d'eau au nord-est : cabine de douche + lavabo
+    { x: 6.2, z: -4.5, hx: 0.95, hz: 0.95, h: 2.1, kind: 'prop' },
+    { x: 3.4, z: -5.3, hx: 0.75, hz: 0.5, h: 0.9, kind: 'prop' },
+  ],
+  entry: { x: 0, z: 3.2, rotY: Math.PI },
+  exit: { x: 0, z: 5.2, radius: 1.6 },
+  actions: [
+    { id: 'petit_hotel_sleep', label: '🛏️ Prendre une chambre (Repos)', x: -5.2, z: -2.4, radius: 1.9, type: 'sleep', color: 0x6366f1 },
+    { id: 'petit_hotel_shower', label: '🚿 Douche de l’Hôtel', x: 5.8, z: -2.6, radius: 1.9, type: 'shower', color: 0x0ea5e9 },
+  ],
+  npcs: [
+    still('vendeur', 9201, -5.4, 1.0, 0),
+    walk('client', 9202, [[-1.0, 0.8], [1.0, 0.8], [1.0, -2.8], [-1.0, -2.8]]),
+    still('client', 9203, -2.8, 2.4, -H),
+    still('client', 9204, 3.1, 2.4, H),
+    talk('passant', 9205, 3.6, 4.4, H),
+    talk('passant', 9206, 4.5, 4.4, -H),
+    walk('vendeur', 9207, [[-2.4, 4.2], [-2.4, 0.2]]),
+  ],
+};
+
+/** Boutique de quartier : comptoir, frigo à boissons et rayons d'épicerie colorés. */
+export const BOUTIQUE_INTERIOR: InteriorDef = {
+  id: 'boutique',
+  label: 'Boutique de Quartier',
+  origin: { x: 2320, z: 2960 },
+  halfW: 7,
+  halfD: 5.5,
+  wallH: 3.3,
+  doorWidth: 2.2,
+  theme: {
+    floorColor: 0xe2e8f0,
+    floorGlow: 0.16,
+    runnerColor: 0x0284c7,
+    runnerGlow: 0.18,
+    wallColor: 0xf8fafc,
+    wallGlow: 0.28,
+    ceilingColor: 0xffffff,
+    ceilingGlow: 0.24,
+  },
+  boxes: [
+    { x: 0, z: -5.5, hx: 7, hz: W, h: 3.3, kind: 'wall' },
+    { x: -7, z: 0, hx: W, hz: 5.5, h: 3.3, kind: 'wall' },
+    { x: 7, z: 0, hx: W, hz: 5.5, h: 3.3, kind: 'wall' },
+    { x: -4.05, z: 5.5, hx: 2.95, hz: W, h: 3.3, kind: 'wall' },
+    { x: 4.05, z: 5.5, hx: 2.95, hz: W, h: 3.3, kind: 'wall' },
+    // Comptoir caisse à l'ouest
+    { x: -4.0, z: 2.2, hx: 1.5, hz: 0.65, h: 1.05, kind: 'prop' },
+    // Deux rayons d'épicerie au nord
+    { x: -3.6, z: -2.4, hx: 1.6, hz: 0.65, h: 1.9, kind: 'prop' },
+    { x: 3.6, z: -2.4, hx: 1.6, hz: 0.65, h: 1.9, kind: 'prop' },
+    // Frigo boissons fraîches à l'est
+    { x: 4.8, z: 1.8, hx: 0.9, hz: 0.65, h: 2.0, kind: 'prop' },
+  ],
+  entry: { x: 0, z: 2.4, rotY: Math.PI },
+  exit: { x: 0, z: 4.3, radius: 1.5 },
+  actions: [
+    { id: 'boutique_eat', label: '🥤 Acheter boisson & pain-brochette', x: -3.2, z: 0.6, radius: 2.0, type: 'eat', color: 0x0ea5e9 },
+  ],
+  npcs: [
+    still('vendeur', 9301, -4.0, 0.9, 0),
+    still('client', 9302, -1.6, 2.2, -H),
+    walk('client', 9303, [[0.8, -0.4], [0.8, -3.9], [5.9, -3.9], [5.9, -0.4]]),
+    talk('client', 9304, 3.0, 2.2, H),
+    talk('client', 9305, 2.1, 2.2, -H),
+    still('client', 9306, -3.6, -4.1, 0),
+    still('client', 9307, 3.6, -4.1, 0),
+  ],
+};
+
+/** Supérette moderne : allées de gondoles, murs réfrigérés et double caisse. */
+export const SUPERETTE_INTERIOR: InteriorDef = {
+  id: 'superette',
+  label: 'Supérette',
+  origin: { x: 2260, z: 2960 },
+  halfW: 10,
+  halfD: 7,
+  wallH: 3.6,
+  doorWidth: 2.6,
+  theme: {
+    floorColor: 0xf1f5f9,
+    floorGlow: 0.2,
+    runnerColor: 0x16a34a,
+    runnerGlow: 0.2,
+    wallColor: 0xffffff,
+    wallGlow: 0.3,
+    ceilingColor: 0xffffff,
+    ceilingGlow: 0.28,
+  },
+  boxes: [
+    { x: 0, z: -7, hx: 10, hz: W, h: 3.6, kind: 'wall' },
+    { x: -10, z: 0, hx: W, hz: 7, h: 3.6, kind: 'wall' },
+    { x: 10, z: 0, hx: W, hz: 7, h: 3.6, kind: 'wall' },
+    { x: -5.65, z: 7, hx: 4.35, hz: W, h: 3.6, kind: 'wall' },
+    { x: 5.65, z: 7, hx: 4.35, hz: W, h: 3.6, kind: 'wall' },
+    // Caisse d'entrée à l'ouest
+    { x: -5.8, z: 2.8, hx: 2.0, hz: 0.7, h: 1.05, kind: 'prop' },
+    // 3 gondoles centrales bien espacées
+    { x: -4.2, z: -2.0, hx: 0.7, hz: 2.4, h: 1.7, kind: 'prop' },
+    { x: 0.4, z: -2.0, hx: 0.7, hz: 2.4, h: 1.7, kind: 'prop' },
+    { x: 5.0, z: -2.0, hx: 0.7, hz: 2.4, h: 1.7, kind: 'prop' },
+    // Vitrines réfrigérées sur le mur est
+    { x: 8.6, z: -1.8, hx: 0.65, hz: 3.4, h: 2.1, kind: 'prop' },
+  ],
+  entry: { x: 0, z: 3.6, rotY: Math.PI },
+  exit: { x: 0, z: 5.7, radius: 1.6 },
+  actions: [
+    { id: 'superette_eat', label: '🛒 Faire ses courses à la Supérette', x: -3.2, z: 2.2, radius: 2.1, type: 'eat', color: 0x16a34a },
+  ],
+  npcs: [
+    still('vendeur', 9401, -5.8, 1.4, 0),
+    walk('client', 9402, [[-1.9, 1.2], [-1.9, -5.2], [2.7, -5.2], [2.7, 1.2]]),
+    walk('client', 9403, [[7.0, -5.0], [7.0, 2.0]]),
+    still('client', 9404, -3.0, 2.8, -H),
+    still('client', 9405, 4.2, 3.0, H),
+    talk('client', 9406, 5.1, 3.0, -H),
+    still('client', 9407, -7.2, -2.0, H),
+    still('vendeur', 9408, 2.6, -5.5, 0),
+  ],
+};
+
+/** Salon de Coiffure : fauteuils à miroirs, comptoir d'accueil et banquette. */
+export const COIFFURE_INTERIOR: InteriorDef = {
+  id: 'coiffure',
+  label: 'Salon de Coiffure',
+  origin: { x: 2200, z: 2960 },
+  halfW: 7,
+  halfD: 5.5,
+  wallH: 3.3,
+  doorWidth: 2.2,
+  theme: {
+    floorColor: 0xfaf5ff,
+    floorGlow: 0.18,
+    runnerColor: 0xec4899,
+    runnerGlow: 0.22,
+    wallColor: 0xfff1f2,
+    wallGlow: 0.28,
+    ceilingColor: 0xffffff,
+    ceilingGlow: 0.24,
+  },
+  boxes: [
+    { x: 0, z: -5.5, hx: 7, hz: W, h: 3.3, kind: 'wall' },
+    { x: -7, z: 0, hx: W, hz: 5.5, h: 3.3, kind: 'wall' },
+    { x: 7, z: 0, hx: W, hz: 5.5, h: 3.3, kind: 'wall' },
+    { x: -4.05, z: 5.5, hx: 2.95, hz: W, h: 3.3, kind: 'wall' },
+    { x: 4.05, z: 5.5, hx: 2.95, hz: W, h: 3.3, kind: 'wall' },
+    // Accueil & banquette d'attente au sud
+    { x: -4.4, z: 2.2, hx: 1.4, hz: 0.65, h: 1.05, kind: 'prop' },
+    { x: 4.4, z: 2.2, hx: 1.4, hz: 0.6, h: 0.65, kind: 'prop' },
+    // 3 postes de coiffure (fauteuils + tablettes miroirs) au nord
+    { x: -4.0, z: -3.4, hx: 0.7, hz: 0.7, h: 1.0, kind: 'prop' },
+    { x: 0, z: -3.4, hx: 0.7, hz: 0.7, h: 1.0, kind: 'prop' },
+    { x: 4.0, z: -3.4, hx: 0.7, hz: 0.7, h: 1.0, kind: 'prop' },
+  ],
+  entry: { x: 0, z: 2.2, rotY: Math.PI },
+  exit: { x: 0, z: 4.3, radius: 1.5 },
+  actions: [
+    { id: 'coiffure_fresh', label: '💈 Coupe & Rafraîchissement (Hygiène)', x: 0, z: -1.4, radius: 2.0, type: 'shower', color: 0xec4899 },
+  ],
+  npcs: [
+    still('vendeur', 9501, -4.4, 0.9, 0),
+    still('vendeur', 9502, -4.0, -4.6, 0),
+    still('vendeur', 9503, 4.0, -4.6, 0),
+    still('client', 9504, 2.2, 2.2, H),
+    talk('client', 9505, -2.0, 0.6, H),
+    talk('client', 9506, -1.1, 0.6, -H),
+    walk('client', 9507, [[2.0, -1.2], [5.4, -1.2]]),
+  ],
+};
+
+/** Cathédrale Saint-Paul : nef monumentale, vitraux bleus, bancs de bois et autel doré. */
+export const CATHEDRALE_INTERIOR: InteriorDef = {
+  id: 'cathedrale',
+  label: 'Cathédrale Saint-Paul',
+  origin: { x: 2140, z: 2960 },
+  halfW: 11,
+  halfD: 8,
+  wallH: 5.2,
+  doorWidth: 2.8,
+  theme: {
+    floorColor: 0xe7e5e4,
+    floorGlow: 0.16,
+    runnerColor: 0x0369a1,
+    runnerGlow: 0.2,
+    wallColor: 0xf5f5f4,
+    wallGlow: 0.26,
+    ceilingColor: 0xe0f2fe,
+    ceilingGlow: 0.22,
+  },
+  boxes: [
+    { x: 0, z: -8, hx: 11, hz: W, h: 5.2, kind: 'wall' },
+    { x: -11, z: 0, hx: W, hz: 8, h: 5.2, kind: 'wall' },
+    { x: 11, z: 0, hx: W, hz: 8, h: 5.2, kind: 'wall' },
+    { x: -6.2, z: 8, hx: 4.8, hz: W, h: 5.2, kind: 'wall' },
+    { x: 6.2, z: 8, hx: 4.8, hz: W, h: 5.2, kind: 'wall' },
+    // Autel au nord
+    { x: 0, z: -5.8, hx: 2.6, hz: 1.1, h: 1.1, kind: 'prop' },
+    // 4 rangées de bancs à l'ouest et à l'est (allée centrale libre)
+    { x: -5.6, z: -2.0, hx: 2.8, hz: 0.5, h: 0.85, kind: 'prop' },
+    { x: 5.6, z: -2.0, hx: 2.8, hz: 0.5, h: 0.85, kind: 'prop' },
+    { x: -5.6, z: 0.6, hx: 2.8, hz: 0.5, h: 0.85, kind: 'prop' },
+    { x: 5.6, z: 0.6, hx: 2.8, hz: 0.5, h: 0.85, kind: 'prop' },
+    { x: -5.6, z: 3.2, hx: 2.8, hz: 0.5, h: 0.85, kind: 'prop' },
+    { x: 5.6, z: 3.2, hx: 2.8, hz: 0.5, h: 0.85, kind: 'prop' },
+  ],
+  entry: { x: 0, z: 4.2, rotY: Math.PI },
+  exit: { x: 0, z: 6.7, radius: 1.6 },
+  npcs: [
+    still('agent_mairie', 9601, 0, -4.1, 0),
+    walk('passant', 9602, [[-1.6, -2.8], [1.6, -2.8], [1.6, 2.2], [-1.6, 2.2]]),
+    still('passant', 9603, -5.6, -0.8, 0),
+    still('passant', 9604, 5.6, -0.8, 0),
+    still('passant', 9605, -5.6, 1.8, 0),
+    still('passant', 9606, 5.6, 1.8, 0),
+    talk('passant', 9607, -9.2, 4.8, H),
+    talk('passant', 9608, -8.3, 4.8, -H),
+  ],
+};
+
+/** Palais de la Culture (Treichville) : grande scène culturelle, galerie d'art et gradins. */
+export const PALAIS_CULTURE_INTERIOR: InteriorDef = {
+  id: 'palais_culture',
+  label: 'Palais de la Culture',
+  origin: { x: 2080, z: 2960 },
+  halfW: 11,
+  halfD: 8,
+  wallH: 4.6,
+  doorWidth: 2.8,
+  theme: {
+    floorColor: 0xfef3c7,
+    floorGlow: 0.18,
+    runnerColor: 0xb91c1c,
+    runnerGlow: 0.22,
+    wallColor: 0xfaf5f0,
+    wallGlow: 0.26,
+    ceilingColor: 0xfffbeb,
+    ceilingGlow: 0.24,
+  },
+  boxes: [
+    { x: 0, z: -8, hx: 11, hz: W, h: 4.6, kind: 'wall' },
+    { x: -11, z: 0, hx: W, hz: 8, h: 4.6, kind: 'wall' },
+    { x: 11, z: 0, hx: W, hz: 8, h: 4.6, kind: 'wall' },
+    { x: -6.2, z: 8, hx: 4.8, hz: W, h: 4.6, kind: 'wall' },
+    { x: 6.2, z: 8, hx: 4.8, hz: W, h: 4.6, kind: 'wall' },
+    // Scène de spectacle au nord + socles d'œuvres
+    { x: 0, z: -5.8, hx: 5.0, hz: 1.5, h: 0.9, kind: 'prop' },
+    { x: -8.2, z: -5.4, hx: 0.7, hz: 0.7, h: 1.3, kind: 'prop' },
+    { x: 8.2, z: -5.4, hx: 0.7, hz: 0.7, h: 1.3, kind: 'prop' },
+    // Rangées de fauteuils rouges
+    { x: -5.2, z: -0.6, hx: 2.6, hz: 0.65, h: 0.85, kind: 'prop' },
+    { x: 5.2, z: -0.6, hx: 2.6, hz: 0.65, h: 0.85, kind: 'prop' },
+    { x: -5.2, z: 1.8, hx: 2.6, hz: 0.65, h: 0.85, kind: 'prop' },
+    { x: 5.2, z: 1.8, hx: 2.6, hz: 0.65, h: 0.85, kind: 'prop' },
+  ],
+  entry: { x: 0, z: 4.2, rotY: Math.PI },
+  exit: { x: 0, z: 6.7, radius: 1.6 },
+  npcs: [
+    still('agent_mairie', 9701, 0, -3.5, 0),
+    walk('passant', 9702, [[-1.6, -2.6], [1.6, -2.6], [1.6, 2.8], [-1.6, 2.8]]),
+    still('client', 9703, -5.2, 0.7, Math.PI),
+    still('client', 9704, 5.2, 0.7, Math.PI),
+    still('client', 9705, -5.2, 3.1, Math.PI),
+    still('client', 9706, 5.2, 3.1, Math.PI),
+    talk('passant', 9707, -9.2, 4.2, H),
+    talk('passant', 9708, -8.3, 4.2, -H),
+  ],
+};
+
+/** Aéroport Félix Houphouët-Boigny : comptoirs d'enregistrement, tapis bagages et salle d'embarquement. */
+export const AEROPORT_INTERIOR: InteriorDef = {
+  id: 'aeroport',
+  label: 'Aéroport FHB',
+  origin: { x: 2020, z: 2960 },
+  halfW: 12,
+  halfD: 8,
+  wallH: 4.4,
+  doorWidth: 3.0,
+  theme: {
+    floorColor: 0xe2e8f0,
+    floorGlow: 0.2,
+    runnerColor: 0x0284c7,
+    runnerGlow: 0.22,
+    wallColor: 0xf8fafc,
+    wallGlow: 0.3,
+    ceilingColor: 0xffffff,
+    ceilingGlow: 0.28,
+  },
+  boxes: [
+    { x: 0, z: -8, hx: 12, hz: W, h: 4.4, kind: 'wall' },
+    { x: -12, z: 0, hx: W, hz: 8, h: 4.4, kind: 'wall' },
+    { x: 12, z: 0, hx: W, hz: 8, h: 4.4, kind: 'wall' },
+    { x: -6.75, z: 8, hx: 5.25, hz: W, h: 4.4, kind: 'wall' },
+    { x: 6.75, z: 8, hx: 5.25, hz: W, h: 4.4, kind: 'wall' },
+    // Comptoirs d'enregistrement au nord
+    { x: -6.2, z: -5.2, hx: 3.2, hz: 0.8, h: 1.15, kind: 'prop' },
+    { x: 6.2, z: -5.2, hx: 3.2, hz: 0.8, h: 1.15, kind: 'prop' },
+    // Tapis bagages central
+    { x: 0, z: -1.4, hx: 3.4, hz: 1.0, h: 0.65, kind: 'prop' },
+    // Banquettes d'attente à l'ouest et à l'est
+    { x: -7.2, z: 2.2, hx: 2.4, hz: 0.65, h: 0.65, kind: 'prop' },
+    { x: 7.2, z: 2.2, hx: 2.4, hz: 0.65, h: 0.65, kind: 'prop' },
+  ],
+  entry: { x: 0, z: 4.2, rotY: Math.PI },
+  exit: { x: 0, z: 6.7, radius: 1.6 },
+  npcs: [
+    still('agent_mairie', 9801, -6.2, -6.5, 0),
+    still('agent_mairie', 9802, 6.2, -6.5, 0),
+    walk('passant', 9803, [[-4.8, 0.4], [4.8, 0.4], [4.8, -3.2], [-4.8, -3.2]]),
+    walk('client', 9804, [[-8.6, 4.4], [8.6, 4.4]]),
+    still('client', 9805, -7.2, 3.6, Math.PI),
+    still('client', 9806, 7.2, 3.6, Math.PI),
+    talk('passant', 9807, -3.0, -3.8, H),
+    talk('passant', 9808, -2.1, -3.8, -H),
+  ],
+};
+
 export const INTERIORS: Record<PublicInteriorId, InteriorDef> = {
   hopital: HOSPITAL_INTERIOR,
   maquis: MAQUIS_INTERIOR,
@@ -621,6 +1043,14 @@ export const INTERIORS: Record<PublicInteriorId, InteriorDef> = {
   lycee_alysma: LYCEE_ALYSMA_INTERIOR,
   lycee_alex: LYCEE_ALEX_INTERIOR,
   commissariat: COMMISSARIAT_INTERIOR,
+  hotel_ivoire: HOTEL_IVOIRE_INTERIOR,
+  petit_hotel: PETIT_HOTEL_INTERIOR,
+  boutique: BOUTIQUE_INTERIOR,
+  superette: SUPERETTE_INTERIOR,
+  coiffure: COIFFURE_INTERIOR,
+  cathedrale: CATHEDRALE_INTERIOR,
+  palais_culture: PALAIS_CULTURE_INTERIOR,
+  aeroport: AEROPORT_INTERIOR,
 };
 
 export const interiorToWorld = (def: InteriorDef, lx: number, lz: number): { x: number; z: number } =>

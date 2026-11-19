@@ -18,11 +18,12 @@ import {
   FoodVendorDecor,
   SignDecor,
   SignKind,
+  StreetVenueDecor,
   VILLA_WALLED_DISTRICTS,
   collectChunkDecor,
 } from './chunkDecor';
 import { isHospitalId } from './hospitals';
-import { isCommissariatId, isMairieId } from './civicSites';
+import { isCommissariatId, isMairieId, isPetitHotelId } from './civicSites';
 import { districtAt, isWater } from './abidjanGeography';
 import { roadAt } from './roads';
 import { hash32 } from './rng';
@@ -1039,6 +1040,7 @@ function renderDecorPlan(
 export interface ChunkObjects {
   group: THREE.Group;
   solids: ChunkSolid[];
+  venues: StreetVenueDecor[];
   dispose(): void;
 }
 
@@ -1078,7 +1080,7 @@ export function buildChunkObjects(
 
   const HERO_LANDMARKS = new Set([
     'port_collider', 'stade', 'cathedrale', 'hotel_ivoire', 'lycee_caiman', 'lycee_alysma',
-    'lycee_alex', 'marche_adjame', 'port', 'maquis', 'mairie',
+    'lycee_alex', 'marche_adjame', 'port', 'maquis', 'mairie', 'palais_culture', 'aeroport',
   ]);
   const facade = new Buf();
   const plain = new Buf();
@@ -1088,7 +1090,7 @@ export function buildChunkObjects(
   const signs = new Buf();
 
   data.buildings.forEach((b, i) => {
-    if (b.landmark && (HERO_LANDMARKS.has(b.landmark) || isHospitalId(b.landmark) || isMairieId(b.landmark) || isCommissariatId(b.landmark))) return;
+    if (b.landmark && (HERO_LANDMARKS.has(b.landmark) || isHospitalId(b.landmark) || isMairieId(b.landmark) || isCommissariatId(b.landmark) || isPetitHotelId(b.landmark))) return;
     addBuilding(facade, plain, tb, lamps, b, i);
   });
 
@@ -1147,5 +1149,5 @@ export function buildChunkObjects(
     disposables.push(wpg);
   }
 
-  return { group, solids: decorPlan.solids, dispose: () => disposables.forEach((d) => d.dispose()) };
+  return { group, solids: decorPlan.solids, venues: decorPlan.venues, dispose: () => disposables.forEach((d) => d.dispose()) };
 }

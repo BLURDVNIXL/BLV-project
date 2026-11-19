@@ -12,7 +12,7 @@
  * (|x| < 8,5 m) restent libres.
  */
 
-export type ExteriorSolidId = 'marche_adjame' | 'maquis' | 'lycee' | 'hopital' | 'mairie' | 'commissariat' | 'pyramide' | 'postel';
+export type ExteriorSolidId = 'marche_adjame' | 'maquis' | 'lycee' | 'hopital' | 'mairie' | 'commissariat' | 'hotel_ivoire' | 'petit_hotel' | 'palais_culture' | 'aeroport' | 'pyramide' | 'postel';
 
 /** Solide en coordonnées MONDE, prêt pour `addBox` / `addCircle` (angle de boîte = −rotation.y de Three.js). */
 export type ExteriorSolid =
@@ -118,6 +118,25 @@ function commissariatLocal(d: number): LocalSolid[] {
   ];
 }
 
+
+// ───────────── Grand Hôtel Ivoire, Petits Hôtels, Palais de la Culture & Aéroport ─────────────
+
+function hotelIvoireLocal(d: number): LocalSolid[] {
+  return [-3.4, 3.4].map((px): LocalSolid => ({ shape: 'box', x: px, z: d / 2 + 2.4, hx: 0.22, hz: 0.22, rotY: 0, h: 4.2 }));
+}
+
+function petitHotelLocal(d: number): LocalSolid[] {
+  return [-2.2, 2.2].map((px): LocalSolid => ({ shape: 'box', x: px, z: d / 2 + 1.8, hx: 0.16, hz: 0.16, rotY: 0, h: 3.3 }));
+}
+
+function palaisCultureLocal(d: number): LocalSolid[] {
+  return [-3.6, 3.6].map((px): LocalSolid => ({ shape: 'box', x: px, z: d / 2 + 2.4, hx: 0.24, hz: 0.24, rotY: 0, h: 4.6 }));
+}
+
+function aeroportLocal(d: number): LocalSolid[] {
+  return [-4.0, 4.0].map((px): LocalSolid => ({ shape: 'box', x: px, z: d / 2 + 2.4, hx: 0.24, hz: 0.24, rotY: 0, h: 4.5 }));
+}
+
 // ───────────── Repères hors `SPECIALS` ─────────────
 
 /** Pyramide : soubassement 16 × 16 × 4 (les gradins sont au-dessus). */
@@ -143,6 +162,10 @@ export function exteriorSolidsFor(id: ExteriorSolidId, cx: number, cz: number, r
     case 'hopital': local = hopitalLocal(d); break;
     case 'mairie': local = mairieLocal(); break;
     case 'commissariat': local = commissariatLocal(d); break;
+    case 'hotel_ivoire': local = hotelIvoireLocal(d); break;
+    case 'petit_hotel': local = petitHotelLocal(d); break;
+    case 'palais_culture': local = palaisCultureLocal(d); break;
+    case 'aeroport': local = aeroportLocal(d); break;
     case 'pyramide': local = pyramideLocal(); break;
     case 'postel': local = postelLocal(); break;
   }
