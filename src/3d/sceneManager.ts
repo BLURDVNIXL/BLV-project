@@ -502,8 +502,8 @@ export class AbidjanSceneManager {
     this.buildStaticHeroLandmarks();
     this.buildStaticHotspotsAndPickups();
 
-    this.npcSystem = new NpcSystem(this.scene, this.isSoftwareGl ? NPC_POOL_SIZE_LOW : NPC_POOL_SIZE);
-    this.animalSystem = new AnimalSystem(this.scene, this.isSoftwareGl);
+    this.npcSystem = new NpcSystem(this.scene, lowEnd ? NPC_POOL_SIZE_LOW : NPC_POOL_SIZE);
+    this.animalSystem = new AnimalSystem(this.scene, lowEnd);
     this.weatherFx = new WeatherFxSystem(this.scene, this.isSoftwareGl);
     this.waterTraffic = new WaterTrafficSystem(this.scene, this.isSoftwareGl);
     this.streetAnim = new StreetAnimSystem(this.scene, this.isSoftwareGl);
