@@ -40,6 +40,7 @@ import {
   PlayerState,
   SapeOutfitId,
 } from './src/types/game';
+import { normalizeSessionState } from './src/core/sessionValidation';
 
 const PORT = 3000;
 const EPHEMERAL_DEV_ADMIN_CODE = crypto.randomBytes(8).toString('hex').toUpperCase();
@@ -94,17 +95,37 @@ function signSessionToken(playerId: string): string {
   return `${payload}.${sig}`;
 }
 
+function readBearerToken(header: string | undefined): string | undefined {
+  const match = /^Bearer\s+([A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)$/i.exec(header?.trim() ?? '');
+  return match?.[1];
+}
+
 function verifySessionToken(playerId: string, token: string | undefined): boolean {
-  if (!token || !token.includes('.')) return false;
-  const [payload, sig] = token.split('.');
-  const expected = crypto.createHmac('sha256', TOKEN_SIGNING_KEY).update(payload).digest('base64url');
-  if (!timingSafeMatch(sig, expected)) return false;
+  if (typeof token !== 'string') return false;
+  const parts = token.split('.');
+  if (parts.length !== 2 || !parts[0] || !parts[1]) return false;
+
+  const [payload, sig] = parts;
   try {
+    const expected = crypto.createHmac('sha256', TOKEN_SIGNING_KEY).update(payload).digest('base64url');
+    if (!timingSafeMatch(sig, expected)) return false;
     const parsed = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as { pid?: string };
     return parsed.pid === playerId;
   } catch {
     return false;
   }
+}
+
+function verifyStoredSessionToken(
+  playerId: string,
+  token: string | undefined,
+  storedTokenHash: string
+): boolean {
+  return Boolean(
+    token &&
+    verifySessionToken(playerId, token) &&
+    timingSafeMatch(sha256Hex(token), storedTokenHash)
+  );
 }
 
 // ───────────────────────── Session Helpers ─────────────────────────
@@ -158,10 +179,10 @@ async function startServer() {
 
   // Server-Issued Session Init, Save, Fetch & RGPD Delete
   app.post('/api/session/init', (req, res) => {
-    const body = req.body as { playerId?: string; sessionToken?: string; state?: PlayerState };
-    if (body.playerId && body.sessionToken && verifySessionToken(body.playerId, body.sessionToken)) {
+    const body = (req.body ?? {}) as { playerId?: unknown; sessionToken?: unknown; state?: unknown };
+    if (typeof body.playerId === 'string' && typeof body.sessionToken === 'string') {
       const existing = getSessionRow(body.playerId);
-      if (existing) {
+      if (existing && verifyStoredSessionToken(body.playerId, body.sessionToken, existing.token_hash)) {
         const parsed = JSON.parse(existing.state_json) as PlayerState;
         res.json({
           ok: true,
@@ -176,9 +197,22 @@ async function startServer() {
 
     const newId = `blv_${crypto.randomUUID()}`;
     const token = signSessionToken(newId);
-    const baseState: PlayerState = body.state
-      ? { ...body.state, playerId: newId, sessionToken: token }
-      : createInitialPlayerState(ALL_DESTINIES[0], newId, token);
+    let baseState: PlayerState;
+
+    if (body.state !== undefined && body.state !== null) {
+      const importedState = normalizeSessionState(body.state, {
+        playerId: newId,
+        sessionToken: token,
+        homeLotId: null,
+      });
+      if (!importedState) {
+        res.status(400).json({ ok: false, error: 'État de sauvegarde invalide.' });
+        return;
+      }
+      baseState = importedState;
+    } else {
+      baseState = createInitialPlayerState(ALL_DESTINIES[0], newId, token);
+    }
 
     const lotId = reserveLotForState(newId, baseState);
     baseState.homeLotId = lotId;
@@ -197,56 +231,88 @@ async function startServer() {
   });
 
   app.post('/api/session/save', (req, res) => {
-    const { playerId, state } = req.body as { playerId?: string; state?: PlayerState };
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!playerId || !state || !verifySessionToken(playerId, token)) {
+    const body = (req.body ?? {}) as { playerId?: unknown; state?: unknown };
+    const playerId = typeof body.playerId === 'string' ? body.playerId : '';
+    const token = readBearerToken(req.headers.authorization);
+    if (!playerId || !token) {
       res.status(401).json({ ok: false, error: 'Jeton de session invalide.' });
       return;
     }
+
     const existing = getSessionRow(playerId);
     if (!existing) {
       res.status(404).json({ ok: false });
       return;
     }
-    const sanitized = { ...state, playerId, sessionToken: token };
+    if (!verifyStoredSessionToken(playerId, token, existing.token_hash)) {
+      res.status(401).json({ ok: false, error: 'Jeton de session invalide.' });
+      return;
+    }
+
+    const sanitized = normalizeSessionState(body.state, {
+      playerId,
+      sessionToken: token,
+      homeLotId: existing.home_lot_id,
+    });
+    if (!sanitized) {
+      res.status(400).json({ ok: false, error: 'État de sauvegarde invalide.' });
+      return;
+    }
+
     saveSessionState(playerId, sanitized);
     res.json({ ok: true });
   });
 
   app.get('/api/session/:playerId', (req, res) => {
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!verifySessionToken(req.params.playerId, token)) {
+    const playerId = req.params.playerId;
+    const token = readBearerToken(req.headers.authorization);
+    if (!token) {
       res.status(401).json({ ok: false });
       return;
     }
-    const row = getSessionRow(req.params.playerId);
+    const row = getSessionRow(playerId);
     if (!row) {
       res.status(404).json({ ok: false });
+      return;
+    }
+    if (!verifyStoredSessionToken(playerId, token, row.token_hash)) {
+      res.status(401).json({ ok: false });
       return;
     }
     res.json({ ok: true, state: JSON.parse(row.state_json) });
   });
 
   app.delete('/api/session/:playerId', (req, res) => {
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!verifySessionToken(req.params.playerId, token)) {
+    const playerId = req.params.playerId;
+    const token = readBearerToken(req.headers.authorization);
+    if (!token) {
       res.status(401).json({ ok: false, error: 'Autorisation requise pour la purge.' });
       return;
     }
-    const pid = req.params.playerId;
-    db.prepare(`DELETE FROM sessions WHERE player_id = ?`).run(pid);
+    const row = getSessionRow(playerId);
+    if (!row) {
+      res.status(404).json({ ok: false });
+      return;
+    }
+    if (!verifyStoredSessionToken(playerId, token, row.token_hash)) {
+      res.status(401).json({ ok: false, error: 'Autorisation requise pour la purge.' });
+      return;
+    }
+    db.prepare(`DELETE FROM sessions WHERE player_id = ?`).run(playerId);
     res.json({ ok: true, purged: true });
   });
 
   // 3. Server-Authoritative Economy Action Endpoint
   app.post('/api/economy/action', (req, res) => {
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    const { playerId, action, payload } = req.body as {
-      playerId?: string;
-      action?: string;
-      payload?: Record<string, unknown>;
-    };
-    if (!playerId || !action || !verifySessionToken(playerId, token)) {
+    const body = (req.body ?? {}) as { playerId?: unknown; action?: unknown; payload?: unknown };
+    const playerId = typeof body.playerId === 'string' ? body.playerId : '';
+    const action = typeof body.action === 'string' ? body.action : '';
+    const payload =
+      body.payload && typeof body.payload === 'object' && !Array.isArray(body.payload)
+        ? (body.payload as Record<string, unknown>)
+        : undefined;
+    const token = readBearerToken(req.headers.authorization);
+    if (!playerId || !action || !token) {
       res.status(401).json({ ok: false, error: 'Non autorisé.' });
       return;
     }
@@ -255,9 +321,16 @@ async function startServer() {
       res.status(404).json({ ok: false, error: 'Session inconnue.' });
       return;
     }
+    if (!verifyStoredSessionToken(playerId, token, row.token_hash)) {
+      res.status(401).json({ ok: false, error: 'Non autorisé.' });
+      return;
+    }
 
     let st = JSON.parse(row.state_json) as PlayerState;
-    const amt = Math.max(0, Number(payload?.amount || 0));
+    const requestedAmount = Number(payload?.amount ?? 0);
+    const amt = Number.isFinite(requestedAmount)
+      ? Math.min(Number.MAX_SAFE_INTEGER, Math.max(0, Math.floor(requestedAmount)))
+      : 0;
 
     switch (action) {
       case 'deposit':
