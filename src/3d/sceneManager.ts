@@ -364,6 +364,16 @@ export class AbidjanSceneManager {
   private controlsMode: 'zqsl' | 'arrows' = 'zqsl';
   private joystickVec = { x: 0, y: 0 };
   private isSoftwareGl = false;
+  /** Appareil peu puissant (mobile, <= 4 coeurs ou rendu logiciel) : un seul calcul, partagé par tous les systèmes. */
+  private lowEnd = false;
+  /** Profil graphique : `low` = rendu logiciel, `mobile` = GPU réel mais appareil modeste, `high` = le reste. */
+  private quality: 'high' | 'mobile' | 'low' = 'high';
+  /** Mesures du compteur de performance (ms), pire valeur depuis le dernier affichage. */
+  private perfFrameMs = 0;
+  private perfSimMs = 0;
+  private perfRenderMs = 0;
+  private perfWorstFrameMs = 0;
+  private lastFrameStart = 0;
   /** Compteur de performance (`?blvdebug=1`) : absent sans le paramètre. */
   private debugEl: HTMLDivElement | null = null;
   private debugAcc = 0;
@@ -418,12 +428,23 @@ export class AbidjanSceneManager {
       /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) ||
       (navigator.hardwareConcurrency ?? 8) <= 4;
 
-    this.renderer.setPixelRatio(this.isSoftwareGl ? 0.75 : Math.min(window.devicePixelRatio, lowEnd ? 1.5 : 2));
+    this.lowEnd = lowEnd;
+    this.quality = this.isSoftwareGl ? 'low' : lowEnd ? 'mobile' : 'high';
+    // `?quality=mobile` force le profil mobile pour le tester sur un ordinateur.
+    if (!this.isSoftwareGl && typeof location !== 'undefined' && /[?&]quality=mobile\b/.test(location.search)) {
+      this.quality = 'mobile';
+      this.lowEnd = true;
+    }
+
+    // Profil -> résolution de rendu : low 0,75 ; mobile 1,25 max ; high 2 max.
+    const pixelRatioCap = this.quality === 'mobile' ? 1.25 : 2;
+    this.renderer.setPixelRatio(this.isSoftwareGl ? 0.75 : Math.min(window.devicePixelRatio, pixelRatioCap));
     this.renderer.setSize(width, height);
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.08;
     this.renderer.shadowMap.enabled = !this.isSoftwareGl;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    // PCF simple en `mobile` (moins d'échantillons par pixel que PCFSoft).
+    this.renderer.shadowMap.type = this.quality === 'mobile' ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
 
     this.container.innerHTML = '';
     // Sans cela, le navigateur tactile annule les glissements (pointercancel) pour défiler/zoomer : la caméra ne tourne presque pas.
@@ -459,7 +480,9 @@ export class AbidjanSceneManager {
     this.dirLight.position.set(this.flyoverCenter.x + 110, 145, this.flyoverCenter.z + 75);
     if (!this.isSoftwareGl) {
       this.dirLight.castShadow = true;
-      this.dirLight.shadow.mapSize.set(1024, 1024);
+      // 512 en `mobile` (4x moins de texels qu'en 1024) ; la couverture de 240 m reste la même.
+      const shadowRes = this.quality === 'mobile' ? 512 : 1024;
+      this.dirLight.shadow.mapSize.set(shadowRes, shadowRes);
       this.dirLight.shadow.camera.near = 10;
       this.dirLight.shadow.camera.far = 360;
       const d = 120;
@@ -502,8 +525,8 @@ export class AbidjanSceneManager {
     this.buildStaticHeroLandmarks();
     this.buildStaticHotspotsAndPickups();
 
-    this.npcSystem = new NpcSystem(this.scene, lowEnd ? NPC_POOL_SIZE_LOW : NPC_POOL_SIZE);
-    this.animalSystem = new AnimalSystem(this.scene, lowEnd);
+    this.npcSystem = new NpcSystem(this.scene, this.lowEnd ? NPC_POOL_SIZE_LOW : NPC_POOL_SIZE);
+    this.animalSystem = new AnimalSystem(this.scene, this.lowEnd);
     this.weatherFx = new WeatherFxSystem(this.scene, this.isSoftwareGl);
     this.waterTraffic = new WaterTrafficSystem(this.scene, this.isSoftwareGl);
     this.streetAnim = new StreetAnimSystem(this.scene, this.isSoftwareGl);
@@ -931,17 +954,12 @@ export class AbidjanSceneManager {
       this.animalSystem.setPhysics(core); // personnages des animaux (même raison)
       this.registerExteriorSolids(core);
 
-      const lowEnd =
-        this.isSoftwareGl ||
-        /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) ||
-        (navigator.hardwareConcurrency ?? 8) <= 4;
-
       this.streamer = new WorldStreamer(
         this.scene,
         core,
         createChunkProvider([]),
         this.chunkMats,
-        this.isSoftwareGl ? 3 : lowEnd ? 3 : 4
+        this.isSoftwareGl || this.lowEnd ? 3 : 4
       );
 
       // Spawn AI Traffic cars via roadTraffic.ts
@@ -1001,16 +1019,12 @@ export class AbidjanSceneManager {
     if (this.streamer) {
       this.streamer.dispose();
     }
-    const lowEnd =
-      this.isSoftwareGl ||
-      /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) ||
-      (navigator.hardwareConcurrency ?? 8) <= 4;
     this.streamer = new WorldStreamer(
       this.scene,
       this.physics,
       createChunkProvider(reserved),
       this.chunkMats,
-      this.isSoftwareGl ? 3 : lowEnd ? 3 : 4
+      this.isSoftwareGl || this.lowEnd ? 3 : 4
     );
   }
 
@@ -2805,7 +2819,17 @@ export class AbidjanSceneManager {
     if (this.debugAcc < 0.5) return;
     this.debugAcc = 0;
     const info = this.renderer.info.render;
-    this.debugEl.textContent = `appels de dessin : ${info.calls}\ntriangles : ${info.triangles}\nPNJ actifs : ${this.npcSystem.activeCount} (${this.npcSystem.drawnMeshCount} instanced meshes)\nanimaux actifs : ${this.animalSystem.activeCount}`;
+    const st = this.streamer;
+    this.debugEl.textContent =
+      `profil : ${this.quality}  (pixel ratio ${this.renderer.getPixelRatio().toFixed(2)})\n`
+      + `CPU pire/0,5 s : image ${this.perfFrameMs.toFixed(1)} ms | simu ${this.perfSimMs.toFixed(1)} ms | rendu(CPU) ${this.perfRenderMs.toFixed(1)} ms\n`
+      + `intervalle max entre images : ${this.perfWorstFrameMs.toFixed(1)} ms\n`
+      + `chunks : ${st?.loadedCount ?? 0} chargés, ${st?.arrivedCount ?? 0} en attente | construction pire ${(st?.takeWorstChunkMs() ?? 0).toFixed(1)} ms\n`
+      + `appels de dessin : ${info.calls}\ntriangles : ${info.triangles}\nPNJ actifs : ${this.npcSystem.activeCount} (${this.npcSystem.drawnMeshCount} instanced meshes)\nanimaux actifs : ${this.animalSystem.activeCount}`;
+    this.perfFrameMs = 0;
+    this.perfSimMs = 0;
+    this.perfRenderMs = 0;
+    this.perfWorstFrameMs = 0;
   }
 
   private startLoop() {
@@ -2815,9 +2839,20 @@ export class AbidjanSceneManager {
       const dt = Math.min(0.05, Math.max(0.001, (now - this.lastTime) / 1000));
       this.lastTime = now;
 
+      const tSim = performance.now();
       this.stepSimulation(dt, now / 1000);
       this.skyDome?.followCamera(this.camera);
+      const tRender = performance.now();
       this.renderer.render(this.scene, this.camera);
+      const tEnd = performance.now();
+      if (this.debugEl) {
+        // Pire valeur de chaque mesure : ce sont les pics, pas les moyennes, qui font les saccades.
+        this.perfSimMs = Math.max(this.perfSimMs, tRender - tSim);
+        this.perfRenderMs = Math.max(this.perfRenderMs, tEnd - tRender);
+        this.perfFrameMs = Math.max(this.perfFrameMs, tEnd - now);
+        this.perfWorstFrameMs = Math.max(this.perfWorstFrameMs, (now - this.lastFrameStart) || 0);
+      }
+      this.lastFrameStart = now;
       this.updateDebugOverlay(dt);
 
       if (this.isSoftwareGl) {

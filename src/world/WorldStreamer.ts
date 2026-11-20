@@ -29,6 +29,12 @@ export class WorldStreamer {
   radius: number;
   /** Nombre maximal de requêtes simultanées auprès du Worker. */
   maxInFlight = 12;
+  /** Budget (ms) de construction de chunks par image en jeu normal ; le nombre de chunks de `update` reste un plafond. */
+  applyBudgetMs = 6;
+  /** Temps (ms) passé à construire des chunks pendant la dernière image (diagnostic). */
+  lastApplyMs = 0;
+  /** Construction la plus longue d'un seul chunk (ms), remise à zéro par `takeWorstChunkMs` (diagnostic). */
+  private worstChunkMs = 0;
 
   constructor(
     private scene: THREE.Scene,
@@ -41,6 +47,16 @@ export class WorldStreamer {
   }
 
   get loadedCount(): number { return this.loaded.size; }
+
+  /** Nombre de chunks reçus du Worker et pas encore construits (file d'attente). */
+  get arrivedCount(): number { return this.arrived.length; }
+
+  /** Renvoie puis remet à zéro le pire temps de construction d'un chunk depuis le dernier appel (ms). */
+  takeWorstChunkMs(): number {
+    const v = this.worstChunkMs;
+    this.worstChunkMs = 0;
+    return v;
+  }
 
   getVenuesVersion(): number { return this.venuesVersion; }
 
@@ -93,11 +109,15 @@ export class WorldStreamer {
   private apply(cx: number, cz: number, payload: ChunkPayload): void {
     const k = key(cx, cz);
     if (this.loaded.has(k) || this.disposed) return;
+    const t0 = performance.now();
     const objects = buildChunkObjects(payload.data, payload.ground, GROUND_SIZE, this.mats);
     this.scene.add(objects.group);
     const occluders = payload.data.buildings.filter((b) => b.solid && b.h >= OCCLUDER_MIN_HEIGHT).map(occluderOf);
     this.loaded.set(k, { objects, solids: this.registerSolids(payload.data, objects.solids), occluders });
     if (objects.venues.length > 0) this.venuesVersion++;
+    const cost = performance.now() - t0;
+    this.lastApplyMs += cost;
+    if (cost > this.worstChunkMs) this.worstChunkMs = cost;
   }
 
   private unload(k: string): void {
@@ -117,9 +137,14 @@ export class WorldStreamer {
     const ccz = chunkOf(pz);
     const R = this.radius;
 
-    // Applique les chunks arrivés (s'ils sont encore utiles)
+    // Applique les chunks arrivés (s'ils sont encore utiles), en s'arrêtant dès que le budget de temps est dépensé.
+    // Au moins un chunk est toujours appliqué (pas de famine), et le chargement initial (maxApply >= 8) a un budget triplé.
+    this.lastApplyMs = 0;
+    const budget = maxApply >= 8 ? this.applyBudgetMs * 3 : this.applyBudgetMs;
+    const tStart = performance.now();
     let applied = 0;
     while (this.arrived.length > 0 && applied < maxApply) {
+      if (applied > 0 && performance.now() - tStart >= budget) break;
       const a = this.arrived.shift()!;
       if (Math.max(Math.abs(a.cx - ccx), Math.abs(a.cz - ccz)) <= R + 1) { this.apply(a.cx, a.cz, a.payload); applied++; }
     }
