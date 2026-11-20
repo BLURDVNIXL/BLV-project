@@ -27,6 +27,7 @@ import { isCommissariatId, isMairieId, isPetitHotelId } from './civicSites';
 import { districtAt, isWater } from './abidjanGeography';
 import { roadAt } from './roads';
 import { hash32 } from './rng';
+import { Buf, addHipRoof, addPrism, addRichTree, renderDecorProp } from './decorMeshes';
 
 export interface ChunkMaterials {
   facade: THREE.MeshStandardMaterial;
@@ -251,149 +252,8 @@ export function createChunkMaterials(night: boolean, wind = false): ChunkMateria
   };
 }
 
-class Buf {
-  pos: number[] = [];
-  nor: number[] = [];
-  uv: number[] = [];
-  col: number[] = [];
-  idx: number[] = [];
-
-  quad(
-    a: number[],
-    b: number[],
-    c: number[],
-    d: number[],
-    n: number[],
-    uvs: number[],
-    color: THREE.Color
-  ): void {
-    const base = this.pos.length / 3;
-    for (const v of [a, b, c, d]) {
-      this.pos.push(v[0], v[1], v[2]);
-      this.nor.push(n[0], n[1], n[2]);
-      this.col.push(color.r, color.g, color.b);
-    }
-    this.uv.push(...uvs);
-    this.idx.push(base, base + 1, base + 2, base, base + 2, base + 3);
-  }
-
-  tri(a: number[], b: number[], c: number[], n: number[], color: THREE.Color): void {
-    const base = this.pos.length / 3;
-    for (const v of [a, b, c]) {
-      this.pos.push(v[0], v[1], v[2]);
-      this.nor.push(n[0], n[1], n[2]);
-      this.col.push(color.r, color.g, color.b);
-      this.uv.push(0, 0);
-    }
-    this.idx.push(base, base + 1, base + 2);
-  }
-
-  geometry(): THREE.BufferGeometry | null {
-    if (this.pos.length === 0) return null;
-    const g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.Float32BufferAttribute(this.pos, 3));
-    g.setAttribute('normal', new THREE.Float32BufferAttribute(this.nor, 3));
-    g.setAttribute('uv', new THREE.Float32BufferAttribute(this.uv, 2));
-    g.setAttribute('color', new THREE.Float32BufferAttribute(this.col, 3));
-    g.setIndex(this.idx);
-    return g;
-  }
-}
-
-const TILE_W = 14;
-const TILE_H = 3.5;
 const PLAIN_KINDS = new Set(['shack', 'container', 'warehouse']);
-const COASTAL_DISTRICTS = new Set(['plateau', 'cocody', 'riviera', 'port_bouet', 'grand_bassam', 'marcory']);
 const SHACK_ROOF_COLORS = [0x9a8f86, 0xa5623f, 0x5b8291, 0x6d7f5a, 0x8b4a32];
-
-function addPrism(
-  buf: Buf,
-  cx: number,
-  cz: number,
-  w: number,
-  d: number,
-  y0: number,
-  h: number,
-  angle: number,
-  wallColor: THREE.Color,
-  roofColor: THREE.Color,
-  plainBuf: Buf,
-  hasWindows: boolean
-): void {
-  const c = Math.cos(angle);
-  const s = Math.sin(angle);
-  const e1 = [c, 0, s];
-  const e2 = [-s, 0, c];
-  const faces: Array<{ n: number[]; half: number; len: number }> = [
-    { n: e1, half: w / 2, len: d },
-    { n: [-e1[0], 0, -e1[2]], half: w / 2, len: d },
-    { n: e2, half: d / 2, len: w },
-    { n: [-e2[0], 0, -e2[2]], half: d / 2, len: w },
-  ];
-  for (const f of faces) {
-    const t = [f.n[2], 0, -f.n[0]];
-    const bx = cx + f.n[0] * f.half;
-    const bz = cz + f.n[2] * f.half;
-    const v0 = [bx - (t[0] * f.len) / 2, y0, bz - (t[2] * f.len) / 2];
-    const v1 = [bx + (t[0] * f.len) / 2, y0, bz + (t[2] * f.len) / 2];
-    const v2 = [v1[0], y0 + h, v1[2]];
-    const v3 = [v0[0], y0 + h, v0[2]];
-    const u1 = hasWindows ? Math.max(1, f.len / TILE_W) : 1;
-    const vv = hasWindows ? Math.max(1, h / TILE_H) : 1;
-    buf.quad(v0, v1, v2, v3, f.n, [0, 0, u1, 0, u1, vv, 0, vv], wallColor);
-  }
-  const corner = (sa: number, sb: number): number[] => [
-    cx + sa * (w / 2) * e1[0] + sb * (d / 2) * e2[0],
-    y0 + h,
-    cz + sa * (w / 2) * e1[2] + sb * (d / 2) * e2[2],
-  ];
-  const up = [0, 1, 0];
-  plainBuf.tri(corner(-1, -1), corner(1, 1), corner(1, -1), up, roofColor);
-  plainBuf.tri(corner(-1, -1), corner(-1, 1), corner(1, 1), up, roofColor);
-}
-
-function addHipRoof(
-  plainBuf: Buf,
-  cx: number,
-  cz: number,
-  w: number,
-  d: number,
-  yBase: number,
-  peakH: number,
-  angle: number,
-  roofColor: THREE.Color
-): void {
-  const c = Math.cos(angle);
-  const s = Math.sin(angle);
-  const e1 = [c, 0, s];
-  const e2 = [-s, 0, c];
-  const ow = w * 0.54;
-  const od = d * 0.54;
-  const pt = (sa: number, sb: number): number[] => [
-    cx + sa * ow * e1[0] + sb * od * e2[0],
-    yBase,
-    cz + sa * ow * e1[2] + sb * od * e2[2],
-  ];
-  const c00 = pt(-1, -1);
-  const c10 = pt(1, -1);
-  const c11 = pt(1, 1);
-  const c01 = pt(-1, 1);
-  const apex = [cx, yBase + peakH, cz];
-  const shade = roofColor.clone().multiplyScalar(0.88);
-  const triN = (a: number[], b: number[], cc: number[]): number[] => {
-    const ux = b[0] - a[0], uy = b[1] - a[1], uz = b[2] - a[2];
-    const vx = cc[0] - a[0], vy = cc[1] - a[1], vz = cc[2] - a[2];
-    const nx = uy * vz - uz * vy;
-    const ny = uz * vx - ux * vz;
-    const nz = ux * vy - uy * vx;
-    const len = Math.hypot(nx, ny, nz) || 1;
-    return [nx / len, ny / len, nz / len];
-  };
-  plainBuf.tri(c00, apex, c10, triN(c00, apex, c10), roofColor);
-  plainBuf.tri(c10, apex, c11, triN(c10, apex, c11), shade);
-  plainBuf.tri(c11, apex, c01, triN(c11, apex, c01), roofColor);
-  plainBuf.tri(c01, apex, c00, triN(c01, apex, c00), shade);
-}
 
 function addGableRoof(
   plainBuf: Buf,
@@ -579,137 +439,6 @@ function addBuilding(
   addPrism(plain, b.x, b.z, b.w * 1.04, b.d * 1.04, b.h, 0.55, b.angle, parapetColor, parapetColor, plain, false);
 }
 
-function addTree(buf: Buf, x: number, z: number, h: number, hash: number, districtId: string): void {
-  const isCoastal = COASTAL_DISTRICTS.has(districtId);
-  const isBanco = districtId === 'banco';
-  const kindPick = hash % 10;
-
-  // Choix botanique : palmier, flamboyant fleuri, bananier ou manguier/fromager
-  if (isCoastal && kindPick < 5) {
-    const trunk = new THREE.Color(0x735238);
-    const crown = new THREE.Color().setHSL(0.3 + ((hash % 7) - 3) * 0.008, 0.58, 0.3 + ((hash % 5) - 2) * 0.015);
-    const tw = 0.16;
-    const th = h * 0.78;
-    const lean = ((hash % 5) - 2) * 0.18;
-    for (const [dx, dz] of [[1, 0], [0, 1], [-1, 0], [0, -1]]) {
-      const tx = dz, tz = -dx;
-      const bx0 = x + dx * tw, bz0 = z + dz * tw;
-      const bx1 = x + lean + dx * (tw * 0.7), bz1 = z + lean * 0.5 + dz * (tw * 0.7);
-      buf.quad(
-        [bx0 - tx * tw, 0, bz0 - tz * tw],
-        [bx0 + tx * tw, 0, bz0 + tz * tw],
-        [bx1 + tx * tw * 0.7, th, bz1 + tz * tw * 0.7],
-        [bx1 - tx * tw * 0.7, th, bz1 - tz * tw * 0.7],
-        [dx, 0, dz],
-        [0, 0, 1, 0, 1, 1, 0, 1],
-        trunk
-      );
-    }
-    const txTop = x + lean, tzTop = z + lean * 0.5;
-    const frondLen = 2.0 + h * 0.13;
-    const frondW = 0.44;
-    const N = 6;
-    for (let i = 0; i < N; i++) {
-      const a = (i / N) * Math.PI * 2 + (hash % 6) * 0.4;
-      const fx = Math.cos(a), fz = Math.sin(a);
-      const px = -fz * frondW, pz = fx * frondW;
-      const pTop = [txTop, th, tzTop];
-      const pMidL = [txTop + fx * frondLen * 0.55 + px, th + 0.58, tzTop + fz * frondLen * 0.55 + pz];
-      const pMidR = [txTop + fx * frondLen * 0.55 - px, th + 0.58, tzTop + fz * frondLen * 0.55 - pz];
-      const pTip = [txTop + fx * frondLen, th - 0.38, tzTop + fz * frondLen];
-      buf.tri(pTop, pMidL, pTip, [0, 1, 0], crown);
-      buf.tri(pTop, pTip, pMidR, [0, 1, 0], crown.clone().multiplyScalar(0.88));
-    }
-    return;
-  }
-
-  // Bananier tropical (feuilles larges en éventail autour des cours / quartiers)
-  if (!isBanco && kindPick === 5 && h < 8.5) {
-    const stemCol = new THREE.Color(0x557c3a);
-    const leafCol = new THREE.Color(0x4d9c34);
-    const sh = Math.min(2.8, h * 0.48);
-    const tw = 0.14;
-    for (const [dx, dz] of [[1, 0], [0, 1], [-1, 0], [0, -1]]) {
-      const tx = dz, tz = -dx;
-      const bx = x + dx * tw, bz = z + dz * tw;
-      buf.quad(
-        [bx - tx * tw, 0, bz - tz * tw],
-        [bx + tx * tw, 0, bz + tz * tw],
-        [bx + tx * tw * 0.8, sh, bz + tz * tw * 0.8],
-        [bx - tx * tw * 0.8, sh, bz - tz * tw * 0.8],
-        [dx, 0, dz],
-        [0, 0, 1, 0, 1, 1, 0, 1],
-        stemCol
-      );
-    }
-    for (let i = 0; i < 6; i++) {
-      const a = (i / 6) * Math.PI * 2 + (hash % 5) * 0.3;
-      const fx = Math.cos(a), fz = Math.sin(a);
-      const px = -fz * 0.38, pz = fx * 0.38;
-      const len = 1.9;
-      buf.tri([x, sh, z], [x + fx * len * 0.6 + px, sh + 0.65, z + fz * len * 0.6 + pz], [x + fx * len, sh - 0.15, z + fz * len], [0, 1, 0], leafCol);
-      buf.tri([x, sh, z], [x + fx * len, sh - 0.15, z + fz * len], [x + fx * len * 0.6 - px, sh + 0.65, z + fz * len * 0.6 - pz], [0, 1, 0], leafCol.clone().multiplyScalar(0.9));
-    }
-    return;
-  }
-
-  // Tronc commun pour Flamboyant ou Manguier/Fromager
-  const trunk = new THREE.Color(0x563d24);
-  const tw = isBanco ? 0.28 : 0.22;
-  const th = h * 0.45;
-  for (const [dx, dz] of [[1, 0], [0, 1], [-1, 0], [0, -1]]) {
-    const tx = dz, tz = -dx;
-    const bx = x + dx * tw, bz = z + dz * tw;
-    buf.quad(
-      [bx - tx * tw, 0, bz - tz * tw],
-      [bx + tx * tw, 0, bz + tz * tw],
-      [bx + tx * tw * 0.78, th, bz + tz * tw * 0.78],
-      [bx - tx * tw * 0.78, th, bz - tz * tw * 0.78],
-      [dx, 0, dz],
-      [0, 0, 1, 0, 1, 1, 0, 1],
-      trunk
-    );
-  }
-
-  // Flamboyant en fleurs (couronne large et plate + fleurs rouge-orangé)
-  if (!isBanco && kindPick === 6) {
-    const foliage = new THREE.Color(0x3f7d2b);
-    const bloom = new THREE.Color(hash % 2 === 0 ? 0xef4444 : 0xf97316);
-    const r = 1.9 + h * 0.18;
-    const N = 7;
-    const apex = [x, h * 0.76, z];
-    for (let i = 0; i < N; i++) {
-      const a0 = (i / N) * Math.PI * 2;
-      const a1 = ((i + 1) / N) * Math.PI * 2;
-      const p0 = [x + Math.cos(a0) * r, th * 0.92, z + Math.sin(a0) * r];
-      const p1 = [x + Math.cos(a1) * r, th * 0.92, z + Math.sin(a1) * r];
-      const am = (a0 + a1) / 2;
-      buf.tri(p0, apex, p1, [Math.cos(am) * 0.5, 0.85, Math.sin(am) * 0.5], i % 2 === 0 ? bloom : foliage);
-    }
-    return;
-  }
-
-  // Manguier / Fromager multi-lobes (houppier organique en plusieurs grappes)
-  const crown = new THREE.Color().setHSL(0.27 + ((hash % 7) - 3) * 0.01, 0.5, 0.28 + ((hash % 5) - 2) * 0.015);
-  const lobes = [
-    { ox: 0, oz: 0, baseY: th * 0.78, apexY: h * 0.96, r: 1.4 + h * 0.16, col: crown },
-    { ox: 0.75, oz: 0.45, baseY: th * 0.85, apexY: h * 0.82, r: 1.05 + h * 0.1, col: crown.clone().multiplyScalar(1.1) },
-    { ox: -0.7, oz: -0.45, baseY: th * 0.88, apexY: h * 0.8, r: 1.0 + h * 0.1, col: crown.clone().multiplyScalar(0.92) },
-  ];
-  const N = 6;
-  for (const lobe of lobes) {
-    const cx = x + lobe.ox, cz = z + lobe.oz;
-    const apex = [cx, lobe.apexY, cz];
-    for (let i = 0; i < N; i++) {
-      const a0 = (i / N) * Math.PI * 2;
-      const a1 = ((i + 1) / N) * Math.PI * 2;
-      const p0 = [cx + Math.cos(a0) * lobe.r, lobe.baseY, cz + Math.sin(a0) * lobe.r];
-      const p1 = [cx + Math.cos(a1) * lobe.r, lobe.baseY, cz + Math.sin(a1) * lobe.r];
-      const am = (a0 + a1) / 2;
-      buf.tri(p0, apex, p1, [Math.cos(am) * 0.7, 0.7, Math.sin(am) * 0.7], lobe.col);
-    }
-  }
-}
 
 function addBeachedPirogue(plain: Buf, x: number, z: number, angle: number, hullCol: THREE.Color): void {
   const trim = new THREE.Color(0xd97706);
@@ -1035,6 +764,10 @@ function renderDecorPlan(
   for (const pud of plan.puddles) {
     addPuddle(puddles, pud.x, pud.z, pud.rx, pud.rz, pud.seed);
   }
+
+  for (const prop of plan.props) {
+    renderDecorProp(plain, trees, lamps, puddles, prop);
+  }
 }
 
 export interface ChunkObjects {
@@ -1125,7 +858,7 @@ export function buildChunkObjects(
   const primaryDistrict = data.buildings[0]?.district ?? districtAt({ x: x0 + CHUNK / 2, z: z0 + CHUNK / 2 }).id;
   data.trees.forEach((t, i) => {
     const h = Math.abs(Math.floor(t.x * 7 + t.z * 13 + i)) | 0;
-    addTree(tb, t.x, t.z, t.h, h, primaryDistrict);
+    addRichTree(plain, tb, t.x, t.z, t.h, h, primaryDistrict);
   });
   const tg = tb.geometry();
   if (tg) {

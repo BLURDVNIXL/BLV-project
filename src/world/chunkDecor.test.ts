@@ -8,6 +8,20 @@ import { readFileSync } from 'node:fs';
 import * as THREE from 'three';
 import { PhysicsCore, SolidFlag, VehiclePreset, createCharacterState, createVehicleState } from '../physics/PhysicsCore';
 import { ChunkDecorPlan, ChunkSolid, collectChunkDecor, chunkDecorSolids } from './chunkDecor';
+import { Buf, addRichTree, pickTreeSpecies, renderDecorProp } from './decorMeshes';
+import {
+  BushVariant,
+  DecorCategory,
+  DecorProp,
+  FlowerVariant,
+  GardenDecorVariant,
+  GroundRockVariant,
+  HangingDecorVariant,
+  TreeSpecies,
+  TropicalPlantVariant,
+  UrbanFurnitureVariant,
+  WaterFeatureVariant,
+} from './decorTypes';
 import { SPECIAL_FOOTPRINTS, carSpotForLot, chunkOf, findHouseLot, generateChunk } from './city';
 import { DISTRICTS, HomeType, isWater } from './abidjanGeography';
 import { project } from './geo';
@@ -393,4 +407,174 @@ test('espaces vides des rues : boutiques, superettes, coiffure, transfert, garba
     assert.ok(distFromCenter < 2.2, `${courtKind}: entrée bloquée (dist au centre=${distFromCenter.toFixed(2)}m)`);
   }
 });
+
+test('bibliothèque 3D 9 catégories : présence sur la carte, hors eau/route, solides WASM, éléments traversables et géométries sans NaN', async () => {
+  const categoriesFound = new Set<DecorCategory>();
+  const speciesFound = new Set<TreeSpecies>();
+  const samplePropsByCat = new Map<DecorCategory, DecorProp[]>();
+
+  const targetDistricts = ['plateau', 'cocody', 'riviera', 'abobo', 'yopougon', 'treichville', 'marcory', 'banco', 'grand_bassam', 'port_bouet'];
+  for (const id of targetDistricts) {
+    const d = DISTRICTS.find((x) => x.id === id)!;
+    const c = project(d.center.lat, d.center.lon);
+    const ccx = chunkOf(c.x);
+    const ccz = chunkOf(c.z);
+    for (let dx = -4; dx <= 4; dx++) {
+      for (let dz = -4; dz <= 4; dz++) {
+        const ch = generateChunk(ccx + dx, ccz + dz);
+        const primaryDistrict = ch.buildings[0]?.district ?? id;
+        ch.trees.forEach((t, i) => {
+          const h = Math.abs(Math.floor(t.x * 7 + t.z * 13 + i)) | 0;
+          speciesFound.add(pickTreeSpecies(h, primaryDistrict, t.h));
+        });
+        const plan = collectChunkDecor(ch);
+        for (const prop of plan.props) {
+          categoriesFound.add(prop.category);
+          const list = samplePropsByCat.get(prop.category) ?? [];
+          if (list.length < 30) {
+            list.push(prop);
+            samplePropsByCat.set(prop.category, list);
+          }
+          // Aucun décor ne doit tomber dans l'eau ou sur la route ou sur un pont
+          assert.equal(isWater(prop), false, `prop ${prop.category}/${prop.variant} dans l'eau`);
+          assert.equal(roadAt(prop), 'none', `prop ${prop.category}/${prop.variant} sur la chaussée`);
+          assert.equal(bridgeAt(prop, 2.5), null, `prop ${prop.category}/${prop.variant} sur un pont`);
+        }
+
+        // Vérifie que les props traversables ne génèrent pas de solide bloquant
+        for (const prop of plan.props) {
+          const hasCenterpieceAtSameSpot = plan.props.some(
+            (other) =>
+              other !== prop &&
+              Math.hypot(other.x - prop.x, other.z - prop.z) < 0.25 &&
+              (other.category === 'water_feature' || other.variant === 'statue' || other.variant === 'abstract_sculpture')
+          );
+          if (hasCenterpieceAtSameSpot) continue;
+          const isTraversable =
+            (prop.category === 'ground_rock' && prop.variant !== 'rock') ||
+            (prop.category === 'flower' && prop.variant === 'small_flowers') ||
+            (prop.category === 'garden_decor' && prop.variant === 'garden_border') ||
+            (prop.category === 'hanging_decor' && prop.variant !== 'barrier_chain') ||
+            (prop.category === 'tropical_plant' && (prop.variant === 'fern' || prop.variant === 'creeper' || (id === 'banco' && prop.variant === 'broadleaf'))) ||
+            (prop.category === 'bush' && prop.variant === 'tall_grass');
+          if (isTraversable) {
+            const blocker = plan.solids.find((s) => Math.hypot(s.x - prop.x, s.z - prop.z) < 0.25);
+            assert.equal(blocker, undefined, `prop traversable ${prop.category}/${prop.variant} ne devrait pas créer de solide bloquant`);
+          }
+        }
+      }
+    }
+  }
+
+  // Vérifie que toutes les 8 catégories de props et les 10 espèces d'arbres apparaissent sur la carte
+  const allCategories: DecorCategory[] = [
+    'tropical_plant',
+    'flower',
+    'bush',
+    'furniture',
+    'water_feature',
+    'garden_decor',
+    'hanging_decor',
+    'ground_rock',
+  ];
+  for (const cat of allCategories) {
+    assert.ok(categoriesFound.has(cat), `catégorie absente de la carte : ${cat}`);
+  }
+
+  const allSpecies: TreeSpecies[] = [
+    'coconut',
+    'ornamental_palm',
+    'mango',
+    'baobab',
+    'flamboyant',
+    'acacia',
+    'fromager',
+    'broadleaf_tropical',
+    'urban_ornamental',
+    'ficus',
+  ];
+  for (const sp of allSpecies) {
+    assert.ok(speciesFound.has(sp), `espèce d'arbre absente de la carte : ${sp}`);
+  }
+
+  // Vérifie dans PhysicsCore qu'un banc, une fontaine et un canari/rocher bloquent bien le piéton
+  const checkCategoryBlocks = async (cat: DecorCategory, variants?: string[]) => {
+    for (const id of targetDistricts) {
+      const d = DISTRICTS.find((x) => x.id === id)!;
+      const c = project(d.center.lat, d.center.lon);
+      const ccx = chunkOf(c.x);
+      const ccz = chunkOf(c.z);
+      for (let dx = -4; dx <= 4; dx++) {
+        for (let dz = -4; dz <= 4; dz++) {
+          const plan = collectChunkDecor(generateChunk(ccx + dx, ccz + dz));
+          const prop = plan.props.find((p) => p.category === cat && (!variants || variants.includes(p.variant)));
+          if (prop) {
+            const solid = plan.solids.find((s) => Math.hypot(s.x - prop.x, s.z - prop.z) < 0.45);
+            if (solid) {
+              await assertSolidBlocksCharacter(solid, `${cat}/${prop.variant}`);
+              return;
+            }
+          }
+        }
+      }
+    }
+    assert.fail(`aucun solide trouvé pour ${cat}`);
+  };
+
+  await checkCategoryBlocks('furniture', ['bench_wood', 'bench_metal', 'bench_concrete', 'bench_backrest']);
+  await checkCategoryBlocks('water_feature');
+  await checkCategoryBlocks('garden_decor', ['canari_jar', 'statue', 'abstract_sculpture']);
+  await checkCategoryBlocks('ground_rock', ['rock']);
+
+  // Vérifie que tous les variants des 9 catégories produisent des géométries valides sans NaN ni buffers vides
+  const plain = new Buf();
+  const trees = new Buf();
+  const lamps = new Buf();
+  const puddles = new Buf();
+
+  for (let i = 0; i < allSpecies.length; i++) {
+    // Force des hashes variés + district adaptés (jeunes et adultes)
+    const dist = i === 6 ? 'banco' : i === 0 ? 'grand_bassam' : 'cocody';
+    addRichTree(plain, trees, i * 10, 0, 4.5, i, dist);
+    addRichTree(plain, trees, i * 10, 10, 9.5, i + 12, dist);
+  }
+
+  const tropicalVariants: TropicalPlantVariant[] = ['banana', 'papaya', 'aloe', 'broadleaf', 'fern', 'potted_ornamental', 'small_shrub', 'creeper'];
+  const flowerVariants: FlowerVariant[] = ['rose', 'bougainvillea', 'hibiscus', 'tropical_flower', 'flower_bed', 'small_flowers'];
+  const bushVariants: BushVariant[] = ['round_bush', 'wild_bush', 'trimmed_hedge', 'planter_hedge', 'plant_bed', 'tall_grass', 'grove'];
+  const furnitureVariants: UrbanFurnitureVariant[] = ['bench_wood', 'bench_metal', 'bench_concrete', 'bench_backrest', 'picnic_table', 'flower_pot', 'rect_planter', 'bollard', 'reverbere', 'barrier', 'pergola'];
+  const waterVariants: WaterFeatureVariant[] = ['tiered_fountain', 'circle_fountain', 'modern_fountain', 'ornamental_basin'];
+  const gardenVariants: GardenDecorVariant[] = ['statue', 'abstract_sculpture', 'canari_jar', 'terracotta_pots', 'small_fence', 'low_wall', 'garden_border', 'green_pergola'];
+  const hangingVariants: HangingDecorVariant[] = ['decor_chain', 'barrier_chain', 'fairy_garland', 'bunting_garland', 'hanging_plant', 'lantern', 'wall_relief'];
+  const rockVariants: GroundRockVariant[] = ['rock', 'pebbles', 'slabs', 'pavers'];
+
+  let cursor = 0;
+  const emitAll = (props: DecorProp[]) => {
+    for (const p of props) {
+      renderDecorProp(plain, trees, lamps, puddles, p);
+    }
+  };
+  emitAll(tropicalVariants.map((variant, i) => ({ category: 'tropical_plant', variant, x: cursor++, z: 0, angle: i * 0.4, scale: 1, seed: i })));
+  emitAll(flowerVariants.map((variant, i) => ({ category: 'flower', variant, x: cursor++, z: 2, angle: i * 0.4, scale: 1, seed: i, color: 0xec4899 })));
+  emitAll(bushVariants.map((variant, i) => ({ category: 'bush', variant, x: cursor++, z: 4, angle: i * 0.4, scale: 1, seed: i, color: 0x22c55e })));
+  emitAll(furnitureVariants.map((variant, i) => ({ category: 'furniture', variant, x: cursor++, z: 6, angle: i * 0.4, scale: 1, seed: i })));
+  emitAll(waterVariants.map((variant, i) => ({ category: 'water_feature', variant, x: cursor++, z: 8, angle: i * 0.4, scale: 1, seed: i })));
+  emitAll(gardenVariants.map((variant, i) => ({ category: 'garden_decor', variant, x: cursor++, z: 10, angle: i * 0.4, scale: 1, seed: i })));
+  emitAll(hangingVariants.map((variant, i) => ({ category: 'hanging_decor', variant, x: cursor++, z: 12, y0: 2.8, span: 3.2, angle: i * 0.4, scale: 1, seed: i })));
+  emitAll(rockVariants.map((variant, i) => ({ category: 'ground_rock', variant, x: cursor++, z: 14, angle: i * 0.4, scale: 1, seed: i })));
+
+  for (const [label, buf] of [['plain', plain], ['trees', trees], ['lamps', lamps], ['puddles', puddles]] as const) {
+    const geom = buf.geometry();
+    assert.ok(geom, `géométrie ${label} vide`);
+    const pos = geom.getAttribute('position') as THREE.BufferAttribute;
+    const nor = geom.getAttribute('normal') as THREE.BufferAttribute;
+    assert.ok(pos.count > 0, `${label}: aucun sommet`);
+    for (let i = 0; i < pos.array.length; i++) {
+      assert.ok(Number.isFinite(pos.array[i]), `${label}: NaN/Inf dans position`);
+      assert.ok(Number.isFinite(nor.array[i]), `${label}: NaN/Inf dans normal`);
+    }
+    geom.dispose();
+  }
+});
+
 
