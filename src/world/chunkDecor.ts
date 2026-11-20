@@ -13,7 +13,7 @@
  * - Éléments purement traversables (touffes d'herbe 3D, flaques d'eau, surfaces de terrains de sport)
  */
 
-import { Building, ChunkData, CHUNK, EmptyLot, carSpotForLot, insideSpecial } from './city';
+import { Building, ChunkData, CHUNK, EmptyLot, SPECIAL_FOOTPRINTS, carSpotForLot, insideSpecial } from './city';
 import { isHospitalId } from './hospitals';
 import { isCommissariatId, isMairieId, isPetitHotelId } from './civicSites';
 import { districtAt, isWater, projected } from './abidjanGeography';
@@ -600,9 +600,9 @@ function emitPublicSquare(plan: ChunkDecorPlan, lot: EmptyLot): void {
   const cz = lot.z;
   const a = lot.angle;
   // Pavage central traversable
-  plan.props.push({ category: 'ground_rock', variant: 'pavers', x: cx, z: cz, angle: a, scale: 1.85, seed: s, color: 0xc2b29f });
-  // Élément central : fontaine, bassin ornemental, statue, sculpture abstraite ou pergola végétalisée
-  const centerPick = s % 7;
+  plan.props.push({ category: 'ground_rock', variant: 'pavers', x: cx, z: cz, angle: a, scale: 1.9, seed: s, color: 0xc2b29f });
+  // Élément central : 4 fontaines/bassins, statue, sculpture abstraite, pergola ou pergola végétalisée
+  const centerPick = (s >>> 4) % 8;
   if (centerPick < 4) {
     const wfVariants: WaterFeatureVariant[] = ['tiered_fountain', 'circle_fountain', 'modern_fountain', 'ornamental_basin'];
     const v = wfVariants[centerPick];
@@ -615,7 +615,7 @@ function emitPublicSquare(plan: ChunkDecorPlan, lot: EmptyLot): void {
   } else if (centerPick === 5) {
     plan.props.push({ category: 'garden_decor', variant: 'abstract_sculpture', x: cx, z: cz, angle: a, scale: 1.05, seed: s });
     plan.solids.push({ shape: 'box', x: cx, z: cz, hx: 0.58, hz: 0.48, angle: a, h: 1.8 });
-  } else {
+  } else if (centerPick === 6) {
     plan.props.push({ category: 'garden_decor', variant: 'green_pergola', x: cx, z: cz, angle: a, scale: 0.95, seed: s });
     for (const su of [-1, 1]) {
       for (const sv of [-1, 1]) {
@@ -623,26 +623,52 @@ function emitPublicSquare(plan: ChunkDecorPlan, lot: EmptyLot): void {
         plan.solids.push({ shape: 'box', x: pp.x, z: pp.z, hx: 0.1, hz: 0.1, angle: a, h: 2.55 });
       }
     }
+  } else {
+    plan.props.push({ category: 'furniture', variant: 'pergola', x: cx, z: cz, angle: a, scale: 0.95, seed: s });
+    for (const su of [-1, 1]) {
+      for (const sv of [-1, 1]) {
+        const pp = localToWorldPt(cx, cz, a, su * 1.32, sv * 1.14);
+        plan.solids.push({ shape: 'box', x: pp.x, z: pp.z, hx: 0.1, hz: 0.1, angle: a, h: 2.55 });
+      }
+    }
+    plan.props.push({
+      category: 'hanging_decor',
+      variant: s % 2 === 0 ? 'fairy_garland' : 'bunting_garland',
+      x: cx,
+      z: cz,
+      y0: 2.6,
+      span: 2.8,
+      angle: a,
+      scale: 1.0,
+      seed: s,
+    });
   }
-  // 2 bancs latéraux + 2 massifs fleuris ou jarres
+  // 2 bancs latéraux + 2 massifs fleuris / jarres / pots ornementaux + bordures
   const benchVariants: UrbanFurnitureVariant[] = ['bench_wood', 'bench_metal', 'bench_concrete', 'bench_backrest'];
   for (const side of [-1, 1]) {
     const bp = localToWorldPt(cx, cz, a, side * Math.min(2.7, lot.w * 0.34), -0.4);
-    if (!isWater(bp) && roadAt(bp) === 'none') {
+    if (!isWater(bp) && roadAt(bp) === 'none' && !bridgeAt(bp, 2.5)) {
       const bv = benchVariants[(s + (side > 0 ? 1 : 0)) % benchVariants.length];
-      plan.props.push({ category: 'furniture', variant: bv, x: bp.x, z: bp.z, angle: a + (side > 0 ? -Math.PI / 2 : Math.PI / 2), scale: 1.0, seed: s });
+      plan.props.push({ category: 'furniture', variant: bv, x: bp.x, z: bp.z, angle: a + (side > 0 ? -Math.PI / 2 : Math.PI / 2), scale: 1.0, seed: s + (side > 0 ? 1 : 0) });
       plan.solids.push({ shape: 'box', x: bp.x, z: bp.z, hx: 0.28, hz: 0.82, angle: a, h: 0.8 });
     }
-    const fp = localToWorldPt(cx, cz, a, side * Math.min(2.5, lot.w * 0.32), -lot.d * 0.28);
-    if (!isWater(fp) && roadAt(fp) === 'none') {
-      if (s % 2 === 0) {
+    const fp = localToWorldPt(cx, cz, a, side * Math.min(2.4, lot.w * 0.31), -lot.d * 0.28);
+    if (!isWater(fp) && roadAt(fp) === 'none' && !bridgeAt(fp, 2.5)) {
+      if (s % 3 === 0) {
         plan.props.push({ category: 'flower', variant: 'flower_bed', x: fp.x, z: fp.z, angle: a, scale: 1.0, seed: s, color: BOUGAINVILLEA_COLORS[s % BOUGAINVILLEA_COLORS.length] });
         plan.solids.push({ shape: 'box', x: fp.x, z: fp.z, hx: 0.78, hz: 0.4, angle: a, h: 0.55 });
-      } else {
+      } else if (s % 3 === 1) {
         plan.props.push({ category: 'garden_decor', variant: 'canari_jar', x: fp.x, z: fp.z, angle: a, scale: 1.0, seed: s });
         plan.solids.push({ shape: 'circle', x: fp.x, z: fp.z, r: 0.38, h: 0.85 });
+      } else {
+        plan.props.push({ category: 'tropical_plant', variant: 'potted_ornamental', x: fp.x, z: fp.z, angle: a, scale: 1.05, seed: s });
+        plan.solids.push({ shape: 'circle', x: fp.x, z: fp.z, r: 0.34, h: 0.9 });
       }
     }
+  }
+  const frontBorder = localToWorldPt(cx, cz, a, 0, lot.d * 0.32);
+  if (!isWater(frontBorder) && roadAt(frontBorder) === 'none' && !bridgeAt(frontBorder, 2.5)) {
+    plan.props.push({ category: 'ground_rock', variant: 'slabs', x: frontBorder.x, z: frontBorder.z, angle: a, scale: 1.05, seed: s });
   }
 }
 
@@ -855,23 +881,74 @@ export function collectChunkDecor(data: ChunkData): ChunkDecorPlan {
     solids: [],
   };
 
-  // 0. Détails architecturaux attachés aux bâtiments (piliers, murets, bougainvilliers, bidons, kiosques + plantes/fleurs/lanternes)
+  const lotCarSpots = data.houseLots.map((l) => carSpotForLot(l));
+
+  // 0. Détails architecturaux attachés aux bâtiments (parvis de tours, piliers, murets, bougainvilliers, bidons, kiosques + plantes/fleurs/lanternes)
   data.buildings.forEach((b, seedIdx) => {
     if (b.landmark && (HERO_LANDMARKS.has(b.landmark) || isHospitalId(b.landmark) || isMairieId(b.landmark) || isCommissariatId(b.landmark) || isPetitHotelId(b.landmark))) return;
     const c = Math.cos(b.angle);
     const s = Math.sin(b.angle);
 
-    if (b.kind === 'tower' || b.kind === 'warehouse' || b.kind === 'container') return;
+    if (b.kind === 'warehouse' || b.kind === 'container') return;
+
+    if (b.kind === 'tower') {
+      // Esplanade autour des tours : pavés, jardinières, bancs, bornes, haies taillées, réverbères, bassins & pergolas
+      const frontX = b.x - s * (b.d * 0.5 + 1.4);
+      const frontZ = b.z + c * (b.d * 0.5 + 1.4);
+      const fp = { x: frontX, z: frontZ };
+      if (inChunk(frontX, frontZ) && !isWater(fp) && !bridgeAt(fp, 2.5) && roadAt(fp) === 'none' && !insideSpecial(fp, 1.5)) {
+        plan.props.push({ category: 'ground_rock', variant: 'pavers', x: frontX, z: frontZ, angle: b.angle, scale: 1.6, seed: seedIdx, color: 0xb8a99a });
+      }
+      const towerSpots: Array<{ lu: number; lv: number; ang: number; pick: number }> = [
+        { lu: -b.w * 0.36, lv: b.d * 0.5 + 1.2, ang: b.angle, pick: seedIdx % 5 },
+        { lu: b.w * 0.36, lv: b.d * 0.5 + 1.2, ang: b.angle, pick: (seedIdx + 1) % 5 },
+        { lu: -(b.w * 0.5 + 1.3), lv: 0, ang: b.angle + Math.PI / 2, pick: (seedIdx + 2) % 5 },
+        { lu: b.w * 0.5 + 1.3, lv: 0, ang: b.angle - Math.PI / 2, pick: (seedIdx + 3) % 5 },
+        { lu: 0, lv: -(b.d * 0.5 + 1.3), ang: b.angle + Math.PI, pick: (seedIdx + 4) % 5 },
+      ];
+      for (const sp of towerSpots) {
+        const pt = localToWorldPt(b.x, b.z, b.angle, sp.lu, sp.lv);
+        if (!inChunk(pt.x, pt.z) || isWater(pt) || bridgeAt(pt, 2.5) || roadAt(pt) !== 'none' || insideSpecial(pt, 1.5) || overlapsAnyBuilding(data.buildings, b.id, pt.x, pt.z, 0.5)) {
+          continue;
+        }
+        if (sp.pick === 0) {
+          plan.props.push({ category: 'furniture', variant: 'rect_planter', x: pt.x, z: pt.z, angle: sp.ang, scale: 1.05, seed: seedIdx, color: BOUGAINVILLEA_COLORS[seedIdx % BOUGAINVILLEA_COLORS.length] });
+          plan.solids.push({ shape: 'box', x: pt.x, z: pt.z, hx: 0.78, hz: 0.3, angle: sp.ang, h: 0.78 });
+        } else if (sp.pick === 1) {
+          plan.props.push({ category: 'furniture', variant: seedIdx % 2 === 0 ? 'bench_concrete' : 'bench_metal', x: pt.x, z: pt.z, angle: sp.ang, scale: 1.0, seed: seedIdx });
+          plan.solids.push({ shape: 'box', x: pt.x, z: pt.z, hx: 0.82, hz: 0.28, angle: sp.ang, h: 0.75 });
+        } else if (sp.pick === 2) {
+          plan.props.push({ category: 'bush', variant: seedIdx % 2 === 0 ? 'trimmed_hedge' : 'planter_hedge', x: pt.x, z: pt.z, angle: sp.ang, scale: 1.0, seed: seedIdx, color: BUSH_GREENS[seedIdx % BUSH_GREENS.length] });
+          plan.solids.push({ shape: 'box', x: pt.x, z: pt.z, hx: 0.82, hz: 0.32, angle: sp.ang, h: 0.95 });
+        } else if (sp.pick === 3) {
+          plan.props.push({ category: 'furniture', variant: 'bollard', x: pt.x, z: pt.z, angle: sp.ang, scale: 1.0, seed: seedIdx });
+          plan.solids.push({ shape: 'circle', x: pt.x, z: pt.z, r: 0.15, h: 0.82 });
+        } else {
+          plan.props.push({ category: 'flower', variant: 'flower_bed', x: pt.x, z: pt.z, angle: sp.ang, scale: 1.0, seed: seedIdx, color: BOUGAINVILLEA_COLORS[seedIdx % BOUGAINVILLEA_COLORS.length] });
+          plan.solids.push({ shape: 'box', x: pt.x, z: pt.z, hx: 0.78, hz: 0.4, angle: sp.ang, h: 0.55 });
+        }
+      }
+      return;
+    }
 
     if (b.kind === 'villa' || b.kind === 'house') {
       if (b.kind !== 'villa') {
-        // Petite maison résidentielle : canari, pots terre cuite, rosier/hibiscus ou plantes tropicales en bord de façade
-        if (seedIdx % 3 === 0) {
-          const jx = b.x + c * (b.w * 0.42) - s * (b.d * 0.52 + 0.35);
-          const jz = b.z + s * (b.w * 0.42) + c * (b.d * 0.52 + 0.35);
+        // Maison résidentielle : canari, pots terre cuite, rosier/hibiscus, bananier/papayer, petite clôture ou bordure fleurie devant la maison
+        if (seedIdx % 4 !== 3) {
+          const sideSign = seedIdx % 2 === 0 ? 1 : -1;
+          const jx = b.x + c * sideSign * (b.w * 0.42) - s * (b.d * 0.52 + 0.38);
+          const jz = b.z + s * sideSign * (b.w * 0.42) + c * (b.d * 0.52 + 0.38);
           const jp = { x: jx, z: jz };
-          if (inChunk(jx, jz) && !isWater(jp) && roadAt(jp) === 'none' && !insideSpecial(jp, 1.5) && !overlapsAnyBuilding(data.buildings, b.id, jx, jz, 0.3)) {
-            const pick = seedIdx % 4;
+          if (
+            inChunk(jx, jz) &&
+            !isWater(jp) &&
+            !bridgeAt(jp, 2.5) &&
+            roadAt(jp) === 'none' &&
+            !insideSpecial(jp, 1.5) &&
+            !overlapsAnyBuilding(data.buildings, b.id, jx, jz, 0.35) &&
+            !lotCarSpots.some((cs) => Math.hypot(cs.x - jx, cs.z - jz) < 2.4)
+          ) {
+            const pick = seedIdx % 9;
             if (pick === 0) {
               plan.props.push({ category: 'garden_decor', variant: 'canari_jar', x: jx, z: jz, angle: b.angle, scale: 0.95, seed: seedIdx });
               plan.solids.push({ shape: 'circle', x: jx, z: jz, r: 0.34, h: 0.82 });
@@ -881,9 +958,23 @@ export function collectChunkDecor(data: ChunkData): ChunkDecorPlan {
             } else if (pick === 2) {
               plan.props.push({ category: 'flower', variant: 'hibiscus', x: jx, z: jz, angle: b.angle, scale: 0.95, seed: seedIdx, color: 0xf43f5e });
               plan.solids.push({ shape: 'circle', x: jx, z: jz, r: 0.45, h: 0.95 });
-            } else {
+            } else if (pick === 3) {
               plan.props.push({ category: 'garden_decor', variant: 'terracotta_pots', x: jx, z: jz, angle: b.angle, scale: 1.0, seed: seedIdx });
               plan.solids.push({ shape: 'circle', x: jx, z: jz, r: 0.36, h: 0.4 });
+            } else if (pick === 4) {
+              plan.props.push({ category: 'tropical_plant', variant: 'banana', x: jx, z: jz, angle: b.angle, scale: 0.9, seed: seedIdx });
+              plan.solids.push({ shape: 'circle', x: jx, z: jz, r: 0.18, h: 2.0 });
+            } else if (pick === 5) {
+              plan.props.push({ category: 'tropical_plant', variant: 'small_shrub', x: jx, z: jz, angle: b.angle, scale: 1.0, seed: seedIdx });
+              plan.solids.push({ shape: 'circle', x: jx, z: jz, r: 0.38, h: 0.72 });
+            } else if (pick === 6) {
+              plan.props.push({ category: 'garden_decor', variant: 'garden_border', x: jx, z: jz, angle: b.angle, scale: 0.95, seed: seedIdx });
+            } else if (pick === 7) {
+              plan.props.push({ category: 'flower', variant: 'rose', x: jx, z: jz, angle: b.angle, scale: 0.95, seed: seedIdx, color: 0xfb7185 });
+              plan.solids.push({ shape: 'circle', x: jx, z: jz, r: 0.4, h: 0.7 });
+            } else {
+              plan.props.push({ category: 'tropical_plant', variant: 'potted_ornamental', x: jx, z: jz, angle: b.angle, scale: 0.95, seed: seedIdx });
+              plan.solids.push({ shape: 'circle', x: jx, z: jz, r: 0.32, h: 0.85 });
             }
           }
         }
@@ -904,17 +995,19 @@ export function collectChunkDecor(data: ChunkData): ChunkDecorPlan {
         }
       }
       // Suspension végétale ou lanterne sous l'auvent de la villa
-      plan.props.push({
-        category: 'hanging_decor',
-        variant: seedIdx % 2 === 0 ? 'hanging_plant' : 'lantern',
-        x: vx,
-        z: vz,
-        y0: 2.48,
-        span: 0.5,
-        angle: b.angle,
-        scale: 0.95,
-        seed: seedIdx,
-      });
+      if (inChunk(vx, vz) && !isWater({ x: vx, z: vz }) && !bridgeAt({ x: vx, z: vz }, 2.5) && roadAt({ x: vx, z: vz }) === 'none') {
+        plan.props.push({
+          category: 'hanging_decor',
+          variant: seedIdx % 2 === 0 ? 'hanging_plant' : 'lantern',
+          x: vx,
+          z: vz,
+          y0: 2.48,
+          span: 0.5,
+          angle: b.angle,
+          scale: 0.95,
+          seed: seedIdx,
+        });
+      }
 
       if (VILLA_WALLED_DISTRICTS.has(b.district)) {
         const wallCol = 0xe7dfd1;
@@ -945,7 +1038,7 @@ export function collectChunkDecor(data: ChunkData): ChunkDecorPlan {
             const gx = fx - s * 0.85;
             const gz = fz + c * 0.85;
             const gp = { x: gx, z: gz };
-            if (inChunk(gx, gz) && !isWater(gp) && roadAt(gp) === 'none' && !overlapsAnyBuilding(data.buildings, b.id, gx, gz, 0.35)) {
+            if (inChunk(gx, gz) && !isWater(gp) && !bridgeAt(gp, 2.5) && roadAt(gp) === 'none' && !overlapsAnyBuilding(data.buildings, b.id, gx, gz, 0.35)) {
               const villaAccents: FlowerVariant[] = ['rose', 'hibiscus', 'tropical_flower'];
               if (side < 0) {
                 plan.props.push({
@@ -1035,18 +1128,21 @@ export function collectChunkDecor(data: ChunkData): ChunkDecorPlan {
     if (seedIdx % 3 === 0) {
       const wx = b.x - s * (b.d * 0.5 + 0.06);
       const wz = b.z + c * (b.d * 0.5 + 0.06);
-      plan.props.push({
-        category: 'hanging_decor',
-        variant: 'wall_relief',
-        x: wx,
-        z: wz,
-        y0: 1.65,
-        span: 1,
-        angle: b.angle,
-        scale: 0.9,
-        seed: seedIdx,
-        color: AWNING_COLORS[seedIdx % AWNING_COLORS.length],
-      });
+      const wp = { x: wx, z: wz };
+      if (inChunk(wx, wz) && !isWater(wp) && !bridgeAt(wp, 2.5) && roadAt(wp) === 'none') {
+        plan.props.push({
+          category: 'hanging_decor',
+          variant: 'wall_relief',
+          x: wx,
+          z: wz,
+          y0: 1.65,
+          span: 1,
+          angle: b.angle,
+          scale: 0.9,
+          seed: seedIdx,
+          color: AWNING_COLORS[seedIdx % AWNING_COLORS.length],
+        });
+      }
     }
     if (seedIdx % 4 === 2) {
       const px = b.x - s * (b.d * 0.5 + 0.95) - c * (b.w * 0.28);
@@ -1093,7 +1189,7 @@ export function collectChunkDecor(data: ChunkData): ChunkDecorPlan {
       emitBasketballCourt(plan, lot);
     } else if (lot.w >= 8.8 && mod === 2) {
       emitSuperette(plan, lot);
-    } else if (lot.w >= 7.4 && mod === 11) {
+    } else if (lot.w >= 7.0 && (mod === 10 || mod === 11)) {
       emitPublicSquare(plan, lot);
     } else {
       switch (h % 9) {
@@ -1144,7 +1240,7 @@ export function collectChunkDecor(data: ChunkData): ChunkDecorPlan {
       const nx = -uz;
       const nz = ux;
       const roadAngle = Math.atan2(uz, ux);
-      const step = 28;
+      const step = 20;
       const nSteps = Math.floor(len / step);
 
       for (let k = 1; k < nSteps; k++) {
@@ -1167,7 +1263,11 @@ export function collectChunkDecor(data: ChunkData): ChunkDecorPlan {
         });
         plan.solids.push({ shape: 'box', x: lx, z: lz, hx: 0.12, hz: 0.12, angle: roadAngle, h: 5.4 });
 
-        if (k % 5 === 2) {
+        const post1X = lx - ux * 1.55 + nx * side * 1.45;
+        const post1Z = lz - uz * 1.55 + nz * side * 1.45;
+        const post2X = lx + ux * 1.55 + nx * side * 1.45;
+        const post2Z = lz + uz * 1.55 + nz * side * 1.45;
+        if (k % 6 === 2) {
           const sx = a.x + ux * distAlong + nx * side * (half + 2.1);
           const sz = a.z + uz * distAlong + nz * side * (half + 2.1);
           const sp = { x: sx, z: sz };
@@ -1177,25 +1277,35 @@ export function collectChunkDecor(data: ChunkData): ChunkDecorPlan {
             !bridgeAt(sp, 4) &&
             roadAt(sp) === 'none' &&
             !insideSpecial(sp, 3) &&
-            !nearBuilding(sx, sz, 2.4) &&
-            !nearEmptyLot(sx, sz, 2.0)
+            !nearBuilding(sx, sz, 3.2) &&
+            !nearEmptyLot(sx, sz, 3.6) &&
+            !plan.props.some(
+              (pr) =>
+                Math.hypot(pr.x - sx, pr.z - sz) < 2.6 ||
+                Math.hypot(pr.x - post1X, pr.z - post1Z) < 0.7 ||
+                Math.hypot(pr.x - post2X, pr.z - post2Z) < 0.7
+            ) &&
+            !plan.solids.some(
+              (so) =>
+                Math.hypot(so.x - lx, so.z - lz) > 0.1 &&
+                Math.hypot(so.x - sx, so.z - sz) < 2.4
+            )
           ) {
             const backX = sx + nx * side * 0.55;
             const backZ = sz + nz * side * 0.55;
-            const post1X = sx - ux * 1.55;
-            const post1Z = sz - uz * 1.55;
-            const post2X = sx + ux * 1.55;
-            const post2Z = sz + uz * 1.55;
             plan.shelters.push({ x: sx, z: sz, backX, backZ, post1X, post1Z, post2X, post2Z, angle: roadAngle });
             plan.solids.push({ shape: 'box', x: backX, z: backZ, hx: 1.7, hz: 0.09, angle: roadAngle, h: 2.35 });
             plan.solids.push({ shape: 'box', x: sx, z: sz, hx: 1.3, hz: 0.23, angle: roadAngle, h: 0.56 });
             plan.solids.push({ shape: 'box', x: post1X, z: post1Z, hx: 0.09, hz: 0.09, angle: roadAngle, h: 2.35 });
             plan.solids.push({ shape: 'box', x: post2X, z: post2Z, hx: 0.09, hz: 0.09, angle: roadAngle, h: 2.35 });
           }
-        } else if (k % 3 === 1) {
-          // Mobilier urbain & aménagements sur trottoir des grands axes (bancs, jardinières, bornes, réverbères, barrières)
-          const mx = a.x + ux * distAlong + nx * side * (half + 1.45);
-          const mz = a.z + uz * distAlong + nz * side * (half + 1.45);
+        }
+
+        // Mobilier urbain & aménagements sur trottoir des grands axes, à mi-chemin entre 2 lampadaires
+        const midDist = distAlong + step * 0.5;
+        if (midDist < len - 4) {
+          const mx = a.x + ux * midDist + nx * side * (half + 1.35);
+          const mz = a.z + uz * midDist + nz * side * (half + 1.35);
           const mp = { x: mx, z: mz };
           if (
             inChunk(mx, mz) &&
@@ -1204,12 +1314,14 @@ export function collectChunkDecor(data: ChunkData): ChunkDecorPlan {
             roadAt(mp) === 'none' &&
             !insideSpecial(mp, 2.5) &&
             !nearBuilding(mx, mz, 1.8) &&
-            !nearEmptyLot(mx, mz, 1.6) &&
-            !nearHouseLot(mx, mz, 7.5)
+            !nearEmptyLot(mx, mz, 2.0) &&
+            !nearHouseLot(mx, mz, 7.5) &&
+            !plan.props.some((pr) => Math.hypot(pr.x - mx, pr.z - mz) < 1.8) &&
+            !plan.solids.some((so) => Math.hypot(so.x - mx, so.z - mz) < 1.5)
           ) {
-            const artPick = (k + i) % 6;
+            const artPick = (k + i) % 9;
             const dHere = districtAt(mp).id;
-            if (artPick === 0 && (dHere === 'plateau' || dHere === 'grand_bassam' || dHere === 'cocody')) {
+            if (artPick === 0 && (dHere === 'plateau' || dHere === 'grand_bassam' || dHere === 'cocody' || dHere === 'riviera')) {
               plan.props.push({ category: 'furniture', variant: 'reverbere', x: mx, z: mz, angle: roadAngle, scale: 1.0, seed: k + i });
               plan.solids.push({ shape: 'circle', x: mx, z: mz, r: 0.22, h: 4.5 });
             } else if (artPick === 1) {
@@ -1225,11 +1337,20 @@ export function collectChunkDecor(data: ChunkData): ChunkDecorPlan {
             } else if (artPick === 4) {
               plan.props.push({ category: 'furniture', variant: 'barrier', x: mx, z: mz, angle: roadAngle, scale: 1.0, seed: k + i });
               plan.solids.push({ shape: 'box', x: mx, z: mz, hx: 0.72, hz: 0.1, angle: roadAngle, h: 0.85 });
-            } else {
+            } else if (artPick === 5) {
               plan.props.push({ category: 'hanging_decor', variant: 'barrier_chain', x: mx, z: mz, y0: 0.85, span: 1.6, angle: roadAngle, scale: 1.0, seed: k + i });
               const cHalf = 0.8;
               plan.solids.push({ shape: 'circle', x: mx - ux * cHalf, z: mz - uz * cHalf, r: 0.1, h: 0.92 });
               plan.solids.push({ shape: 'circle', x: mx + ux * cHalf, z: mz + uz * cHalf, r: 0.1, h: 0.92 });
+            } else if (artPick === 6) {
+              plan.props.push({ category: 'bush', variant: (k + i) % 2 === 0 ? 'planter_hedge' : 'trimmed_hedge', x: mx, z: mz, angle: roadAngle, scale: 1.0, seed: k + i, color: BUSH_GREENS[(k + i) % BUSH_GREENS.length] });
+              plan.solids.push({ shape: 'box', x: mx, z: mz, hx: 0.82, hz: 0.32, angle: roadAngle, h: 1.0 });
+            } else if (artPick === 7) {
+              plan.props.push({ category: 'flower', variant: 'flower_bed', x: mx, z: mz, angle: roadAngle, scale: 1.0, seed: k + i, color: BOUGAINVILLEA_COLORS[(k + i) % BOUGAINVILLEA_COLORS.length] });
+              plan.solids.push({ shape: 'box', x: mx, z: mz, hx: 0.78, hz: 0.4, angle: roadAngle, h: 0.55 });
+            } else {
+              plan.props.push({ category: 'tropical_plant', variant: (k + i) % 2 === 0 ? 'potted_ornamental' : 'small_shrub', x: mx, z: mz, angle: roadAngle, scale: 1.0, seed: k + i });
+              plan.solids.push({ shape: 'circle', x: mx, z: mz, r: 0.36, h: 0.9 });
             }
           }
         }
@@ -1242,7 +1363,6 @@ export function collectChunkDecor(data: ChunkData): ChunkDecorPlan {
   const cDist = districtAt(centre);
   const g = GRIDS[cDist.id];
   const grassColor = cDist.id === 'banco' ? 0x2d6a2e : cDist.social === 'luxury' ? 0x4b8f38 : 0x5f8c3a;
-  const lotCarSpots = data.houseLots.map((l) => carSpotForLot(l));
 
   if (g && g.style !== 'none') {
     const f = frameFor(cDist.id);
@@ -1260,6 +1380,7 @@ export function collectChunkDecor(data: ChunkData): ChunkDecorPlan {
       if (nearBuilding(x, z, clearM) || nearEmptyLot(x, z, clearM * 0.5 + 1.0)) return false;
       if (nearHouseLot(x, z, 8.0) || nearTree(x, z, 1.4)) return false;
       if (lotCarSpots.some((cs) => Math.hypot(cs.x - x, cs.z - z) < 4.5)) return false;
+      if (plan.solids.some((so) => Math.hypot(so.x - x, so.z - z) < 1.2)) return false;
       return true;
     };
 
@@ -1381,52 +1502,56 @@ export function collectChunkDecor(data: ChunkData): ChunkDecorPlan {
         const h3 = (blockHash >>> 8) & 3;
         if (h3 === 0 && sidewalkSpotFree(sp3.x, sp3.z, angle, 1.4, 1.0, 1.5)) {
           emitFoodVendor(plan, sp3.x, sp3.z, angle, (blockHash & 16) ? 'gnonmi' : 'galettes', blockHash >>> 5);
-        } else if (h3 === 1 && sidewalkSpotFree(sp3.x, sp3.z, angle, 1.2, 1.2, 1.2)) {
-          pushBush(plan, sp3.x, sp3.z, 0.68, 1.15, BUSH_GREENS[(blockHash + 1) % BUSH_GREENS.length]);
-        } else if (h3 >= 2 && sidewalkSpotFree(sp3.x, sp3.z, angle, 1.5, 1.2, 1.5)) {
-          const dPick = (blockHash >>> 10) % 12;
-          if (dPick === 0 || dPick === 1) {
+        } else if (sidewalkSpotFree(sp3.x, sp3.z, angle, 1.5, 1.2, 1.5)) {
+          const dPick = (blockHash >>> 10) % 14;
+          if (dPick <= 1) {
             const bVars: UrbanFurnitureVariant[] = ['bench_wood', 'bench_metal', 'bench_concrete', 'bench_backrest'];
             plan.props.push({ category: 'furniture', variant: bVars[blockHash % bVars.length], x: sp3.x, z: sp3.z, angle, scale: 0.95, seed: blockHash });
             plan.solids.push({ shape: 'box', x: sp3.x, z: sp3.z, hx: 0.76, hz: 0.28, angle, h: 0.75 });
-          } else if (dPick === 2) {
-            const tpVars: TropicalPlantVariant[] = ['banana', 'papaya', 'broadleaf', 'small_shrub'];
+          } else if (dPick === 2 || dPick === 3) {
+            const tpVars: TropicalPlantVariant[] = ['banana', 'papaya', 'aloe', 'broadleaf', 'fern', 'potted_ornamental', 'small_shrub', 'creeper'];
             const tv = tpVars[blockHash % tpVars.length];
             plan.props.push({ category: 'tropical_plant', variant: tv, x: sp3.x, z: sp3.z, angle, scale: 0.95, seed: blockHash });
-            plan.solids.push({ shape: 'circle', x: sp3.x, z: sp3.z, r: 0.3, h: 1.8 });
-          } else if (dPick === 3) {
-            const flVars: FlowerVariant[] = ['rose', 'bougainvillea', 'hibiscus', 'tropical_flower'];
+            if (tv !== 'fern' && tv !== 'creeper') {
+              plan.solids.push({ shape: 'circle', x: sp3.x, z: sp3.z, r: 0.3, h: 1.6 });
+            }
+          } else if (dPick === 4) {
+            const flVars: FlowerVariant[] = ['rose', 'bougainvillea', 'hibiscus', 'tropical_flower', 'flower_bed'];
             plan.props.push({ category: 'flower', variant: flVars[blockHash % flVars.length], x: sp3.x, z: sp3.z, angle, scale: 1.0, seed: blockHash, color: BOUGAINVILLEA_COLORS[blockHash % BOUGAINVILLEA_COLORS.length] });
-            plan.solids.push({ shape: 'circle', x: sp3.x, z: sp3.z, r: 0.42, h: 0.95 });
-          } else if (dPick === 4 || dPick === 5) {
+            plan.solids.push({ shape: 'circle', x: sp3.x, z: sp3.z, r: 0.45, h: 0.95 });
+          } else if (dPick === 5 || dPick === 6) {
             const buVars: BushVariant[] = ['round_bush', 'wild_bush', 'trimmed_hedge', 'planter_hedge', 'plant_bed', 'grove'];
             const bv = buVars[blockHash % buVars.length];
             plan.props.push({ category: 'bush', variant: bv, x: sp3.x, z: sp3.z, angle, scale: 0.95, seed: blockHash, color: BUSH_GREENS[blockHash % BUSH_GREENS.length] });
             plan.solids.push({ shape: 'circle', x: sp3.x, z: sp3.z, r: 0.55, h: 1.05 });
-          } else if (dPick === 6) {
-            const gdVars: GardenDecorVariant[] = ['canari_jar', 'terracotta_pots', 'small_fence', 'low_wall'];
+          } else if (dPick === 7) {
+            const gdVars: GardenDecorVariant[] = ['canari_jar', 'terracotta_pots', 'small_fence', 'low_wall', 'statue', 'abstract_sculpture'];
             const gv = gdVars[blockHash % gdVars.length];
             plan.props.push({ category: 'garden_decor', variant: gv, x: sp3.x, z: sp3.z, angle, scale: 0.95, seed: blockHash });
-            plan.solids.push({ shape: 'box', x: sp3.x, z: sp3.z, hx: gv === 'small_fence' || gv === 'low_wall' ? 0.85 : 0.35, hz: 0.25, angle, h: 0.85 });
-          } else if (dPick === 7) {
-            plan.props.push({ category: 'furniture', variant: blockHash % 2 === 0 ? 'flower_pot' : 'rect_planter', x: sp3.x, z: sp3.z, angle, scale: 1.0, seed: blockHash, color: BOUGAINVILLEA_COLORS[blockHash % BOUGAINVILLEA_COLORS.length] });
-            plan.solids.push({ shape: 'circle', x: sp3.x, z: sp3.z, r: 0.38, h: 0.85 });
+            plan.solids.push({ shape: 'box', x: sp3.x, z: sp3.z, hx: gv === 'small_fence' || gv === 'low_wall' ? 0.85 : 0.42, hz: 0.35, angle, h: 0.95 });
           } else if (dPick === 8) {
+            const ufVars: UrbanFurnitureVariant[] = ['flower_pot', 'rect_planter', 'reverbere', 'barrier'];
+            const ufv = ufVars[blockHash % ufVars.length];
+            plan.props.push({ category: 'furniture', variant: ufv, x: sp3.x, z: sp3.z, angle, scale: 1.0, seed: blockHash, color: BOUGAINVILLEA_COLORS[blockHash % BOUGAINVILLEA_COLORS.length] });
+            plan.solids.push({ shape: 'circle', x: sp3.x, z: sp3.z, r: ufv === 'reverbere' ? 0.22 : 0.42, h: 0.85 });
+          } else if (dPick === 9) {
             plan.props.push({ category: 'ground_rock', variant: 'rock', x: sp3.x, z: sp3.z, angle, scale: 0.95, seed: blockHash });
             plan.solids.push({ shape: 'circle', x: sp3.x, z: sp3.z, r: 0.55, h: 0.72 });
-          } else if (dPick === 9) {
-            plan.props.push({ category: 'ground_rock', variant: blockHash % 2 === 0 ? 'slabs' : 'pavers', x: sp3.x, z: sp3.z, angle, scale: 1.0, seed: blockHash });
           } else if (dPick === 10) {
-            plan.props.push({ category: 'hanging_decor', variant: 'decor_chain', x: sp3.x, z: sp3.z, y0: 1.15, span: 1.5, angle, scale: 1.0, seed: blockHash });
-          } else {
+            plan.props.push({ category: 'ground_rock', variant: blockHash % 2 === 0 ? 'slabs' : 'pavers', x: sp3.x, z: sp3.z, angle, scale: 1.0, seed: blockHash });
+          } else if (dPick === 11) {
+            plan.props.push({ category: 'hanging_decor', variant: blockHash % 2 === 0 ? 'decor_chain' : 'fairy_garland', x: sp3.x, z: sp3.z, y0: 2.65, span: 2.2, angle, scale: 1.0, seed: blockHash });
+          } else if (dPick === 12) {
             plan.props.push({ category: 'garden_decor', variant: 'garden_border', x: sp3.x, z: sp3.z, angle, scale: 1.0, seed: blockHash });
+          } else {
+            plan.props.push({ category: 'hanging_decor', variant: 'bunting_garland', x: sp3.x, z: sp3.z, y0: 2.65, span: 2.4, angle, scale: 1.0, seed: blockHash });
           }
         }
 
-        // Emplacement 4 (trottoir face Nord/Sud du bloc) : touche florale / dalage / mobilier léger sans alourdir les solides
+        // Emplacement 4 (trottoir face Nord/Sud du bloc) : touche florale / dallage / mobilier léger sur chaque bloc libre
         const sp4 = toWorld(i * f.pitch + f.pitch * 0.54, j * f.pitch - (half + 1.1));
-        if (((blockHash >>> 12) & 1) === 0 && sidewalkSpotFree(sp4.x, sp4.z, angle, 1.2, 1.0, 1.3)) {
-          const m4 = (blockHash >>> 13) % 5;
+        if (sidewalkSpotFree(sp4.x, sp4.z, angle, 1.2, 1.0, 1.3)) {
+          const m4 = (blockHash >>> 13) % 6;
           if (m4 === 0) {
             plan.props.push({ category: 'flower', variant: 'small_flowers', x: sp4.x, z: sp4.z, angle, scale: 1.0, seed: blockHash, color: BOUGAINVILLEA_COLORS[blockHash % BOUGAINVILLEA_COLORS.length] });
           } else if (m4 === 1) {
@@ -1435,9 +1560,11 @@ export function collectChunkDecor(data: ChunkData): ChunkDecorPlan {
             plan.props.push({ category: 'bush', variant: 'tall_grass', x: sp4.x, z: sp4.z, angle, scale: 1.0, seed: blockHash, color: grassColor });
           } else if (m4 === 3) {
             plan.props.push({ category: 'ground_rock', variant: 'pebbles', x: sp4.x, z: sp4.z, angle, scale: 1.0, seed: blockHash });
-          } else {
+          } else if (m4 === 4) {
             plan.props.push({ category: 'furniture', variant: 'bollard', x: sp4.x, z: sp4.z, angle, scale: 0.95, seed: blockHash });
             plan.solids.push({ shape: 'circle', x: sp4.x, z: sp4.z, r: 0.14, h: 0.78 });
+          } else {
+            plan.props.push({ category: 'ground_rock', variant: 'slabs', x: sp4.x, z: sp4.z, angle, scale: 0.95, seed: blockHash });
           }
         }
 
@@ -1536,39 +1663,180 @@ export function collectChunkDecor(data: ChunkData): ChunkDecorPlan {
     for (let i = 0; i < coast.length - 1; i++) {
       minChunkCoast = Math.min(minChunkCoast, distanceToSegment(centre, coast[i], coast[i + 1]).dist);
     }
-    if (minChunkCoast < 90) {
-      for (let slot = 0; slot < 5; slot++) {
+    if (minChunkCoast < 120) {
+      for (let slot = 0; slot < 18; slot++) {
         const rx = ((hash32(data.cx, data.cz, slot * 17 + 3) & 255) / 255) * (CHUNK - 10) + 5;
         const rz = ((hash32(data.cx, data.cz, slot * 17 + 9) & 255) / 255) * (CHUNK - 10) + 5;
         const px = x0 + rx;
         const pz = z0 + rz;
         const p = { x: px, z: pz };
-        if (isWater(p) || roadAt(p) !== 'none' || insideSpecial(p, 3) || nearBuilding(px, pz, 2.5)) continue;
+        if (isWater(p) || bridgeAt(p, 3) || roadAt(p) !== 'none' || insideSpecial(p, 3) || nearBuilding(px, pz, 2.5)) continue;
         let minC = Infinity;
         for (let i = 0; i < coast.length - 1; i++) minC = Math.min(minC, distanceToSegment(p, coast[i], coast[i + 1]).dist);
-        if (minC < 14 || minC > 42) continue;
+        if (minC < 10 || minC > 64) continue;
 
-        if (slot === 0) {
-          const hullCol = hash32(data.cx, data.cz, 99) % 2 === 0 ? 0x1d4ed8 : 0x7c2d12;
+        if (slot <= 1) {
+          const hullCol = hash32(data.cx, data.cz, 99 + slot) % 2 === 0 ? 0x1d4ed8 : 0x7c2d12;
           const pAngle = ((slot + data.cx) % 5) * 0.25;
           plan.pirogues.push({ x: px, z: pz, angle: pAngle, color: hullCol });
           plan.solids.push({ shape: 'box', x: px, z: pz, hx: 2.35, hz: 0.46, angle: pAngle, h: 0.5 });
-        } else if (slot <= 2) {
+        } else if (slot <= 4) {
           const parasolCol = PARASOL_COLORS[(slot + Math.abs(data.cx + data.cz)) % PARASOL_COLORS.length];
           const pAngle = slot * 0.4;
           plan.parasols.push({ x: px, z: pz, angle: pAngle, color: parasolCol });
           plan.solids.push({ shape: 'circle', x: px, z: pz, r: 0.12, h: 2.15 });
-        } else if (slot === 3) {
-          const pAngle = (hash32(data.cx, data.cz, 41) % 6) * 0.4;
-          if ((data.cx + data.cz) % 3 === 0) {
-            plan.props.push({ category: 'furniture', variant: 'picnic_table', x: px, z: pz, angle: pAngle, scale: 1.0, seed: data.cx * 31 + data.cz });
+        } else if (slot <= 6) {
+          const pAngle = (hash32(data.cx, data.cz, 41 + slot) % 6) * 0.4;
+          if ((data.cx + data.cz + slot) % 2 === 0) {
+            plan.props.push({ category: 'furniture', variant: 'picnic_table', x: px, z: pz, angle: pAngle, scale: 1.0, seed: data.cx * 31 + data.cz + slot });
             plan.solids.push({ shape: 'box', x: px, z: pz, hx: 0.85, hz: 0.78, angle: pAngle, h: 0.8 });
           } else {
-            plan.props.push({ category: 'ground_rock', variant: 'rock', x: px, z: pz, angle: pAngle, scale: 1.15, seed: data.cx * 19 + data.cz, color: 0x9ca3af });
-            plan.solids.push({ shape: 'circle', x: px, z: pz, r: 0.65, h: 0.8 });
+            plan.props.push({ category: 'furniture', variant: 'pergola', x: px, z: pz, angle: pAngle, scale: 0.95, seed: data.cx * 17 + data.cz + slot });
+            for (const su of [-1, 1]) {
+              for (const sv of [-1, 1]) {
+                const pp = localToWorldPt(px, pz, pAngle, su * 1.32, sv * 1.14);
+                plan.solids.push({ shape: 'box', x: pp.x, z: pp.z, hx: 0.1, hz: 0.1, angle: pAngle, h: 2.55 });
+              }
+            }
+          }
+        } else if (slot <= 9) {
+          const pAngle = (hash32(data.cx, data.cz, slot * 13) % 6) * 0.5;
+          plan.props.push({ category: 'ground_rock', variant: 'rock', x: px, z: pz, angle: pAngle, scale: 1.15, seed: data.cx * 19 + data.cz + slot, color: 0x9ca3af });
+          plan.solids.push({ shape: 'circle', x: px, z: pz, r: 0.65, h: 0.8 });
+        } else if (slot <= 13) {
+          plan.props.push({ category: 'ground_rock', variant: 'pebbles', x: px, z: pz, angle: 0.3 * slot, scale: 1.25, seed: data.cx + data.cz + slot });
+        } else if (slot <= 16) {
+          plan.props.push({ category: 'bush', variant: 'tall_grass', x: px, z: pz, angle: 0.4 * slot, scale: 1.1, seed: slot, color: 0x65a30d });
+        } else {
+          plan.props.push({ category: 'tropical_plant', variant: 'aloe', x: px, z: pz, angle: 0.5 * slot, scale: 1.05, seed: slot });
+          plan.solids.push({ shape: 'circle', x: px, z: pz, r: 0.35, h: 0.65 });
+        }
+      }
+    }
+  }
+
+  // 4b. Pourtours arrière des grands repères (Stade, Cathédrale, Hôtel Ivoire, Palais de la Culture, Marché d'Adjamé) sans toucher aux entrées
+  const PLAZA_GARDEN_LANDMARKS = new Set(['stade', 'cathedrale', 'hotel_ivoire', 'palais_culture', 'marche_adjame']);
+  for (const sp of SPECIAL_FOOTPRINTS) {
+    if (!PLAZA_GARDEN_LANDMARKS.has(sp.spec.id)) continue;
+    if (sp.x < x0 - 90 || sp.x > x1 + 90 || sp.z < z0 - 90 || sp.z > z1 + 90) continue;
+    const cornerOffsets: Array<[number, number]> = [
+      [-(sp.w * 0.5 + 3.2), -(sp.d * 0.5 + 3.2)],
+      [sp.w * 0.5 + 3.2, -(sp.d * 0.5 + 3.2)],
+      [0, -(sp.d * 0.5 + 3.4)],
+    ];
+    cornerOffsets.forEach(([lu, lv], idx) => {
+      const pt = localToWorldPt(sp.x, sp.z, sp.angle, lu, lv);
+      if (!inChunk(pt.x, pt.z) || isWater(pt) || bridgeAt(pt, 3) || roadAt(pt) !== 'none') return;
+      if (idx === 2) {
+        plan.props.push({ category: 'water_feature', variant: 'tiered_fountain', x: pt.x, z: pt.z, angle: sp.angle, scale: 0.95, seed: idx });
+        plan.solids.push({ shape: 'circle', x: pt.x, z: pt.z, r: 1.45, h: 1.6 });
+      } else {
+        plan.props.push({ category: 'furniture', variant: 'reverbere', x: pt.x, z: pt.z, angle: sp.angle, scale: 1.0, seed: idx });
+        plan.solids.push({ shape: 'circle', x: pt.x, z: pt.z, r: 0.22, h: 4.5 });
+      }
+    });
+  }
+
+  // 5. Remplissage organique des espaces vides inter-bâtiments, îlots verts, parcs et abords (sans bloquer routes/portes/voitures)
+  const cellStep = 9;
+  const cells = Math.floor(CHUNK / cellStep);
+  const offRoadRadius = (x: number, z: number, r: number): boolean =>
+    roadAt({ x, z }) === 'none' &&
+    roadAt({ x: x + r, z }) === 'none' &&
+    roadAt({ x: x - r, z }) === 'none' &&
+    roadAt({ x, z: z + r }) === 'none' &&
+    roadAt({ x, z: z - r }) === 'none';
+
+  for (let gx = 0; gx < cells; gx++) {
+    for (let gz = 0; gz < cells; gz++) {
+      const chash = hash32(data.cx * 13 + gx, data.cz * 17 + gz, 701);
+      const jx = x0 + (gx + 0.16 + ((chash & 63) / 63) * 0.68) * cellStep;
+      const jz = z0 + (gz + 0.16 + (((chash >>> 6) & 63) / 63) * 0.68) * cellStep;
+      const jp = { x: jx, z: jz };
+      if (!inChunk(jx, jz)) continue;
+      if (isWater(jp) || bridgeAt(jp, 4) || !offRoadRadius(jx, jz, 0.95)) continue;
+      if (insideSpecial(jp, 2.5)) continue;
+      if (nearBuilding(jx, jz, 1.9) || nearEmptyLot(jx, jz, 1.4) || nearHouseLot(jx, jz, 8.2) || nearTree(jx, jz, 1.5)) continue;
+      if (lotCarSpots.some((cs) => Math.hypot(cs.x - jx, cs.z - jz) < 4.5)) continue;
+      if (plan.solids.some((so) => Math.hypot(so.x - jx, so.z - jz) < 2.2)) continue;
+      if (plan.props.some((pr) => Math.hypot(pr.x - jx, pr.z - jz) < 2.5)) continue;
+      if (plan.shrubs.some((sh) => Math.hypot(sh.x - jx, sh.z - jz) < 2.0)) continue;
+
+      const dLocal = districtAt(jp).id;
+      const cAngle = ((chash >>> 12) % 12) * 0.52;
+      const kindRoll = (chash >>> 16) % 20;
+
+      if (dLocal === 'banco') {
+        // Forêt du Banco : sous-bois dense traversable (0 solide)
+        if (kindRoll < 6) {
+          plan.props.push({ category: 'tropical_plant', variant: 'fern', x: jx, z: jz, angle: cAngle, scale: 1.15, seed: chash });
+        } else if (kindRoll < 11) {
+          plan.props.push({ category: 'tropical_plant', variant: 'broadleaf', x: jx, z: jz, angle: cAngle, scale: 1.1, seed: chash });
+        } else if (kindRoll < 15) {
+          plan.props.push({ category: 'bush', variant: 'tall_grass', x: jx, z: jz, angle: cAngle, scale: 1.15, seed: chash, color: 0x2d6a2e });
+        } else if (kindRoll < 18) {
+          plan.props.push({ category: 'tropical_plant', variant: 'creeper', x: jx, z: jz, angle: cAngle, scale: 1.1, seed: chash });
+        } else {
+          plan.props.push({ category: 'ground_rock', variant: 'pebbles', x: jx, z: jz, angle: cAngle, scale: 1.0, seed: chash });
+        }
+        continue;
+      }
+
+      // Espaces vides urbains/résidentiels : ~65% végétation/détails traversables (0 solide), ~35% bosquets/plantes/bancs/pergolas/bassins
+      if (kindRoll < 3) {
+        plan.grass.push({ x: jx, z: jz, scale: 1.1, color: grassColor });
+        const tx = jx + 0.42;
+        const tz = jz - 0.32;
+        if (inChunk(tx, tz) && !isWater({ x: tx, z: tz }) && roadAt({ x: tx, z: tz }) === 'none' && !bridgeAt({ x: tx, z: tz }, 2.5)) {
+          plan.props.push({ category: 'bush', variant: 'tall_grass', x: tx, z: tz, angle: cAngle, scale: 1.05, seed: chash, color: grassColor });
+        }
+      } else if (kindRoll < 5) {
+        plan.props.push({ category: 'flower', variant: 'small_flowers', x: jx, z: jz, angle: cAngle, scale: 1.1, seed: chash, color: BOUGAINVILLEA_COLORS[chash % BOUGAINVILLEA_COLORS.length] });
+      } else if (kindRoll < 8) {
+        plan.props.push({ category: 'tropical_plant', variant: kindRoll === 5 ? 'fern' : 'creeper', x: jx, z: jz, angle: cAngle, scale: 1.1, seed: chash });
+      } else if (kindRoll < 11) {
+        plan.props.push({ category: 'ground_rock', variant: kindRoll === 8 ? 'pebbles' : kindRoll === 9 ? 'slabs' : 'pavers', x: jx, z: jz, angle: cAngle, scale: 1.05, seed: chash });
+      } else if (kindRoll < 13) {
+        plan.props.push({ category: 'garden_decor', variant: 'garden_border', x: jx, z: jz, angle: cAngle, scale: 1.0, seed: chash });
+      } else if (kindRoll < 15) {
+        const buVars: BushVariant[] = ['grove', 'round_bush', 'wild_bush', 'plant_bed', 'trimmed_hedge'];
+        plan.props.push({ category: 'bush', variant: buVars[chash % buVars.length], x: jx, z: jz, angle: cAngle, scale: 1.05, seed: chash, color: BUSH_GREENS[chash % BUSH_GREENS.length] });
+        plan.solids.push({ shape: 'circle', x: jx, z: jz, r: 0.65, h: 1.2 });
+      } else if (kindRoll < 17) {
+        const tpVars: TropicalPlantVariant[] = ['banana', 'papaya', 'aloe', 'broadleaf', 'small_shrub'];
+        const tv = tpVars[chash % tpVars.length];
+        plan.props.push({ category: 'tropical_plant', variant: tv, x: jx, z: jz, angle: cAngle, scale: 1.0, seed: chash });
+        plan.solids.push({ shape: 'circle', x: jx, z: jz, r: 0.35, h: 1.8 });
+      } else if (kindRoll === 17) {
+        const flVars: FlowerVariant[] = ['bougainvillea', 'hibiscus', 'rose', 'tropical_flower', 'flower_bed'];
+        const fv = flVars[chash % flVars.length];
+        plan.props.push({ category: 'flower', variant: fv, x: jx, z: jz, angle: cAngle, scale: 1.0, seed: chash, color: BOUGAINVILLEA_COLORS[chash % BOUGAINVILLEA_COLORS.length] });
+        plan.solids.push({ shape: 'circle', x: jx, z: jz, r: 0.5, h: 1.0 });
+      } else if (kindRoll === 18) {
+        const bVars: UrbanFurnitureVariant[] = ['bench_wood', 'bench_backrest', 'picnic_table', 'pergola'];
+        const bv = bVars[chash % bVars.length];
+        plan.props.push({ category: 'furniture', variant: bv, x: jx, z: jz, angle: cAngle, scale: 1.0, seed: chash });
+        if (bv === 'pergola') {
+          for (const su of [-1, 1]) {
+            for (const sv of [-1, 1]) {
+              const pp = localToWorldPt(jx, jz, cAngle, su * 1.38, sv * 1.2);
+              plan.solids.push({ shape: 'box', x: pp.x, z: pp.z, hx: 0.1, hz: 0.1, angle: cAngle, h: 2.55 });
+            }
           }
         } else {
-          plan.props.push({ category: 'ground_rock', variant: 'pebbles', x: px, z: pz, angle: 0.3, scale: 1.25, seed: data.cx + data.cz });
+          plan.solids.push({ shape: 'box', x: jx, z: jz, hx: 0.82, hz: 0.35, angle: cAngle, h: 0.8 });
+        }
+      } else {
+        if (chash % 4 === 0) {
+          plan.props.push({ category: 'water_feature', variant: (chash >>> 2) % 2 === 0 ? 'ornamental_basin' : 'circle_fountain', x: jx, z: jz, angle: cAngle, scale: 0.95, seed: chash });
+          plan.solids.push({ shape: 'circle', x: jx, z: jz, r: 1.15, h: 1.0 });
+        } else if (chash % 4 === 1) {
+          plan.props.push({ category: 'ground_rock', variant: 'rock', x: jx, z: jz, angle: cAngle, scale: 1.15, seed: chash });
+          plan.solids.push({ shape: 'circle', x: jx, z: jz, r: 0.65, h: 0.8 });
+        } else {
+          plan.props.push({ category: 'garden_decor', variant: chash % 2 === 0 ? 'canari_jar' : 'statue', x: jx, z: jz, angle: cAngle, scale: 1.0, seed: chash });
+          plan.solids.push({ shape: 'circle', x: jx, z: jz, r: 0.45, h: 1.4 });
         }
       }
     }

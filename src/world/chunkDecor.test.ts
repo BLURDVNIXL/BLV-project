@@ -410,17 +410,18 @@ test('espaces vides des rues : boutiques, superettes, coiffure, transfert, garba
 
 test('bibliothèque 3D 9 catégories : présence sur la carte, hors eau/route, solides WASM, éléments traversables et géométries sans NaN', async () => {
   const categoriesFound = new Set<DecorCategory>();
+  const variantsFound = new Set<string>();
   const speciesFound = new Set<TreeSpecies>();
   const samplePropsByCat = new Map<DecorCategory, DecorProp[]>();
 
-  const targetDistricts = ['plateau', 'cocody', 'riviera', 'abobo', 'yopougon', 'treichville', 'marcory', 'banco', 'grand_bassam', 'port_bouet'];
+  const targetDistricts = ['plateau', 'cocody', 'riviera', 'abobo', 'yopougon', 'treichville', 'marcory', 'banco', 'grand_bassam', 'port_bouet', 'adjame'];
   for (const id of targetDistricts) {
     const d = DISTRICTS.find((x) => x.id === id)!;
     const c = project(d.center.lat, d.center.lon);
     const ccx = chunkOf(c.x);
     const ccz = chunkOf(c.z);
-    for (let dx = -4; dx <= 4; dx++) {
-      for (let dz = -4; dz <= 4; dz++) {
+    for (let dx = -5; dx <= 5; dx++) {
+      for (let dz = -5; dz <= 5; dz++) {
         const ch = generateChunk(ccx + dx, ccz + dz);
         const primaryDistrict = ch.buildings[0]?.district ?? id;
         ch.trees.forEach((t, i) => {
@@ -430,6 +431,7 @@ test('bibliothèque 3D 9 catégories : présence sur la carte, hors eau/route, s
         const plan = collectChunkDecor(ch);
         for (const prop of plan.props) {
           categoriesFound.add(prop.category);
+          variantsFound.add(`${prop.category}/${prop.variant}`);
           const list = samplePropsByCat.get(prop.category) ?? [];
           if (list.length < 30) {
             list.push(prop);
@@ -466,7 +468,7 @@ test('bibliothèque 3D 9 catégories : présence sur la carte, hors eau/route, s
     }
   }
 
-  // Vérifie que toutes les 8 catégories de props et les 10 espèces d'arbres apparaissent sur la carte
+  // Vérifie que toutes les 8 catégories de props, tous les 54 variants et les 10 espèces d'arbres apparaissent sur la carte
   const allCategories: DecorCategory[] = [
     'tropical_plant',
     'flower',
@@ -479,6 +481,29 @@ test('bibliothèque 3D 9 catégories : présence sur la carte, hors eau/route, s
   ];
   for (const cat of allCategories) {
     assert.ok(categoriesFound.has(cat), `catégorie absente de la carte : ${cat}`);
+  }
+
+  const tropicalVariants: TropicalPlantVariant[] = ['banana', 'papaya', 'aloe', 'broadleaf', 'fern', 'potted_ornamental', 'small_shrub', 'creeper'];
+  const flowerVariants: FlowerVariant[] = ['rose', 'bougainvillea', 'hibiscus', 'tropical_flower', 'flower_bed', 'small_flowers'];
+  const bushVariants: BushVariant[] = ['round_bush', 'wild_bush', 'trimmed_hedge', 'planter_hedge', 'plant_bed', 'tall_grass', 'grove'];
+  const furnitureVariants: UrbanFurnitureVariant[] = ['bench_wood', 'bench_metal', 'bench_concrete', 'bench_backrest', 'picnic_table', 'flower_pot', 'rect_planter', 'bollard', 'reverbere', 'barrier', 'pergola'];
+  const waterVariants: WaterFeatureVariant[] = ['tiered_fountain', 'circle_fountain', 'modern_fountain', 'ornamental_basin'];
+  const gardenVariants: GardenDecorVariant[] = ['statue', 'abstract_sculpture', 'canari_jar', 'terracotta_pots', 'small_fence', 'low_wall', 'garden_border', 'green_pergola'];
+  const hangingVariants: HangingDecorVariant[] = ['decor_chain', 'barrier_chain', 'fairy_garland', 'bunting_garland', 'hanging_plant', 'lantern', 'wall_relief'];
+  const rockVariants: GroundRockVariant[] = ['rock', 'pebbles', 'slabs', 'pavers'];
+
+  const expectedVariants: Array<[DecorCategory, string]> = [
+    ...tropicalVariants.map((v): [DecorCategory, string] => ['tropical_plant', v]),
+    ...flowerVariants.map((v): [DecorCategory, string] => ['flower', v]),
+    ...bushVariants.map((v): [DecorCategory, string] => ['bush', v]),
+    ...furnitureVariants.map((v): [DecorCategory, string] => ['furniture', v]),
+    ...waterVariants.map((v): [DecorCategory, string] => ['water_feature', v]),
+    ...gardenVariants.map((v): [DecorCategory, string] => ['garden_decor', v]),
+    ...hangingVariants.map((v): [DecorCategory, string] => ['hanging_decor', v]),
+    ...rockVariants.map((v): [DecorCategory, string] => ['ground_rock', v]),
+  ];
+  for (const [cat, variant] of expectedVariants) {
+    assert.ok(variantsFound.has(`${cat}/${variant}`), `variant absent de la carte : ${cat}/${variant}`);
   }
 
   const allSpecies: TreeSpecies[] = [
@@ -526,27 +551,63 @@ test('bibliothèque 3D 9 catégories : présence sur la carte, hors eau/route, s
   await checkCategoryBlocks('garden_decor', ['canari_jar', 'statue', 'abstract_sculpture']);
   await checkCategoryBlocks('ground_rock', ['rock']);
 
-  // Vérifie que tous les variants des 9 catégories produisent des géométries valides sans NaN ni buffers vides
+  // Vérifie que CHAQUE espèce d'arbre possède un vrai tronc posé au sol (plain) + houppier (trees) et zéro triangle inversé FrontSide
+  const assertOutwardWinding = (buf: Buf, label: string) => {
+    const geom = buf.geometry();
+    assert.ok(geom, `${label}: géométrie vide`);
+    const pos = geom.getAttribute('position') as THREE.BufferAttribute;
+    const nor = geom.getAttribute('normal') as THREE.BufferAttribute;
+    const idx = geom.getIndex()!;
+    for (let t = 0; t < idx.count; t += 3) {
+      const i0 = idx.getX(t);
+      const i1 = idx.getX(t + 1);
+      const i2 = idx.getX(t + 2);
+      const ax = pos.getX(i0), ay = pos.getY(i0), az = pos.getZ(i0);
+      const ux = pos.getX(i1) - ax, uy = pos.getY(i1) - ay, uz = pos.getZ(i1) - az;
+      const vx = pos.getX(i2) - ax, vy = pos.getY(i2) - ay, vz = pos.getZ(i2) - az;
+      const gx = uy * vz - uz * vy;
+      const gy = uz * vx - ux * vz;
+      const gz = ux * vy - uy * vx;
+      const gLen = Math.hypot(gx, gy, gz);
+      if (gLen < 1e-8) continue;
+      const nx = nor.getX(i0), ny = nor.getY(i0), nz = nor.getZ(i0);
+      const dot = gx * nx + gy * ny + gz * nz;
+      assert.ok(dot > 0, `${label}: triangle inversé (winding FrontSide incorrect, dot=${dot.toFixed(4)})`);
+    }
+    geom.dispose();
+  };
+
+  for (const sp of allSpecies) {
+    for (const [hTree, dist] of [[4.5, sp === 'fromager' ? 'banco' : sp === 'coconut' ? 'grand_bassam' : 'cocody'], [9.5, sp === 'fromager' ? 'banco' : sp === 'coconut' ? 'grand_bassam' : 'cocody']] as const) {
+      let chosenHash = 0;
+      while (pickTreeSpecies(chosenHash, dist, hTree) !== sp && chosenHash < 200) chosenHash++;
+      assert.equal(pickTreeSpecies(chosenHash, dist, hTree), sp, `hash introuvable pour ${sp}`);
+      const tp = new Buf();
+      const tt = new Buf();
+      addRichTree(tp, tt, 0, 0, hTree, chosenHash, dist);
+      assert.ok(tp.pos.length > 0, `arbre ${sp} (h=${hTree}) sans géométrie de tronc dans plain`);
+      assert.ok(tt.pos.length > 0, `arbre ${sp} (h=${hTree}) sans feuillage dans trees`);
+      let minY = Infinity, maxY = -Infinity;
+      for (let i = 1; i < tp.pos.length; i += 3) {
+        minY = Math.min(minY, tp.pos[i]);
+        maxY = Math.max(maxY, tp.pos[i]);
+      }
+      assert.ok(minY <= 0.05 && maxY >= 1.5, `arbre ${sp} (h=${hTree}) tronc mal ancré (minY=${minY.toFixed(2)}, maxY=${maxY.toFixed(2)})`);
+      assertOutwardWinding(tp, `tronc ${sp}`);
+    }
+  }
+
+  // Vérifie que tous les variants (et sous-variants seed 0..2) produisent des géométries valides sans NaN ni triangles inversés FrontSide
   const plain = new Buf();
   const trees = new Buf();
   const lamps = new Buf();
   const puddles = new Buf();
 
   for (let i = 0; i < allSpecies.length; i++) {
-    // Force des hashes variés + district adaptés (jeunes et adultes)
     const dist = i === 6 ? 'banco' : i === 0 ? 'grand_bassam' : 'cocody';
     addRichTree(plain, trees, i * 10, 0, 4.5, i, dist);
     addRichTree(plain, trees, i * 10, 10, 9.5, i + 12, dist);
   }
-
-  const tropicalVariants: TropicalPlantVariant[] = ['banana', 'papaya', 'aloe', 'broadleaf', 'fern', 'potted_ornamental', 'small_shrub', 'creeper'];
-  const flowerVariants: FlowerVariant[] = ['rose', 'bougainvillea', 'hibiscus', 'tropical_flower', 'flower_bed', 'small_flowers'];
-  const bushVariants: BushVariant[] = ['round_bush', 'wild_bush', 'trimmed_hedge', 'planter_hedge', 'plant_bed', 'tall_grass', 'grove'];
-  const furnitureVariants: UrbanFurnitureVariant[] = ['bench_wood', 'bench_metal', 'bench_concrete', 'bench_backrest', 'picnic_table', 'flower_pot', 'rect_planter', 'bollard', 'reverbere', 'barrier', 'pergola'];
-  const waterVariants: WaterFeatureVariant[] = ['tiered_fountain', 'circle_fountain', 'modern_fountain', 'ornamental_basin'];
-  const gardenVariants: GardenDecorVariant[] = ['statue', 'abstract_sculpture', 'canari_jar', 'terracotta_pots', 'small_fence', 'low_wall', 'garden_border', 'green_pergola'];
-  const hangingVariants: HangingDecorVariant[] = ['decor_chain', 'barrier_chain', 'fairy_garland', 'bunting_garland', 'hanging_plant', 'lantern', 'wall_relief'];
-  const rockVariants: GroundRockVariant[] = ['rock', 'pebbles', 'slabs', 'pavers'];
 
   let cursor = 0;
   const emitAll = (props: DecorProp[]) => {
@@ -554,14 +615,19 @@ test('bibliothèque 3D 9 catégories : présence sur la carte, hors eau/route, s
       renderDecorProp(plain, trees, lamps, puddles, p);
     }
   };
-  emitAll(tropicalVariants.map((variant, i) => ({ category: 'tropical_plant', variant, x: cursor++, z: 0, angle: i * 0.4, scale: 1, seed: i })));
-  emitAll(flowerVariants.map((variant, i) => ({ category: 'flower', variant, x: cursor++, z: 2, angle: i * 0.4, scale: 1, seed: i, color: 0xec4899 })));
-  emitAll(bushVariants.map((variant, i) => ({ category: 'bush', variant, x: cursor++, z: 4, angle: i * 0.4, scale: 1, seed: i, color: 0x22c55e })));
-  emitAll(furnitureVariants.map((variant, i) => ({ category: 'furniture', variant, x: cursor++, z: 6, angle: i * 0.4, scale: 1, seed: i })));
-  emitAll(waterVariants.map((variant, i) => ({ category: 'water_feature', variant, x: cursor++, z: 8, angle: i * 0.4, scale: 1, seed: i })));
-  emitAll(gardenVariants.map((variant, i) => ({ category: 'garden_decor', variant, x: cursor++, z: 10, angle: i * 0.4, scale: 1, seed: i })));
-  emitAll(hangingVariants.map((variant, i) => ({ category: 'hanging_decor', variant, x: cursor++, z: 12, y0: 2.8, span: 3.2, angle: i * 0.4, scale: 1, seed: i })));
-  emitAll(rockVariants.map((variant, i) => ({ category: 'ground_rock', variant, x: cursor++, z: 14, angle: i * 0.4, scale: 1, seed: i })));
+  for (let seedVar = 0; seedVar < 3; seedVar++) {
+    emitAll(tropicalVariants.map((variant, i) => ({ category: 'tropical_plant', variant, x: cursor++, z: seedVar * 2, angle: i * 0.4, scale: 1, seed: seedVar })));
+    emitAll(flowerVariants.map((variant, i) => ({ category: 'flower', variant, x: cursor++, z: 6 + seedVar * 2, angle: i * 0.4, scale: 1, seed: seedVar, color: 0xec4899 })));
+    emitAll(bushVariants.map((variant, i) => ({ category: 'bush', variant, x: cursor++, z: 12 + seedVar * 2, angle: i * 0.4, scale: 1, seed: seedVar, color: 0x22c55e })));
+    emitAll(furnitureVariants.map((variant, i) => ({ category: 'furniture', variant, x: cursor++, z: 18 + seedVar * 2, angle: i * 0.4, scale: 1, seed: seedVar })));
+    emitAll(waterVariants.map((variant, i) => ({ category: 'water_feature', variant, x: cursor++, z: 24 + seedVar * 2, angle: i * 0.4, scale: 1, seed: seedVar })));
+    emitAll(gardenVariants.map((variant, i) => ({ category: 'garden_decor', variant, x: cursor++, z: 30 + seedVar * 2, angle: i * 0.4, scale: 1, seed: seedVar })));
+    emitAll(hangingVariants.map((variant, i) => ({ category: 'hanging_decor', variant, x: cursor++, z: 36 + seedVar * 2, y0: 2.8, span: 3.2, angle: i * 0.4, scale: 1, seed: seedVar })));
+    emitAll(rockVariants.map((variant, i) => ({ category: 'ground_rock', variant, x: cursor++, z: 42 + seedVar * 2, angle: i * 0.4, scale: 1, seed: seedVar })));
+  }
+
+  assertOutwardWinding(plain, 'bibliothèque plain');
+  assertOutwardWinding(lamps, 'bibliothèque lamps');
 
   for (const [label, buf] of [['plain', plain], ['trees', trees], ['lamps', lamps], ['puddles', puddles]] as const) {
     const geom = buf.geometry();

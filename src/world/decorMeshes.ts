@@ -206,7 +206,8 @@ function addOctCylinder(
   capColor: THREE.Color,
   tiltX = 0,
   tiltZ = 0,
-  angleOffset = 0
+  angleOffset = 0,
+  capBottom = false
 ): void {
   const shade = sideColor.clone().multiplyScalar(0.9);
   for (let i = 0; i < segs; i++) {
@@ -220,10 +221,15 @@ function addOctCylinder(
     const b1 = [cx + c1 * rBottom, y0, cz + s1 * rBottom];
     const t1 = [cx + tiltX + c1 * rTop, y0 + h, cz + tiltZ + s1 * rTop];
     const t0 = [cx + tiltX + c0 * rTop, y0 + h, cz + tiltZ + s0 * rTop];
-    buf.quad(b0, b1, t1, t0, n, [0, 0, 1, 0, 1, 1, 0, 1], i % 2 === 0 ? sideColor : shade);
+    // Ordre CCW vu de l'extérieur (FrontSide) : b1 -> b0 -> t0 -> t1
+    buf.quad(b1, b0, t0, t1, n, [0, 0, 1, 0, 1, 1, 0, 1], i % 2 === 0 ? sideColor : shade);
     if (rTop > 0.005) {
       const topCenter = [cx + tiltX, y0 + h, cz + tiltZ];
-      buf.tri(topCenter, t0, t1, [0, 1, 0], capColor);
+      buf.tri(topCenter, t1, t0, [0, 1, 0], capColor);
+    }
+    if (capBottom && rBottom > 0.005) {
+      const botCenter = [cx, y0, cz];
+      buf.tri(botCenter, b0, b1, [0, -1, 0], shade);
     }
   }
 }
@@ -365,7 +371,7 @@ export function pickTreeSpecies(hash: number, districtId: string, h: number): Tr
     if (m === 7) return 'coconut';
     if (m === 8) return 'broadleaf_tropical';
     if (m === 9) return 'mango';
-    if (m === 10 && h >= 7) return 'baobab';
+    if (m === 10 && h >= 4.2) return 'baobab';
     return 'ficus';
   }
   // Quartiers populaires / résidentiels (Abobo, Yopougon, Adjamé, Treichville, Koumassi, Attécoubé)
@@ -374,7 +380,7 @@ export function pickTreeSpecies(hash: number, districtId: string, h: number): Tr
   if (m === 5) return 'coconut';
   if (m === 6) return 'acacia';
   if (m === 7) return 'broadleaf_tropical';
-  if (m === 8 && h >= 7.2) return 'baobab';
+  if (m === 8 && h >= 4.2) return 'baobab';
   if (m === 9) return 'ornamental_palm';
   if (m === 10) return 'ficus';
   return 'urban_ornamental';
@@ -401,9 +407,9 @@ export function addRichTree(
   if (species === 'coconut') {
     const count = !young && hash % 5 === 0 ? 2 : 1; // double-stipe ou simple
     for (let sIdx = 0; sIdx < count; sIdx++) {
-      const sx = x + (count === 2 ? (sIdx === 0 ? -0.3 : 0.3) : 0);
+      const sx = x + (count === 2 ? (sIdx === 0 ? -0.32 : 0.32) : 0);
       const sz = z + (count === 2 ? (sIdx === 0 ? -0.18 : 0.18) : 0);
-      const th = h * (sIdx === 1 ? 0.62 : 0.78);
+      const th = h * (sIdx === 1 ? 0.64 : 0.78);
       const leanAngle = rot + (sIdx === 1 ? Math.PI * 0.7 : 0);
       const totalLean = (young ? 0.35 : 0.95) + ((hash % 4) * 0.22);
       const segs = 3;
@@ -414,9 +420,9 @@ export function addRichTree(
         const stepLean = (totalLean * frac * frac) / segs * 1.4;
         const dx = Math.cos(leanAngle) * stepLean;
         const dz = Math.sin(leanAngle) * stepLean;
-        const rB = (young ? 0.13 : 0.2) * (1 - sg * 0.16);
-        const rT = (young ? 0.11 : 0.17) * (1 - (sg + 1) * 0.16);
-        addOctCylinder(plain, curX, curZ, rB, rT, curY, segH, 5, trunkWarm, trunkDark, dx, dz);
+        const rB = (young ? 0.16 : 0.23) * (1 - sg * 0.14);
+        const rT = (young ? 0.13 : 0.19) * (1 - (sg + 1) * 0.14);
+        addOctCylinder(plain, curX, curZ, rB, rT, curY, segH, 6, trunkWarm, trunkDark, dx, dz);
         curX += dx;
         curZ += dz;
         curY += segH;
@@ -462,7 +468,7 @@ export function addRichTree(
   }
 
   if (species === 'baobab') {
-    const bh = Math.max(6.2, h);
+    const bh = Math.max(4.6, h);
     const trunkH = bh * 0.54;
     const rBase = young ? 0.48 : 0.88;
     // Tronc bouteille évasé
@@ -684,11 +690,24 @@ export function renderDecorProp(
           return;
         }
         case 'broadleaf': {
-          for (let i = 0; i < 5; i++) {
-            const a = (i / 5) * Math.PI * 2 + rot;
-            const lx = x + Math.cos(a) * 0.26 * scale;
-            const lz = z + Math.sin(a) * 0.26 * scale;
-            addPalmFrond(trees, lx, 0.18 * scale, lz, a, 0.95 * scale, 0.36 * scale, 0.55 * scale, 0.22 * scale, i % 2 === 0 ? greenLeaf : greenDeep);
+          const isPhilodendron = seed % 2 === 1;
+          const leafCount = isPhilodendron ? 6 : 5;
+          for (let i = 0; i < leafCount; i++) {
+            const a = (i / leafCount) * Math.PI * 2 + rot;
+            const lx = x + Math.cos(a) * 0.24 * scale;
+            const lz = z + Math.sin(a) * 0.24 * scale;
+            addPalmFrond(
+              trees,
+              lx,
+              0.16 * scale,
+              lz,
+              a,
+              (isPhilodendron ? 0.85 : 1.0) * scale,
+              (isPhilodendron ? 0.26 : 0.4) * scale,
+              0.54 * scale,
+              0.2 * scale,
+              i % 2 === 0 ? greenLeaf : greenDeep
+            );
           }
           return;
         }
@@ -709,7 +728,7 @@ export function renderDecorProp(
           return;
         }
         case 'small_shrub': {
-          const crotonCol = new THREE.Color(prop.color ?? 0xd97706);
+          const crotonCol = new THREE.Color(prop.color ?? (seed % 2 === 0 ? 0xd97706 : 0xbe185d));
           addLowPolyCanopy(trees, x, z, 0.04, 0.36 * scale, 0.72 * scale, 0.45 * scale, 0.45 * scale, 6, greenLeaf, rot);
           addLowPolyCanopy(trees, x + 0.14 * scale, z - 0.1 * scale, 0.18 * scale, 0.42 * scale, 0.68 * scale, 0.28 * scale, 0.28 * scale, 5, crotonCol, rot + 0.6);
           return;
@@ -729,11 +748,13 @@ export function renderDecorProp(
       const fCol = new THREE.Color(prop.color);
       switch (prop.variant) {
         case 'rose': {
+          const rosePalette = [prop.color, 0xfb7185, 0xfef08a];
+          const rCol = new THREE.Color(rosePalette[seed % 3]);
           addLowPolyCanopy(trees, x, z, 0.06, 0.38 * scale, 0.68 * scale, 0.44 * scale, 0.44 * scale, 6, greenDeep, rot);
           for (let i = 0; i < 5; i++) {
             const a = (i / 5) * Math.PI * 2 + rot;
             const r = 0.26 * scale;
-            addBox(trees, x + Math.cos(a) * r, z + Math.sin(a) * r, 0.14 * scale, 0.14 * scale, 0.44 * scale, 0.14 * scale, a, fCol);
+            addBox(trees, x + Math.cos(a) * r, z + Math.sin(a) * r, 0.14 * scale, 0.14 * scale, 0.44 * scale, 0.14 * scale, a, rCol);
           }
           return;
         }
@@ -760,6 +781,8 @@ export function renderDecorProp(
           // Oiseau de paradis / Balisier heliconia
           const orange = fCol;
           const yellow = new THREE.Color(0xfacc15);
+          const crimson = new THREE.Color(0xdc2626);
+          const isHeliconia = seed % 2 === 1;
           for (let i = 0; i < 4; i++) {
             const a = (i / 4) * Math.PI * 2 + rot;
             addPalmFrond(trees, x, 0.08, z, a, 0.75 * scale, 0.16 * scale, 0.62 * scale, 0.36 * scale, greenLeaf);
@@ -769,7 +792,7 @@ export function renderDecorProp(
             const bx = x + Math.cos(ba) * 0.14 * scale;
             const bz = z + Math.sin(ba) * 0.14 * scale;
             addBox(trees, bx, bz, 0.06 * scale, 0.06 * scale, 0.1, 0.75 * scale, ba, greenDeep);
-            addBox(trees, bx, bz, 0.18 * scale, 0.08 * scale, 0.78 * scale, 0.22 * scale, ba, orange, yellow);
+            addBox(trees, bx, bz, (isHeliconia ? 0.12 : 0.18) * scale, 0.08 * scale, 0.78 * scale, (isHeliconia ? 0.32 : 0.22) * scale, ba, isHeliconia ? crimson : orange, yellow);
           }
           return;
         }
@@ -813,11 +836,22 @@ export function renderDecorProp(
           return;
         }
         case 'trimmed_hedge': {
-          addBox(trees, x, z, 1.65 * scale, 0.58 * scale, 0.02, 0.92 * scale, angle, bCol, bCol.clone().multiplyScalar(1.1));
+          const hKind = seed % 3;
+          if (hKind === 1) {
+            // Angle 90°
+            addLocalBox(trees, x, z, angle, 0, 0, 1.45 * scale, 0.54 * scale, 0.02, 0.92 * scale, bCol, bCol.clone().multiplyScalar(1.1));
+            addLocalBox(trees, x, z, angle, -0.45 * scale, 0.45 * scale, 0.54 * scale, 0.9 * scale, 0.02, 0.92 * scale, bCol, bCol.clone().multiplyScalar(1.1));
+          } else if (hKind === 2) {
+            // Extrémité arrondie
+            addBox(trees, x, z, 1.45 * scale, 0.58 * scale, 0.02, 0.92 * scale, angle, bCol, bCol.clone().multiplyScalar(1.1));
+            addOctCylinder(trees, x, z, 0.42 * scale, 0.38 * scale, 0.02, 0.92 * scale, 7, bCol, bCol.clone().multiplyScalar(1.1));
+          } else {
+            addBox(trees, x, z, 1.65 * scale, 0.58 * scale, 0.02, 0.92 * scale, angle, bCol, bCol.clone().multiplyScalar(1.1));
+          }
           return;
         }
         case 'planter_hedge': {
-          addBox(plain, x, z, 1.72 * scale, 0.66 * scale, 0, 0.36 * scale, angle, woodMid, concreteLight);
+          addBox(plain, x, z, 1.72 * scale, 0.66 * scale, 0, 0.36 * scale, angle, seed % 2 === 0 ? woodMid : concreteMid, concreteLight);
           addBox(trees, x, z, 1.56 * scale, 0.52 * scale, 0.36 * scale, 0.72 * scale, angle, bCol, bCol.clone().multiplyScalar(1.1));
           return;
         }
@@ -875,19 +909,21 @@ export function renderDecorProp(
           return;
         }
         case 'bench_concrete': {
+          const isWoodMix = seed % 2 === 1;
           for (const side of [-0.58, 0.58]) {
             addLocalBox(plain, x, z, angle, side * scale, 0, 0.24 * scale, 0.46 * scale, 0, 0.38 * scale, concreteMid);
           }
-          addLocalBox(plain, x, z, angle, 0, 0, 1.68 * scale, 0.54 * scale, 0.38 * scale, 0.12 * scale, concreteLight);
+          addLocalBox(plain, x, z, angle, 0, 0, 1.68 * scale, 0.54 * scale, 0.38 * scale, 0.12 * scale, isWoodMix ? woodMid : concreteLight);
           return;
         }
         case 'bench_backrest': {
           const seatCol = new THREE.Color(prop.color ?? 0x92400e);
+          const doubleSided = seed % 2 === 1;
           for (const side of [-0.64, 0.64]) {
             addLocalBox(plain, x, z, angle, side * scale, 0, 0.1 * scale, 0.52 * scale, 0, 0.62 * scale, metalSlate);
           }
-          addLocalBox(plain, x, z, angle, 0, 0.02 * scale, 1.6 * scale, 0.48 * scale, 0.42 * scale, 0.07 * scale, seatCol);
-          addLocalBox(plain, x, z, angle, 0, -0.22 * scale, 1.6 * scale, 0.07 * scale, 0.54 * scale, 0.36 * scale, seatCol);
+          addLocalBox(plain, x, z, angle, 0, 0.02 * scale, 1.6 * scale, doubleSided ? 0.62 * scale : 0.48 * scale, 0.42 * scale, 0.07 * scale, seatCol);
+          addLocalBox(plain, x, z, angle, 0, doubleSided ? 0 : -0.22 * scale, 1.6 * scale, 0.07 * scale, 0.54 * scale, 0.38 * scale, seatCol);
           return;
         }
         case 'picnic_table': {
@@ -971,7 +1007,7 @@ export function renderDecorProp(
           addOctCylinder(plain, x, z, 1.55 * scale, 1.48 * scale, 0, 0.42 * scale, 8, stoneRim, stoneDark);
           addFlatDiskWater(puddles, x, z, 0.43 * scale, 1.3 * scale, 1.3 * scale, 8, waterCol);
           addOctCylinder(plain, x, z, 0.28 * scale, 0.22 * scale, 0.4 * scale, 0.72 * scale, 8, stoneDark, stoneRim);
-          addOctCylinder(plain, x, z, 0.78 * scale, 0.85 * scale, 1.05 * scale, 0.22 * scale, 8, stoneRim, stoneRim);
+          addOctCylinder(plain, x, z, 0.78 * scale, 0.85 * scale, 1.05 * scale, 0.22 * scale, 8, stoneRim, stoneRim, 0, 0, 0, true);
           addFlatDiskWater(puddles, x, z, 1.28 * scale, 0.72 * scale, 0.72 * scale, 8, waterCol);
           addOctCylinder(plain, x, z, 0.16 * scale, 0.08 * scale, 1.25 * scale, 0.45 * scale, 6, stoneDark, waterCol);
           return;
@@ -1006,12 +1042,18 @@ export function renderDecorProp(
     case 'garden_decor': {
       switch (prop.variant) {
         case 'statue': {
-          // Socle + stèle / totem stylisé sans texte
+          // Socle + totem sculpté / stèle sans texte
           const bronze = new THREE.Color(0x92400e);
+          const steleStone = new THREE.Color(0xd6d3d1);
           addBox(plain, x, z, 0.95 * scale, 0.95 * scale, 0, 0.58 * scale, angle, concreteMid, concreteLight);
           addBox(plain, x, z, 0.62 * scale, 0.62 * scale, 0.58 * scale, 0.18 * scale, angle, concreteLight);
-          addOctCylinder(plain, x, z, 0.22 * scale, 0.16 * scale, 0.76 * scale, 1.05 * scale, 6, bronze, bronze);
-          addBox(plain, x, z, 0.34 * scale, 0.24 * scale, 1.78 * scale, 0.36 * scale, angle, bronze, new THREE.Color(0xd97706));
+          if (seed % 2 === 0) {
+            addOctCylinder(plain, x, z, 0.22 * scale, 0.16 * scale, 0.76 * scale, 1.05 * scale, 6, bronze, bronze);
+            addBox(plain, x, z, 0.34 * scale, 0.24 * scale, 1.78 * scale, 0.36 * scale, angle, bronze, new THREE.Color(0xd97706));
+          } else {
+            addBox(plain, x, z, 0.42 * scale, 0.24 * scale, 0.76 * scale, 1.25 * scale, angle, steleStone, bronze);
+            addBox(plain, x, z, 0.26 * scale, 0.28 * scale, 1.48 * scale, 0.28 * scale, angle, new THREE.Color(0xd97706));
+          }
           return;
         }
         case 'abstract_sculpture': {
@@ -1039,7 +1081,8 @@ export function renderDecorProp(
           return;
         }
         case 'small_fence': {
-          const fenceCol = new THREE.Color(prop.color ?? 0x8b5a2b);
+          const fencePalette = [0x8b5a2b, 0xca8a04, 0x334155];
+          const fenceCol = new THREE.Color(prop.color ?? fencePalette[seed % 3]);
           for (const u of [-0.72, 0, 0.72]) {
             addLocalBox(plain, x, z, angle, u * scale, 0, 0.1 * scale, 0.1 * scale, 0, 0.88 * scale, fenceCol);
           }
@@ -1124,20 +1167,18 @@ export function renderDecorProp(
             const fz = z0 + (z1 - z0) * t;
             const fy = prop.y0 - Math.sin(t * Math.PI) * 0.36;
             const col = new THREE.Color(flagCols[(prop.seed + i) % flagCols.length]);
-            plain.tri(
-              [fx - c * 0.14, fy, fz - s * 0.14],
-              [fx + c * 0.14, fy, fz + s * 0.14],
-              [fx, fy - 0.24, fz],
-              [-s, 0, c],
-              col
-            );
+            const pA = [fx - c * 0.14, fy, fz - s * 0.14];
+            const pB = [fx + c * 0.14, fy, fz + s * 0.14];
+            const pC = [fx, fy - 0.24, fz];
+            plain.tri(pA, pB, pC, [s, 0, -c], col);
+            plain.tri(pB, pA, pC, [-s, 0, c], col);
           }
           return;
         }
         case 'hanging_plant': {
           // Panier suspendu + lianes tombantes
           addBox(plain, x, z, 0.04, 0.04, prop.y0, 0.38, angle, metalSlate);
-          addOctCylinder(plain, x, z, 0.16 * scale, 0.22 * scale, prop.y0 - 0.22 * scale, 0.22 * scale, 6, terracotta, woodDark);
+          addOctCylinder(plain, x, z, 0.16 * scale, 0.22 * scale, prop.y0 - 0.22 * scale, 0.22 * scale, 6, terracotta, woodDark, 0, 0, 0, true);
           addLowPolyCanopy(trees, x, z, prop.y0 - 0.35 * scale, prop.y0 - 0.05 * scale, prop.y0 + 0.18 * scale, 0.34 * scale, 0.34 * scale, 6, greenBright, rot);
           return;
         }
