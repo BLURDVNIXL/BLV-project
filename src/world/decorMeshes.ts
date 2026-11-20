@@ -14,6 +14,9 @@
 
 import * as THREE from 'three';
 import { DecorProp, TreeSpecies } from './decorTypes';
+import { TREE_ASSETS } from '../assets3d/builders/trees';
+import type { AssetDefinition } from '../assets3d/types';
+import { emitBaked, getBakedTemplate } from './studioBake';
 
 export class Buf {
   pos: number[] = [];
@@ -386,7 +389,81 @@ export function pickTreeSpecies(hash: number, districtId: string, h: number): Tr
   return 'urban_ornamental';
 }
 
+/** Espèce du jeu → arbre du studio (les 10 espèces correspondent 1:1). */
+const TREE_STUDIO_ASSET_ID: Record<TreeSpecies, string> = {
+  coconut: 'tree_cocotier',
+  ornamental_palm: 'tree_palmier_decoratif',
+  mango: 'tree_manguier',
+  baobab: 'tree_baobab',
+  flamboyant: 'tree_flamboyant',
+  acacia: 'tree_acacia',
+  fromager: 'tree_fromager',
+  broadleaf_tropical: 'tree_badamier',
+  urban_ornamental: 'tree_ornemental_urbain',
+  ficus: 'tree_ficus_urbain',
+};
+
+interface TreeStudioEntry {
+  asset: AssetDefinition;
+  adult: string[];
+  young: string[];
+}
+
+const TREE_STUDIO: Partial<Record<TreeSpecies, TreeStudioEntry>> = {};
+for (const sp of Object.keys(TREE_STUDIO_ASSET_ID) as TreeSpecies[]) {
+  const asset = TREE_ASSETS.find((a) => a.id === TREE_STUDIO_ASSET_ID[sp]);
+  if (!asset) continue;
+  const young = asset.variants.filter((v) => v.growthStage === 'Jeune').map((v) => v.id);
+  const adult = asset.variants.filter((v) => v.growthStage !== 'Jeune').map((v) => v.id);
+  TREE_STUDIO[sp] = { asset, adult: adult.length > 0 ? adult : young, young: young.length > 0 ? young : adult };
+}
+
+/** Variante du studio choisie pour une espèce, un âge et un hash (toutes les variantes sont utilisées). */
+export function pickStudioTreeVariant(species: TreeSpecies, isYoung: boolean, hash: number): string | null {
+  const entry = TREE_STUDIO[species];
+  if (!entry) return null;
+  const list = isYoung ? entry.young : entry.adult;
+  return list[Math.abs(hash) % list.length] ?? null;
+}
+
+/**
+ * Arbre du chunk : utilise les VRAIS modèles du studio 3D (troncs courbes effilés, houppiers facettés,
+ * palmes à folioles…) cuits en couleurs par sommet. Troncs → `plain`, feuillages → `trees` (vent).
+ * Repli sur l'ancienne version simplifiée si le modèle du studio ne peut pas être généré.
+ */
 export function addRichTree(
+  plain: Buf,
+  trees: Buf,
+  x: number,
+  z: number,
+  h: number,
+  hash: number,
+  districtId: string
+): void {
+  const species = pickTreeSpecies(hash, districtId, h);
+  const young = h < 5.4;
+  const entry = TREE_STUDIO[species];
+  const variant = pickStudioTreeVariant(species, young, Math.floor(hash / 3));
+  if (entry && variant) {
+    try {
+      const tpl = getBakedTemplate(entry.asset, variant);
+      if (tpl.height > 0.5) {
+        const scale = Math.min(1.5, Math.max(0.6, h / tpl.height));
+        const rot = ((hash % 12) / 12) * Math.PI * 2;
+        const tint = 0.92 + ((hash * 7) % 11) * 0.016;
+        const opts = { x, z, scale, rot, tint };
+        emitBaked(tpl.plain, plain, opts);
+        emitBaked(tpl.trees, trees, opts);
+        return;
+      }
+    } catch {
+      // repli ci-dessous
+    }
+  }
+  addLegacyRichTree(plain, trees, x, z, h, hash, districtId);
+}
+
+function addLegacyRichTree(
   plain: Buf,
   trees: Buf,
   x: number,

@@ -830,6 +830,11 @@ export function buildChunkObjects(
   const decorPlan = collectChunkDecor(data);
   renderDecorPlan(facade, plain, tb, lamps, puddles, signs, decorPlan);
 
+  const primaryDistrict = data.buildings[0]?.district ?? districtAt({ x: x0 + CHUNK / 2, z: z0 + CHUNK / 2 }).id;
+  data.trees.forEach((t, i) => {
+    const h = Math.abs(Math.floor(t.x * 7 + t.z * 13 + i)) | 0;
+    addRichTree(plain, tb, t.x, t.z, t.h, h, primaryDistrict);
+  });
   const fg = facade.geometry();
   if (fg) {
     const m = new THREE.Mesh(fg, mats.facade);
@@ -855,11 +860,6 @@ export function buildChunkObjects(
     disposables.push(sg);
   }
 
-  const primaryDistrict = data.buildings[0]?.district ?? districtAt({ x: x0 + CHUNK / 2, z: z0 + CHUNK / 2 }).id;
-  data.trees.forEach((t, i) => {
-    const h = Math.abs(Math.floor(t.x * 7 + t.z * 13 + i)) | 0;
-    addRichTree(plain, tb, t.x, t.z, t.h, h, primaryDistrict);
-  });
   const tg = tb.geometry();
   if (tg) {
     const m = new THREE.Mesh(tg, mats.trees);
