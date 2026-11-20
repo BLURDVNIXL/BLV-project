@@ -14,8 +14,9 @@ import { LatLon, Vec2, project, unproject } from './geo';
 import { HOSPITAL_SITES } from './hospitals';
 import { COMMISSARIAT_SITES, HOTEL_SITES, MAIRIE_SITES } from './civicSites';
 import { DISTRICTS, District, HomeType, LANDMARKS, districtAt, districtsForHome, isWater } from './abidjanGeography';
-import { GRIDS, Frame, frameFor, isOpenWater, roadAt, bridgeAt } from './roads';
+import { ARTERIAL_WIDTH, GRIDS, Frame, frameFor, isOpenWater, nearestArterial, roadAt, bridgeAt } from './roads';
 import { hash32, rand01 } from './rng';
+import { DECOR_DENSITY, RESERVED_SIDEWALK_FRACTIONS, RESERVED_SIDEWALK_HALF_WIDTH_M } from './decorDensity';
 
 export const CHUNK = 64;
 const WATER_CELL = 8;
@@ -370,6 +371,7 @@ export function generateChunk(cx: number, cz: number, opts: GenerateOptions = {}
     }
   }
 
+  addStreetTrees(out, candidates, x0, z0);
   applySpecials(out, x0, z0, x1, z1);
   buildWater(out, x0, z0);
   return out;
@@ -379,6 +381,88 @@ function addTree(out: ChunkData, p: Vec2, dist: District, h: number): void {
   if (isWater(p) || bridgeAt(p, 3) || roadAt(p, dist) !== 'none') return;
   if (p.x < out.cx * CHUNK || p.x >= (out.cx + 1) * CHUNK || p.z < out.cz * CHUNK || p.z >= (out.cz + 1) * CHUNK) return;
   out.trees.push({ x: p.x, z: p.z, h, r: 0.3 });
+}
+
+/** Test d'un point dans un rectangle orienté (centre, largeur w sur e1, profondeur d sur e2) élargi de m. */
+function inOrientedBox(x: number, z: number, cx: number, cz: number, w: number, d: number, angle: number, m: number): boolean {
+  const dx = x - cx;
+  const dz = z - cz;
+  const c = Math.cos(angle);
+  const s = Math.sin(angle);
+  return Math.abs(dx * c + dz * s) < w / 2 + m && Math.abs(-dx * s + dz * c) < d / 2 + m;
+}
+
+/**
+ * Arbres de rue : le long des trottoirs des rues locales, à intervalle régulier avec une probabilité par type de quartier
+ * (voir DECOR_DENSITY.streetTrees). Les zones déjà occupées par les étals, kiosques, poteaux et bancs sont évitées,
+ * ainsi que les grands axes, l'eau, les ponts, les bâtiments, les parcelles vides, les maisons et leur place de parking.
+ */
+function addStreetTrees(out: ChunkData, candidates: ReadonlySet<string>, x0: number, z0: number): void {
+  const cfg = DECOR_DENSITY.streetTrees;
+  if (!cfg.enabled) return;
+  const x1 = x0 + CHUNK;
+  const z1 = z0 + CHUNK;
+  const inChunk = (x: number, z: number): boolean => x >= x0 && x < x1 && z >= z0 && z < z1;
+  const carSpots = out.houseLots.map((l) => carSpotForLot(l));
+  let added = 0;
+
+  for (const dist of DISTRICTS) {
+    if (!candidates.has(dist.id)) continue;
+    const g = GRIDS[dist.id];
+    if (!g || g.style === 'none' || g.style === 'warehouse') continue;
+    const chance = (cfg.chanceBySocial as Record<string, number>)[dist.social] ?? 0;
+    if (chance <= 0) continue;
+    const f = frameFor(dist.id);
+    const half = f.street / 2;
+    const B = f.pitch - f.street;
+    const n = Math.max(1, Math.floor(B / cfg.spacingM));
+    const seed = hash32(dist.id.length, dist.id.charCodeAt(0), dist.id.charCodeAt(dist.id.length - 1)) ^ 0x5eed;
+
+    let umin = Infinity, umax = -Infinity, vmin = Infinity, vmax = -Infinity;
+    for (const [px, pz] of [[x0, z0], [x1, z0], [x0, z1], [x1, z1]]) {
+      const dx = px - f.ox;
+      const dz = pz - f.oz;
+      const u = dx * f.c + dz * f.s;
+      const v = -dx * f.s + dz * f.c;
+      umin = Math.min(umin, u); umax = Math.max(umax, u); vmin = Math.min(vmin, v); vmax = Math.max(vmax, v);
+    }
+    const iMin = Math.floor(umin / f.pitch) - 1;
+    const iMax = Math.floor(umax / f.pitch) + 1;
+    const jMin = Math.floor(vmin / f.pitch) - 1;
+    const jMax = Math.floor(vmax / f.pitch) + 1;
+
+    for (let i = iMin; i <= iMax; i++) {
+      for (let j = jMin; j <= jMax; j++) {
+        if (added >= cfg.maxPerChunk) return;
+        const bc = rotate(f, (i + 0.5) * f.pitch, (j + 0.5) * f.pitch);
+        if (districtAt(bc).id !== dist.id) continue;
+        for (let edge = 0; edge < 4; edge++) {
+          for (let k = 0; k < n; k++) {
+            if (added >= cfg.maxPerChunk) return;
+            const code = edge * 23 + k * 5;
+            if (rand01(seed, i, j, code + 1) >= chance) continue;
+            const along = half + (k + 0.5) * (B / n) + (rand01(seed, i, j, code + 2) - 0.5) * 3;
+            if (RESERVED_SIDEWALK_FRACTIONS[edge].some((r) => Math.abs(r * f.pitch - along) < RESERVED_SIDEWALK_HALF_WIDTH_M)) continue;
+            const off = cfg.sidewalkOffsetM;
+            const u = edge === 0 || edge === 1 ? i * f.pitch + along : edge === 2 ? i * f.pitch + half + off : (i + 1) * f.pitch - half - off;
+            const v = edge === 2 || edge === 3 ? j * f.pitch + along : edge === 0 ? j * f.pitch + half + off : (j + 1) * f.pitch - half - off;
+            const p = rotate(f, u, v);
+            if (!inChunk(p.x, p.z) || districtAt(p).id !== dist.id) continue;
+            if (isWater(p) || bridgeAt(p, 3) || roadAt(p, dist) !== 'none') continue;
+            if (nearestArterial(p).dist < ARTERIAL_WIDTH / 2 + 4) continue;
+            if (out.buildings.some((b) => inOrientedBox(p.x, p.z, b.x, b.z, b.w, b.d, b.angle, 1.4))) continue;
+            if (out.emptyLots.some((l) => inOrientedBox(p.x, p.z, l.x, l.z, l.w, l.d, l.angle, 1.2))) continue;
+            if (out.houseLots.some((l) => Math.hypot(l.x - p.x, l.z - p.z) < 8)) continue;
+            if (carSpots.some((cs) => Math.hypot(cs.x - p.x, cs.z - p.z) < 4.5)) continue;
+            if (out.trees.some((t) => Math.hypot(t.x - p.x, t.z - p.z) < cfg.minGapM)) continue;
+            const h = cfg.minHeight + (cfg.maxHeight - cfg.minHeight) * rand01(seed, i, j, code + 3);
+            out.trees.push({ x: p.x, z: p.z, h, r: 0.3 });
+            added++;
+          }
+        }
+      }
+    }
+  }
 }
 
 function generateForest(out: ChunkData, x0: number, z0: number, dist: District): void {

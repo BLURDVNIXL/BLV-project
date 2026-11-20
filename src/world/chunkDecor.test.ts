@@ -23,6 +23,7 @@ import {
   WaterFeatureVariant,
 } from './decorTypes';
 import { SPECIAL_FOOTPRINTS, carSpotForLot, chunkOf, findHouseLot, generateChunk } from './city';
+import { DECOR_DENSITY } from './decorDensity';
 import { DISTRICTS, HomeType, isWater } from './abidjanGeography';
 import { project } from './geo';
 import { bridgeAt, roadAt } from './roads';
@@ -644,3 +645,44 @@ test('bibliothèque 3D 9 catégories : présence sur la carte, hors eau/route, s
 });
 
 
+
+
+test('densité des décors : réglages cohérents, arbres de rue et devants de maisons présents, rien sur route/eau/place de parking', () => {
+  const d = DECOR_DENSITY;
+  for (const v of Object.values(d.streetTrees.chanceBySocial)) assert.ok(v >= 0 && v <= 1);
+  assert.ok(d.streetTrees.minHeight > 0 && d.streetTrees.maxHeight >= d.streetTrees.minHeight);
+  assert.ok(d.infill.cellStep >= 4 && d.infill.skipChance >= 0 && d.infill.skipChance < 1);
+  assert.ok(d.extraSlots.chance >= 0 && d.extraSlots.chance <= 1 && d.houseFront.chance >= 0 && d.houseFront.chance <= 1);
+
+  let chunks = 0;
+  let trees = 0;
+  let frontProps = 0;
+  for (const id of ['cocody', 'riviera', 'marcory', 'yopougon']) {
+    const dist = DISTRICTS.find((x) => x.id === id)!;
+    const c = project(dist.center.lat, dist.center.lon);
+    const cx0 = chunkOf(c.x);
+    const cz0 = chunkOf(c.z);
+    for (let dx = -2; dx <= 2; dx++) {
+      for (let dz = -2; dz <= 2; dz++) {
+        const data = generateChunk(cx0 + dx, cz0 + dz);
+        const plan = collectChunkDecor(data);
+        chunks++;
+        trees += data.trees.length;
+        for (const t of data.trees) {
+          assert.ok(!isWater({ x: t.x, z: t.z }), `arbre dans l'eau (${t.x.toFixed(1)}, ${t.z.toFixed(1)})`);
+          assert.equal(roadAt({ x: t.x, z: t.z }), 'none', `arbre sur la route (${t.x.toFixed(1)}, ${t.z.toFixed(1)})`);
+          assert.ok(!bridgeAt({ x: t.x, z: t.z }, 1), 'arbre sur un pont');
+          for (const l of data.houseLots) {
+            const cs = carSpotForLot(l);
+            assert.ok(Math.hypot(cs.x - t.x, cs.z - t.z) > 3, `arbre sur la place de parking de ${l.id}`);
+          }
+        }
+        for (const l of data.houseLots) {
+          if (plan.props.some((pr) => Math.hypot(pr.x - l.x - l.front.x * (l.toStreet - 1.3), pr.z - l.z - l.front.z * (l.toStreet - 1.3)) < l.width * 0.45)) frontProps++;
+        }
+      }
+    }
+  }
+  assert.ok(trees / chunks >= 3, `trop peu d'arbres par chunk : ${(trees / chunks).toFixed(2)}`);
+  assert.ok(frontProps > 0, 'aucun décor devant les maisons');
+});

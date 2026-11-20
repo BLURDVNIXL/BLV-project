@@ -20,6 +20,7 @@ import { districtAt, isWater, projected } from './abidjanGeography';
 import { ARTERIALS, ARTERIAL_WIDTH, GRIDS, bridgeAt, frameFor, nearestArterial, roadAt } from './roads';
 import { distanceToSegment } from './geo';
 import { hash32 } from './rng';
+import { DECOR_DENSITY } from './decorDensity';
 import {
   BushVariant,
   DecorProp,
@@ -842,6 +843,42 @@ function emitDumpster(plan: ChunkDecorPlan, x: number, z: number, angle: number,
  * Calcule de manière déterministe toutes les décorations d'un chunk ainsi que leurs solides physiques.
  * Pur et sans dépendance Three.js / DOM.
  */
+const GREENERY_TROPICAL: TropicalPlantVariant[] = ['banana', 'papaya', 'aloe', 'broadleaf', 'fern', 'potted_ornamental', 'small_shrub', 'creeper'];
+const GREENERY_FLOWERS: FlowerVariant[] = ['rose', 'bougainvillea', 'hibiscus', 'tropical_flower', 'flower_bed'];
+const GREENERY_BUSHES: BushVariant[] = ['round_bush', 'wild_bush', 'trimmed_hedge', 'planter_hedge', 'plant_bed', 'grove'];
+const GREENERY_GARDEN: GardenDecorVariant[] = ['canari_jar', 'terracotta_pots', 'garden_border'];
+
+/**
+ * Pose un décor de trottoir (plante, fleur, buisson, jarre, jardinière ou banc) choisi par hash, avec son solide.
+ * Utilisé pour les emplacements supplémentaires des blocs et pour le devant des maisons.
+ */
+function emitSidewalkGreenery(plan: ChunkDecorPlan, x: number, z: number, angle: number, h: number): void {
+  const roll = h % 14;
+  const pick = h >>> 4;
+  if (roll < 4) {
+    const tv = GREENERY_TROPICAL[pick % GREENERY_TROPICAL.length];
+    plan.props.push({ category: 'tropical_plant', variant: tv, x, z, angle, scale: 0.95, seed: h });
+    if (tv !== 'fern' && tv !== 'creeper') plan.solids.push({ shape: 'circle', x, z, r: 0.3, h: 1.6 });
+  } else if (roll < 7) {
+    plan.props.push({ category: 'flower', variant: GREENERY_FLOWERS[pick % GREENERY_FLOWERS.length], x, z, angle, scale: 1.0, seed: h, color: BOUGAINVILLEA_COLORS[pick % BOUGAINVILLEA_COLORS.length] });
+    plan.solids.push({ shape: 'circle', x, z, r: 0.45, h: 0.95 });
+  } else if (roll < 10) {
+    plan.props.push({ category: 'bush', variant: GREENERY_BUSHES[pick % GREENERY_BUSHES.length], x, z, angle, scale: 0.95, seed: h, color: BUSH_GREENS[pick % BUSH_GREENS.length] });
+    plan.solids.push({ shape: 'circle', x, z, r: 0.55, h: 1.05 });
+  } else if (roll < 12) {
+    const gv = GREENERY_GARDEN[pick % GREENERY_GARDEN.length];
+    plan.props.push({ category: 'garden_decor', variant: gv, x, z, angle, scale: 0.95, seed: h });
+    if (gv !== 'garden_border') plan.solids.push({ shape: 'box', x, z, hx: 0.42, hz: 0.35, angle, h: 0.95 });
+  } else if (roll === 12) {
+    plan.props.push({ category: 'furniture', variant: pick % 2 === 0 ? 'rect_planter' : 'flower_pot', x, z, angle, scale: 1.0, seed: h, color: BOUGAINVILLEA_COLORS[pick % BOUGAINVILLEA_COLORS.length] });
+    plan.solids.push({ shape: 'circle', x, z, r: 0.42, h: 0.85 });
+  } else {
+    const bv: UrbanFurnitureVariant[] = ['bench_wood', 'bench_metal', 'bench_concrete', 'bench_backrest'];
+    plan.props.push({ category: 'furniture', variant: bv[pick % bv.length], x, z, angle, scale: 0.95, seed: h });
+    plan.solids.push({ shape: 'box', x, z, hx: 0.76, hz: 0.28, angle, h: 0.75 });
+  }
+}
+
 export function collectChunkDecor(data: ChunkData): ChunkDecorPlan {
   const x0 = data.cx * CHUNK;
   const z0 = data.cz * CHUNK;
@@ -1568,6 +1605,16 @@ export function collectChunkDecor(data: ChunkData): ChunkDecorPlan {
           }
         }
 
+        // Emplacements supplémentaires de verdure / mobilier léger (réglables dans DECOR_DENSITY.extraSlots)
+        DECOR_DENSITY.extraSlots.fractions.forEach((fr, si) => {
+          const ex = toWorld(i * f.pitch + half + 1.35, j * f.pitch + f.pitch * fr);
+          const eh = hash32(i * 31 + si, j * 17 + si * 5, cDist.id.charCodeAt(0) + 913);
+          if ((eh & 1023) / 1024 >= DECOR_DENSITY.extraSlots.chance) return;
+          if (!sidewalkSpotFree(ex.x, ex.z, angle + Math.PI / 2, 1.4, 1.2, 1.5)) return;
+          if (plan.props.some((pr) => Math.hypot(pr.x - ex.x, pr.z - ex.z) < 1.7)) return;
+          emitSidewalkGreenery(plan, ex.x, ex.z, angle + Math.PI / 2, eh >>> 10);
+        });
+
         // Voiture garée en bord de rue (collée au caniveau pour ne jamais gêner les voies de circulation)
         if ((blockHash % 5) === 0) {
           const curbOffset = f.street >= 7 ? 0.62 : 0.52;
@@ -1595,6 +1642,22 @@ export function collectChunkDecor(data: ChunkData): ChunkDecorPlan {
             plan.puddles.push({ x: pud.x, z: pud.z, rx: 1.4, rz: 0.7, seed: blockHash });
           }
         }
+      }
+    }
+
+    // Devant des maisons : verdure de part et d'autre de l'entrée, côté rue (réglable dans DECOR_DENSITY.houseFront)
+    for (const lot of data.houseLots) {
+      const latX = -lot.front.z;
+      const latZ = lot.front.x;
+      for (const side of [-1, 1]) {
+        const fh = hash32(Math.floor(lot.x * 10), Math.floor(lot.z * 10), side + 4001);
+        if ((fh & 1023) / 1024 >= DECOR_DENSITY.houseFront.chance) continue;
+        const lateral = lot.width * DECOR_DENSITY.houseFront.lateralFraction * side;
+        const fx = lot.x + lot.front.x * (lot.toStreet - 1.3) + latX * lateral;
+        const fz = lot.z + lot.front.z * (lot.toStreet - 1.3) + latZ * lateral;
+        if (!sidewalkSpotFree(fx, fz, angle, 1.4, 1.2, 1.5)) continue;
+        if (plan.props.some((pr) => Math.hypot(pr.x - fx, pr.z - fz) < 1.7)) continue;
+        emitSidewalkGreenery(plan, fx, fz, angle, fh >>> 10);
       }
     }
   }
@@ -1739,7 +1802,7 @@ export function collectChunkDecor(data: ChunkData): ChunkDecorPlan {
   }
 
   // 5. Remplissage organique des espaces vides inter-bâtiments, îlots verts, parcs et abords (sans bloquer routes/portes/voitures)
-  const cellStep = 9;
+  const cellStep = DECOR_DENSITY.infill.cellStep;
   const cells = Math.floor(CHUNK / cellStep);
   const offRoadRadius = (x: number, z: number, r: number): boolean =>
     roadAt({ x, z }) === 'none' &&
@@ -1755,13 +1818,14 @@ export function collectChunkDecor(data: ChunkData): ChunkDecorPlan {
       const jz = z0 + (gz + 0.16 + (((chash >>> 6) & 63) / 63) * 0.68) * cellStep;
       const jp = { x: jx, z: jz };
       if (!inChunk(jx, jz)) continue;
+      if (hash32(chash, 77) / 4294967296 < DECOR_DENSITY.infill.skipChance) continue;
       if (isWater(jp) || bridgeAt(jp, 4) || !offRoadRadius(jx, jz, 0.95)) continue;
       if (insideSpecial(jp, 2.5)) continue;
       if (nearBuilding(jx, jz, 1.9) || nearEmptyLot(jx, jz, 1.4) || nearHouseLot(jx, jz, 8.2) || nearTree(jx, jz, 1.5)) continue;
       if (lotCarSpots.some((cs) => Math.hypot(cs.x - jx, cs.z - jz) < 4.5)) continue;
-      if (plan.solids.some((so) => Math.hypot(so.x - jx, so.z - jz) < 2.2)) continue;
-      if (plan.props.some((pr) => Math.hypot(pr.x - jx, pr.z - jz) < 2.5)) continue;
-      if (plan.shrubs.some((sh) => Math.hypot(sh.x - jx, sh.z - jz) < 2.0)) continue;
+      if (plan.solids.some((so) => Math.hypot(so.x - jx, so.z - jz) < DECOR_DENSITY.infill.gapSolids)) continue;
+      if (plan.props.some((pr) => Math.hypot(pr.x - jx, pr.z - jz) < DECOR_DENSITY.infill.gapProps)) continue;
+      if (plan.shrubs.some((sh) => Math.hypot(sh.x - jx, sh.z - jz) < DECOR_DENSITY.infill.gapShrubs)) continue;
 
       const dLocal = districtAt(jp).id;
       const cAngle = ((chash >>> 12) % 12) * 0.52;
