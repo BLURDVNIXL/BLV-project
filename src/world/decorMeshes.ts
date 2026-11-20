@@ -15,6 +15,14 @@
 import * as THREE from 'three';
 import { DecorProp, TreeSpecies } from './decorTypes';
 import { TREE_ASSETS } from '../assets3d/builders/trees';
+import { TROPICAL_PLANT_ASSETS } from '../assets3d/builders/tropicalPlants';
+import { FLOWER_ASSETS } from '../assets3d/builders/flowers';
+import { BUSH_ASSETS } from '../assets3d/builders/bushes';
+import { URBAN_FURNITURE_ASSETS } from '../assets3d/builders/urbanFurniture';
+import { WATER_FEATURE_ASSETS } from '../assets3d/builders/waterFeatures';
+import { GARDEN_DECORATION_ASSETS } from '../assets3d/builders/gardenDecorations';
+import { HANGING_DECORATION_ASSETS } from '../assets3d/builders/hangingDecorations';
+import { ROCK_AND_GROUND_ASSETS } from '../assets3d/builders/rocksGround';
 import type { AssetDefinition } from '../assets3d/types';
 import { emitBaked, getBakedTemplate } from './studioBake';
 
@@ -695,7 +703,192 @@ function addLegacyRichTree(
 // 2–9. RENDERING DES 8 AUTRES CATÉGORIES DE DÉCORS
 // ═══════════════════════════════════════════════════════════════════════════
 
+// ═══════════════════════════════════════════════════════════════════════════
+// Catégories 2 à 9 : VRAIS modèles du studio 3D (cuits en couleurs par sommet, voir studioBake.ts)
+// ═══════════════════════════════════════════════════════════════════════════
+
+const STUDIO_ASSETS_BY_ID = new Map<string, AssetDefinition>(
+  [
+    ...TREE_ASSETS,
+    ...TROPICAL_PLANT_ASSETS,
+    ...FLOWER_ASSETS,
+    ...BUSH_ASSETS,
+    ...URBAN_FURNITURE_ASSETS,
+    ...WATER_FEATURE_ASSETS,
+    ...GARDEN_DECORATION_ASSETS,
+    ...HANGING_DECORATION_ASSETS,
+    ...ROCK_AND_GROUND_ASSETS,
+  ].map((a) => [a.id, a])
+);
+
+/**
+ * Variante de décor du jeu → modèle(s) du studio. Quand plusieurs modèles sont listés, la graine du décor
+ * choisit parmi eux (puis parmi leurs variantes) : tout le studio apparaît sur la carte.
+ * Non utilisé ici : `uf_abribus` (les abribus SOTRA sont gérés par le plan des abris, voir patch 3).
+ */
+const STUDIO_PROP_ASSETS: Record<string, string[]> = {
+  'tropical_plant:banana': ['plant_bananier'],
+  'tropical_plant:papaya': ['plant_papayer'],
+  'tropical_plant:aloe': ['plant_aloes'],
+  'tropical_plant:broadleaf': ['plant_larges_feuilles'],
+  'tropical_plant:fern': ['plant_fougere'],
+  'tropical_plant:potted_ornamental': ['plant_en_pot'],
+  'tropical_plant:small_shrub': ['plant_petit_arbuste'],
+  'tropical_plant:creeper': ['plant_rampante'],
+  'flower:rose': ['flower_rosier'],
+  'flower:bougainvillea': ['flower_bougainvillier'],
+  'flower:hibiscus': ['flower_hibiscus'],
+  'flower:tropical_flower': ['flower_tropicales'],
+  'flower:flower_bed': ['flower_massif_multicolore'],
+  'flower:small_flowers': ['flower_petites_fleurs'],
+  'bush:round_bush': ['bush_gros_arrondi'],
+  'bush:wild_bush': ['bush_sauvage'],
+  'bush:trimmed_hedge': ['bush_haie_taillee'],
+  'bush:planter_hedge': ['bush_haie_separative'],
+  'bush:plant_bed': ['bush_massif_vegetal'],
+  'bush:tall_grass': ['bush_herbes_hautes', 'bush_touffe_herbes'],
+  'bush:grove': ['bush_petit_bosquet'],
+  'furniture:bench_wood': ['uf_banc_bois'],
+  'furniture:bench_metal': ['uf_banc_metallique'],
+  'furniture:bench_concrete': ['uf_banc_beton'],
+  'furniture:bench_backrest': ['uf_banc_dossier'],
+  'furniture:picnic_table': ['uf_table_pique_nique'],
+  'furniture:flower_pot': ['uf_pot_fleurs'],
+  'furniture:rect_planter': ['uf_jardiniere'],
+  'furniture:bollard': ['uf_borne', 'uf_poubelle'],
+  'furniture:reverbere': ['uf_reverbere', 'uf_lampadaire'],
+  'furniture:barrier': ['uf_petite_barriere'],
+  'furniture:pergola': ['uf_pergola'],
+  'water_feature:tiered_fountain': ['wf_fontaine_decorative'],
+  'water_feature:circle_fountain': ['wf_petite_fontaine'],
+  'water_feature:modern_fountain': ['wf_fontaine_moderne'],
+  'water_feature:ornamental_basin': ['wf_bassin_ornemental'],
+  'garden_decor:statue': ['gd_statue'],
+  'garden_decor:abstract_sculpture': ['gd_sculpture_abstraite'],
+  'garden_decor:canari_jar': ['gd_grande_jarre'],
+  'garden_decor:terracotta_pots': ['gd_pot_terre_cuite'],
+  'garden_decor:small_fence': ['gd_petite_cloture'],
+  'garden_decor:low_wall': ['gd_muret'],
+  'garden_decor:garden_border': ['gd_bordure_jardin'],
+  'garden_decor:green_pergola': ['gd_pergola_vegetalisee'],
+  'hanging_decor:decor_chain': ['hd_chaine_decorative'],
+  'hanging_decor:barrier_chain': ['hd_chaine_delimitation'],
+  'hanging_decor:fairy_garland': ['hd_guirlande_lumineuse'],
+  'hanging_decor:bunting_garland': ['hd_guirlande_decorative'],
+  'hanging_decor:hanging_plant': ['hd_suspension_vegetale'],
+  'hanging_decor:lantern': ['hd_petite_lanterne'],
+  'hanging_decor:wall_relief': ['hd_decoration_murale'],
+  'ground_rock:rock': ['rg_rocher'],
+  'ground_rock:pebbles': ['rg_galets'],
+  'ground_rock:slabs': ['rg_dalles'],
+  'ground_rock:pavers': ['rg_paves'],
+};
+
+/** Éléments en ligne (entre deux poteaux) : le modèle du studio est répété le long de la portée. */
+const STUDIO_LINE_VARIANTS = new Set(['decor_chain', 'barrier_chain', 'fairy_garland', 'bunting_garland']);
+
+/**
+ * Le jeu oriente ses décors avec u = (cos a, sin a), v = (−sin a, cos a) ; le studio avec X, Z de Three.js.
+ * Si une face avant (bancs, fontaines murales…) apparaît à l'envers, ajuster cette seule constante (ex. + Math.PI).
+ */
+const STUDIO_PROP_ROT_OFFSET = 0;
+
+/** Choix déterministe (modèle puis variante) pour un décor donné. */
+export function pickStudioPropVariant(
+  prop: Pick<DecorProp, 'category' | 'variant' | 'seed'>
+): { asset: AssetDefinition; variantId: string } | null {
+  const ids = STUDIO_PROP_ASSETS[`${prop.category}:${prop.variant}`];
+  if (!ids || ids.length === 0) return null;
+  const seed = Math.abs(Math.floor(prop.seed));
+  const asset = STUDIO_ASSETS_BY_ID.get(ids[seed % ids.length]);
+  if (!asset || asset.variants.length === 0) return null;
+  const variantId = asset.variants[Math.floor(seed / ids.length) % asset.variants.length].id;
+  return { asset, variantId };
+}
+
+/** Toutes les (modèle, variante) du studio que le jeu peut afficher pour ces catégories (pour les tests). */
+export function listStudioPropModels(): Array<{ asset: AssetDefinition; variantId: string }> {
+  const seen = new Set<string>();
+  const out: Array<{ asset: AssetDefinition; variantId: string }> = [];
+  for (const ids of Object.values(STUDIO_PROP_ASSETS)) {
+    for (const id of ids) {
+      const asset = STUDIO_ASSETS_BY_ID.get(id);
+      if (!asset) continue;
+      for (const v of asset.variants) {
+        const key = `${id}:${v.id}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          out.push({ asset, variantId: v.id });
+        }
+      }
+    }
+  }
+  return out;
+}
+
+function renderStudioProp(plain: Buf, trees: Buf, lamps: Buf, puddles: Buf, prop: DecorProp): boolean {
+  const pick = pickStudioPropVariant(prop);
+  if (!pick) return false;
+  const tpl = getBakedTemplate(pick.asset, pick.variantId);
+  if (tpl.triangles === 0) return false;
+
+  const s = prop.scale > 0 ? prop.scale : 1;
+  const tint = 0.94 + ((prop.seed >>> 1) % 9) * 0.014;
+  const emit = (o: { x: number; z: number; y?: number; rot: number; scaleX?: number; offsetX?: number }) => {
+    const opts = { ...o, scale: s };
+    emitBaked(tpl.plain, plain, { ...opts, tint });
+    emitBaked(tpl.trees, trees, { ...opts, tint });
+    emitBaked(tpl.lamps, lamps, opts);
+    emitBaked(tpl.puddles, puddles, opts);
+  };
+
+  if (prop.category === 'hanging_decor') {
+    const rot = -prop.angle + STUDIO_PROP_ROT_OFFSET;
+    if (STUDIO_LINE_VARIANTS.has(prop.variant) && tpl.sizeX > 0.2) {
+      // Segments répétés entre les deux poteaux (pas de déformation des maillons ni des poteaux)
+      const n = Math.max(1, Math.round(prop.span / (tpl.sizeX * s)));
+      const segW = prop.span / n;
+      const stretch = segW / (tpl.sizeX * s);
+      // Guirlandes/chaînes suspendues : le haut du modèle est accroché à y0 ; barrières : posées au sol
+      const y = prop.variant === 'barrier_chain' ? 0 : prop.y0 - tpl.height * s;
+      const c = Math.cos(prop.angle);
+      const sn = Math.sin(prop.angle);
+      for (let i = 0; i < n; i++) {
+        const along = -prop.span / 2 + (i + 0.5) * segW;
+        emit({ x: prop.x + c * along, z: prop.z + sn * along, y, rot, scaleX: stretch });
+      }
+      return true;
+    }
+    // Lanterne / suspension : accrochée par le haut à y0 ; décoration murale : posée à partir de y0
+    const y = prop.variant === 'wall_relief' ? prop.y0 : prop.y0 - tpl.height * s;
+    emit({ x: prop.x, z: prop.z, y, rot });
+    return true;
+  }
+
+  emit({ x: prop.x, z: prop.z, rot: -(prop.angle + ((prop.seed % 7) - 3) * 0.08) + STUDIO_PROP_ROT_OFFSET });
+  return true;
+}
+
+/**
+ * Décor du chunk (catégories 2 à 9) : utilise les modèles du studio 3D ; repli sur l'ancienne version
+ * simplifiée si le modèle ne peut pas être généré.
+ */
 export function renderDecorProp(
+  plain: Buf,
+  trees: Buf,
+  lamps: Buf,
+  puddles: Buf,
+  prop: DecorProp
+): void {
+  try {
+    if (renderStudioProp(plain, trees, lamps, puddles, prop)) return;
+  } catch {
+    // repli ci-dessous
+  }
+  renderLegacyDecorProp(plain, trees, lamps, puddles, prop);
+}
+
+function renderLegacyDecorProp(
   plain: Buf,
   trees: Buf,
   lamps: Buf,

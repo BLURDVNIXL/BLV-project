@@ -34,10 +34,18 @@ export interface BakedTemplate {
   plain: BakedMesh | null;
   /** Feuillages & surfaces double face → buffer `trees` du chunk (vent tropical). */
   trees: BakedMesh | null;
+  /** Parties lumineuses (ampoules, verre de lanterne…) → buffer `lamps` (émissif la nuit). */
+  lamps: BakedMesh | null;
+  /** Eau et verre (translucides) → buffer `puddles`. */
+  puddles: BakedMesh | null;
   /** Hauteur naturelle du modèle (m), base posée à y = 0. */
   height: number;
   /** Rayon horizontal maximal (m) autour du pied. */
   radius: number;
+  /** Étendue du modèle le long de son axe X local (m) — sert à étirer/répéter guirlandes et chaînes. */
+  sizeX: number;
+  /** Étendue du modèle le long de son axe Z local (m). */
+  sizeZ: number;
   triangles: number;
 }
 
@@ -75,9 +83,14 @@ function materialBakeColor(mat: THREE.Material): THREE.Color {
   return out;
 }
 
-function routesToTrees(mat: THREE.Material): boolean {
+type BakeTarget = 'plain' | 'trees' | 'lamps' | 'puddles';
+
+function routeMaterial(mat: THREE.Material): BakeTarget {
   const kind = mat.userData?.kind as string | undefined;
-  return kind === 'foliage' || kind === 'petal' || mat.side === THREE.DoubleSide;
+  if (kind === 'emissive') return 'lamps';
+  if (kind === 'water' || kind === 'glass') return 'puddles';
+  if (kind === 'foliage' || kind === 'petal' || kind === 'fabric' || mat.side === THREE.DoubleSide) return 'trees';
+  return 'plain';
 }
 
 function bakeGeometryInto(
@@ -131,8 +144,7 @@ function bakeGeometryInto(
 /** Cuit un THREE.Group du studio en gabarit réutilisable (pivot = centre du pied, base à y = 0). */
 export function bakeGroup(group: THREE.Group): BakedTemplate {
   group.updateMatrixWorld(true);
-  const plain = newAcc();
-  const trees = newAcc();
+  const accs: Record<BakeTarget, Acc> = { plain: newAcc(), trees: newAcc(), lamps: newAcc(), puddles: newAcc() };
 
   group.traverse((obj) => {
     const mesh = obj as THREE.Mesh;
@@ -144,19 +156,21 @@ export function bakeGroup(group: THREE.Group): BakedTemplate {
       for (const g of groups) {
         const mat = mesh.material[g.materialIndex ?? 0];
         if (!mat) continue;
-        bakeGeometryInto(routesToTrees(mat) ? trees : plain, geo, mat, mesh.matrixWorld, g.start, g.count);
+        bakeGeometryInto(accs[routeMaterial(mat)], geo, mat, mesh.matrixWorld, g.start, g.count);
       }
     } else if (mesh.material) {
-      bakeGeometryInto(routesToTrees(mesh.material) ? trees : plain, geo, mesh.material, mesh.matrixWorld, 0, total);
+      bakeGeometryInto(accs[routeMaterial(mesh.material)], geo, mesh.material, mesh.matrixWorld, 0, total);
     }
   });
 
+  const list = [accs.plain, accs.trees, accs.lamps, accs.puddles];
+
   // Recentrage sur le pied (le studio centre la boîte englobante, ce qui décale les troncs penchés)
   let minY = Infinity;
-  for (const a of [plain, trees]) for (let i = 1; i < a.pos.length; i += 3) minY = Math.min(minY, a.pos[i]);
+  for (const a of list) for (let i = 1; i < a.pos.length; i += 3) minY = Math.min(minY, a.pos[i]);
   if (!Number.isFinite(minY)) minY = 0;
   let sx = 0, sz = 0, cnt = 0;
-  for (const a of [plain, trees]) {
+  for (const a of list) {
     for (let i = 0; i < a.pos.length; i += 3) {
       if (a.pos[i + 1] - minY <= 0.25) {
         sx += a.pos[i];
@@ -169,24 +183,35 @@ export function bakeGroup(group: THREE.Group): BakedTemplate {
   const cz = cnt > 0 ? sz / cnt : 0;
   let maxY = 0;
   let radius = 0;
-  for (const a of [plain, trees]) {
+  let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+  for (const a of list) {
     for (let i = 0; i < a.pos.length; i += 3) {
       a.pos[i] -= cx;
       a.pos[i + 1] -= minY;
       a.pos[i + 2] -= cz;
       maxY = Math.max(maxY, a.pos[i + 1]);
       radius = Math.max(radius, Math.hypot(a.pos[i], a.pos[i + 2]));
+      minX = Math.min(minX, a.pos[i]);
+      maxX = Math.max(maxX, a.pos[i]);
+      minZ = Math.min(minZ, a.pos[i + 2]);
+      maxZ = Math.max(maxZ, a.pos[i + 2]);
     }
   }
 
-  const p = finishAcc(plain);
-  const t = finishAcc(trees);
+  const p = finishAcc(accs.plain);
+  const t = finishAcc(accs.trees);
+  const l = finishAcc(accs.lamps);
+  const w = finishAcc(accs.puddles);
   return {
     plain: p,
     trees: t,
+    lamps: l,
+    puddles: w,
     height: maxY,
     radius,
-    triangles: ((p?.idx.length ?? 0) + (t?.idx.length ?? 0)) / 3,
+    sizeX: Number.isFinite(minX) ? maxX - minX : 0,
+    sizeZ: Number.isFinite(minZ) ? maxZ - minZ : 0,
+    triangles: ((p?.idx.length ?? 0) + (t?.idx.length ?? 0) + (l?.idx.length ?? 0) + (w?.idx.length ?? 0)) / 3,
   };
 }
 
@@ -213,6 +238,10 @@ export interface EmitOptions {
   rot?: number;
   /** Multiplicateur de luminosité par instance (variété), défaut 1. */
   tint?: number;
+  /** Étirement supplémentaire le long de l'axe X local (guirlandes, chaînes), défaut 1. */
+  scaleX?: number;
+  /** Décalage le long de l'axe X local avant rotation (segments répétés), défaut 0. */
+  offsetX?: number;
 }
 
 /** Copie un gabarit dans un buffer du chunk. */
@@ -221,12 +250,14 @@ export function emitBaked(mesh: BakedMesh | null, dst: Buf, o: EmitOptions): voi
   const s = o.scale ?? 1;
   const y0 = o.y ?? 0;
   const tint = o.tint ?? 1;
+  const sxs = o.scaleX ?? 1;
+  const ox = o.offsetX ?? 0;
   const c = Math.cos(o.rot ?? 0);
   const sn = Math.sin(o.rot ?? 0);
   const base = dst.pos.length / 3;
   const count = mesh.pos.length / 3;
   for (let i = 0; i < count; i++) {
-    const px = mesh.pos[i * 3];
+    const px = mesh.pos[i * 3] * sxs + ox / s;
     const py = mesh.pos[i * 3 + 1];
     const pz = mesh.pos[i * 3 + 2];
     dst.pos.push(o.x + (c * px + sn * pz) * s, y0 + py * s, o.z + (-sn * px + c * pz) * s);
