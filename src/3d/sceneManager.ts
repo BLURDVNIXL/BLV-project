@@ -185,6 +185,8 @@ export interface SceneCallbacks {
   onPauseKey?: () => void;
   /** Cinématique du taxi (B3) : true = l'écran doit passer au noir, false = revenir à l'image. */
   onTaxiFade?: (dark: boolean) => void;
+  /** Chargement du monde autour du joueur (démarrage, chargement de sauvegarde, arrivée) : true = écran noir tant que ce n'est pas prêt. */
+  onWorldFade?: (dark: boolean) => void;
   /** Cinématique du taxi démarrée (durée totale réelle en secondes). */
   onTaxiRideStart?: (totalDurationS: number) => void;
   /** Réparation d'un moteur noyé déclenchée depuis le jeu (touche E ou manette). */
@@ -218,6 +220,16 @@ export class AbidjanSceneManager {
   private renderer!: THREE.WebGLRenderer;
   private scene!: THREE.Scene;
   private routeGuide: THREE.Group | null = null;
+  /**
+   * Porte de chargement : écran noir jusqu'à ce que les chunks autour du joueur soient construits, pour qu'il ne voie
+   * jamais le monde se charger (démarrage, sauvegarde, arrivée du taxi). Sans écran de chargement : un simple fondu.
+   */
+  private worldGate: { sinceMs: number } | null = null;
+  /** Anneaux de chunks (autour du joueur) qui doivent être prêts pour lever l'écran noir. */
+  private static readonly WORLD_GATE_MIN_MS = 300;
+  private static readonly WORLD_GATE_MAX_MS = 12000;
+  /** Route du trajet de taxi préchargée pendant l'attente du taxi (points du tracé), null sinon. */
+  private taxiPreloadPoints: Array<{ x: number; z: number }> | null = null;
   /** Cinématique du trajet (étape B3) : le joueur monte, le taxi roule sur l'itinéraire, puis il est déposé. */
   private taxiRide: {
     phase: 'board' | 'ride' | 'unfade';
@@ -232,6 +244,8 @@ export class AbidjanSceneManager {
     x: number;
     z: number;
     endFade: boolean;
+    /** Temps (s) passé à attendre le monde pendant la cinématique ; au-delà de 10 s le taxi repart quand même. */
+    stalledS: number;
   } | null = null;
   /** Woro-woro appelé (étape B2) : visible seulement chez le joueur, jamais envoyé aux autres joueurs. */
   private taxiApproach: {
@@ -1173,6 +1187,7 @@ export class AbidjanSceneManager {
         this.playerRotY = validRestore.rotY;
         this.playerRig.group.rotation.y = validRestore.rotY;
       }
+      this.beginWorldGate(); // écran noir pendant le chargement de la physique, puis des chunks
       return null;
     }
 
@@ -1329,6 +1344,7 @@ export class AbidjanSceneManager {
     }
     this.lastDistrict = '';
     this.lastUiSync = -999;
+    this.beginWorldGate();
 
     return lot;
   }
@@ -1750,6 +1766,32 @@ export class AbidjanSceneManager {
     a.rig.animate?.(nowSec, dt);
   }
 
+  private worldGateRings(): number {
+    return this.isSoftwareGl ? 1 : 2;
+  }
+
+  /** Écran noir jusqu'à ce que le monde autour du joueur soit prêt (sans effet s'il l'est déjà ou si la porte est déjà fermée). */
+  public beginWorldGate(): void {
+    if (this.worldGate || this.disposed) return;
+    if (this.streamer?.isReady(this.playerX, this.playerZ, this.worldGateRings()) && this.streamer.arrivedCount === 0) return;
+    this.worldGate = { sinceMs: performance.now() };
+    this.callbacks.onWorldFade?.(true);
+  }
+
+  private updateWorldGate(): void {
+    const g = this.worldGate;
+    if (!g) return;
+    const waited = performance.now() - g.sinceMs;
+    const ready =
+      this.streamer !== null &&
+      this.streamer.isReady(this.playerX, this.playerZ, this.worldGateRings()) &&
+      this.streamer.arrivedCount === 0;
+    if ((ready && waited >= AbidjanSceneManager.WORLD_GATE_MIN_MS) || waited >= AbidjanSceneManager.WORLD_GATE_MAX_MS) {
+      this.worldGate = null;
+      this.callbacks.onWorldFade?.(false);
+    }
+  }
+
   /** Position du joueur à pied ou, depuis un intérieur, devant l'entrée (là où le taxi le prendrait). */
   private taxiPickupPoint(): { x: number; z: number } {
     return this.activeInterior
@@ -1786,8 +1828,30 @@ export class AbidjanSceneManager {
     return true;
   }
 
+  /**
+   * Pendant l'attente du taxi : charge la route du trajet jusqu'à `dest` (même tracé que la cinématique), pour que le
+   * taxi ne roule jamais sur un monde pas encore construit. Sans effet si aucun trajet n'existe.
+   */
+  public preloadTaxiRoute(dest: { x: number; z: number }): void {
+    if (!this.streamer) return;
+    const from = nearestRoadPoint(this.taxiPickupPoint()).at;
+    const route = findRoute(from, dest);
+    if (!route) return;
+    const points = route.points.length > 2 ? route.points.slice(0, -1) : route.points;
+    this.taxiPreloadPoints = points;
+    this.streamer.setCorridor(points);
+  }
+
+  /** Arrête le préchargement de la route (course annulée ou terminée). */
+  public stopTaxiPreload(): void {
+    this.taxiPreloadPoints = null;
+    this.streamer?.setCorridor(null);
+    if (this.streamer) this.streamer.lodRefresh = true;
+  }
+
   /** Le taxi disparaît (le joueur monte, annule ou la course est abandonnée). */
   public stopTaxiApproach() {
+    if (!this.taxiRide) this.stopTaxiPreload();
     const t = this.taxiApproach;
     if (!t) return;
     this.taxiApproach = null;
@@ -1855,6 +1919,9 @@ export class AbidjanSceneManager {
     const points = route.points.length > 2 ? route.points.slice(0, -1) : route.points;
     const length = pathLength(points);
     if (length < 5) return null;
+    // La route réelle remplace celle préchargée pendant l'attente (le plus souvent identique : les chunks sont déjà là).
+    this.taxiPreloadPoints = points;
+    this.streamer?.setCorridor(points);
     let rig: VehicleRig;
     let heading: number;
     if (ap) {
@@ -1882,6 +1949,7 @@ export class AbidjanSceneManager {
       x: from.x,
       z: from.z,
       endFade: false,
+      stalledS: 0,
     };
     this.callbacks.onTaxiFade?.(true);
     this.callbacks.onTaxiRideStart?.(totalS + AbidjanSceneManager.TAXI_FADE_S);
@@ -1898,6 +1966,10 @@ export class AbidjanSceneManager {
     if (r.phase === 'board') {
       // Écran noir : le joueur est « monté », la cinématique commence.
       if (r.t < FADE) return;
+      // L'écran reste noir tant que le début de la route n'est pas construit (au plus 8 s de plus).
+      const startLimit = this.streamer?.corridorReadyDistance() ?? Infinity;
+      if (startLimit < Math.min(128, r.length) && r.t < FADE + 8) return;
+      if (this.streamer) this.streamer.lodRefresh = false;
       r.phase = 'ride';
       r.t = 0;
       this.playerRig.group.visible = false;
@@ -1912,7 +1984,16 @@ export class AbidjanSceneManager {
       return;
     }
     if (r.phase === 'ride') {
-      const s = r.length * taxiRideProgress(r.t, r.totalS);
+      // Le taxi ne roule jamais plus vite que le monde ne se construit : s'il rattrape le premier chunk de la route
+      // non chargé, le temps de la cinématique s'arrête (aucun saut ensuite) jusqu'à ce qu'il soit prêt.
+      const limit = this.streamer?.corridorReadyDistance() ?? Infinity;
+      let s = r.length * taxiRideProgress(r.t, r.totalS);
+      if (s > limit && r.stalledS < 10) {
+        r.t -= dt;
+        r.stalledS += dt;
+        s = r.lastS;
+      }
+      this.streamer?.setCorridorProgress(s);
       const pos = pointAlongPath(r.points, s);
       if (s > r.lastS + 1e-4) {
         let d = pos.heading - r.heading;
@@ -1931,6 +2012,7 @@ export class AbidjanSceneManager {
       }
       if (r.t >= r.totalS) {
         // Écran noir : le taxi disparaît, le joueur est déposé devant le lieu.
+        this.stopTaxiPreload();
         this.taxiRide = null;
         this.scene.remove(r.rig.group);
         r.rig.group.traverse((o) => {
@@ -2048,6 +2130,7 @@ export class AbidjanSceneManager {
     this.camPos.set(x, 1.8, z);
     this.computeFollowCamera(x, 0, z, this.camPos, this.camLook, true);
     this.streamer?.update(x, z, 9);
+    this.beginWorldGate();
   }
 
   public setJoystick(x: number, y: number) {
@@ -2632,6 +2715,9 @@ export class AbidjanSceneManager {
     this.waterTraffic.update(fxDt, nowSec, fxFocusX, fxFocusZ, this.activeInterior === null);
     this.streetAnim.update(nowSec, fxFocusX, fxFocusZ, this.activeInterior === null, this.weather === 'pluie' || this.weather === 'inondation', this.currentMood === 'night');
 
+    // Porte de chargement : lève l'écran noir dès que le monde autour du joueur est prêt
+    this.updateWorldGate();
+
     // 4. Title / Roulette Flyover Mode over Le Plateau & Lagune Ébrié
     if (this.cameraMode === 'flyover') {
       this.streamer?.update(this.flyoverCenter.x, this.flyoverCenter.z, 8);
@@ -2705,7 +2791,7 @@ export class AbidjanSceneManager {
     if (Math.abs(this.joystickVec.y) > 0.08) fwd = -this.joystickVec.y;
     if (Math.abs(this.joystickVec.x) > 0.08) turnRight = this.joystickVec.x;
     // Pendant la cinématique du taxi ou une action chronométrée bloquante, le joueur ne bouge pas.
-    if (this.taxiRide || timedActionBlocksMovement(this.activeTimedActionKind)) {
+    if (this.taxiRide || this.worldGate || timedActionBlocksMovement(this.activeTimedActionKind)) {
       fwd = 0;
       turnRight = 0;
       this.jumpPending = false;

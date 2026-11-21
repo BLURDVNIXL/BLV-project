@@ -5,7 +5,7 @@
  * BLV
  * Fournisseur de chunks : la génération (bâtiments + sol) ET la construction de la géométrie (arbres, décor, façades :
  * 100 à 250 ms par chunk en forêt) tournent dans un Web Worker du navigateur, sur l'appareil du joueur, pour ne jamais
- * saccader l'affichage : le fil principal ne fait plus que créer les objets Three.js. Repli synchrone si les Workers
+ * saccader l'affichage (deux Workers sur les appareils à plus de 2 cœurs) : le fil principal ne fait plus que créer les objets Three.js. Repli synchrone si les Workers
  * sont indisponibles.
  */
 
@@ -39,30 +39,50 @@ export class SyncChunkProvider implements ChunkProvider {
 
 interface WorkerReply { id: number; payload: ChunkPayload }
 
-export class WorkerChunkProvider implements ChunkProvider {
-  private worker: Worker;
-  private nextId = 1;
-  private waiting = new Map<number, (p: ChunkPayload) => void>();
+/**
+ * Nombre de Workers de construction : un seul construisait un chunk de forêt dense en ~190 ms, soit 15 s pour remplir
+ * le rayon 4 depuis le départ. Deux Workers doublent presque le débit ; un appareil à 2 cœurs ou moins n'en garde qu'un.
+ */
+export function chunkWorkerCount(hardwareConcurrency?: number): number {
+  const cores = Number.isFinite(hardwareConcurrency) && (hardwareConcurrency as number) > 0 ? (hardwareConcurrency as number) : 4;
+  return cores <= 2 ? 1 : 2;
+}
 
-  constructor(reserved: string[] = []) {
-    this.worker = new Worker(new URL('./worldWorker.ts', import.meta.url), { type: 'module' });
-    this.worker.postMessage({ type: 'init', reserved });
-    this.worker.onmessage = (e: MessageEvent<WorkerReply>) => {
-      const cb = this.waiting.get(e.data.id);
-      if (cb) { this.waiting.delete(e.data.id); cb(e.data.payload); }
-    };
+interface PoolWorker { worker: Worker; busy: number }
+
+export class WorkerChunkProvider implements ChunkProvider {
+  private pool: PoolWorker[] = [];
+  private nextId = 1;
+  private waiting = new Map<number, { resolve: (p: ChunkPayload) => void; w: PoolWorker }>();
+
+  constructor(reserved: string[] = [], count: number = chunkWorkerCount(typeof navigator !== 'undefined' ? navigator.hardwareConcurrency : undefined)) {
+    for (let i = 0; i < Math.max(1, count); i++) {
+      const worker = new Worker(new URL('./worldWorker.ts', import.meta.url), { type: 'module' });
+      worker.postMessage({ type: 'init', reserved });
+      const w: PoolWorker = { worker, busy: 0 };
+      worker.onmessage = (e: MessageEvent<WorkerReply>) => {
+        const entry = this.waiting.get(e.data.id);
+        if (entry) { this.waiting.delete(e.data.id); w.busy = Math.max(0, w.busy - 1); entry.resolve(e.data.payload); }
+      };
+      this.pool.push(w);
+    }
   }
 
   request(cx: number, cz: number, lod: LodLevel = 0, withGround = true): Promise<ChunkPayload> {
     return new Promise((resolve) => {
       const id = this.nextId++;
-      this.waiting.set(id, resolve);
-      this.worker.postMessage({ type: 'chunk', id, cx, cz, lod, withGround });
+      // Le Worker le moins occupé : les demandes arrivent déjà triées du plus urgent au moins urgent.
+      let w = this.pool[0];
+      for (const c of this.pool) if (c.busy < w.busy) w = c;
+      w.busy++;
+      this.waiting.set(id, { resolve, w });
+      w.worker.postMessage({ type: 'chunk', id, cx, cz, lod, withGround });
     });
   }
 
   dispose(): void {
-    this.worker.terminate();
+    for (const w of this.pool) w.worker.terminate();
+    this.pool = [];
     this.waiting.clear();
   }
 }

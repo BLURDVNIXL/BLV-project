@@ -15,6 +15,12 @@ import { ChunkMaterials, ChunkObjects, assembleChunkObjects } from './chunkMesh'
 import { ChunkProvider, GROUND_SIZE, ChunkPayload } from './chunkProvider';
 import { OCCLUDER_MIN_HEIGHT, occluderOf, type Occluder } from './pedVisibility';
 import { SHADOW_CASTER_RANGE, chunkDistance, lodForDistance, type LodLevel } from './lod';
+import { CorridorChunk, corridorChunks, readyDistance } from './routePreload';
+import type { Vec2 } from './geo';
+
+/** Route de trajet préchargée : jusqu'à cette distance (m) devant le taxi, et cette distance derrière lui avant de libérer. */
+const CORRIDOR_AHEAD = 1500;
+const CORRIDOR_BEHIND = 128;
 
 interface Loaded { cx: number; cz: number; objects: ChunkObjects; solids: number[]; occluders: Occluder[] }
 
@@ -43,6 +49,14 @@ export class WorldStreamer {
   lastApplyMs = 0;
   /** Construction la plus longue d'un seul chunk (ms), remise à zéro par `takeWorstChunkMs` (diagnostic). */
   private worstChunkMs = 0;
+  /** Route d'un trajet à précharger (taxi) : chunks traversés, fenêtre active autour de la progression et clés à garder. */
+  private corridor: CorridorChunk[] = [];
+  private corridorLength = 0;
+  private corridorS = 0;
+  private corridorActive: CorridorChunk[] = [];
+  private corridorKeep = new Set<string>();
+  /** Faux pendant la cinématique du taxi : les reconstructions de niveau de détail laisseraient le Worker aux chunks de la route. */
+  lodRefresh = true;
 
   constructor(
     private scene: THREE.Scene,
@@ -64,6 +78,41 @@ export class WorldStreamer {
     const v = this.worstChunkMs;
     this.worstChunkMs = 0;
     return v;
+  }
+
+  /**
+   * Route à précharger (null pour l'arrêter). Les chunks traversés par `points` sont chargés en priorité après ceux
+   * qui entourent le joueur, et gardés tant que le trajet n'est pas passé. Chaque appareil précharge sa propre route.
+   */
+  setCorridor(points: Vec2[] | null): void {
+    this.corridor = points && points.length > 0 ? corridorChunks(points) : [];
+    this.corridorLength = this.corridor.reduce((m, c) => Math.max(m, c.d), 0);
+    this.corridorS = 0;
+    this.refreshCorridor();
+  }
+
+  /** Progression (m) du trajet : la fenêtre de préchargement glisse avec elle et les chunks dépassés sont libérés. */
+  setCorridorProgress(s: number): void {
+    if (this.corridor.length === 0) return;
+    this.corridorS = Math.max(0, s);
+    this.refreshCorridor();
+  }
+
+  get hasCorridor(): boolean { return this.corridor.length > 0; }
+
+  /** Distance (m) jusqu'où le trajet peut avancer sans rouler sur un chunk non chargé ; Infinity si tout est prêt. */
+  corridorReadyDistance(): number {
+    if (this.corridorActive.length === 0) return Infinity;
+    return readyDistance(this.corridorActive, (cx, cz) => this.loaded.has(key(cx, cz)));
+  }
+
+  private refreshCorridor(): void {
+    const s = this.corridorS;
+    // La zone d'arrivée (distance = longueur du trajet) est toujours demandée : elle doit être prête avant la fin.
+    this.corridorActive = this.corridor.filter(
+      (c) => c.d >= s - CORRIDOR_BEHIND && (c.d <= s + CORRIDOR_AHEAD || c.d >= this.corridorLength)
+    );
+    this.corridorKeep = new Set(this.corridorActive.map((c) => key(c.cx, c.cz)));
   }
 
   getVenuesVersion(): number { return this.venuesVersion; }
@@ -154,6 +203,7 @@ export class WorldStreamer {
    * rapproche d'un seuil est reconstruit en arrière-plan ; l'ancienne géométrie reste affichée jusqu'à l'échange.
    */
   private updateDetail(px: number, pz: number): void {
+    if (!this.lodRefresh) return;
     const wanted: Array<{ k: string; cx: number; cz: number; lod: LodLevel; finer: boolean; dist: number }> = [];
     for (const [k, l] of this.loaded) {
       const dist = chunkDistance(px, pz, l.cx, l.cz);
@@ -191,7 +241,7 @@ export class WorldStreamer {
     while (this.arrived.length > 0 && applied < maxApply) {
       if (applied > 0 && performance.now() - tStart >= budget) break;
       const a = this.arrived.shift()!;
-      if (Math.max(Math.abs(a.cx - ccx), Math.abs(a.cz - ccz)) <= R + 1) { this.apply(a.cx, a.cz, a.payload); applied++; }
+      if (Math.max(Math.abs(a.cx - ccx), Math.abs(a.cz - ccz)) <= R + 1 || this.corridorKeep.has(key(a.cx, a.cz))) { this.apply(a.cx, a.cz, a.payload); applied++; }
     }
 
     // Échanges de niveau de détail (très peu coûteux : la géométrie est déjà construite par le Worker)
@@ -204,6 +254,7 @@ export class WorldStreamer {
     let unloaded = 0;
     for (const k of Array.from(this.loaded.keys())) {
       if (unloaded >= this.maxUnloadPerUpdate) break;
+      if (this.corridorKeep.has(k)) continue;
       const [x, z] = k.split(',').map(Number);
       if (Math.max(Math.abs(x - ccx), Math.abs(z - ccz)) > R + 1) { this.unload(k); unloaded++; }
     }
@@ -212,15 +263,17 @@ export class WorldStreamer {
 
     // Demande les plus proches d'abord
     if (this.pending.size >= this.maxInFlight) return;
-    const wanted: Array<{ cx: number; cz: number; d: number }> = [];
-    for (let dx = -R; dx <= R; dx++) for (let dz = -R; dz <= R; dz++) {
-      const cx = ccx + dx;
-      const cz = ccz + dz;
+    // Priorité : les chunks tout proches (≤ 2 anneaux), puis la route du trajet (de la plus proche à la plus lointaine), puis le reste du rayon.
+    const wantedMap = new Map<string, { cx: number; cz: number; p: number }>();
+    const want = (cx: number, cz: number, p: number): void => {
       const k = key(cx, cz);
-      if (this.loaded.has(k) || this.pending.has(k)) continue;
-      wanted.push({ cx, cz, d: dx * dx + dz * dz });
-    }
-    wanted.sort((a, b) => a.d - b.d);
+      if (this.loaded.has(k) || this.pending.has(k)) return;
+      const prev = wantedMap.get(k);
+      if (!prev || p < prev.p) wantedMap.set(k, { cx, cz, p });
+    };
+    for (let dx = -R; dx <= R; dx++) for (let dz = -R; dz <= R; dz++) want(ccx + dx, ccz + dz, dx * dx + dz * dz);
+    for (const c of this.corridorActive) want(c.cx, c.cz, 8.5 + Math.max(0, c.d - this.corridorS) / (CHUNK * 100));
+    const wanted = Array.from(wantedMap.values()).sort((a, b) => a.p - b.p);
     for (const w of wanted) {
       if (this.pending.size >= this.maxInFlight) break;
       const k = key(w.cx, w.cz);

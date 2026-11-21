@@ -44,7 +44,13 @@ Modules principaux :
 - `src/world/roads.ts`
 - `src/world/WorldStreamer.ts`
 - `src/world/chunkProvider.ts`
+- `src/world/routePreload.ts`
 - `src/world/playerHouses.ts`
+
+Chargement du monde (côté client, sur l'appareil de chaque joueur) :
+- La construction des chunks tourne dans un pool de Web Workers (deux sur les appareils à plus de 2 cœurs, un sinon).
+- Au démarrage, à un chargement de sauvegarde et à l'arrivée d'un taxi, l'écran reste noir (simple fondu, pas d'écran de chargement) jusqu'à ce que les chunks autour du joueur soient construits.
+- Pendant un trajet en taxi, la route jusqu'à la destination est préchargée (`routePreload.ts`) ; la cinématique ne dépasse jamais ce qui est chargé.
 
 ### Moteur physique
 
@@ -189,7 +195,7 @@ Le déplacement rapide se fait en taxi (woro-woro) :
 - Le joueur appelle un taxi (attente de 10 à 20 secondes, annulation libre).
 - Le taxi arrive sur le grand axe le plus proche et s'arrête avant la montée.
 - Le paiement a lieu à la montée : 500 FCFA dans la même commune, 1 000 FCFA entre communes.
-- Une cinématique accélérée emmène le joueur devant le lieu choisi.
+- Une cinématique accélérée emmène le joueur devant le lieu choisi ; la route est chargée pendant l'attente du taxi et le taxi ne roule jamais plus vite que le monde construit.
 - Le trajet fait passer le temps de jeu (3 minutes par kilomètre, de 5 à 90 minutes) et baisse légèrement la faim et l'énergie.
 
 Si aucun trajet n'est possible, le joueur est téléporté à destination.

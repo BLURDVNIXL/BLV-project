@@ -652,6 +652,7 @@ export default function App() {
       },
       onRepairStalledEngine: () => handleRepairStalledEngineRef.current(),
       onTaxiFade: (dark) => setTaxiFadeDark(dark),
+      onWorldFade: (dark) => setWorldFadeDark(dark),
       onTaxiRideStart: (totalDurationS) => {
         setTaxiRideGauge({ startedAtMs: Date.now(), durationMs: totalDurationS * 1000 });
       },
@@ -910,6 +911,8 @@ export default function App() {
   taxiCallRef.current = taxiCall;
   // Cinématique du trajet (B3) : écran noir et jauge de trajet en cours.
   const [taxiFadeDark, setTaxiFadeDark] = useState(false);
+  // Écran noir pendant que le monde autour du joueur se construit (démarrage, sauvegarde, arrivée du taxi)
+  const [worldFadeDark, setWorldFadeDark] = useState(false);
   const [taxiRideGauge, setTaxiRideGauge] = useState<{ startedAtMs: number; durationMs: number } | null>(null);
   const taxiRideRef = useRef<{ x: number; z: number; distanceM: number } | null>(null);
   useEffect(() => {
@@ -918,6 +921,7 @@ export default function App() {
       taxiRideRef.current = null;
       setTaxiRideGauge(null);
       setTaxiFadeDark(false);
+      setWorldFadeDark(false);
     }
   }, [screenState]);
 
@@ -1203,6 +1207,8 @@ export default function App() {
             taxiCallRef.current = call;
             setTaxiCall(call);
             sceneRef.current?.startTaxiApproach(waitS);
+            // Pendant l'attente du taxi, la route jusqu'à la destination se charge (le taxi ne dépasse jamais le monde construit)
+            sceneRef.current?.preloadTaxiRoute({ x, z });
             setIsPhoneOpen(false);
           }}
 
@@ -1267,7 +1273,7 @@ export default function App() {
       <div
         data-testid="taxi-fade"
         aria-hidden="true"
-        className={`fixed inset-0 z-[120] bg-black pointer-events-none transition-opacity duration-700 ${taxiFadeDark ? 'opacity-100' : 'opacity-0'}`}
+        className={`fixed inset-0 z-[120] bg-black pointer-events-none transition-opacity duration-700 ${taxiFadeDark || worldFadeDark ? 'opacity-100' : 'opacity-0'}`}
       />
     </div>
   );
