@@ -1,3 +1,4 @@
+import { sanitizeHeld, sanitizeSlots, BAG_SLOTS, FRIDGE_SLOTS } from './inventory';
 import { ALL_DESTINIES } from './destinies';
 import { getMissionForDestiny } from './missions';
 import type { PlayerState, SapeOutfitId, WeatherType } from '../types/game';
@@ -131,6 +132,11 @@ export function normalizeSessionState(
     return null;
   }
 
+  const inventory = sanitizeSlots(value.inventory, BAG_SLOTS);
+  const fridge = sanitizeSlots(value.fridge, FRIDGE_SLOTS);
+  const heldItemId = inventory ? sanitizeHeld(value.heldItemId, inventory) : undefined;
+  if (!inventory || !fridge || heldItemId === undefined) return null;
+
   const playerName = value.playerName;
   const gender = value.gender;
   const currentVehicleId = value.currentVehicleId;
@@ -199,6 +205,9 @@ export function normalizeSessionState(
       canapeCuir: upgrades.canapeCuir,
     },
     homeLotId: identity.homeLotId,
+    inventory,
+    fridge,
+    heldItemId,
     activeMission: {
       missionId: mission.missionId as string,
       stepIndex: mission.stepIndex as number,

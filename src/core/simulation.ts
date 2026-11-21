@@ -106,6 +106,9 @@ export function createInitialPlayerState(
       canapeCuir: false,
     },
     homeLotId: null,
+    inventory: [],
+    fridge: [],
+    heldItemId: null,
     activeMission: {
       missionId: mission.id,
       stepIndex: 0,

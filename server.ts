@@ -41,6 +41,8 @@ import {
   SapeOutfitId,
 } from './src/types/game';
 import { normalizeSessionState } from './src/core/sessionValidation';
+import { buyItem, holdItem, moveToFridge, takeFromFridge, useHeldItem } from './src/core/inventory';
+import { PLACE_MENUS, PlaceMenuId } from './src/core/items';
 
 const PORT = 3000;
 const EPHEMERAL_DEV_ADMIN_CODE = crypto.randomBytes(8).toString('hex').toUpperCase();
@@ -370,6 +372,24 @@ async function startServer() {
         if (food) st = eatFood(st, food);
         break;
       }
+      case 'buy_item': {
+        // Le prix est recalculé ici d'après le lieu (jamais envoyé par le client).
+        const placeId = String(payload?.placeId || '');
+        if (placeId in PLACE_MENUS) st = buyItem(st, String(payload?.itemId || ''), placeId as PlaceMenuId);
+        break;
+      }
+      case 'hold_item':
+        st = holdItem(st, payload?.itemId === null || payload?.itemId === undefined ? null : String(payload.itemId));
+        break;
+      case 'use_item':
+        st = useHeldItem(st);
+        break;
+      case 'fridge_put':
+        st = moveToFridge(st, String(payload?.itemId || ''));
+        break;
+      case 'fridge_take':
+        st = takeFromFridge(st, String(payload?.itemId || ''));
+        break;
       case 'work': {
         st = performWorkShift(st);
         break;

@@ -14,6 +14,12 @@ interface ConsoleGamepadProps {
   /** À pied : saut. En voiture : klaxon. */
   onJump: () => void;
   onPhone: () => void;
+  /** Ouvre le sac. */
+  onBag?: () => void;
+  /** Vrai quand un objet (ou la main) est sorti : le bouton sac est mis en évidence. */
+  bagActive?: boolean;
+  /** Emoji de l'objet en main : remplace la main sur le bouton « Interagir ». */
+  heldIcon?: string | null;
   /** Bouton maintenu : sprint à pied, frein à main en voiture. `false` relâche tout. */
   onHold: (active: boolean) => void;
 }
@@ -32,6 +38,9 @@ export const ConsoleGamepad: React.FC<ConsoleGamepadProps> = ({
   onInteract,
   onJump,
   onPhone,
+  onBag,
+  bagActive = false,
+  heldIcon = null,
   onHold,
 }) => {
   const joystickBaseRef = useRef<HTMLDivElement>(null);
@@ -131,8 +140,13 @@ export const ConsoleGamepad: React.FC<ConsoleGamepadProps> = ({
             <RoundIconButton tone="sun" size="md" label="Ouvrir MyOS" onClick={onPhone} className="short:h-9 short:w-9">
               <Smartphone className="h-5 w-5" />
             </RoundIconButton>
-            {/* Sac et objets : pas encore actif. */}
-            <RoundIconButton tone="plum" size="md" label="Utiliser (bientôt)" disabled className="short:h-9 short:w-9">
+            <RoundIconButton
+              tone={bagActive ? 'lagoon' : 'plum'}
+              size="md"
+              label="Ouvrir le sac"
+              onClick={onBag}
+              className="short:h-9 short:w-9"
+            >
               <Backpack className="h-5 w-5" />
             </RoundIconButton>
           </div>
@@ -162,7 +176,7 @@ export const ConsoleGamepad: React.FC<ConsoleGamepadProps> = ({
                 }`}
               >
                 <span className="relative flex items-center justify-center">
-                  {isDriving ? (engineStalled ? <Wrench className="h-7 w-7" /> : <DoorOpen className="h-7 w-7" />) : <Hand className="h-7 w-7" />}
+                  {isDriving ? (engineStalled ? <Wrench className="h-7 w-7" /> : <DoorOpen className="h-7 w-7" />) : heldIcon ? <span className="text-2xl leading-none">{heldIcon}</span> : <Hand className="h-7 w-7" />}
                 </span>
               </button>
             </div>

@@ -23,10 +23,8 @@ import {
   PlayerState,
   SapeOutfitId,
 } from '../types/game';
-import {
-  IVORIAN_FOODS,
-  SAPE_OUTFITS,
-} from '../core/destinies';
+import { SAPE_OUTFITS } from '../core/destinies';
+import { PLACE_MENUS, getItem, placePrice } from '../core/items';
 import {
   buildGpsDestinations,
   searchGpsDestinations,
@@ -58,7 +56,8 @@ interface MyOSPhoneProps {
   onCancelTaxi?: () => void;
   onRepairEngine?: () => void;
   onClose: () => void;
-  onEatFood: (foodId: string) => void;
+  /** Akwaba Eats : commande un objet du menu (×1,3) ; il arrive dans le sac (livreur : plus tard). */
+  onOrderFood: (itemId: string) => void;
   onFastTravel: (x: number, z: number, districtName: string, districtId: string) => void;
   onBuyOrEquipOutfit: (outfit: SapeOutfitId) => void;
   /** Sauvegarde immédiate de la partie ; renvoie vrai si elle a bien été écrite. */
@@ -76,7 +75,7 @@ export const MyOSPhone: React.FC<MyOSPhoneProps> = ({
   onCancelTaxi,
   onRepairEngine,
   onClose,
-  onEatFood,
+  onOrderFood,
   onFastTravel,
   onBuyOrEquipOutfit,
   onSaveGame,
@@ -326,24 +325,25 @@ export const MyOSPhone: React.FC<MyOSPhoneProps> = ({
           {activeApp === 'eats' && (
             <div className="flex flex-col gap-2.5">
               <AppHeader title={s.eats} onBack={() => setActiveApp('home')} />
-              {IVORIAN_FOODS.map((food) => (
-                <div key={food.id} className="flex items-center justify-between rounded-xl bg-cream-100 p-2.5 border border-cream-200">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <span className="text-xl">{food.icon}</span>
-                    <div className="min-w-0">
-                      <div className="font-bold text-xs text-ink-800 truncate">{food.name}</div>
-                      <div className="text-xs text-sun-600">{food.buffName}</div>
+              {PLACE_MENUS.akwaba.itemIds.map((id) => {
+                const item = getItem(id);
+                if (!item) return null;
+                return (
+                  <div key={id} className="flex items-center justify-between rounded-xl bg-cream-100 p-2.5 border border-cream-200">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span className="text-xl">{item.icon}</span>
+                      <div className="font-bold text-xs text-ink-800 truncate">{item.name}</div>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => onOrderFood(id)}
+                      className="shrink-0 rounded-lg bg-sun-600 hover:bg-sun-500 px-2.5 py-1.5 text-xs font-bold text-white cursor-pointer"
+                    >
+                      {placePrice(id, 'akwaba').toLocaleString('fr-FR')} F
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => onEatFood(food.id)}
-                    className="shrink-0 rounded-lg bg-sun-600 hover:bg-sun-500 px-2.5 py-1.5 text-xs font-bold text-white cursor-pointer"
-                  >
-                    {food.price.toLocaleString('fr-FR')} F
-                  </button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
 

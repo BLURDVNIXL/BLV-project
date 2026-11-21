@@ -2145,6 +2145,13 @@ export class AbidjanSceneManager {
     this.isHandbraking = active;
   }
 
+  /** Objet en main : « Interagir » (bouton ou touche E) l'utilise et ne fait rien d'autre. null = mains vides. */
+  private heldUseHandler: (() => void) | null = null;
+
+  public setHeldUseHandler(handler: (() => void) | null) {
+    this.heldUseHandler = handler;
+  }
+
   public triggerInteract() {
     if (this.activeTimedActionKind !== null || this.taxiRide !== null) return;
     if (this.drivingVehicle) {
@@ -2153,6 +2160,10 @@ export class AbidjanSceneManager {
         return;
       }
       this.toggleVehicle();
+      return;
+    }
+    if (this.heldUseHandler) {
+      this.heldUseHandler();
       return;
     }
     const h = this.findNearestHotspot();

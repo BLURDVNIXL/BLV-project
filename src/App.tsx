@@ -64,6 +64,10 @@ import { JellyButton } from './components/ui/Jelly';
 import { GameHUD } from './components/GameHUD';
 import { UniversalActionGauge } from './components/UniversalActionGauge';
 import { ConsoleGamepad } from './components/ConsoleGamepad';
+import { BagPanel } from './components/BagPanel';
+import { PlaceMenuModal } from './components/PlaceMenuModal';
+import { HOTSPOT_PLACE, PlaceMenuId, getItem } from './core/items';
+import { HAND_ID, buyItem, heldOf, holdItem, moveToFridge, takeFromFridge, useHeldItem } from './core/inventory';
 import { useTouchControls } from './components/useTouchControls';
 import { MyOSPhone } from './components/MyOSPhone';
 import { NewLifeScreen } from './components/NewLifeScreen';
@@ -112,6 +116,8 @@ export default function App() {
     return playerState.destiny.district;
   });
   const [nearbyHotspot, setNearbyHotspot] = useState<CityHotspot | null>(null);
+  const [isBagOpen, setIsBagOpen] = useState(false);
+  const [placePanel, setPlacePanel] = useState<PlaceMenuId | 'fridge' | null>(null);
   const [nearbyVehicle, setNearbyVehicle] = useState<{ id: string; label: string } | null>(null);
 
   // Modals
@@ -271,6 +277,70 @@ export default function App() {
         };
       });
     });
+  }, []);
+
+  // ── Sac, objets en main, achats (logique partagée avec le serveur : src/core/inventory.ts) ──
+  const handleBuyItem = useCallback(
+    (itemId: string, placeId: PlaceMenuId) => {
+      const cur = playerStateRef.current;
+      const next = buyItem(cur, itemId, placeId);
+      setPlayerState(next);
+      if (next.inventory !== cur.inventory) {
+        soundEngine.playCashSound();
+        syncEconomy('buy_item', { itemId, placeId });
+      }
+    },
+    [syncEconomy]
+  );
+
+  const handleHoldItem = useCallback(
+    (itemId: string | null) => {
+      setPlayerState((prev) => holdItem(prev, itemId));
+      syncEconomy('hold_item', { itemId });
+    },
+    [syncEconomy]
+  );
+
+  const handleFridgePut = useCallback(
+    (itemId: string) => {
+      setPlayerState((prev) => moveToFridge(prev, itemId));
+      syncEconomy('fridge_put', { itemId });
+    },
+    [syncEconomy]
+  );
+
+  const handleFridgeTake = useCallback(
+    (itemId: string) => {
+      setPlayerState((prev) => takeFromFridge(prev, itemId));
+      syncEconomy('fridge_take', { itemId });
+    },
+    [syncEconomy]
+  );
+
+  /** « Interagir » avec un objet en main : l'utilise (la main : coups, plus tard). */
+  const useHeldRef = useRef<() => void>(() => {});
+  useHeldRef.current = () => {
+    const held = heldOf(playerStateRef.current);
+    if (!held || held === HAND_ID) return;
+    setPlayerState((prev) => useHeldItem(prev));
+    syncEconomy('use_item');
+    soundEngine.playCashSound();
+  };
+
+  useEffect(() => {
+    sceneRef.current?.setHeldUseHandler(playerState.heldItemId ? () => useHeldRef.current() : null);
+  }, [playerState.heldItemId, screenState]);
+
+  // PC : touche B pour ouvrir/fermer le sac.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.code !== 'KeyB' || e.repeat || screenStateRef.current !== 'playing') return;
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
+      setIsBagOpen((o) => !o);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
   }, []);
 
   const persistServerState = useCallback((st: PlayerState) => {
@@ -528,16 +598,8 @@ export default function App() {
       const hasCash = (cost: number) => hasUnlimitedPlatinum(cur) || cur.cash >= cost;
 
       if (h.type === 'eat') {
-        const meal = h.id === 'eat_maquis' ? IVORIAN_FOODS[1] : IVORIAN_FOODS[0];
-        if (!hasCash(meal.price)) {
-          setPlayerState((prev) => eatFood(prev, meal));
-          return;
-        }
-        startTimedBodyAction('eat', () => {
-          setPlayerState((prev) => eatFood(prev, meal));
-          syncEconomy('eat', { foodId: meal.id });
-          soundEngine.playCashSound();
-        });
+        // Plus de cinématique « je mange » : le lieu ouvre son menu d'achat (ou le frigo à la maison).
+        setPlacePanel(HOTSPOT_PLACE[h.id] ?? 'maquis');
       } else if (h.type === 'loto') {
         if (!hasCash(2000)) {
           setPlayerState((prev) => playLotoAkwaba(prev));
@@ -691,6 +753,7 @@ export default function App() {
     });
 
     sceneRef.current = mgr;
+    mgr.setHeldUseHandler(playerStateRef.current.heldItemId ? () => useHeldRef.current() : null);
     mgr.setRoute(routeRef.current ? routeRef.current.points : null);
     mgr.setPlayerGender(playerStateRef.current.gender);
     // Aide au débogage et aux tests visuels : `?blvdebug` expose le gestionnaire de scène (window.__blvScene)
@@ -1085,7 +1148,12 @@ export default function App() {
             visible={touchControls}
             isDriving={playerState.isDriving}
             engineStalled={playerState.engineStalled}
-            canInteract={Boolean(nearbyHotspot || nearbyVehicle || playerState.isDriving)}
+            canInteract={Boolean(nearbyHotspot || nearbyVehicle || playerState.isDriving || playerState.heldItemId)}
+            onBag={() => setIsBagOpen((o) => !o)}
+            bagActive={Boolean(playerState.heldItemId)}
+            heldIcon={
+              playerState.heldItemId && playerState.heldItemId !== HAND_ID ? getItem(playerState.heldItemId)?.icon ?? null : null
+            }
             onJoystickChange={(x, y) => sceneRef.current?.setJoystick(x, y)}
             onInteract={() => sceneRef.current?.triggerInteract()}
             onJump={() => (playerState.isDriving ? sceneRef.current?.triggerHorn() : sceneRef.current?.triggerJump())}
@@ -1104,6 +1172,20 @@ export default function App() {
             }}
           />
         </>
+      )}
+
+      {screenState === 'playing' && isBagOpen && (
+        <BagPanel playerState={playerState} onHold={handleHoldItem} onClose={() => setIsBagOpen(false)} />
+      )}
+      {screenState === 'playing' && placePanel && (
+        <PlaceMenuModal
+          placeId={placePanel}
+          playerState={playerState}
+          onBuy={handleBuyItem}
+          onFridgePut={handleFridgePut}
+          onFridgeTake={handleFridgeTake}
+          onClose={() => setPlacePanel(null)}
+        />
       )}
 
       {/* JAUGE CIRCULAIRE UNIVERSELLE (actions chronométrées et taxis, sans texte autour) */}
@@ -1162,21 +1244,7 @@ export default function App() {
           onSaveGame={() => saveNow({ manual: true })}
           playerModelScale={playerModelScale}
           onPlayerModelScaleChange={handlePlayerModelScaleChange}
-          onEatFood={(foodId) => {
-            const f = IVORIAN_FOODS.find((x) => x.id === foodId);
-            if (!f) return;
-            const cur = playerStateRef.current;
-            if (!hasUnlimitedPlatinum(cur) && cur.cash < f.price) {
-              setPlayerState((prev) => eatFood(prev, f));
-              return;
-            }
-            setIsPhoneOpen(false);
-            startTimedBodyAction('eat', () => {
-              soundEngine.playCashSound();
-              setPlayerState((prev) => eatFood(prev, f));
-              syncEconomy('eat', { foodId });
-            });
-          }}
+          onOrderFood={(itemId) => handleBuyItem(itemId, 'akwaba')}
           onFastTravel={(x, z, districtName, districtId) => {
             // Étape B1 : on appelle le taxi, il arrive après 10 à 20 s ; le prix (500 F dans la commune,
             // 1 000 F entre communes, recalculé par le serveur) n'est débité qu'à la montée.

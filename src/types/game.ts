@@ -132,6 +132,12 @@ export interface FoodItem {
   icon: string;
 }
 
+/** Un emplacement du sac ou du frigo : un objet du catalogue (src/core/items.ts) et sa quantité. */
+export interface InventorySlot {
+  itemId: string;
+  qty: number;
+}
+
 export interface GameEventLog {
   id: string;
   time: string;
@@ -177,6 +183,12 @@ export interface PlayerState {
   homeLotId: string | null;
   activeMission: MissionProgress;
   completedMissions: string[];
+  /** Sac : 12 emplacements. Absent des anciennes sauvegardes (= vide). */
+  inventory?: InventorySlot[];
+  /** Frigo de la maison : 24 emplacements. Absent des anciennes sauvegardes (= vide). */
+  fridge?: InventorySlot[];
+  /** Objet en main : null (mains vides), 'main' (la main, pour frapper) ou l'id d'un objet du sac. */
+  heldItemId?: string | null;
   isDriving: boolean;
   currentVehicleId: string | null;
   isGameOver: boolean;
