@@ -20,10 +20,11 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import { createCharacterState, SolidFlag, type CharacterState, type PhysicsCore } from '../physics/PhysicsCore';
 import { districtAt, isWater } from '../world/abidjanGeography';
 import {
-  ANIMAL_BUDGET, ANIMAL_BUDGET_LOW, ANIMAL_DESPAWN_DIST, ANIMAL_FAR_AI_DIST, ANIMAL_MAQUIS_RADIUS, ANIMAL_MARKET_RADIUS,
-  ANIMAL_SPAWN_MAX, ANIMAL_SPAWN_MIN, ANIMAL_SPECIES, GROUND_SPECIES, PIGEON_ACTIVE_DIST, PIGEON_COATS, PIGEON_COUNT,
+  ANIMAL_BUDGET, ANIMAL_BUDGET_LOW, ANIMAL_MAQUIS_RADIUS, ANIMAL_MARKET_RADIUS,
+  ANIMAL_SPECIES, GROUND_SPECIES, PIGEON_COATS, PIGEON_COUNT,
   PIGEON_COUNT_LOW, PIGEON_FLUSH_DIST, PIGEON_PLACE_IDS, pickSpecies, type AnimalSpecies,
 } from '../world/animals';
+import { scaleAnimalDistances, type AnimalDistances } from '../world/budgets';
 import { SPECIAL_FOOTPRINTS } from '../world/city';
 import { hitsInteriorBox, insideInterior, interiorToWorld, type InteriorDef } from '../world/interiors';
 import { bridgeAt, roadAt } from '../world/roads';
@@ -210,6 +211,13 @@ export class AnimalSystem {
   private seed = 4242;
   private time = 0;
   private frame = 0;
+  /** Distances de vie selon le réglage « distance de simulation » (échelle 1 = valeurs d'origine). */
+  private dist: AnimalDistances = scaleAnimalDistances(1);
+
+  /** Applique l'échelle de distance de simulation (0,3 à 2) : apparition, retrait, IA allégée, pigeons. */
+  setDistanceScale(scale: number): void {
+    this.dist = scaleAnimalDistances(scale);
+  }
   private readonly scratch: CharacterState = createCharacterState();
   private readonly pt = { x: 0, z: 0 };
 
@@ -351,7 +359,7 @@ export class AnimalSystem {
     const fz = -Math.cos(camYaw);
     for (let attempt = 0; attempt < 16; attempt++) {
       const a = this.rand() * Math.PI * 2;
-      const r = ANIMAL_SPAWN_MIN + this.rand() * (ANIMAL_SPAWN_MAX - ANIMAL_SPAWN_MIN);
+      const r = this.dist.spawnMin + this.rand() * (this.dist.spawnMax - this.dist.spawnMin);
       const ca = Math.cos(a);
       const sa = Math.sin(a);
       if (attempt < 10 && ca * fx + sa * fz > VIEW_COS) continue; // hors du champ de la caméra si possible
@@ -602,7 +610,7 @@ export class AnimalSystem {
   private updatePigeons(dt: number, px: number, pz: number): void {
     // Place emblématique proche, ou volée de quartier autour du joueur
     let best: PigeonPlace | null = null;
-    let bestD = PIGEON_ACTIVE_DIST;
+    let bestD = this.dist.pigeonActive;
     for (const pl of this.places) {
       const d = Math.hypot(pl.x - px, pl.z - pz);
       if (d < bestD) { bestD = d; best = pl; }
@@ -706,7 +714,7 @@ export class AnimalSystem {
       const a = this.ground[i];
       if (a.charId < 0) continue;
 
-      if (a.species && !a.indoor && Math.hypot(a.x - playerX, a.z - playerZ) > ANIMAL_DESPAWN_DIST) this.deactivate(a);
+      if (a.species && !a.indoor && Math.hypot(a.x - playerX, a.z - playerZ) > this.dist.despawn) this.deactivate(a);
 
       if (!a.species) {
         if (this.indoor || spawnsLeft <= 0 || !worldReady) continue;
@@ -756,7 +764,7 @@ export class AnimalSystem {
           this.pickGoal(a);
           this.resetStuck(a, st);
         }
-        if (dist < ANIMAL_FAR_AI_DIST || ((this.frame + i) & 1) === 0) {
+        if (dist < this.dist.farAi || ((this.frame + i) & 1) === 0) {
           this.think(a, st, a.aiAccum, playerX, playerZ);
           a.aiAccum = 0;
         }

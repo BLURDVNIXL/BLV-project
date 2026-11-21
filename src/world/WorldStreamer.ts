@@ -25,8 +25,10 @@ export class WorldStreamer {
   private arrived: Array<{ cx: number; cz: number; payload: ChunkPayload }> = [];
   private disposed = false;
   private venuesVersion = 0;
-  /** Rayon de chargement (en chunks de 64 m). */
+  /** Rayon de chargement (en chunks de 64 m), modifiable en cours de partie (réglage de distance d'affichage). */
   radius: number;
+  /** Nombre maximal de chunks déchargés par image. */
+  maxUnloadPerUpdate = 6;
   /** Nombre maximal de requêtes simultanées auprès du Worker. */
   maxInFlight = 12;
   /** Budget (ms) de construction de chunks par image en jeu normal ; le nombre de chunks de `update` reste un plafond. */
@@ -149,10 +151,12 @@ export class WorldStreamer {
       if (Math.max(Math.abs(a.cx - ccx), Math.abs(a.cz - ccz)) <= R + 1) { this.apply(a.cx, a.cz, a.payload); applied++; }
     }
 
-    // Décharge les lointains
+    // Décharge les lointains (au plus `maxUnloadPerUpdate` par image : réduire le rayon ne doit pas libérer des dizaines de chunks d'un coup)
+    let unloaded = 0;
     for (const k of Array.from(this.loaded.keys())) {
+      if (unloaded >= this.maxUnloadPerUpdate) break;
       const [x, z] = k.split(',').map(Number);
-      if (Math.max(Math.abs(x - ccx), Math.abs(z - ccz)) > R + 1) this.unload(k);
+      if (Math.max(Math.abs(x - ccx), Math.abs(z - ccz)) > R + 1) { this.unload(k); unloaded++; }
     }
 
     // Demande les plus proches d'abord

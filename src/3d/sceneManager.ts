@@ -37,6 +37,16 @@ import {
 } from './materials';
 import { AnimalSystem } from './animalSystem';
 import { NPC_POOL_SIZE, NPC_POOL_SIZE_LOW } from '../world/budgets';
+import {
+  DistanceGovernor,
+  renderDistanceParams,
+  resolveLevels,
+  simDistanceScale,
+  tierLevels,
+  type DistanceLevel,
+  type DistanceLevels,
+  type DistancePref,
+} from '../world/qualitySettings';
 import { NpcSystem } from './npcSystem';
 import { WeatherFxSystem, weatherFxMode } from './weatherFx';
 import { WaterTrafficSystem } from './waterTraffic';
@@ -169,6 +179,8 @@ export interface SceneCallbacks {
     isDriving: boolean;
     vehicleType: VehicleModelType | null;
   }) => void;
+  /** Niveaux de distance (affichage, simulation) réellement appliqués : change en mode Auto quand le régulateur s'adapte. */
+  onDistanceLevelsChange?: (levels: DistanceLevels) => void;
   onHorn?: () => void;
   onPauseKey?: () => void;
   /** Cinématique du taxi (B3) : true = l'écran doit passer au noir, false = revenir à l'image. */
@@ -374,6 +386,14 @@ export class AbidjanSceneManager {
   private perfRenderMs = 0;
   private perfWorstFrameMs = 0;
   private lastFrameStart = 0;
+  /** Réglages de distance de l'utilisateur (`auto` ou niveau fixe) et niveaux réellement appliqués. */
+  private renderDistancePref: DistancePref = 'auto';
+  private simDistancePref: DistancePref = 'auto';
+  private distanceLevels: DistanceLevels = { render: 2, sim: 2 };
+  /** Régulateur du mode Auto (absent si aucun réglage n'est en Auto, ou sur rendu logiciel). */
+  private governor: DistanceGovernor | null = null;
+  /** Multiplicateur de densité du brouillard lié à la distance d'affichage (1 au niveau de référence). */
+  private fogScale = 1;
   /** Compteur de performance (`?blvdebug=1`) : absent sans le paramètre. */
   private debugEl: HTMLDivElement | null = null;
   private debugAcc = 0;
@@ -438,6 +458,8 @@ export class AbidjanSceneManager {
 
     // Profil -> résolution de rendu : low 0,75 ; mobile 1,25 max ; high 2 max.
     const pixelRatioCap = this.quality === 'mobile' ? 1.25 : 2;
+    this.distanceLevels = { ...tierLevels(this.quality).base };
+
     this.renderer.setPixelRatio(this.isSoftwareGl ? 0.75 : Math.min(window.devicePixelRatio, pixelRatioCap));
     this.renderer.setSize(width, height);
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -527,6 +549,7 @@ export class AbidjanSceneManager {
 
     this.npcSystem = new NpcSystem(this.scene, this.lowEnd ? NPC_POOL_SIZE_LOW : NPC_POOL_SIZE);
     this.animalSystem = new AnimalSystem(this.scene, this.lowEnd);
+    this.refreshDistances();
     this.weatherFx = new WeatherFxSystem(this.scene, this.isSoftwareGl);
     this.waterTraffic = new WaterTrafficSystem(this.scene, this.isSoftwareGl);
     this.streetAnim = new StreetAnimSystem(this.scene, this.isSoftwareGl);
@@ -959,7 +982,7 @@ export class AbidjanSceneManager {
         core,
         createChunkProvider([]),
         this.chunkMats,
-        this.isSoftwareGl || this.lowEnd ? 3 : 4
+        renderDistanceParams(this.distanceLevels.render).radius
       );
 
       // Spawn AI Traffic cars via roadTraffic.ts
@@ -1024,7 +1047,7 @@ export class AbidjanSceneManager {
       this.physics,
       createChunkProvider(reserved),
       this.chunkMats,
-      this.isSoftwareGl || this.lowEnd ? 3 : 4
+      renderDistanceParams(this.distanceLevels.render).radius
     );
   }
 
@@ -1433,7 +1456,7 @@ export class AbidjanSceneManager {
     // Le brouillard prend la couleur de l'horizon : la ville se fond dans le ciel sans couture
     (this.scene.background as THREE.Color).copy(horizon);
     (this.scene.fog as THREE.FogExp2).color.copy(horizon);
-    (this.scene.fog as THREE.FogExp2).density = fogDensity;
+    (this.scene.fog as THREE.FogExp2).density = fogDensity * this.fogScale;
 
     this.skyDome?.apply(amb, this.sunDir, { zenith, horizon, glowScale: skyGlowScale });
     this.lagoonWaterHandle.setAmbient(this.sunDir, amb.sunColor, horizon, glint);
@@ -2295,6 +2318,80 @@ export class AbidjanSceneManager {
     this.autoCamSensitivity = THREE.MathUtils.clamp(value, 0, 2.5);
   }
 
+  /** Distance d'affichage (réglages) : `auto` ou niveau fixe 0..3. */
+  public setRenderDistance(pref: DistancePref) {
+    if (pref === this.renderDistancePref) return;
+    this.renderDistancePref = pref;
+    this.refreshDistances();
+  }
+
+  /** Distance de simulation (réglages) : `auto` ou niveau fixe 0..3. */
+  public setSimDistance(pref: DistancePref) {
+    if (pref === this.simDistancePref) return;
+    this.simDistancePref = pref;
+    this.refreshDistances();
+  }
+
+  /** Recalcule les niveaux effectifs depuis les réglages et le profil de l'appareil, et (re)crée le régulateur du mode Auto. */
+  private refreshDistances() {
+    const t = tierLevels(this.quality);
+    const clampTo = (v: DistanceLevel, lo: DistanceLevel, hi: DistanceLevel): DistanceLevel => Math.min(hi, Math.max(lo, v)) as DistanceLevel;
+    // Une dimension en Auto repart de son niveau courant (borné), pas de zéro : pas de saut quand on touche à l'autre réglage.
+    const autoStart: DistanceLevels = {
+      render: clampTo(this.distanceLevels.render, t.floor.render, t.ceiling.render),
+      sim: clampTo(this.distanceLevels.sim, t.floor.sim, t.ceiling.sim),
+    };
+    const levels = resolveLevels(this.renderDistancePref, this.simDistancePref, this.quality, autoStart);
+    const renderAuto = this.renderDistancePref === 'auto';
+    const simAuto = this.simDistancePref === 'auto';
+    this.governor =
+      !this.isSoftwareGl && (renderAuto || simAuto)
+        ? new DistanceGovernor({
+            start: levels,
+            floor: { render: renderAuto ? t.floor.render : levels.render, sim: simAuto ? t.floor.sim : levels.sim },
+            ceiling: { render: renderAuto ? t.ceiling.render : levels.render, sim: simAuto ? t.ceiling.sim : levels.sim },
+          })
+        : null;
+    this.applyDistanceLevels(levels);
+  }
+
+  private applyDistanceLevels(levels: DistanceLevels) {
+    this.distanceLevels = { ...levels };
+    const r = renderDistanceParams(levels.render);
+    if (this.streamer) this.streamer.radius = r.radius;
+    // Rendu logiciel : plan lointain et brouillard d'origine (déjà réduits), seul le rayon de chargement change.
+    if (!this.isSoftwareGl) {
+      if (this.camera.far !== r.far) {
+        this.camera.far = r.far;
+        this.camera.updateProjectionMatrix();
+      }
+      this.fogScale = r.fogScale;
+    }
+    const scale = simDistanceScale(levels.sim);
+    this.npcSystem.setDistanceScale(scale);
+    this.animalSystem.setDistanceScale(scale);
+    this.callbacks.onDistanceLevelsChange?.({ ...levels });
+  }
+
+  /** Alimente le régulateur du mode Auto avec la durée de l'image, seulement quand la mesure est représentative. */
+  private feedDistanceGovernor(nowMs: number, frameMs: number) {
+    const g = this.governor;
+    if (!g) return;
+    const measurable =
+      !this.isPaused &&
+      this.cameraMode !== 'flyover' &&
+      !this.activeInterior &&
+      !this.taxiRide &&
+      !(typeof document !== 'undefined' && document.hidden) &&
+      (this.streamer?.isReady(this.playerX, this.playerZ, 1) ?? false);
+    if (!measurable) {
+      g.resetWindow();
+      return;
+    }
+    const next = g.push(nowMs, frameMs);
+    if (next) this.applyDistanceLevels(next);
+  }
+
   public setControlsMode(mode: 'zqsl' | 'arrows') {
     this.controlsMode = mode;
   }
@@ -2822,6 +2919,7 @@ export class AbidjanSceneManager {
     const st = this.streamer;
     this.debugEl.textContent =
       `profil : ${this.quality}  (pixel ratio ${this.renderer.getPixelRatio().toFixed(2)})\n`
+      + `distances : affichage niv. ${this.distanceLevels.render} (rayon ${renderDistanceParams(this.distanceLevels.render).radius}, far ${this.camera.far}) | simulation niv. ${this.distanceLevels.sim} (x${simDistanceScale(this.distanceLevels.sim)}) | auto : ${this.governor ? 'oui' : 'non'}\n`
       + `CPU pire/0,5 s : image ${this.perfFrameMs.toFixed(1)} ms | simu ${this.perfSimMs.toFixed(1)} ms | rendu(CPU) ${this.perfRenderMs.toFixed(1)} ms\n`
       + `intervalle max entre images : ${this.perfWorstFrameMs.toFixed(1)} ms\n`
       + `chunks : ${st?.loadedCount ?? 0} chargés, ${st?.arrivedCount ?? 0} en attente | construction pire ${(st?.takeWorstChunkMs() ?? 0).toFixed(1)} ms\n`
@@ -2845,14 +2943,16 @@ export class AbidjanSceneManager {
       const tRender = performance.now();
       this.renderer.render(this.scene, this.camera);
       const tEnd = performance.now();
+      const frameInterval = this.lastFrameStart > 0 ? now - this.lastFrameStart : 0;
       if (this.debugEl) {
         // Pire valeur de chaque mesure : ce sont les pics, pas les moyennes, qui font les saccades.
         this.perfSimMs = Math.max(this.perfSimMs, tRender - tSim);
         this.perfRenderMs = Math.max(this.perfRenderMs, tEnd - tRender);
         this.perfFrameMs = Math.max(this.perfFrameMs, tEnd - now);
-        this.perfWorstFrameMs = Math.max(this.perfWorstFrameMs, (now - this.lastFrameStart) || 0);
+        this.perfWorstFrameMs = Math.max(this.perfWorstFrameMs, frameInterval);
       }
       this.lastFrameStart = now;
+      if (frameInterval > 0) this.feedDistanceGovernor(now, frameInterval);
       this.updateDebugOverlay(dt);
 
       if (this.isSoftwareGl) {

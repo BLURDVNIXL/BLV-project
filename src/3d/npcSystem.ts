@@ -23,9 +23,7 @@ import { SPECIAL_FOOTPRINTS } from '../world/city';
 import { localToWorld } from '../world/exteriorSolids';
 import { interiorToWorld, type InteriorDef } from '../world/interiors';
 import { generateAppearance, type NpcRole } from '../world/npcAppearance';
-import {
-  NPC_CROWD_CAPACITY, NPC_DESPAWN_DIST, NPC_FAR_AI_DIST, NPC_MARKET_DIST, NPC_POOL_SIZE, NPC_SPAWN_MAX, NPC_SPAWN_MIN,
-} from '../world/budgets';
+import { NPC_CROWD_CAPACITY, NPC_POOL_SIZE, npcActiveFraction, scaleNpcDistances, type NpcDistances } from '../world/budgets';
 import { bridgeAt, roadAt } from '../world/roads';
 import { NpcActors, type NpcActor } from './npcActors';
 import { isHiddenFromView, type Occluder, type ViewState } from '../world/pedVisibility';
@@ -34,11 +32,6 @@ import { NpcCrowd, type NpcHandle } from './npcInstances';
 
 /** Budgets (nombre, distances, fréquence d'IA, capacité) : tous réglés dans `src/world/budgets.ts`. */
 const CROWD_CAPACITY = NPC_CROWD_CAPACITY;
-const DESPAWN_DIST = NPC_DESPAWN_DIST;
-const MARKET_DIST = NPC_MARKET_DIST;
-const SPAWN_MIN = NPC_SPAWN_MIN;
-const SPAWN_MAX = NPC_SPAWN_MAX;
-const FAR_AI_DIST = NPC_FAR_AI_DIST;
 const YIELD_DIST = 2.5;
 const YIELD_STOP_DIST = 1.6;
 const FAN_STOP_DIST = 3.6;
@@ -50,8 +43,6 @@ const SPAWN_COOLDOWN = 0.3;
 /** Délai entre deux apparitions quand la rue est presque vide (remplissage plus rapide). */
 const SPAWN_COOLDOWN_EMPTY = 0.08;
 const SPAWN_EMPTY_BELOW = 8;
-/** Au-delà de cette distance (m), un piéton est retiré même s'il est visible. */
-const DESPAWN_HARD_DIST = 120;
 /** Marge de champ (rad) ajoutée au cône de la caméra, plus la rotation attendue sur ce délai (s). */
 const VIEW_MARGIN = 0.5;
 const VIEW_MARGIN_LOOKAHEAD = 0.6;
@@ -162,6 +153,15 @@ export class NpcSystem {
   private lastYaw: number | null = null;
   private yawRate = 0;
   private spawnCd = 0;
+  /** Distances de vie des rues et part du pool autorisée, selon le réglage « distance de simulation » (échelle 1 = valeurs d'origine). */
+  private dist: NpcDistances = scaleNpcDistances(1);
+  private activeFraction = 1;
+
+  /** Applique l'échelle de distance de simulation (0,3 à 2) : distances d'apparition/retrait/IA et part du pool de piétons. */
+  setDistanceScale(scale: number): void {
+    this.dist = scaleNpcDistances(scale);
+    this.activeFraction = npcActiveFraction(scale);
+  }
 
   constructor(scene: THREE.Scene, poolSize = NPC_POOL_SIZE) {
     scene.add(this.crowd.group);
@@ -356,7 +356,7 @@ export class NpcSystem {
   /** Nœud de trottoir où un piéton peut apparaître : dans la zone d'apparition ET invisible. `null` si aucun. */
   private findSpawnNode(px: number, pz: number): SwNode | null {
     return randomNodeInRing(
-      px, pz, SPAWN_MIN, SPAWN_MAX, () => this.nextRand(),
+      px, pz, this.dist.spawnMin, this.dist.spawnMax, () => this.nextRand(),
       (_n, x, z) => this.isDry(x, z) && !this.insideHall(x, z) && this.isHidden(x, z, px, pz),
       32,
     );
@@ -732,7 +732,7 @@ export class NpcSystem {
         n.state = 'walk';
         this.resetStuck(n, st);
       }
-      if (dist < FAR_AI_DIST || ((this.frame + i) & 1) === 0) {
+      if (dist < this.dist.farAi || ((this.frame + i) & 1) === 0) {
         this.think(n, st, n.aiAccum, playerX, playerZ, isSuperstar);
         n.aiAccum = 0;
       }
@@ -774,7 +774,7 @@ export class NpcSystem {
 
     // Foule du Grand Marché Ouvert d'Adjamé : vendeurs statiques et clients actifs à proximité seulement
     if (this.marketCenter) {
-      const nearMarket = Math.hypot(playerX - this.marketCenter.x, playerZ - this.marketCenter.z) < MARKET_DIST;
+      const nearMarket = Math.hypot(playerX - this.marketCenter.x, playerZ - this.marketCenter.z) < this.dist.market;
       if (nearMarket !== this.marketActive) {
         this.marketActive = nearMarket;
         if (nearMarket) this.enterMarket();
@@ -792,7 +792,10 @@ export class NpcSystem {
     if (core) {
       let walkers = 0;
       for (const n of this.mobile) if (n.handle && !n.shopper) walkers++;
-      let canSpawn = worldReady && this.spawnCd <= 0;
+      // Population autorisée selon la distance de simulation : au-delà du plafond, plus d'apparition, et les piétons
+      // hors de vue en trop sont retirés (jamais sous les yeux du joueur).
+      const walkerCap = Math.max(4, Math.round(this.mobile.length * this.activeFraction));
+      let canSpawn = worldReady && this.spawnCd <= 0 && walkers < walkerCap;
       for (let i = 0; i < this.mobile.length; i++) {
         const n = this.mobile[i];
         if (n.charId < 0) continue;
@@ -803,7 +806,7 @@ export class NpcSystem {
             if (!this.marketActive) this.deactivate(n);
           } else {
             const dist = Math.hypot(n.x - playerX, n.z - playerZ);
-            if (dist > DESPAWN_HARD_DIST || (dist > DESPAWN_DIST && this.isHidden(n.x, n.z, playerX, playerZ))) {
+            if (dist > this.dist.despawnHard || ((dist > this.dist.despawn || walkers > walkerCap) && this.isHidden(n.x, n.z, playerX, playerZ))) {
               this.deactivate(n);
               walkers--;
             }

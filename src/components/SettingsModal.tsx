@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Settings, ShieldCheck, Trash2, Volume2, VolumeX, Globe, Gamepad2, Move3d } from 'lucide-react';
+import { Settings, ShieldCheck, Trash2, Volume2, VolumeX, Globe, Gamepad2, Move3d, Eye, Users } from 'lucide-react';
 import { PlayerState } from '../types/game';
 import { purgeAllDataRGPD } from '../core/storage';
 import { JellyButton } from './ui/Jelly';
 import { Modal, SettingRow } from './ui/Modal';
+import { DISTANCE_LEVEL_LABELS, clampLevel, type DistanceLevels, type DistancePref } from '../world/qualitySettings';
 
 interface SettingsModalProps {
   playerState: PlayerState;
@@ -23,8 +24,48 @@ interface SettingsModalProps {
   /** 0 à 2,5 ; 1 = normal (0 = désactivée). */
   autoCameraSensitivity: number;
   onAutoCameraSensitivityChange: (value: number) => void;
+  /** Distance d'affichage : « auto » ou niveau fixe 0..3. */
+  renderDistance: DistancePref;
+  onRenderDistanceChange: (pref: DistancePref) => void;
+  /** Distance de simulation (PNJ, animaux) : « auto » ou niveau fixe 0..3. */
+  simDistance: DistancePref;
+  onSimDistanceChange: (pref: DistancePref) => void;
+  /** Niveaux réellement appliqués par la scène (utile en Auto). */
+  effectiveDistances: DistanceLevels;
   onResetGame: () => void;
 }
+
+/** Curseur à 5 positions : 0 = Auto, 1..4 = niveaux 0..3. En Auto, le niveau en cours est affiché. */
+const DistanceSlider: React.FC<{
+  pref: DistancePref;
+  effective: number;
+  lang: 'fr' | 'en';
+  label: string;
+  onChange: (pref: DistancePref) => void;
+}> = ({ pref, effective, lang, label, onChange }) => {
+  const labels = DISTANCE_LEVEL_LABELS[lang];
+  const position = pref === 'auto' ? 0 : pref + 1;
+  const text = pref === 'auto' ? `Auto · ${labels[clampLevel(effective)]}` : labels[pref];
+  return (
+    <div className="flex items-center gap-2">
+      <input
+        type="range"
+        min={0}
+        max={4}
+        step={1}
+        value={position}
+        onChange={(e) => {
+          const v = Number(e.target.value);
+          onChange(v === 0 ? 'auto' : clampLevel(v - 1));
+        }}
+        aria-label={label}
+        aria-valuetext={text}
+        className="h-2 w-24 cursor-pointer accent-sun-500"
+      />
+      <span className="w-24 text-right text-xs font-bold">{text}</span>
+    </div>
+  );
+};
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
   playerState,
@@ -42,6 +83,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onCameraSensitivityChange,
   autoCameraSensitivity,
   onAutoCameraSensitivityChange,
+  renderDistance,
+  onRenderDistanceChange,
+  simDistance,
+  onSimDistanceChange,
+  effectiveDistances,
   onResetGame,
 }) => {
   const [confirmPurge, setConfirmPurge] = useState(false);
@@ -141,6 +187,46 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             className="h-2 w-28 cursor-pointer accent-sun-500"
           />
           <span className="w-10 text-right text-xs font-bold tabular-nums">{autoCameraSensitivity.toFixed(1)}×</span>
+        </div>
+      </SettingRow>
+
+      <SettingRow
+        title={playerState.language === 'en' ? 'Render distance' : 'Distance d’affichage'}
+        description={
+          playerState.language === 'en'
+            ? 'How far the city is drawn. Auto adapts to your device and lowers itself if the game stutters.'
+            : 'Jusqu’où la ville est dessinée. Auto s’adapte à ton appareil et baisse seule si le jeu saccade.'
+        }
+      >
+        <div className="flex items-center gap-2">
+          <Eye className="h-4 w-4 text-ink-600" aria-hidden="true" />
+          <DistanceSlider
+            pref={renderDistance}
+            effective={effectiveDistances.render}
+            lang={playerState.language}
+            label={playerState.language === 'en' ? 'Render distance' : 'Distance d’affichage'}
+            onChange={onRenderDistanceChange}
+          />
+        </div>
+      </SettingRow>
+
+      <SettingRow
+        title={playerState.language === 'en' ? 'Simulation distance' : 'Distance de simulation'}
+        description={
+          playerState.language === 'en'
+            ? 'How far and how densely pedestrians and animals live around you. Lower = fewer of them, smoother game.'
+            : 'À quelle distance et avec quelle densité piétons et animaux vivent autour de toi. Plus bas = moins nombreux, jeu plus fluide.'
+        }
+      >
+        <div className="flex items-center gap-2">
+          <Users className="h-4 w-4 text-ink-600" aria-hidden="true" />
+          <DistanceSlider
+            pref={simDistance}
+            effective={effectiveDistances.sim}
+            lang={playerState.language}
+            label={playerState.language === 'en' ? 'Simulation distance' : 'Distance de simulation'}
+            onChange={onSimDistanceChange}
+          />
         </div>
       </SettingRow>
 

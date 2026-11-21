@@ -73,6 +73,7 @@ import type { GpsSource } from './core/gpsDestinations';
 import { districtAt } from './world/abidjanGeography';
 import type { Route } from './world/routing';
 import { SettingsModal } from './components/SettingsModal';
+import { parseDistancePref, serializeDistancePref, type DistanceLevels, type DistancePref } from './world/qualitySettings';
 import { GameOverModal } from './components/GameOverModal';
 import { OrientationGuard } from './components/OrientationGuard';
 import { OfflineIndicator } from './components/PWAInstallPrompt';
@@ -161,6 +162,39 @@ export default function App() {
       return 1;
     }
   });
+  // Distances d'affichage et de simulation : « auto » ou niveau 0..3 (clés blv_*, donc purgées avec le droit à l'oubli).
+  const [renderDistancePref, setRenderDistancePref] = useState<DistancePref>(() => {
+    try {
+      return parseDistancePref(localStorage.getItem('blv_render_distance'));
+    } catch {
+      return 'auto';
+    }
+  });
+  const [simDistancePref, setSimDistancePref] = useState<DistancePref>(() => {
+    try {
+      return parseDistancePref(localStorage.getItem('blv_sim_distance'));
+    } catch {
+      return 'auto';
+    }
+  });
+  /** Niveaux réellement appliqués par la scène (en Auto, ils bougent selon les performances). */
+  const [effectiveDistances, setEffectiveDistances] = useState<DistanceLevels>({ render: 2, sim: 2 });
+  const handleRenderDistanceChange = (pref: DistancePref) => {
+    setRenderDistancePref(pref);
+    try {
+      localStorage.setItem('blv_render_distance', serializeDistancePref(pref));
+    } catch {
+      /* stockage indisponible : le réglage vaut pour la session */
+    }
+  };
+  const handleSimDistanceChange = (pref: DistancePref) => {
+    setSimDistancePref(pref);
+    try {
+      localStorage.setItem('blv_sim_distance', serializeDistancePref(pref));
+    } catch {
+      /* stockage indisponible : le réglage vaut pour la session */
+    }
+  };
     const [playerModelScale, setPlayerModelScale] = useState<number>(() => {
       localStorage.removeItem('blv_player_model_scale');
       return 1.2;
@@ -326,6 +360,15 @@ export default function App() {
   useEffect(() => {
     sceneRef.current?.setAutoCameraSensitivity(autoCameraSensitivity);
   }, [autoCameraSensitivity, screenState]);
+
+  // Distances d'affichage / de simulation (réglages), réappliquées aussi à la création de la scène.
+  useEffect(() => {
+    sceneRef.current?.setRenderDistance(renderDistancePref);
+  }, [renderDistancePref, screenState]);
+
+  useEffect(() => {
+    sceneRef.current?.setSimDistance(simDistancePref);
+  }, [simDistancePref, screenState]);
 
   useEffect(() => {
     sceneRef.current?.setPlayerModelScale(playerModelScale);
@@ -579,6 +622,7 @@ export default function App() {
     if (!canvasContainerRef.current) return;
 
     const mgr = new AbidjanSceneManager(canvasContainerRef.current, {
+      onDistanceLevelsChange: (levels) => setEffectiveDistances(levels),
       onNearestHotspotChange: (h) => setNearbyHotspot(h),
       onNearestVehicleChange: (v) => setNearbyVehicle(v ? { id: v.id, label: v.label } : null),
       onDistrictChange: (d) => {
@@ -1190,6 +1234,11 @@ export default function App() {
           onCameraSensitivityChange={handleCameraSensitivityChange}
           autoCameraSensitivity={autoCameraSensitivity}
           onAutoCameraSensitivityChange={handleAutoCameraSensitivityChange}
+          renderDistance={renderDistancePref}
+          onRenderDistanceChange={handleRenderDistanceChange}
+          simDistance={simDistancePref}
+          onSimDistanceChange={handleSimDistanceChange}
+          effectiveDistances={effectiveDistances}
           onToggleForceGamepad={() => setForceGamepad((v) => !v)}
           onToggleLanguage={() =>
             setPlayerState((prev) => ({
