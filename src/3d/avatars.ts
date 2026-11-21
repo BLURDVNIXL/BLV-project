@@ -146,6 +146,7 @@ const ZERO_POSE: ActionPose = {
 export function computeActionPose(kind: TimedBodyActionKind, elapsedSec: number): ActionPose {
   const t = Number.isFinite(elapsedSec) ? Math.max(0, elapsedSec) : 0;
   switch (kind) {
+    case 'eat_held':
     case 'eat': {
       const bite = Math.max(0, Math.sin(t * 3.4));
       return {
@@ -158,6 +159,20 @@ export function computeActionPose(kind: TimedBodyActionKind, elapsedSec: number)
         rightArmX: -0.78 - bite * 0.18,
         rightArmZ: 0.28,
         rightForearmX: -1.25 - bite * 0.45,
+      };
+    }
+    case 'drink_held': {
+      // Le bras monte vers la bouche, la tête se renverse un peu, puis le bras redescend.
+      const lift = Math.sin(Math.PI * Math.min(1, t / 1.8));
+      return {
+        ...ZERO_POSE,
+        spineX: -0.04 * lift,
+        headX: -0.32 * lift,
+        leftArmX: -0.1,
+        leftArmZ: -0.1,
+        rightArmX: -0.55 - 0.45 * lift,
+        rightArmZ: 0.22,
+        rightForearmX: -0.6 - 0.95 * lift,
       };
     }
     case 'toilet': {
@@ -454,9 +469,11 @@ export class AvatarController {
     this.syncHeld();
   }
 
-  /** Déclenche un coup de poing (animation du bras droit, ~0,4 s). Sans effet pendant une action chronométrée. */
-  punch() {
-    if (this.punchLeft <= 0) this.punchLeft = AvatarController.PUNCH_DURATION;
+  /** Déclenche un coup de poing (animation du bras droit, ~0,4 s). Renvoie faux si un coup est déjà en cours. */
+  punch(): boolean {
+    if (this.punchLeft > 0) return false;
+    this.punchLeft = AvatarController.PUNCH_DURATION;
+    return true;
   }
 
   /**

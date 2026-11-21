@@ -326,9 +326,20 @@ export default function App() {
       return;
     }
     if (!held) return;
-    setPlayerState((prev) => useHeldItem(prev));
-    syncEconomy('use_item');
-    soundEngine.playCashSound();
+    const item = getItem(held);
+    const finish = () => {
+      // L'objet tenu a pu changer pendant le geste : on ne consomme que celui qui était en main au départ.
+      setPlayerState((prev) => (heldOf(prev) === held ? useHeldItem(prev) : prev));
+      syncEconomy('use_item');
+      soundEngine.playCashSound();
+    };
+    // Nourriture et boissons : geste court (objet porté à la bouche), une unité consommée à la fin.
+    // Un geste interrompu (action annulée) ne consomme rien. Hygiène et divers : effet immédiat comme avant.
+    if (item?.consumable && item.category !== 'hygiene' && item.category !== 'divers') {
+      startTimedBodyAction(item.category === 'boisson' ? 'drink_held' : 'eat_held', finish);
+      return;
+    }
+    finish();
   };
 
   useEffect(() => {

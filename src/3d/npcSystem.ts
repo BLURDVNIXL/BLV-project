@@ -29,6 +29,7 @@ import { NpcActors, type NpcActor } from './npcActors';
 import { isHiddenFromView, type Occluder, type ViewState } from '../world/pedVisibility';
 import { nearestNode, nodePos, pickNextNode, randomNodeInRing, type SwNode } from '../world/sidewalks';
 import { NpcCrowd, type NpcHandle } from './npcInstances';
+import { HIT_PUSH_SECONDS, HIT_PUSH_SPEED, HIT_STUN_SECONDS, pickPunchTarget, type PunchCandidate } from './punch';
 
 /** Budgets (nombre, distances, fréquence d'IA, capacité) : tous réglés dans `src/world/budgets.ts`. */
 const CROWD_CAPACITY = NPC_CROWD_CAPACITY;
@@ -91,6 +92,10 @@ interface MobileNpc {
   swPrev: SwNode | null;
   /** Personnage chibi (acteur) ; `null` : PNJ de la foule instanciée. */
   actor: NpcActor | null;
+  /** Temps restant (s) au sol après un coup du joueur ; 0 = debout. */
+  hitT: number;
+  hitDirX: number;
+  hitDirZ: number;
 }
 
 interface MarketVendorNpc {
@@ -227,6 +232,7 @@ export class NpcSystem {
         sideT: 0, sideX: 0, sideZ: 0,
         route: null, routeIdx: 0,
         swNode: null, swPrev: null, actor: null,
+        hitT: 0, hitDirX: 0, hitDirZ: 0,
       });
     }
   }
@@ -401,6 +407,7 @@ export class NpcSystem {
     n.z = z;
     n.state = 'walk';
     n.tilt = 0;
+    n.hitT = 0;
     n.waitT = 0;
     n.yieldT = 0;
     n.aiAccum = 0;
@@ -736,7 +743,13 @@ export class NpcSystem {
 
     const dist = Math.hypot(st.x - playerX, st.z - playerZ);
     n.aiAccum += dt;
-    const knocked = st.stun > 0;
+    if (n.hitT > 0) {
+      // Touché par le joueur : poussée brève dans le sens du coup, puis au sol sans mouvement
+      const elapsed = HIT_STUN_SECONDS - n.hitT;
+      core.characterInput(n.charId, n.hitDirX, n.hitDirZ, elapsed < HIT_PUSH_SECONDS ? HIT_PUSH_SPEED : 0);
+      n.hitT -= dt;
+    }
+    const knocked = st.stun > 0 || n.hitT > 0;
     if (knocked) {
       // Renversé par un véhicule : aucun `characterInput` tant que `stun > 0`
       n.state = 'down';
@@ -762,6 +775,29 @@ export class NpcSystem {
       const talk = n.state === 'wait' && Math.floor(handle.idle * 10) % 3 === 0;
       actor.pose(st.x, st.z, n.cap, n.tilt, knocked ? 'idle' : moving ? 'walk' : talk ? 'talk' : 'idle', st.speed, dt, dist);
     }
+  }
+
+  /**
+   * Coup du joueur : le PNJ le plus proche dans le cône devant lui (portée courte) est poussé puis étourdi.
+   * Renvoie vrai si un PNJ est touché. Fonctionne en extérieur comme dans les salles.
+   */
+  hit(px: number, pz: number, dirX: number, dirZ: number): boolean {
+    const pool = this.indoor ? this.interiorMobile : this.mobile;
+    const cands: PunchCandidate[] = [];
+    const owners: MobileNpc[] = [];
+    for (const n of pool) {
+      if (!n.handle || n.charId < 0 || n.hitT > 0) continue;
+      cands.push({ x: n.x, z: n.z });
+      owners.push(n);
+    }
+    const k = pickPunchTarget(px, pz, dirX, dirZ, cands);
+    if (k < 0) return false;
+    const n = owners[k];
+    n.hitT = HIT_STUN_SECONDS;
+    n.hitDirX = dirX;
+    n.hitDirZ = dirZ;
+    n.state = 'down';
+    return true;
   }
 
   // ───────────── Mise à jour ─────────────

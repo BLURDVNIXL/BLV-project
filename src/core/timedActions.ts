@@ -7,6 +7,8 @@
 
 export type TimedBodyActionKind =
   | 'eat'
+  | 'eat_held'
+  | 'drink_held'
   | 'toilet'
   | 'loto'
   | 'yannis_academy'
@@ -35,6 +37,20 @@ export const TIMED_ACTION_SPECS: Record<TimedActionKind, TimedActionSpec> = {
     blocksMovement: true,
     labelFr: 'Repas en cours',
     labelEn: 'Eating',
+  },
+  eat_held: {
+    kind: 'eat_held',
+    durationS: 2.2,
+    blocksMovement: true,
+    labelFr: 'Manger',
+    labelEn: 'Eating',
+  },
+  drink_held: {
+    kind: 'drink_held',
+    durationS: 1.8,
+    blocksMovement: true,
+    labelFr: 'Boire',
+    labelEn: 'Drinking',
   },
   toilet: {
     kind: 'toilet',
@@ -129,12 +145,14 @@ export function isTimedBodyAction(kind: TimedActionKind | null | undefined): kin
   return Boolean(kind && kind !== 'taxi_wait' && kind !== 'taxi_ride');
 }
 
-/** Durée en secondes (bornée entre 5 et 30 s) pour une action chronométrée. */
+/** Durée en secondes (5 à 30 s, 1 à 30 s pour manger / boire depuis la main) pour une action chronométrée. */
 export function timedActionDurationS(kind: TimedActionKind, customDurationS?: number): number {
   const raw = customDurationS !== undefined && Number.isFinite(customDurationS)
     ? customDurationS
     : TIMED_ACTION_SPECS[kind].durationS;
-  return Math.min(30, Math.max(5, raw));
+  // Manger / boire depuis la main : gestes courts (1 s minimum) ; les autres actions durent 5 s au moins.
+  const min = kind === 'eat_held' || kind === 'drink_held' ? 1 : 5;
+  return Math.min(30, Math.max(min, raw));
 }
 
 /** Indique si le joueur est immobilisé pendant l'action. */

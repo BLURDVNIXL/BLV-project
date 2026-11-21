@@ -94,6 +94,8 @@ import type { TimedBodyActionKind } from '../core/timedActions';
 test('computeActionPose : toutes les actions corporelles retournent des poses valides et distinctes', () => {
   const kinds: TimedBodyActionKind[] = [
     'eat',
+    'eat_held',
+    'drink_held',
     'toilet',
     'loto',
     'yannis_academy',

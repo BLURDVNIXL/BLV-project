@@ -48,6 +48,7 @@ import {
   type DistancePref,
 } from '../world/qualitySettings';
 import { NpcSystem } from './npcSystem';
+import { PUNCH_IMPACT_DELAY } from './punch';
 import { WeatherFxSystem, weatherFxMode } from './weatherFx';
 import { WaterTrafficSystem } from './waterTraffic';
 import { StreetAnimSystem } from './streetAnim';
@@ -2168,7 +2169,19 @@ export class AbidjanSceneManager {
   /** Coup de poing du joueur (animation). */
   public triggerPunch() {
     if (this.activeTimedActionKind !== null || this.taxiRide !== null || this.drivingVehicle) return;
-    this.playerAvatarCtl?.punch();
+    // L'impact a lieu quand le bras est tendu ; pas de nouveau coup tant que le geste n'est pas fini.
+    if (this.playerAvatarCtl?.punch()) this.punchImpactIn = PUNCH_IMPACT_DELAY;
+  }
+
+  /** Temps restant (s) avant l'impact du coup en cours ; négatif = aucun coup. */
+  private punchImpactIn = -1;
+
+  private updatePunchImpact(dt: number) {
+    if (this.punchImpactIn < 0) return;
+    this.punchImpactIn -= dt;
+    if (this.punchImpactIn > 0) return;
+    this.punchImpactIn = -1;
+    this.npcSystem.hit(this.playerX, this.playerZ, Math.sin(this.playerRotY), Math.cos(this.playerRotY));
   }
 
   public setHeldUseHandler(handler: (() => void) | null) {
@@ -2786,6 +2799,8 @@ export class AbidjanSceneManager {
       this.streamer?.update(this.playerX, this.playerZ, this.streamer.loadedCount < 25 ? 8 : this.isSoftwareGl ? 3 : 4);
     }
     this.syncStreamedVenueDoors();
+
+    this.updatePunchImpact(dt);
 
     // 6. Walking Pedestrians
     if (!this.activeInterior) {

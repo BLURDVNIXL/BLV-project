@@ -16,6 +16,7 @@ test('toutes les actions chronométrées durent entre 5 et 30 s', () => {
   const kinds = Object.keys(TIMED_ACTION_SPECS) as TimedActionKind[];
   for (const kind of kinds) {
     const s = timedActionDurationS(kind);
+    if (kind === 'eat_held' || kind === 'drink_held') continue; // gestes courts, testés à part
     assert.ok(s >= 5 && s <= 30, `${kind} hors plage 5-30 s (${s})`);
   }
   assert.equal(timedActionDurationS('eat'), 5);
@@ -76,4 +77,13 @@ test('progression [0..1], fin d’action, corps animé et verrouillage de concur
   assert.equal(canStartTimedAction('eat', 'sleep'), false);
   assert.equal(canStartTimedAction('taxi_wait', 'eat'), false);
   assert.equal(canStartTimedAction('taxi_wait', 'taxi_ride'), true);
+});
+
+test('manger / boire depuis la main : gestes courts qui immobilisent', () => {
+  assert.equal(timedActionDurationS('eat_held'), 2.2);
+  assert.equal(timedActionDurationS('drink_held'), 1.8);
+  assert.equal(timedActionDurationS('drink_held', 0.1), 1);
+  assert.equal(timedActionDurationS('eat'), 5);
+  assert.equal(timedActionBlocksMovement('eat_held'), true);
+  assert.equal(canStartTimedAction('eat_held', 'drink_held'), false);
 });

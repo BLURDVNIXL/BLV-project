@@ -9,6 +9,7 @@ import {
   Ticket,
   Trophy,
   Utensils,
+  GlassWater,
   Wrench,
 } from 'lucide-react';
 import {
@@ -28,7 +29,10 @@ function ActionSymbol({ kind }: { kind: TimedActionKind }) {
   const cls = 'h-6 w-6 short:h-5 short:w-5 text-[#2a3f35]';
   switch (kind) {
     case 'eat':
+    case 'eat_held':
       return <Utensils className={cls} strokeWidth={2.2} />;
+    case 'drink_held':
+      return <GlassWater className={cls} strokeWidth={2.2} />;
     case 'toilet':
       return <Droplet className={cls} strokeWidth={2.2} />;
     case 'loto':
