@@ -2,7 +2,6 @@
  * BLV — Recettes des plats du menu (assemblage de composants du STUDIO-OBJECT).
  * Les 10 recettes d'exemple du studio (assets/phase3) ont priorité ; celles-ci couvrent le reste du menu.
  * Un plat = contenant + base + protéine + garnitures (≤ 1 garniture : plafond de 800 triangles).
- * Composants absents du studio : canapés et mini-pâtisserie utilisent un substitut (planche/barquette + accras).
  */
 
 import type { BlvDishRecipe } from './types';
@@ -85,14 +84,19 @@ const ROWS: Row[] = [
   ['accras_poisson', 'cornet_plat', null, 'accras'],
   ['petite_barquette', 'barquette', 'alloco', 'accras'],
   ['grande_barquette', 'barquette', 'riz_exotique', 'poulet_morceaux'],
-  ['canapes_froids', 'planche', null, 'accras'],
-  ['canapes_chauds', 'planche', null, 'accras'],
+  ['canapes_froids', 'planche', null, 'canapes'],
+  ['canapes_chauds', 'planche', null, 'canapes'],
   // Traiteur
   ['gigot_agneau', 'planche', null, 'gigot'],
   ['mechoui_farci', 'planche', null, 'mechoui'],
   ['cochon_de_lait', 'planche', null, 'cochon_de_lait'],
-  ['mini_patisserie', 'barquette', null, 'accras'],
+  ['mini_patisserie', 'planche', null, 'mini_patisserie'],
 ];
+
+/** Variantes de couleur des composants partagés (canapés chauds : toasts dorés et garniture rouge). */
+const PROTEIN_COLORS: Record<string, { primary: string; secondary: string; accent: string }> = {
+  canapes_chauds: { primary: '#D9A441', secondary: '#F2C14E', accent: '#B8321F' },
+};
 
 export const MENU_RECIPES: Record<string, BlvDishRecipe> = Object.fromEntries(
   ROWS.map(([id, contenant, base, proteine, garniture], i) => [
@@ -104,6 +108,7 @@ export const MENU_RECIPES: Record<string, BlvDishRecipe> = Object.fromEntries(
       base,
       proteine,
       garnitures: garniture ? [garniture] : [],
+      ...(PROTEIN_COLORS[id] ? { couleurs: { proteine: PROTEIN_COLORS[id] } } : {}),
       size: 1.0,
       seed: 2000 + i,
     } satisfies BlvDishRecipe,

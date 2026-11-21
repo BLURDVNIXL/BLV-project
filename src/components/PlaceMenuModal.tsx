@@ -1,4 +1,5 @@
 import React from 'react';
+import { ItemIcon } from './ItemIcon';
 import { Refrigerator, Store } from 'lucide-react';
 import { PlayerState } from '../types/game';
 import { CATEGORY_LABELS, CATEGORY_ORDER, ItemCategory, PLACE_MENUS, PlaceMenuId, getItem, placePrice } from '../core/items';
@@ -30,7 +31,7 @@ export const PlaceMenuModal: React.FC<PlaceMenuModalProps> = ({ placeId, playerS
       return (
         <div key={`${label}_${slot.itemId}`} className="flex items-center justify-between rounded-xl border border-cream-200 bg-cream-100 p-2">
           <div className="flex min-w-0 items-center gap-2">
-            <span className="text-xl">{item.icon}</span>
+            <ItemIcon itemId={item.id} emoji={item.icon} size={32} />
             <span className="truncate text-xs font-bold text-ink-800">
               {item.name} <span className="text-ink-500">×{slot.qty}</span>
             </span>
@@ -87,7 +88,7 @@ export const PlaceMenuModal: React.FC<PlaceMenuModalProps> = ({ placeId, playerS
             return (
               <div key={id} className="flex items-center justify-between rounded-xl border border-cream-200 bg-cream-100 p-2">
                 <div className="flex min-w-0 items-center gap-2">
-                  <span className="text-xl">{item.icon}</span>
+                  <ItemIcon itemId={item.id} emoji={item.icon} size={32} />
                   <span className="truncate text-xs font-bold text-ink-800">{item.name}</span>
                 </div>
                 <button type="button" disabled={cannot} onClick={() => onBuy(id, placeId)} className={`${btn} bg-sun-600 hover:bg-sun-500`}>

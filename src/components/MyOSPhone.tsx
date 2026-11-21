@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { ItemIcon } from './ItemIcon';
 import {
   X,
   Search,
@@ -331,7 +332,7 @@ export const MyOSPhone: React.FC<MyOSPhoneProps> = ({
                 return (
                   <div key={id} className="flex items-center justify-between rounded-xl bg-cream-100 p-2.5 border border-cream-200">
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <span className="text-xl">{item.icon}</span>
+                      <ItemIcon itemId={item.id} emoji={item.icon} size={32} />
                       <div className="font-bold text-xs text-ink-800 truncate">{item.name}</div>
                     </div>
                     <button

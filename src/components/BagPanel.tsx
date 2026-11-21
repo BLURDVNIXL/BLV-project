@@ -1,4 +1,5 @@
 import React from 'react';
+import { ItemIcon } from './ItemIcon';
 import { Backpack, Hand } from 'lucide-react';
 import { PlayerState } from '../types/game';
 import { getItem } from '../core/items';
@@ -60,7 +61,7 @@ export const BagPanel: React.FC<BagPanelProps> = ({ playerState, onHold, onClose
               aria-pressed={active}
               title={item.name}
             >
-              <span className="text-2xl leading-none">{item.icon}</span>
+              <ItemIcon itemId={item.id} emoji={item.icon} size={36} />
               <span className="mt-0.5 line-clamp-2 text-[9px] font-bold leading-tight text-ink-800">{item.name}</span>
               {slot.qty > 1 && (
                 <span className="absolute right-1 top-1 rounded-full bg-sun-600 px-1.5 text-[10px] font-bold text-white">×{slot.qty}</span>

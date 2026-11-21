@@ -41,3 +41,11 @@ test('échelle des plats : taille réelle de base, contenants étroits légèrem
   assert.ok(plate.hold.scale >= 1, 'assiette : pas de réduction');
   assert.ok(pot.hold.scale > plate.hold.scale, 'pot de kédjénou agrandi par rapport à l’assiette');
 });
+
+test('canapés et mini-pâtisserie ont leurs propres composants (plus de substitut accras)', () => {
+  for (const id of ['canapes_froids', 'canapes_chauds', 'mini_patisserie']) {
+    assert.notEqual(MENU_RECIPES[id].proteine, 'accras', `${id} utilise encore le substitut`);
+    assert.ok(createHeldObject(id), `${id} : pas de modèle`);
+  }
+  assert.notDeepEqual(MENU_RECIPES.canapes_chauds.couleurs, MENU_RECIPES.canapes_froids.couleurs);
+});

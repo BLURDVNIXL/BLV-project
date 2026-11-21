@@ -1190,4 +1190,85 @@ export const PROTEINES_ASSETS: BlvAssetDefinition[] = [
       return transformGeo(mergeParts(parts), { pos: [cx, cy, cz] });
     },
   },
+  {
+    id: 'canapes',
+    name: 'Canapés',
+    phase: 2,
+    category: 'proteines',
+    maxTriangles: 300,
+    defaultParams: {
+      primary: '#E8C98A',
+      secondary: '#F4EBD8',
+      accent: '#5E9C3A',
+      size: 1.0,
+      seed: 991,
+    },
+    presets: [
+      { label: 'Canapés froids', params: { primary: '#E8C98A', secondary: '#F4EBD8', accent: '#5E9C3A', size: 1.0, seed: 991 } },
+      { label: 'Canapés chauds', params: { primary: '#D9A441', secondary: '#F2C14E', accent: '#B8321F', size: 1.0, seed: 992 } },
+    ],
+    hold: { position: [0.015, 0.0, 0.06], rotation: [0.05, 0.0, -0.04], scale: 1.0 },
+    getAnchors: (p) => ({ stackCenter: [0, 0.02 * p.size, 0], stackRadius: 0.045 * p.size }),
+    build: (p, anchor) => {
+      const { s, cx, cy, cz } = resolveProteinSpace(p, anchor);
+      const rng = createRng(p.seed);
+      const bread = toColor(p.primary);
+      const spread = toColor(p.secondary);
+      const topping = toColor(p.accent);
+
+      const parts: THREE.BufferGeometry[] = [];
+      // 6 petits toasts carrés (2 rangées de 3) : tranche de pain, couche claire, garniture colorée
+      for (let row = 0; row < 2; row++) {
+        for (let col = 0; col < 3; col++) {
+          const x = (col - 1) * 0.036 * s;
+          const z = (row - 0.5) * 0.036 * s;
+          const yaw = (rng() - 0.5) * 0.35;
+          parts.push(buildBox(0.03 * s, 0.008 * s, 0.03 * s, bread, { pos: [x, 0.004 * s, z], rot: [0, yaw, 0] }));
+          parts.push(buildBox(0.026 * s, 0.004 * s, 0.026 * s, spread, { pos: [x, 0.01 * s, z], rot: [0, yaw, 0] }));
+          parts.push(buildSphere(0.007 * s, 5, 3, mixColors(topping, spread, rng() * 0.3), { pos: [x, 0.015 * s, z] }));
+        }
+      }
+      return transformGeo(mergeParts(parts), { pos: [cx, cy, cz] });
+    },
+  },
+  {
+    id: 'mini_patisserie',
+    name: 'Mini-pâtisserie',
+    phase: 2,
+    category: 'proteines',
+    maxTriangles: 300,
+    defaultParams: {
+      primary: '#F2B8C6',
+      secondary: '#8A4B2A',
+      accent: '#C0182B',
+      size: 1.0,
+      seed: 993,
+    },
+    presets: [
+      { label: 'Petits gâteaux roses', params: { primary: '#F2B8C6', secondary: '#8A4B2A', accent: '#C0182B', size: 1.0, seed: 993 } },
+      { label: 'Petits gâteaux au chocolat', params: { primary: '#5A3220', secondary: '#E8C98A', accent: '#F5EFE6', size: 1.0, seed: 994 } },
+    ],
+    hold: { position: [0.015, 0.0, 0.06], rotation: [0.05, 0.0, -0.04], scale: 1.0 },
+    getAnchors: (p) => ({ stackCenter: [0, 0.022 * p.size, 0], stackRadius: 0.045 * p.size }),
+    build: (p, anchor) => {
+      const { s, cx, cy, cz } = resolveProteinSpace(p, anchor);
+      const rng = createRng(p.seed);
+      const glaze = toColor(p.primary);
+      const sponge = toColor(p.secondary);
+      const top = toColor(p.accent);
+
+      const parts: THREE.BufferGeometry[] = [];
+      // 6 petits gâteaux ronds (2 rangées de 3) : corps cannelé, glaçage plat, perle ou cerise au sommet
+      for (let row = 0; row < 2; row++) {
+        for (let col = 0; col < 3; col++) {
+          const x = (col - 1) * 0.036 * s;
+          const z = (row - 0.5) * 0.036 * s;
+          parts.push(buildCylinder(0.014 * s, 0.011 * s, 0.014 * s, 6, sponge, { pos: [x, 0.007 * s, z] }));
+          parts.push(buildCylinder(0.0145 * s, 0.0145 * s, 0.005 * s, 6, mixColors(glaze, top, rng() * 0.15), { pos: [x, 0.0165 * s, z] }));
+          parts.push(buildSphere(0.0045 * s, 4, 3, top, { pos: [x, 0.022 * s, z] }));
+        }
+      }
+      return transformGeo(mergeParts(parts), { pos: [cx, cy, cz] });
+    },
+  },
 ];
