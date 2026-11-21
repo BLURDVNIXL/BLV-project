@@ -3,7 +3,22 @@ import test from 'node:test';
 import { ALL_DESTINIES } from './destinies';
 import { createInitialPlayerState } from './simulation';
 import { normalizeSessionState } from './sessionValidation';
-import { ALL_ITEMS, PLACE_MENUS, getItem, placePrice, HOTSPOT_PLACE } from './items';
+import {
+  ALL_ITEMS,
+  GARBA_ID,
+  GNONMI_VENDOR_ITEMS,
+  GARBADROME_DISCOUNTS,
+  PLACE_MENUS,
+  STREET_VENDOR_ITEMS,
+  VENDOR_DISCOUNTS,
+  getItem,
+  garbadromeDiscount,
+  placeForHotspot,
+  placeItemIds,
+  placePrice,
+  vendorOffer,
+  HOTSPOT_PLACE,
+} from './items';
 import {
   BAG_SLOTS,
   HAND_ID,
@@ -158,4 +173,88 @@ test('effets des plats : un plat cher rassasie plus, restent dans les bornes', (
   const small = getItem('attieke')!.effects.hunger!;
   const big = getItem('poulet_braise_entier')!.effects.hunger!;
   assert.ok(small >= 5 && big > small && big <= 80, `faim ${small} → ${big}`);
+});
+
+test('garbadrome : réduction fixe (50 ou 75 %) sur le garba seulement', () => {
+  for (let i = 0; i < 40; i++) {
+    const key = `garbadrome_${i}_${i * 7}`;
+    const d = garbadromeDiscount(key);
+    assert.ok(GARBADROME_DISCOUNTS.includes(d));
+    assert.equal(garbadromeDiscount(key), d, 'stable pour une même clé');
+    const base = getItem(GARBA_ID)!.price;
+    assert.equal(placePrice(GARBA_ID, 'garbadrome', key), Math.round((base * (1 - d / 100)) / 25) * 25);
+    assert.equal(placePrice('attieke', 'garbadrome', key), placePrice('attieke', 'maquis'));
+  }
+  const seen = new Set(Array.from({ length: 60 }, (_, i) => garbadromeDiscount(`garbadrome_${i}_x`)));
+  assert.equal(seen.size, GARBADROME_DISCOUNTS.length, 'les deux réductions apparaissent');
+  assert.equal(placePrice(GARBA_ID, 'garbadrome'), getItem(GARBA_ID)!.price, 'sans clé : prix plein');
+});
+
+test('vendeuses de rue : 1 à 4 produits, une réduction de 25/50/75 %, stable et variée', () => {
+  const counts = new Set<number>();
+  const discounts = new Set<number>();
+  for (let i = 0; i < 200; i++) {
+    const key = `vendeuse_${i}_${i * 13}`;
+    const o = vendorOffer(key);
+    assert.deepEqual(vendorOffer(key), o, 'stable');
+    assert.ok(o.itemIds.length >= 1 && o.itemIds.length <= 4);
+    assert.equal(new Set(o.itemIds).size, o.itemIds.length);
+    for (const id of o.itemIds) {
+      assert.ok((STREET_VENDOR_ITEMS as readonly string[]).includes(id));
+      assert.ok(placePrice(id, 'vendeuse', key) >= 50);
+      assert.ok(placePrice(id, 'vendeuse', key) <= getItem(id)!.price || getItem(id)!.price < 50);
+    }
+    assert.ok(VENDOR_DISCOUNTS.includes(o.discount));
+    counts.add(o.itemIds.length);
+    discounts.add(o.discount);
+  }
+  assert.equal(counts.size, 4);
+  assert.equal(discounts.size, 3);
+  assert.equal(placePrice('alloco', 'vendeuse'), 0, 'sans clé : rien à vendre');
+  assert.deepEqual(placeItemIds('vendeuse'), []);
+  const key = 'vendeuse_1_1';
+  const missing = STREET_VENDOR_ITEMS.find((id) => !vendorOffer(key).itemIds.includes(id));
+  if (missing) assert.equal(placePrice(missing, 'vendeuse', key), 0, 'produit hors stock');
+});
+
+test('vendeuses de gnonmi : 1 ou 2 produits (gnonmi, gboson), réduction fixe', () => {
+  const counts = new Set<number>();
+  for (let i = 0; i < 100; i++) {
+    const key = `vendeuse_gnonmi_${i}_${i * 3}`;
+    const o = vendorOffer(key);
+    assert.deepEqual(vendorOffer(key), o);
+    assert.ok(o.itemIds.length >= 1 && o.itemIds.length <= 2);
+    for (const id of o.itemIds) {
+      assert.ok((GNONMI_VENDOR_ITEMS as readonly string[]).includes(id));
+      assert.ok(placePrice(id, 'vendeuse', key) > 0);
+    }
+    assert.ok(VENDOR_DISCOUNTS.includes(o.discount));
+    counts.add(o.itemIds.length);
+  }
+  assert.equal(counts.size, 2);
+  assert.deepEqual(placeForHotspot('vendeuse_gnonmi_1_2'), { placeId: 'vendeuse', key: 'vendeuse_gnonmi_1_2' });
+});
+
+test('achat chez une vendeuse : prix réduit débité, faim calculée sur le prix de base', () => {
+  const key = 'vendeuse_7_7';
+  const id = vendorOffer(key).itemIds[0];
+  const price = placePrice(id, 'vendeuse', key);
+  const s0 = rich();
+  const s1 = buyItem(s0, id, 'vendeuse', key);
+  assert.equal(s0.cash - s1.cash, price);
+  assert.equal(countOf(bagOf(s1), id), 1);
+  assert.equal(buyItem(s0, id, 'vendeuse'), s0, 'sans clé : refusé');
+  assert.ok(getItem(id)!.price >= price || price === 50);
+});
+
+test('produits de rue : hors menus maquis, Akwaba et hôtel ; repères garbadrome et vendeuse reconnus', () => {
+  for (const id of ['claclo', 'gboson', 'galettes', 'gnonmi']) {
+    assert.ok(getItem(id));
+    for (const place of ['maquis', 'akwaba', 'hotel_ivoire'] as const) assert.ok(!PLACE_MENUS[place].itemIds.includes(id), `${id} dans ${place}`);
+  }
+  assert.ok(PLACE_MENUS.maquis.itemIds.includes('alloco'));
+  assert.deepEqual(placeForHotspot('vendeuse_12_34'), { placeId: 'vendeuse', key: 'vendeuse_12_34' });
+  assert.deepEqual(placeForHotspot('garbadrome_5_6'), { placeId: 'garbadrome', key: 'garbadrome_5_6' });
+  assert.deepEqual(placeForHotspot('local_garba'), { placeId: 'garbadrome', key: 'local_garba' });
+  assert.deepEqual(placeForHotspot('eat_maquis'), { placeId: 'maquis' });
 });

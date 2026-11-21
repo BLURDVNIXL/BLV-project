@@ -2,7 +2,7 @@ import React from 'react';
 import { ItemIcon } from './ItemIcon';
 import { Refrigerator, Store } from 'lucide-react';
 import { PlayerState } from '../types/game';
-import { CATEGORY_LABELS, CATEGORY_ORDER, ItemCategory, PLACE_MENUS, PlaceMenuId, getItem, placePrice } from '../core/items';
+import { CATEGORY_LABELS, CATEGORY_ORDER, ItemCategory, PLACE_MENUS, PlaceMenuId, getItem, placeDiscount, placeItemIds, placePrice } from '../core/items';
 import { BAG_SLOTS, FRIDGE_SLOTS, bagOf, fridgeOf } from '../core/inventory';
 import { hasUnlimitedPlatinum } from '../core/simulation';
 import { Modal } from './ui/Modal';
@@ -11,7 +11,9 @@ interface PlaceMenuModalProps {
   /** Un lieu d'achat, ou `'fridge'` pour le frigo de la maison. */
   placeId: PlaceMenuId | 'fridge';
   playerState: PlayerState;
-  onBuy: (itemId: string, placeId: PlaceMenuId) => void;
+  /** Clé du garbadrome ou de la vendeuse (stock et réduction fixes). */
+  placeKey?: string;
+  onBuy: (itemId: string, placeId: PlaceMenuId, placeKey?: string) => void;
   onFridgePut: (itemId: string) => void;
   onFridgeTake: (itemId: string) => void;
   onClose: () => void;
@@ -20,7 +22,7 @@ interface PlaceMenuModalProps {
 const btn = 'shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-bold text-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-40';
 
 /** Menu d'achat d'un lieu (acheter = ajouter au sac, rien n'est consommé sur place) ou frigo de la maison. */
-export const PlaceMenuModal: React.FC<PlaceMenuModalProps> = ({ placeId, playerState, onBuy, onFridgePut, onFridgeTake, onClose }) => {
+export const PlaceMenuModal: React.FC<PlaceMenuModalProps> = ({ placeId, placeKey, playerState, onBuy, onFridgePut, onFridgeTake, onClose }) => {
   const bag = bagOf(playerState);
 
   if (placeId === 'fridge') {
@@ -62,7 +64,7 @@ export const PlaceMenuModal: React.FC<PlaceMenuModalProps> = ({ placeId, playerS
   const bagFull = bag.length >= BAG_SLOTS;
   const rich = hasUnlimitedPlatinum(playerState);
   const byCategory = new Map<ItemCategory, string[]>();
-  for (const id of place.itemIds) {
+  for (const id of placeItemIds(placeId, placeKey)) {
     const item = getItem(id);
     if (!item) continue;
     byCategory.set(item.category, [...(byCategory.get(item.category) ?? []), id]);
@@ -82,7 +84,8 @@ export const PlaceMenuModal: React.FC<PlaceMenuModalProps> = ({ placeId, playerS
           <div className="text-[11px] font-bold uppercase tracking-wide text-ink-500">{CATEGORY_LABELS[cat]}</div>
           {byCategory.get(cat)!.map((id) => {
             const item = getItem(id)!;
-            const price = placePrice(id, placeId);
+            const price = placePrice(id, placeId, placeKey);
+            const discount = placeDiscount(id, placeId, placeKey);
             const owned = bag.find((s) => s.itemId === id);
             const cannot = (!owned && bagFull) || (owned?.qty ?? 0) >= 9 || (!rich && playerState.cash < price);
             return (
@@ -90,8 +93,9 @@ export const PlaceMenuModal: React.FC<PlaceMenuModalProps> = ({ placeId, playerS
                 <div className="flex min-w-0 items-center gap-2">
                   <ItemIcon itemId={item.id} emoji={item.icon} size={32} />
                   <span className="truncate text-xs font-bold text-ink-800">{item.name}</span>
+                  {discount > 0 && <span className="shrink-0 rounded bg-green-600 px-1 py-0.5 text-[10px] font-bold text-white">-{discount}%</span>}
                 </div>
-                <button type="button" disabled={cannot} onClick={() => onBuy(id, placeId)} className={`${btn} bg-sun-600 hover:bg-sun-500`}>
+                <button type="button" disabled={cannot} onClick={() => onBuy(id, placeId, placeKey)} className={`${btn} bg-sun-600 hover:bg-sun-500`}>
                   {price.toLocaleString('fr-FR')} F
                 </button>
               </div>

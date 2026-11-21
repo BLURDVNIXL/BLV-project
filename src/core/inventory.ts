@@ -76,9 +76,9 @@ export function sanitizeHeld(raw: unknown, bag: InventorySlot[]): string | null 
 // ───────────────────────────── Actions (état → état) ─────────────────────────────
 
 /** Achète un exemplaire : le prix est recalculé ici (lieu × coefficient), jamais fourni par le client. */
-export function buyItem(state: PlayerState, itemId: string, placeId: PlaceMenuId): PlayerState {
+export function buyItem(state: PlayerState, itemId: string, placeId: PlaceMenuId, placeKey?: string): PlayerState {
   const item = getItem(itemId);
-  const price = placePrice(itemId, placeId);
+  const price = placePrice(itemId, placeId, placeKey);
   if (!item || price <= 0 || !PLACE_MENUS[placeId]) return state;
   const bag = addToSlots(bagOf(state), itemId, 1, BAG_SLOTS);
   if (!bag) return addLog(state, `🎒 Sac plein : impossible de prendre ${item.name}.`, 'danger');

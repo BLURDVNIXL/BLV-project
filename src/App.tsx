@@ -66,7 +66,7 @@ import { UniversalActionGauge } from './components/UniversalActionGauge';
 import { ConsoleGamepad } from './components/ConsoleGamepad';
 import { BagPanel } from './components/BagPanel';
 import { PlaceMenuModal } from './components/PlaceMenuModal';
-import { HOTSPOT_PLACE, PlaceMenuId, getItem } from './core/items';
+import { PlaceMenuId, getItem, placeForHotspot } from './core/items';
 import { HAND_ID, buyItem, heldOf, holdItem, moveToFridge, takeFromFridge, useHeldItem } from './core/inventory';
 import { useTouchControls } from './components/useTouchControls';
 import { MyOSPhone } from './components/MyOSPhone';
@@ -118,6 +118,8 @@ export default function App() {
   const [nearbyHotspot, setNearbyHotspot] = useState<CityHotspot | null>(null);
   const [isBagOpen, setIsBagOpen] = useState(false);
   const [placePanel, setPlacePanel] = useState<PlaceMenuId | 'fridge' | null>(null);
+  /** Clé du garbadrome ou de la vendeuse ouverte (stock et réduction fixes). */
+  const [placeKey, setPlaceKey] = useState<string | undefined>(undefined);
   const [nearbyVehicle, setNearbyVehicle] = useState<{ id: string; label: string } | null>(null);
 
   // Modals
@@ -281,13 +283,13 @@ export default function App() {
 
   // ── Sac, objets en main, achats (logique partagée avec le serveur : src/core/inventory.ts) ──
   const handleBuyItem = useCallback(
-    (itemId: string, placeId: PlaceMenuId) => {
+    (itemId: string, placeId: PlaceMenuId, key?: string) => {
       const cur = playerStateRef.current;
-      const next = buyItem(cur, itemId, placeId);
+      const next = buyItem(cur, itemId, placeId, key);
       setPlayerState(next);
       if (next.inventory !== cur.inventory) {
         soundEngine.playCashSound();
-        syncEconomy('buy_item', { itemId, placeId });
+        syncEconomy('buy_item', { itemId, placeId, placeKey: key });
       }
     },
     [syncEconomy]
@@ -617,7 +619,9 @@ export default function App() {
 
       if (h.type === 'eat') {
         // Plus de cinématique « je mange » : le lieu ouvre son menu d'achat (ou le frigo à la maison).
-        setPlacePanel(HOTSPOT_PLACE[h.id] ?? 'maquis');
+        const target = placeForHotspot(h.id);
+        setPlaceKey(target.key);
+        setPlacePanel(target.placeId);
       } else if (h.type === 'loto') {
         if (!hasCash(2000)) {
           setPlayerState((prev) => playLotoAkwaba(prev));
@@ -1200,6 +1204,7 @@ export default function App() {
       {screenState === 'playing' && placePanel && (
         <PlaceMenuModal
           placeId={placePanel}
+          placeKey={placeKey}
           playerState={playerState}
           onBuy={handleBuyItem}
           onFridgePut={handleFridgePut}

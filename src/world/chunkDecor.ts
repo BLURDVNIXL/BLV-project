@@ -96,7 +96,9 @@ export type StreetVenueKind =
   | 'allocodrome'
   | 'maquis_quartier'
   | 'maracana'
-  | 'basket';
+  | 'basket'
+  | 'vendeuse'
+  | 'vendeuse_gnonmi';
 
 export interface StreetVenueDecor {
   kind: StreetVenueKind;
@@ -813,6 +815,8 @@ function emitFoodVendor(
   const foulardColor = PAGNE_COLORS[(s + 3) % PAGNE_COLORS.length];
   const parasolColor = PARASOL_COLORS[(s >>> 1) % PARASOL_COLORS.length];
   plan.foodVendors.push({ x, z, angle, kind, pagneColor, blouseColor, foulardColor, parasolColor });
+  // Toutes les vendeuses de rue sont des points d'achat côté jeu (galettes : alloco, claclo, gboson, galettes ; gnonmi : gnonmi, gboson).
+  plan.venues.push({ kind: kind === 'galettes' ? 'vendeuse' : 'vendeuse_gnonmi', x, z, w: 1.4, d: 1.4, angle });
 
   // Étal / fourneau côté rue (+e2) et vendeuse derrière (-e2)
   const tablePos = localToWorldPt(x, z, angle, 0, 0.34);

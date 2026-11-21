@@ -375,7 +375,10 @@ async function startServer() {
       case 'buy_item': {
         // Le prix est recalculé ici d'après le lieu (jamais envoyé par le client).
         const placeId = String(payload?.placeId || '');
-        if (placeId in PLACE_MENUS) st = buyItem(st, String(payload?.itemId || ''), placeId as PlaceMenuId);
+        if (placeId in PLACE_MENUS) {
+          const placeKey = typeof payload?.placeKey === 'string' ? payload.placeKey.slice(0, 80) : undefined;
+          st = buyItem(st, String(payload?.itemId || ''), placeId as PlaceMenuId, placeKey);
+        }
         break;
       }
       case 'hold_item':

@@ -2606,6 +2606,33 @@ export class AbidjanSceneManager {
     }
 
     for (const v of this.streamer.getLoadedVenues()) {
+      // Garbadromes et vendeuses de rue : point d'achat sans porte (menu avec réduction fixe).
+      if (v.kind === 'garbadrome' || v.kind === 'vendeuse' || v.kind === 'vendeuse_gnonmi') {
+        const isGarba = v.kind === 'garbadrome';
+        const color = isGarba ? 0xea580c : 0xfacc15;
+        const buyId = `${v.kind}_${Math.round(v.x * 10)}_${Math.round(v.z * 10)}`;
+        this.streamedHotspots.push({
+          id: buyId,
+          label: isGarba ? '🍲 Garbadrome' : v.kind === 'vendeuse_gnonmi' ? '🥟 Vendeuse de gnonmi' : '🥞 Vendeuse de rue',
+          district: districtAt({ x: v.x, z: v.z }).name,
+          x: v.x,
+          z: v.z,
+          radius: isGarba ? Math.max(3.6, Math.min(v.w, v.d) * 0.7) : 2.4,
+          type: 'eat',
+          color,
+        });
+        let buyMat = this.streamedVenueRingMats.get(color);
+        if (!buyMat) {
+          buyMat = new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide, transparent: true, opacity: 0.72 });
+          this.streamedVenueRingMats.set(color, buyMat);
+        }
+        const buyRing = new THREE.Mesh(this.streamedVenueRingGeo, buyMat);
+        buyRing.rotation.x = -Math.PI / 2;
+        buyRing.position.set(v.x, 0.08, v.z);
+        this.scene.add(buyRing);
+        this.streamedVenueRings.push(buyRing);
+        continue;
+      }
       if (v.doorX === undefined || v.doorZ === undefined || v.outX === undefined || v.outZ === undefined || v.outRotY === undefined) {
         continue;
       }

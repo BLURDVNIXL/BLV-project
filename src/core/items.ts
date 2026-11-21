@@ -217,7 +217,8 @@ packaged('parapluie_noir', 'Parapluie noir classique', 'divers', '☂️', 2500,
 
 // ───────────────────────────── Plats et boissons du maquis ─────────────────────────────
 
-type DishWhere = 'm' | 'h' | 'mh';
+/** m = maquis, h = hôtel, mh = les deux, r = vendeuses de rue seulement (hors menus des lieux). */
+type DishWhere = 'm' | 'h' | 'mh' | 'r';
 
 /**
  * Effets d'un plat selon son prix de base (échelle maquis 100 à 3 000 F) : un plat cher rassasie et fait plus plaisir.
@@ -232,7 +233,7 @@ function dishEffects(price: number): ItemEffects {
 }
 
 /** [id, nom, prix de base maquis (100 à 3 000 F), lieux, icône, recette du studio (si elle existe, sinon l'id du plat)] */
-type DishRow = [string, string, number, DishWhere, string];
+type DishRow = [string, string, number, DishWhere, string, string?];
 
 const DISH_ROWS: DishRow[] = [
   // Volailles et viandes
@@ -322,10 +323,15 @@ const DISH_ROWS: DishRow[] = [
   ['mechoui_farci', 'Méchoui farci', 3000, 'h', '🍖'],
   ['cochon_de_lait', 'Cochon de lait', 3000, 'h', '🐖'],
   ['mini_patisserie', 'Mini-pâtisserie', 1000, 'h', '🧁'],
+  // Nourriture de rue (vendeuses). Pas encore de modèle propre : même modèle que l'alloco.
+  ['claclo', 'Claclo', 200, 'r', '🍌', 'alloco'],
+  ['gboson', 'Gboson', 200, 'r', '🧆', 'alloco'],
+  ['galettes', 'Galettes', 100, 'r', '🥞', 'alloco'],
+  ['gnonmi', 'Gnonmi', 150, 'r', '🥟', 'alloco'],
 ];
 
 const DISH_WHERE = new Map<string, DishWhere>();
-for (const [id, name, price, where, icon] of DISH_ROWS) {
+for (const [id, name, price, where, icon, recipe] of DISH_ROWS) {
   DISH_WHERE.set(id, where);
   ITEMS.push({
     id,
@@ -335,7 +341,7 @@ for (const [id, name, price, where, icon] of DISH_ROWS) {
     price,
     effects: dishEffects(price),
     consumable: true,
-    model: { kind: 'dish', dish: id },
+    model: { kind: 'dish', dish: recipe ?? id },
   });
 }
 
@@ -373,7 +379,7 @@ export function getItem(id: string): ItemDef | undefined {
 
 // ───────────────────────────── Lieux ─────────────────────────────
 
-export type PlaceMenuId = 'maquis' | 'hotel_ivoire' | 'akwaba' | 'boutique' | 'superette';
+export type PlaceMenuId = 'maquis' | 'hotel_ivoire' | 'akwaba' | 'boutique' | 'superette' | 'garbadrome' | 'vendeuse';
 
 export interface PlaceMenu {
   id: PlaceMenuId;
@@ -387,8 +393,8 @@ export interface PlaceMenu {
 const MAQUIS_DRINKS = ['bissap_50cl', 'bissap_1_5l_maquis', 'eau_50cl', 'soda_cola_33', 'gnamakoudji_33', 'canette_cola', 'canette_agrumes', 'brique_mangue', 'brique_ananas', 'sachet_gingembre'];
 const HOTEL_DRINKS = ['eau_50cl', 'soda_cola_33', 'canette_cola', 'canette_agrumes', 'brique_mangue', 'brique_ananas', 'bissap_50cl', 'cafe_glace', 'cafe_touba', 'smoothie_mangue'];
 
-const MAQUIS_IDS = [...DISH_ROWS.filter((r) => r[3] !== 'h').map((r) => r[0]), ...MAQUIS_DRINKS];
-const HOTEL_IDS = [...DISH_ROWS.filter((r) => r[3] !== 'm').map((r) => r[0]), ...HOTEL_DRINKS];
+const MAQUIS_IDS = [...DISH_ROWS.filter((r) => r[3] === 'm' || r[3] === 'mh').map((r) => r[0]), ...MAQUIS_DRINKS];
+const HOTEL_IDS = [...DISH_ROWS.filter((r) => r[3] === 'h' || r[3] === 'mh').map((r) => r[0]), ...HOTEL_DRINKS];
 
 const boutiqueCats: ItemCategory[] = ['boisson', 'snack', 'pain', 'fruit'];
 const superetteCats: ItemCategory[] = ['boisson', 'snack', 'pain', 'fruit', 'conserve', 'laitier', 'hygiene', 'divers'];
@@ -399,12 +405,26 @@ const packagedIds = (cats: ItemCategory[]) =>
     (i) => i.id
   );
 
+/** Produits des vendeuses de galettes (chacune en vend 1 à 4) et des vendeuses de gnonmi (1 ou 2). */
+export const STREET_VENDOR_ITEMS = ['alloco', 'claclo', 'gboson', 'galettes'] as const;
+export const GNONMI_VENDOR_ITEMS = ['gnonmi', 'gboson'] as const;
+/** Les repères des vendeuses de gnonmi commencent par ce préfixe. */
+export const GNONMI_KEY_PREFIX = 'vendeuse_gnonmi_';
+export const GARBA_ID = 'garba_abidjan';
+const GARBADROME_IDS = [GARBA_ID, 'attieke', 'poisson_braise', 'carpe_grillee', 'poisson_grille', 'alloco', ...MAQUIS_DRINKS];
+
+/** Réductions possibles : le garbadrome sur le garba seulement, la vendeuse sur tout ce qu'elle vend. */
+export const GARBADROME_DISCOUNTS: readonly number[] = [50, 75];
+export const VENDOR_DISCOUNTS: readonly number[] = [25, 50, 75];
+
 export const PLACE_MENUS: Record<PlaceMenuId, PlaceMenu> = {
   maquis: { id: 'maquis', label: 'Maquis', coef: 1, itemIds: MAQUIS_IDS },
   hotel_ivoire: { id: 'hotel_ivoire', label: 'Restaurant de l’hôtel Ivoire', coef: 2, itemIds: HOTEL_IDS },
   akwaba: { id: 'akwaba', label: 'Akwaba Eats', coef: 1.3, itemIds: MAQUIS_IDS },
   boutique: { id: 'boutique', label: 'Boutique', coef: 1, itemIds: packagedIds(boutiqueCats) },
   superette: { id: 'superette', label: 'Supérette', coef: 1, itemIds: packagedIds(superetteCats) },
+  garbadrome: { id: 'garbadrome', label: 'Garbadrome', coef: 1, itemIds: GARBADROME_IDS },
+  vendeuse: { id: 'vendeuse', label: 'Vendeuse de rue', coef: 1, itemIds: [...STREET_VENDOR_ITEMS, 'gnonmi'] },
 };
 
 /** Repères « eat » du monde → menu à ouvrir. `home_fridge` ouvre le frigo, pas un menu d'achat. */
@@ -414,12 +434,84 @@ export const HOTSPOT_PLACE: Record<string, PlaceMenuId | 'fridge'> = {
   boutique_eat: 'boutique',
   superette_eat: 'superette',
   home_fridge: 'fridge',
+  local_garba: 'garbadrome',
 };
 
-/** Prix d'un objet dans un lieu, arrondi aux 50 F. 0 si l'objet n'y est pas vendu. */
-export function placePrice(itemId: string, placeId: PlaceMenuId): number {
+/**
+ * Lieu et clé d'un repère « eat ». Les garbadromes et les vendeuses de rue sont générés par le monde :
+ * leur identifiant de repère (`garbadrome_…`, `vendeuse_…`) sert de clé stable pour tirer stock et réduction.
+ */
+export function placeForHotspot(hotspotId: string): { placeId: PlaceMenuId | 'fridge'; key?: string } {
+  if (hotspotId.startsWith('vendeuse_')) return { placeId: 'vendeuse', key: hotspotId };
+  if (hotspotId.startsWith('garbadrome_') || hotspotId === 'local_garba') return { placeId: 'garbadrome', key: hotspotId };
+  return { placeId: HOTSPOT_PLACE[hotspotId] ?? 'maquis' };
+}
+
+/** Hachage FNV-1a 32 bits : même résultat côté jeu et côté serveur. */
+function keyHash(key: string): number {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < key.length; i++) {
+    h ^= key.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  h ^= h >>> 15;
+  h = Math.imul(h, 0x2c1b3c6d);
+  h ^= h >>> 12;
+  return h >>> 0;
+}
+
+export interface VendorOffer {
+  itemIds: string[];
+  discount: number;
+}
+
+/** Stock (1 à 4 produits, surtout 1 ou 2) et réduction d'une vendeuse, fixés une fois pour toutes par sa clé. */
+export function vendorOffer(key: string): VendorOffer {
+  const h = keyHash(key);
+  const roll = h % 100;
+  const gnonmi = key.startsWith(GNONMI_KEY_PREFIX);
+  const count = gnonmi ? (roll < 60 ? 1 : 2) : roll < 40 ? 1 : roll < 75 ? 2 : roll < 90 ? 3 : 4;
+  const pool: string[] = gnonmi ? [...GNONMI_VENDOR_ITEMS] : [...STREET_VENDOR_ITEMS];
+  let g = keyHash(`${key}#stock`);
+  const itemIds: string[] = [];
+  while (itemIds.length < count) {
+    const idx = g % pool.length;
+    itemIds.push(pool.splice(idx, 1)[0]);
+    g = keyHash(`${key}#${itemIds.length}`);
+  }
+  const order: readonly string[] = gnonmi ? GNONMI_VENDOR_ITEMS : STREET_VENDOR_ITEMS;
+  itemIds.sort((a, b) => order.indexOf(a) - order.indexOf(b));
+  return { itemIds, discount: VENDOR_DISCOUNTS[(h >>> 8) % VENDOR_DISCOUNTS.length] };
+}
+
+/** Réduction (%) d'un garbadrome sur le garba, fixée une fois pour toutes par sa clé. */
+export function garbadromeDiscount(key: string): number {
+  return GARBADROME_DISCOUNTS[(keyHash(key) >>> 8) % GARBADROME_DISCOUNTS.length];
+}
+
+/** Objets réellement vendus ici : pour une vendeuse, seulement son stock (rien sans clé). */
+export function placeItemIds(placeId: PlaceMenuId, key?: string): string[] {
+  if (placeId === 'vendeuse') return key ? vendorOffer(key).itemIds : [];
+  return PLACE_MENUS[placeId]?.itemIds ?? [];
+}
+
+/** Réduction (%) appliquée à cet objet dans ce lieu ; 0 sans clé ou hors lieux à réduction. */
+export function placeDiscount(itemId: string, placeId: PlaceMenuId, key?: string): number {
+  if (!key) return 0;
+  if (placeId === 'vendeuse') return vendorOffer(key).discount;
+  if (placeId === 'garbadrome' && itemId === GARBA_ID) return garbadromeDiscount(key);
+  return 0;
+}
+
+/**
+ * Prix d'un objet dans un lieu, arrondi aux 50 F (aux 25 F au garbadrome et chez les vendeuses), minimum 50 F.
+ * 0 si l'objet n'y est pas vendu. `key` : clé du garbadrome ou de la vendeuse (réduction et stock).
+ */
+export function placePrice(itemId: string, placeId: PlaceMenuId, key?: string): number {
   const item = ITEM_BY_ID.get(itemId);
   const place = PLACE_MENUS[placeId];
-  if (!item || !place || !place.itemIds.includes(itemId)) return 0;
-  return Math.max(50, Math.round((item.price * place.coef) / 50) * 50);
+  if (!item || !place || !placeItemIds(placeId, key).includes(itemId)) return 0;
+  const raw = item.price * place.coef * (1 - placeDiscount(itemId, placeId, key) / 100);
+  const step = placeId === 'vendeuse' || placeId === 'garbadrome' ? 25 : 50;
+  return Math.max(50, Math.round(raw / step) * step);
 }
