@@ -1,0 +1,177 @@
+import { dishToAssetDefinition } from '../../assemble';
+import type { BlvAssetDefinition, BlvDishRecipe } from '../../types';
+
+export const PHASE3_RECIPES: BlvDishRecipe[] = [
+  {
+    id: 'poulet_braise',
+    nom: 'Poulet braisé',
+    contenant: 'assiette',
+    base: 'attieke',
+    proteine: 'demi_poulet',
+    garnitures: ['oignons_tomates'],
+    couleurs: {
+      contenant: { primary: '#F8FAFC', secondary: '#1D4ED8', accent: '#E2E8F0' },
+      base: { primary: '#F5E8C7', secondary: '#E2C992', accent: '#FFFDF5' },
+      proteine: { primary: '#C96A22', secondary: '#7C320B', accent: '#F5E6CC' },
+      garnitures: [{ primary: '#DC2626', secondary: '#F5E6EA', accent: '#9D174D' }],
+    },
+    size: 1.0,
+    seed: 1001,
+  },
+  {
+    id: 'kedjenou_poulet',
+    nom: 'Kédjénou de poulet',
+    contenant: 'pot_kedjenou',
+    base: null,
+    proteine: 'poulet_entier',
+    garnitures: [],
+    couleurs: {
+      contenant: { primary: '#A44A28', secondary: '#5C2410', accent: '#C96A42' },
+      proteine: { primary: '#B45309', secondary: '#991B1B', accent: '#FDE68A' },
+    },
+    size: 1.0,
+    seed: 1002,
+  },
+  {
+    id: 'spaghettis_bolognaise',
+    nom: 'Spaghettis bolognaise',
+    contenant: 'assiette',
+    base: 'spaghettis',
+    proteine: null,
+    garnitures: ['sauce'],
+    couleurs: {
+      contenant: { primary: '#F8FAFC', secondary: '#DC2626', accent: '#E2E8F0' },
+      base: { primary: '#FCD34D', secondary: '#D97706', accent: '#FEF3C7' },
+      garnitures: [{ primary: '#B91C1C', secondary: '#7F1D1D', accent: '#EF4444' }],
+    },
+    size: 1.0,
+    seed: 1003,
+  },
+  {
+    id: 'garba_abidjan',
+    nom: "Garba d'Abidjan",
+    contenant: 'assiette',
+    base: 'attieke',
+    proteine: 'poisson_ovale',
+    garnitures: ['oignons_tomates', 'piment'],
+    couleurs: {
+      contenant: { primary: '#FFFDF7', secondary: '#EA580C', accent: '#E2E8F0' },
+      base: { primary: '#F3B36B', secondary: '#D97724', accent: '#FCE3B4' },
+      proteine: { primary: '#A16207', secondary: '#451A03', accent: '#FDE047' },
+      garnitures: [
+        { primary: '#DC2626', secondary: '#F5E6EA', accent: '#9D174D' },
+        { primary: '#16A34A', secondary: '#14532D', accent: '#65A30D' },
+      ],
+    },
+    size: 1.0,
+    seed: 1004,
+  },
+  {
+    id: 'alloco_poulet',
+    nom: 'Alloco poulet braisé',
+    contenant: 'barquette',
+    base: 'alloco',
+    proteine: 'poulet_morceaux',
+    garnitures: ['oignons_tomates'],
+    couleurs: {
+      contenant: { primary: '#CBD5E1', secondary: '#94A3B8', accent: '#E2E8F0' },
+      base: { primary: '#F59E0B', secondary: '#92400E', accent: '#FDE68A' },
+      proteine: { primary: '#C96A22', secondary: '#7C320B', accent: '#F5E6CC' },
+      garnitures: [{ primary: '#EF4444', secondary: '#FAFAFA', accent: '#9D174D' }],
+    },
+    size: 1.0,
+    seed: 1005,
+  },
+  {
+    id: 'poisson_braise_attieke',
+    nom: 'Poisson braisé attiéké',
+    contenant: 'planche',
+    base: 'attieke',
+    proteine: 'poisson_allonge',
+    garnitures: ['salade_citron', 'piment'],
+    couleurs: {
+      contenant: { primary: '#9C6644', secondary: '#7F5539', accent: '#B08968' },
+      base: { primary: '#F5E8C7', secondary: '#E2C992', accent: '#FFFDF5' },
+      proteine: { primary: '#9A3412', secondary: '#431407', accent: '#FDBA74' },
+      garnitures: [
+        { primary: '#22C55E', secondary: '#FACC15', accent: '#FEF9C3' },
+        { primary: '#DC2626', secondary: '#991B1B', accent: '#15803D' },
+      ],
+    },
+    size: 1.0,
+    seed: 1006,
+  },
+  {
+    id: 'riz_sauce_graine',
+    nom: 'Riz sauce graine & mouton',
+    contenant: 'bol',
+    base: 'riz_blanc',
+    proteine: 'mouton_braise',
+    garnitures: ['sauce'],
+    couleurs: {
+      contenant: { primary: '#F3EAD8', secondary: '#B45309', accent: '#78350F' },
+      base: { primary: '#FAFAFA', secondary: '#E5E7EB', accent: '#FFFFFF' },
+      proteine: { primary: '#7C2D12', secondary: '#431407', accent: '#FDBA74' },
+      garnitures: [{ primary: '#C2591B', secondary: '#7C2D12', accent: '#EA8C38' }],
+    },
+    size: 1.0,
+    seed: 1007,
+  },
+  {
+    id: 'cornet_frites_brochette',
+    nom: 'Frites & brochette maquis',
+    contenant: 'cornet_plat',
+    base: 'frites',
+    proteine: 'brochette',
+    garnitures: ['persil'],
+    couleurs: {
+      contenant: { primary: '#F8FAFC', secondary: '#DC2626', accent: '#991B1B' },
+      base: { primary: '#FACC15', secondary: '#CA8A04', accent: '#FEF08A' },
+      proteine: { primary: '#78350F', secondary: '#D97706', accent: '#16A34A' },
+      garnitures: [{ primary: '#15803D', secondary: '#14532D', accent: '#4ADE80' }],
+    },
+    size: 1.0,
+    seed: 1008,
+  },
+  {
+    id: 'riz_exotique_poisson',
+    nom: 'Riz exotique au poisson',
+    contenant: 'assiette',
+    base: 'riz_exotique',
+    proteine: 'poisson_plat',
+    garnitures: ['salade_citron'],
+    couleurs: {
+      contenant: { primary: '#FFFDF7', secondary: '#16A34A', accent: '#E2E8F0' },
+      base: { primary: '#EA580C', secondary: '#16A34A', accent: '#FACC15' },
+      proteine: { primary: '#B45309', secondary: '#78350F', accent: '#FDE68A' },
+      garnitures: [{ primary: '#22C55E', secondary: '#FACC15', accent: '#FEF9C3' }],
+    },
+    size: 1.0,
+    seed: 1009,
+  },
+  {
+    id: 'gambas_planche',
+    nom: 'Gambas grillées & patate douce',
+    contenant: 'planche',
+    base: 'patate_douce_frite',
+    proteine: 'crevettes_gambas',
+    garnitures: ['persil', 'salade_citron'],
+    couleurs: {
+      contenant: { primary: '#582F0E', secondary: '#3D1E08', accent: '#7F4F24' },
+      base: { primary: '#EA580C', secondary: '#7C2D12', accent: '#FDBA74' },
+      proteine: { primary: '#EA580C', secondary: '#9A3412', accent: '#FED7AA' },
+      garnitures: [
+        { primary: '#15803D', secondary: '#14532D', accent: '#4ADE80' },
+        { primary: '#16A34A', secondary: '#84CC16', accent: '#ECFCCB' },
+      ],
+    },
+    size: 1.0,
+    seed: 1010,
+  },
+];
+
+export const PHASE3_ASSETS: BlvAssetDefinition[] = PHASE3_RECIPES.map(dishToAssetDefinition);
+
+export const BLV_PHASE3_CATALOG: Record<string, BlvAssetDefinition> = Object.fromEntries(
+  PHASE3_ASSETS.map((asset) => [asset.id, asset])
+);

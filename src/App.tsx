@@ -321,14 +321,21 @@ export default function App() {
   const useHeldRef = useRef<() => void>(() => {});
   useHeldRef.current = () => {
     const held = heldOf(playerStateRef.current);
-    if (!held || held === HAND_ID) return;
+    if (held === HAND_ID) {
+      sceneRef.current?.triggerPunch();
+      return;
+    }
+    if (!held) return;
     setPlayerState((prev) => useHeldItem(prev));
     syncEconomy('use_item');
     soundEngine.playCashSound();
   };
 
   useEffect(() => {
-    sceneRef.current?.setHeldUseHandler(playerState.heldItemId ? () => useHeldRef.current() : null);
+    const scene = sceneRef.current;
+    if (!scene) return;
+    scene.setHeldUseHandler(playerState.heldItemId ? () => useHeldRef.current() : null);
+    scene.setHeldItem(playerState.heldItemId && playerState.heldItemId !== HAND_ID ? playerState.heldItemId : null);
   }, [playerState.heldItemId, screenState]);
 
   // PC : touche B pour ouvrir/fermer le sac.
@@ -754,6 +761,8 @@ export default function App() {
 
     sceneRef.current = mgr;
     mgr.setHeldUseHandler(playerStateRef.current.heldItemId ? () => useHeldRef.current() : null);
+    const heldAtMount = playerStateRef.current.heldItemId;
+    mgr.setHeldItem(heldAtMount && heldAtMount !== HAND_ID ? heldAtMount : null);
     mgr.setRoute(routeRef.current ? routeRef.current.points : null);
     mgr.setPlayerGender(playerStateRef.current.gender);
     // Aide au débogage et aux tests visuels : `?blvdebug` expose le gestionnaire de scène (window.__blvScene)

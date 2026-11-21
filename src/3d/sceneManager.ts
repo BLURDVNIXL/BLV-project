@@ -52,6 +52,7 @@ import { WeatherFxSystem, weatherFxMode } from './weatherFx';
 import { WaterTrafficSystem } from './waterTraffic';
 import { StreetAnimSystem } from './streetAnim';
 import { AvatarController, loadAvatar } from './avatars';
+import { createHeldObject } from './studioObjects/heldObjects';
 import { getWasmCore } from '../wasm/wasmBridge';
 import {
   type TimedBodyActionKind,
@@ -1396,6 +1397,7 @@ export class AbidjanSceneManager {
         this.playerRig.group.add(root);
         this.playerAvatarCtl = new AvatarController(root, animations);
         this.playerAvatarCtl.applyOutfit(this.playerOutfit);
+        this.applyHeldItem();
         this.playerRig.bodyPivot.visible = false;
       })
       .catch((err) => {
@@ -2147,6 +2149,27 @@ export class AbidjanSceneManager {
 
   /** Objet en main : « Interagir » (bouton ou touche E) l'utilise et ne fait rien d'autre. null = mains vides. */
   private heldUseHandler: (() => void) | null = null;
+
+  /** Objet tenu en main droite (id du catalogue) ; null = mains vides. L'objet est rattaché à l'avatar du joueur. */
+  private heldItemId: string | null = null;
+
+  public setHeldItem(itemId: string | null) {
+    this.heldItemId = itemId;
+    this.applyHeldItem();
+  }
+
+  private applyHeldItem() {
+    const ctl = this.playerAvatarCtl;
+    if (!ctl) return; // repris au chargement de l'avatar
+    const held = this.heldItemId ? createHeldObject(this.heldItemId) : null;
+    ctl.setHeldObject(held ? held.mesh : null, held?.hold);
+  }
+
+  /** Coup de poing du joueur (animation). */
+  public triggerPunch() {
+    if (this.activeTimedActionKind !== null || this.taxiRide !== null || this.drivingVehicle) return;
+    this.playerAvatarCtl?.punch();
+  }
 
   public setHeldUseHandler(handler: (() => void) | null) {
     this.heldUseHandler = handler;

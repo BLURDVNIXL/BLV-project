@@ -302,6 +302,7 @@ interface RigBones {
   leftForeArm?: THREE.Object3D;
   rightArm?: THREE.Object3D;
   rightForeArm?: THREE.Object3D;
+  rightHand?: THREE.Object3D;
   leftUpLeg?: THREE.Object3D;
   leftLeg?: THREE.Object3D;
   rightUpLeg?: THREE.Object3D;
@@ -318,6 +319,15 @@ export class AvatarController {
   private pantsMats: THREE.MeshStandardMaterial[] = [];
   private original = new Map<THREE.MeshStandardMaterial, { map: THREE.Texture | null; color: number }>();
   private bones: RigBones = {};
+  /** Objet en main : enfant de la racine de l'avatar, replacé chaque image sur la paume de la main droite. */
+  private held: { mesh: THREE.Object3D; hold: { position: [number, number, number]; rotation: [number, number, number]; scale: number } } | null = null;
+  /** Temps restant (s) du coup de poing en cours ; 0 = pas de coup. */
+  private punchLeft = 0;
+  private static readonly PUNCH_DURATION = 0.4;
+  private static readonly PALM_DISTANCE = 0.045;
+  private static readonly tmpHand = new THREE.Vector3();
+  private static readonly tmpFore = new THREE.Vector3();
+  private static readonly tmpDir = new THREE.Vector3();
 
   constructor(
     root: THREE.Object3D,
@@ -344,6 +354,7 @@ export class AvatarController {
       else if (n === 'LeftForeArm') this.bones.leftForeArm = o;
       else if (n === 'RightArm') this.bones.rightArm = o;
       else if (n === 'RightForeArm') this.bones.rightForeArm = o;
+      else if (n === 'RightHand') this.bones.rightHand = o;
       else if (n === 'LeftUpLeg') this.bones.leftUpLeg = o;
       else if (n === 'LeftLeg') this.bones.leftLeg = o;
       else if (n === 'RightUpLeg') this.bones.rightUpLeg = o;
@@ -421,6 +432,7 @@ export class AvatarController {
       if (this.bones.rightLeg) {
         this.bones.rightLeg.rotation.x += p.rightLegX;
       }
+      this.syncHeld();
       return;
     }
 
@@ -431,6 +443,53 @@ export class AvatarController {
     const action = this.actions.get(anim);
     if (action) action.timeScale = avatarTimeScale(anim, speed);
     this.mixer.update(dt);
+    if (this.punchLeft > 0) {
+      this.punchLeft = Math.max(0, this.punchLeft - dt);
+      // Coup de poing droit : le bras part vers l'avant et revient (courbe en cloche).
+      const swing = Math.sin(Math.PI * (1 - this.punchLeft / AvatarController.PUNCH_DURATION));
+      if (this.bones.rightArm) this.bones.rightArm.rotation.x -= 1.45 * swing;
+      if (this.bones.rightForeArm) this.bones.rightForeArm.rotation.x -= 0.25 * swing;
+      if (this.bones.spine) this.bones.spine.rotation.y += 0.18 * swing;
+    }
+    this.syncHeld();
+  }
+
+  /** Déclenche un coup de poing (animation du bras droit, ~0,4 s). Sans effet pendant une action chronométrée. */
+  punch() {
+    if (this.punchLeft <= 0) this.punchLeft = AvatarController.PUNCH_DURATION;
+  }
+
+  /**
+   * Place l'objet tenu (ou le retire avec null). L'objet reste droit par rapport au personnage
+   * (+Y vers le haut, +Z devant) et suit la paume de la main droite : le squelette n'a pas de doigts.
+   */
+  setHeldObject(mesh: THREE.Object3D | null, hold?: { position: [number, number, number]; rotation: [number, number, number]; scale: number }) {
+    if (this.held) this.root.remove(this.held.mesh);
+    this.held = null;
+    if (!mesh || !hold) return;
+    this.root.add(mesh);
+    this.held = { mesh, hold };
+    this.syncHeld();
+  }
+
+  private syncHeld() {
+    const held = this.held;
+    const hand = this.bones.rightHand;
+    if (!held || !hand) return;
+    const { tmpHand, tmpFore, tmpDir } = AvatarController;
+    hand.getWorldPosition(tmpHand);
+    // Paume = un peu après le poignet, dans le prolongement de l'avant-bras (indépendant des axes de l'os).
+    if (this.bones.rightForeArm) {
+      this.bones.rightForeArm.getWorldPosition(tmpFore);
+      tmpDir.subVectors(tmpHand, tmpFore).normalize();
+      tmpHand.addScaledVector(tmpDir, AvatarController.PALM_DISTANCE * this.root.getWorldScale(tmpFore).x);
+    }
+    this.root.worldToLocal(tmpHand);
+    const m = held.mesh;
+    const h = held.hold;
+    m.position.set(tmpHand.x + h.position[0], tmpHand.y + h.position[1], tmpHand.z + h.position[2]);
+    m.rotation.set(h.rotation[0], h.rotation[1], h.rotation[2]);
+    m.scale.setScalar(h.scale);
   }
 
   /** Tenue de sape : couleur unie sur `haut` et `bas` ; « standard » rend le modèle d'origine. */
