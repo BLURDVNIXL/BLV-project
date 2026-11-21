@@ -13,6 +13,10 @@
 import * as THREE from 'three';
 import { GLTFLoader, type GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
+import type { InteriorId } from '../world/interiors';
+import type { NpcRole } from '../world/npcAppearance';
+import { interiorNpcKey, interiorNpcLoadout } from './studioNpc/interiorLoadout';
+import { buildStudioActorTemplate, disposeStudioActorTemplate, type StudioActorTemplate } from './studioNpc/studioActorBuilder';
 
 export type Moment = 'day' | 'night';
 
@@ -37,6 +41,8 @@ const ZONE_OF_DISTRICT: Record<string, string> = {
 export const ACTOR_SCALE = 1.25;
 /** Nombre maximal d'acteurs simultanés (un draw call chacun + un mixer). */
 export const ACTOR_MAX = 12;
+/** Acteurs d'une salle (construits avec le studio, indépendants des 12 de la rue : la rue est désactivée à l'intérieur). */
+export const INTERIOR_ACTOR_MAX = 16;
 /** Au-delà (m) du joueur, l'acteur n'est plus animé ; au-delà de HIDE, il n'est plus dessiné. */
 const ANIM_RANGE = 45;
 const HIDE_RANGE = 100;
@@ -52,7 +58,12 @@ export class NpcActor {
   private actions: { idle?: THREE.AnimationAction; walk?: THREE.AnimationAction; talk?: THREE.AnimationAction } = {};
   private current: THREE.AnimationAction | null = null;
 
-  constructor(private readonly owner: NpcActors, readonly file: string, template: GLTF) {
+  constructor(
+    private readonly owner: NpcActors,
+    readonly file: string,
+    template: { scene: THREE.Object3D; animations: THREE.AnimationClip[] },
+    readonly interior = false
+  ) {
     const root = cloneSkinned(template.scene);
     root.traverse((o) => {
       o.frustumCulled = false;
@@ -115,6 +126,10 @@ export class NpcActors {
   private base: string;
   private moment: Moment = 'day';
   private count = 0;
+  private interiorCount = 0;
+  /** Modèles du studio de la salle courante (clé = profil) ; vidés au changement de salle. */
+  private studioTemplates = new Map<string, StudioActorTemplate | 'failed'>();
+  private studioRoom: InteriorId | null = null;
   private disposed = false;
   private manifestState: 'idle' | 'loading' | 'ready' | 'failed' = 'idle';
 
@@ -174,12 +189,47 @@ export class NpcActors {
     return new NpcActor(this, file, t);
   }
 
+  /**
+   * Acteur d'un PNJ de salle, construit avec le studio (visage, coiffure, vêtements) ; la même salle montre les
+   * mêmes personnes. `null` si la construction échoue ou si la limite de la salle est atteinte : l'appelant garde
+   * alors le PNJ de la foule. Les modèles d'une salle sont libérés quand on entre dans une autre.
+   */
+  requestInterior(room: InteriorId, role: NpcRole, seed: number): NpcActor | null {
+    if (this.disposed || this.interiorCount >= INTERIOR_ACTOR_MAX) return null;
+    if (this.studioRoom !== room) {
+      this.clearStudioTemplates();
+      this.studioRoom = room;
+    }
+    const key = interiorNpcKey(room, role, seed);
+    let t = this.studioTemplates.get(key);
+    if (t === undefined) {
+      try {
+        t = buildStudioActorTemplate(interiorNpcLoadout(room, role, seed)) ?? 'failed';
+      } catch {
+        t = 'failed';
+      }
+      this.studioTemplates.set(key, t);
+    }
+    if (t === 'failed') return null;
+    this.interiorCount++;
+    return new NpcActor(this, `studio:${key}`, t, true);
+  }
+
+  private clearStudioTemplates(): void {
+    for (const t of this.studioTemplates.values()) if (t !== 'failed') disposeStudioActorTemplate(t);
+    this.studioTemplates.clear();
+  }
+
   /** Appelé par un acteur qui se libère. */
-  onReleased(_a: NpcActor): void { this.count = Math.max(0, this.count - 1); }
+  onReleased(a: NpcActor): void {
+    if (a.interior) this.interiorCount = Math.max(0, this.interiorCount - 1);
+    else this.count = Math.max(0, this.count - 1);
+  }
 
   dispose(): void {
     this.disposed = true;
     this.group.parent?.remove(this.group);
     this.templates.clear();
+    this.clearStudioTemplates();
   }
 }

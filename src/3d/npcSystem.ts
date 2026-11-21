@@ -107,7 +107,11 @@ interface MarketVendorNpc {
 
 /** PNJ immobile d'une salle (`still` / `talk`) : instance + cercle solide, aucun personnage du pool. */
 interface InteriorStaticNpc {
-  handle: NpcHandle;
+  /** Instance de la foule (sans visage) : seulement si le modèle du studio n'a pas pu être construit. */
+  handle: NpcHandle | null;
+  /** Personnage du studio (visage, coiffure, vêtements). */
+  actor: NpcActor | null;
+  talk: boolean;
   wx: number;
   wz: number;
   baseCap: number;
@@ -522,15 +526,18 @@ export class NpcSystem {
           n.route = null;
           continue;
         }
+        // Personnage du studio ; l'instance de la foule reste cachée tant qu'il est prêt (`stepMobile`)
+        n.actor = this.actors.requestInterior(def.id, d.role, d.seed);
         used++;
         this.interiorMobile.push(n);
       } else {
-        const handle = this.crowd.acquire(generateAppearance(d.seed, { role: d.role }));
-        if (!handle) continue;
+        const actor = this.actors.requestInterior(def.id, d.role, d.seed);
+        const handle = actor ? null : this.crowd.acquire(generateAppearance(d.seed, { role: d.role }));
+        if (!actor && !handle) continue;
         const phase = d.seed * 0.37;
-        this.crowd.setPose(handle, w.x, w.z, d.rotY, phase, 0.08);
+        if (handle) this.crowd.setPose(handle, w.x, w.z, d.rotY, phase, 0.08);
         this.interiorStatics.push({
-          handle, wx: w.x, wz: w.z, baseCap: d.rotY, phase,
+          handle, actor, talk: d.behavior.kind === 'talk', wx: w.x, wz: w.z, baseCap: d.rotY, phase,
           sway: d.behavior.kind === 'talk' ? 0.3 : 0.15,
           solidId: core.addCircle(w.x, w.z, VENDOR_RADIUS, VENDOR_HEIGHT, SolidFlag.PROP),
         });
@@ -548,6 +555,7 @@ export class NpcSystem {
     this.interiorMobile.length = 0;
     for (const s of this.interiorStatics) {
       this.crowd.release(s.handle);
+      s.actor?.release();
       if (this.core && s.solidId >= 0) this.core.removeSolid(s.solidId);
     }
     this.interiorStatics.length = 0;
@@ -563,7 +571,12 @@ export class NpcSystem {
     }
     for (const s of this.interiorStatics) {
       s.phase += dt * 2.2;
-      this.crowd.setPose(s.handle, s.wx, s.wz, s.baseCap + Math.sin(s.phase * 0.7) * s.sway, s.phase, 0.08);
+      const cap = s.baseCap + Math.sin(s.phase * 0.7) * s.sway;
+      if (s.actor) {
+        s.actor.pose(s.wx, s.wz, cap, 0, s.talk ? 'talk' : 'idle', 0, dt, Math.hypot(s.wx - playerX, s.wz - playerZ));
+      } else if (s.handle) {
+        this.crowd.setPose(s.handle, s.wx, s.wz, cap, s.phase, 0.08);
+      }
     }
     this.crowd.commit(this.time);
   }

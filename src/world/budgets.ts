@@ -13,8 +13,11 @@
 
 // ───────────── PNJ (`NpcSystem`) ─────────────
 
-/** PNJ mobiles actifs au plus (piétons + clients du marché), personnages du moteur physique (max 128 au total). */
-export const NPC_POOL_SIZE = 44;
+/**
+ * PNJ mobiles actifs au plus (piétons + clients du marché), personnages du moteur physique (max 128 au total).
+ * 24 = 12 acteurs (personnages chibi, `ACTOR_MAX`) + 12 PNJ de la foule instanciée. Les intérieurs n'utilisent que des acteurs.
+ */
+export const NPC_POOL_SIZE = 24;
 /** Idem sans accélération graphique (rendu logiciel). */
 export const NPC_POOL_SIZE_LOW = 16;
 /**

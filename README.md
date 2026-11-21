@@ -52,6 +52,12 @@ Chargement du monde (côté client, sur l'appareil de chaque joueur) :
 - Au démarrage, à un chargement de sauvegarde et à l'arrivée d'un taxi, l'écran reste noir (simple fondu, pas d'écran de chargement) jusqu'à ce que les chunks autour du joueur soient construits.
 - Pendant un trajet en taxi, la route jusqu'à la destination est préchargée (`routePreload.ts`) ; la cinématique ne dépasse jamais ce qui est chargé.
 
+PNJ (`src/3d/npcSystem.ts`, `src/3d/npcActors.ts`, `src/3d/studioNpc/`) :
+- Dans la rue : 12 PNJ de la foule instanciée (anciens, sans visage) et 12 acteurs (GLB de `public/npcs`), soit 24 PNJ mobiles (`NPC_POOL_SIZE`).
+- Dans les salles : uniquement des acteurs, construits à l'entrée avec le studio PNJ (visage, coiffure, vêtements), jamais la foule instanciée sauf si la construction échoue. Le quartier du studio dépend de la salle (`interiorLoadout.ts`), le profil de la graine du PNJ : la même salle montre toujours les mêmes personnes.
+- Chaque personnage du studio est fusionné en 1 mesh skinné (couleurs de sommets, motifs de tissu aplatis, verres transparents écartés), comme les GLB. Limite de 16 acteurs par salle (`INTERIOR_ACTOR_MAX`).
+- `src/3d/studioNpc/` est une copie du studio PNJ (BLV — Babi Life Vibes Asset Studio) : les changements de profils ou de vêtements se font dans le studio, puis on recopie les fichiers.
+
 ### Moteur physique
 
 Le moteur physique est développé en C++ et compilé en WebAssembly.
