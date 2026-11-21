@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { ALL_ITEMS } from '../../core/items';
-import { createHeldObject } from './heldObjects';
+import { createHeldObject, HOLD_SCALE, CONTAINER_SCALE } from './heldObjects';
 import { MENU_RECIPES } from './menuRecipes';
 import { assemble, MAX_DISH_TRIANGLES } from './assemble';
 
@@ -31,4 +31,13 @@ test('recettes du menu : composants connus, assemblage ≤ 800 triangles, déter
     assert.ok(tris(a as never) <= MAX_DISH_TRIANGLES, `${recipe.id} : ${tris(a as never)} triangles`);
     assert.deepEqual(Array.from(a.getAttribute('position').array), Array.from(b.getAttribute('position').array), `${recipe.id} non déterministe`);
   }
+});
+
+test('échelle des plats : taille réelle de base, contenants étroits légèrement agrandis', () => {
+  assert.equal(HOLD_SCALE.plat, 1);
+  for (const [name, k] of Object.entries(CONTAINER_SCALE)) assert.ok(k >= 1 && k <= 1.5, `${name} : ${k}`);
+  const plate = createHeldObject('poulet_braise_demi')!;
+  const pot = createHeldObject('kedjenou_poulet')!;
+  assert.ok(plate.hold.scale >= 1, 'assiette : pas de réduction');
+  assert.ok(pot.hold.scale > plate.hold.scale, 'pot de kédjénou agrandi par rapport à l’assiette');
 });

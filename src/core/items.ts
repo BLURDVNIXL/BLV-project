@@ -206,119 +206,122 @@ packaged('dentifrice_vert', 'Dentifrice fraîcheur verte', 'hygiene', '🪥', 50
 packaged('brosse_dents', 'Brosse à dents', 'hygiene', '🪥', 300, 'brosse_dents', 'Brosse bleue', { hygiene: 10 });
 packaged('deodorant_sport', 'Déodorant sport', 'hygiene', '🧴', 1000, 'deodorant', 'Spray sport', { hygiene: 10, envy: 8 });
 packaged('deodorant_fraicheur', 'Déodorant fraîcheur', 'hygiene', '🧴', 1000, 'deodorant', 'Spray fraîcheur', { hygiene: 10, envy: 8 });
-packaged('parfum_ambre', 'Parfum ambre doré', 'hygiene', '🧴', 5000, 'flacon_parfum', 'Ambre doré', { hygiene: 5, envy: 15 });
-packaged('eau_de_cologne', 'Eau de Cologne', 'hygiene', '🧴', 2500, 'flacon_parfum', 'Eau de rose', { hygiene: 5, envy: 12 });
-packaged('brume_corporelle', 'Brume corporelle nuit bleue', 'hygiene', '🧴', 2000, 'flacon_parfum', 'Nuit bleue', { hygiene: 4, envy: 10 });
+packaged('parfum_ambre', 'Parfum ambre doré', 'hygiene', '🧴', 3000, 'flacon_parfum', 'Ambre doré', { hygiene: 5, envy: 15 });
+packaged('eau_de_cologne', 'Eau de Cologne', 'hygiene', '🧴', 2000, 'flacon_parfum', 'Eau de rose', { hygiene: 5, envy: 12 });
+packaged('brume_corporelle', 'Brume corporelle nuit bleue', 'hygiene', '🧴', 1500, 'flacon_parfum', 'Nuit bleue', { hygiene: 4, envy: 10 });
 
 // ───────────────────────────── Divers ─────────────────────────────
-packaged('parapluie_bleu', 'Parapluie bleu-blanc', 'divers', '☂️', 3000, 'parapluie', 'Parapluie Abidjan bleu-blanc', {}, false);
-packaged('parapluie_rouge', 'Parapluie rouge-jaune', 'divers', '☂️', 3000, 'parapluie', 'Parapluie rouge-jaune', {}, false);
-packaged('parapluie_noir', 'Parapluie noir classique', 'divers', '☂️', 3500, 'parapluie', 'Parapluie noir classique', {}, false);
+packaged('parapluie_bleu', 'Parapluie bleu-blanc', 'divers', '☂️', 2000, 'parapluie', 'Parapluie Abidjan bleu-blanc', {}, false);
+packaged('parapluie_rouge', 'Parapluie rouge-jaune', 'divers', '☂️', 2000, 'parapluie', 'Parapluie rouge-jaune', {}, false);
+packaged('parapluie_noir', 'Parapluie noir classique', 'divers', '☂️', 2500, 'parapluie', 'Parapluie noir classique', {}, false);
 
 // ───────────────────────────── Plats et boissons du maquis ─────────────────────────────
 
 type DishWhere = 'm' | 'h' | 'mh';
 
-/** Effets d'un plat selon son prix de base : un plat cher rassasie et fait plus plaisir (plafonnés). */
+/**
+ * Effets d'un plat selon son prix de base (échelle maquis 100 à 3 000 F) : un plat cher rassasie et fait plus plaisir.
+ * Repères : 100 F → faim +12 ; 1 000 F → +30 ; 2 000 F → +50 ; 3 000 F → +70 (plafonné à 80).
+ */
 function dishEffects(price: number): ItemEffects {
   return {
-    hunger: Math.min(80, Math.round(8 + price / 80)),
-    envy: Math.min(60, Math.round(10 + price / 150)),
+    hunger: Math.min(80, Math.round(10 + price / 50)),
+    envy: Math.min(60, Math.round(8 + price / 100)),
     bladder: -10,
   };
 }
 
-/** [id, nom, prix de base maquis, lieux, icône, recette du studio (si elle existe, sinon l'id du plat)] */
+/** [id, nom, prix de base maquis (100 à 3 000 F), lieux, icône, recette du studio (si elle existe, sinon l'id du plat)] */
 type DishRow = [string, string, number, DishWhere, string];
 
 const DISH_ROWS: DishRow[] = [
   // Volailles et viandes
-  ['poulet_braise_demi', 'Poulet braisé (demi)', 3500, 'm', '🍗'],
-  ['poulet_braise_entier', 'Poulet braisé (entier)', 6500, 'm', '🍗'],
-  ['poulet_saute', 'Poulet sauté', 3500, 'm', '🍗'],
-  ['kedjenou_poulet', 'Kédjénou de poulet', 4000, 'm', '🍲'],
-  ['kedjenou_poulet_bicyclette', 'Kédjénou de poulet bicyclette', 5000, 'm', '🍲'],
-  ['poulet_braise_kedjenou', 'Poulet braisé au kédjénou', 4500, 'm', '🍲'],
-  ['pintade_braisee_kedjenou', 'Pintade braisée au kédjénou', 5500, 'm', '🍲'],
-  ['kedjenou_pintade', 'Kédjénou de pintade', 5500, 'm', '🍲'],
-  ['lapin_braise_kedjenou', 'Lapin braisé au kédjénou', 5000, 'm', '🍲'],
-  ['lapin_braise_demi', 'Lapin braisé (demi)', 4500, 'm', '🍖'],
-  ['kedjenou_lapin', 'Kédjénou de lapin', 5000, 'm', '🍲'],
-  ['steak_boeuf_grille', 'Steak de bœuf grillé', 4000, 'h', '🥩'],
-  ['steak_poivre', 'Steak au poivre', 4500, 'h', '🥩'],
-  ['steak_hache', 'Steak de viande hachée', 3000, 'h', '🥩'],
-  ['entrecote_boeuf', 'Entrecôte de bœuf', 5500, 'h', '🥩'],
-  ['brochette_filet_boeuf', 'Brochette de filet de bœuf', 2500, 'm', '🍢'],
-  ['filet_soukouya', 'Filet de soukouya', 4500, 'm', '🥩'],
-  ['brochette_soukouya', 'Brochette de soukouya', 2500, 'm', '🍢'],
-  ['cotelette_porc', 'Côtelette de porc', 4000, 'h', '🥩'],
-  ['mouton_braise', 'Mouton braisé', 5000, 'm', '🍖'],
-  ['kedjenou_mouton', 'Kédjénou de mouton', 5500, 'm', '🍲'],
-  ['brochette_mouton', 'Brochette de mouton braisé', 2500, 'm', '🍢'],
-  ['agouti_braise', 'Agouti braisé', 6000, 'm', '🍖'],
+  ['poulet_braise_demi', 'Poulet braisé (demi)', 1500, 'm', '🍗'],
+  ['poulet_braise_entier', 'Poulet braisé (entier)', 3000, 'm', '🍗'],
+  ['poulet_saute', 'Poulet sauté', 1500, 'm', '🍗'],
+  ['kedjenou_poulet', 'Kédjénou de poulet', 2000, 'm', '🍲'],
+  ['kedjenou_poulet_bicyclette', 'Kédjénou de poulet bicyclette', 2500, 'm', '🍲'],
+  ['poulet_braise_kedjenou', 'Poulet braisé au kédjénou', 2000, 'm', '🍲'],
+  ['pintade_braisee_kedjenou', 'Pintade braisée au kédjénou', 2500, 'm', '🍲'],
+  ['kedjenou_pintade', 'Kédjénou de pintade', 2500, 'm', '🍲'],
+  ['lapin_braise_kedjenou', 'Lapin braisé au kédjénou', 2500, 'm', '🍲'],
+  ['lapin_braise_demi', 'Lapin braisé (demi)', 2000, 'm', '🍖'],
+  ['kedjenou_lapin', 'Kédjénou de lapin', 2500, 'm', '🍲'],
+  ['steak_boeuf_grille', 'Steak de bœuf grillé', 2000, 'h', '🥩'],
+  ['steak_poivre', 'Steak au poivre', 2500, 'h', '🥩'],
+  ['steak_hache', 'Steak de viande hachée', 1500, 'h', '🥩'],
+  ['entrecote_boeuf', 'Entrecôte de bœuf', 3000, 'h', '🥩'],
+  ['brochette_filet_boeuf', 'Brochette de filet de bœuf', 700, 'm', '🍢'],
+  ['filet_soukouya', 'Filet de soukouya', 2000, 'm', '🥩'],
+  ['brochette_soukouya', 'Brochette de soukouya', 700, 'm', '🍢'],
+  ['cotelette_porc', 'Côtelette de porc', 2000, 'h', '🥩'],
+  ['mouton_braise', 'Mouton braisé', 2500, 'm', '🍖'],
+  ['kedjenou_mouton', 'Kédjénou de mouton', 2500, 'm', '🍲'],
+  ['brochette_mouton', 'Brochette de mouton braisé', 700, 'm', '🍢'],
+  ['agouti_braise', 'Agouti braisé', 3000, 'm', '🍖'],
   // Poissons
-  ['carpe_braisee_petite', 'Carpe braisée (petite)', 3500, 'm', '🐟'],
-  ['carpe_braisee_grande', 'Carpe braisée (grande)', 5500, 'm', '🐟'],
-  ['dorade_braisee', 'Dorade braisée', 5500, 'mh', '🐟'],
-  ['sole_braisee', 'Sole braisée', 5000, 'mh', '🐟'],
-  ['capitaine_braise', 'Capitaine braisé', 6500, 'm', '🐟'],
-  ['machoiron_braise_petit', 'Machoiron braisé (petit)', 4000, 'm', '🐟'],
-  ['machoiron_braise_grand', 'Machoiron braisé (grand)', 6000, 'm', '🐟'],
-  ['poisson_braise', 'Poisson braisé', 4000, 'm', '🐟'],
-  ['carpe_grillee', 'Carpe grillée', 4000, 'm', '🐟'],
-  ['dorade_grillee', 'Dorade grillée', 5500, 'mh', '🐟'],
-  ['sole_grillee', 'Sole grillée', 5000, 'mh', '🐟'],
-  ['poisson_grille', 'Poisson grillé', 4000, 'm', '🐟'],
-  ['capitaine_saute', 'Capitaine sauté', 6500, 'm', '🐟'],
-  ['kedjenou_poisson', 'Kédjénou de poisson', 5000, 'm', '🍲'],
-  ['poisson_braise_kedjenou', 'Poisson braisé au kédjénou', 5000, 'm', '🍲'],
+  ['carpe_braisee_petite', 'Carpe braisée (petite)', 1500, 'm', '🐟'],
+  ['carpe_braisee_grande', 'Carpe braisée (grande)', 2500, 'm', '🐟'],
+  ['dorade_braisee', 'Dorade braisée', 2500, 'mh', '🐟'],
+  ['sole_braisee', 'Sole braisée', 2500, 'mh', '🐟'],
+  ['capitaine_braise', 'Capitaine braisé', 3000, 'm', '🐟'],
+  ['machoiron_braise_petit', 'Machoiron braisé (petit)', 1500, 'm', '🐟'],
+  ['machoiron_braise_grand', 'Machoiron braisé (grand)', 2500, 'm', '🐟'],
+  ['poisson_braise', 'Poisson braisé', 1500, 'm', '🐟'],
+  ['carpe_grillee', 'Carpe grillée', 1500, 'm', '🐟'],
+  ['dorade_grillee', 'Dorade grillée', 2500, 'mh', '🐟'],
+  ['sole_grillee', 'Sole grillée', 2500, 'mh', '🐟'],
+  ['poisson_grille', 'Poisson grillé', 1500, 'm', '🐟'],
+  ['capitaine_saute', 'Capitaine sauté', 3000, 'm', '🐟'],
+  ['kedjenou_poisson', 'Kédjénou de poisson', 2000, 'm', '🍲'],
+  ['poisson_braise_kedjenou', 'Poisson braisé au kédjénou', 2000, 'm', '🍲'],
   // Crustacés et fruits de mer
-  ['crevettes_sautees', 'Crevettes sautées', 4500, 'h', '🦐'],
-  ['crevettes_braisees', 'Crevettes braisées', 4500, 'h', '🦐'],
-  ['crevettes_brochette', 'Crevettes en brochette', 3500, 'h', '🍢'],
-  ['ecrevisses', 'Écrevisses', 5000, 'h', '🦞'],
-  ['brochette_ecrevisses', 'Brochette d’écrevisses', 3500, 'h', '🍢'],
-  ['gambas', 'Gambas', 6500, 'h', '🦐'],
-  ['langouste', 'Langouste', 12000, 'h', '🦞'],
-  ['assiette_crevettes', 'Assiette de crevettes', 5500, 'h', '🦐'],
-  ['assiette_ecrevisses', 'Assiette d’écrevisses', 6000, 'h', '🦞'],
-  ['assiette_gambas', 'Assiette de gambas', 8000, 'h', '🦐'],
-  ['assiette_pecheur', 'Assiette du pêcheur', 9000, 'h', '🦞'],
+  ['crevettes_sautees', 'Crevettes sautées', 2000, 'h', '🦐'],
+  ['crevettes_braisees', 'Crevettes braisées', 2000, 'h', '🦐'],
+  ['crevettes_brochette', 'Crevettes en brochette', 1500, 'h', '🍢'],
+  ['ecrevisses', 'Écrevisses', 2500, 'h', '🦞'],
+  ['brochette_ecrevisses', 'Brochette d’écrevisses', 1500, 'h', '🍢'],
+  ['gambas', 'Gambas', 3000, 'h', '🦐'],
+  ['langouste', 'Langouste', 3000, 'h', '🦞'],
+  ['assiette_crevettes', 'Assiette de crevettes', 2500, 'h', '🦐'],
+  ['assiette_ecrevisses', 'Assiette d’écrevisses', 2500, 'h', '🦞'],
+  ['assiette_gambas', 'Assiette de gambas', 3000, 'h', '🦐'],
+  ['assiette_pecheur', 'Assiette du pêcheur', 3000, 'h', '🦞'],
   // Escargots et autres spécialités
-  ['escargots_grilles', 'Escargots grillés', 3000, 'm', '🐌'],
-  ['brochette_escargots', 'Brochette d’escargots', 2500, 'm', '🍢'],
-  ['kedjenou_escargots', 'Kédjénou d’escargots', 4500, 'm', '🍲'],
-  ['brochette_gesiers', 'Brochette de gésiers de poulet', 1500, 'm', '🍢'],
-  ['gesiers_sautes', 'Gésiers sautés', 2000, 'm', '🍗'],
-  ['saucisses_sautees', 'Saucisses sautées', 2000, 'm', '🌭'],
-  ['merguez_grillees', 'Merguez grillées', 2000, 'm', '🌭'],
+  ['escargots_grilles', 'Escargots grillés', 1500, 'm', '🐌'],
+  ['brochette_escargots', 'Brochette d’escargots', 700, 'm', '🍢'],
+  ['kedjenou_escargots', 'Kédjénou d’escargots', 2000, 'm', '🍲'],
+  ['brochette_gesiers', 'Brochette de gésiers de poulet', 400, 'm', '🍢'],
+  ['gesiers_sautes', 'Gésiers sautés', 800, 'm', '🍗'],
+  ['saucisses_sautees', 'Saucisses sautées', 800, 'm', '🌭'],
+  ['merguez_grillees', 'Merguez grillées', 800, 'm', '🌭'],
   // Plats africains et spécialités locales
-  ['kedjenou_ecrevisses', 'Kédjénou d’écrevisses', 5500, 'm', '🍲'],
-  ['attieke_braise_kedjenou', 'Attiéké braisé au kédjénou', 4500, 'm', '🍲'],
-  ['attieke', 'Attiéké', 500, 'm', '🍚'],
-  ['attieke_boeuf', 'Attiéké au bœuf', 3000, 'm', '🍚'],
-  ['garba_abidjan', 'Garba d’Abidjan', 1500, 'm', '🐟'],
-  ['riz_sauce_graine', 'Riz sauce graine & mouton', 3500, 'm', '🍲'],
+  ['kedjenou_ecrevisses', 'Kédjénou d’écrevisses', 2500, 'm', '🍲'],
+  ['attieke_braise_kedjenou', 'Attiéké braisé au kédjénou', 2000, 'm', '🍲'],
+  ['attieke', 'Attiéké', 100, 'm', '🍚'],
+  ['attieke_boeuf', 'Attiéké au bœuf', 1500, 'm', '🍚'],
+  ['garba_abidjan', 'Garba d’Abidjan', 500, 'm', '🐟'],
+  ['riz_sauce_graine', 'Riz sauce graine & mouton', 1500, 'm', '🍲'],
   // Plats européens
-  ['spaghettis_bolognaise', 'Spaghettis bolognaise', 3000, 'h', '🍝'],
+  ['spaghettis_bolognaise', 'Spaghettis bolognaise', 1500, 'h', '🍝'],
   // Accompagnements
-  ['riz_blanc', 'Riz blanc parfumé', 500, 'm', '🍚'],
-  ['riz_exotique', 'Riz exotique', 1000, 'h', '🍚'],
-  ['riz_exotique_boeuf', 'Riz exotique au bœuf', 2500, 'h', '🍚'],
-  ['alloco', 'Alloco (banane plantain)', 800, 'm', '🍌'],
-  ['frites', 'Frites', 1000, 'm', '🍟'],
-  ['patates_douces_frites', 'Patates douces frites', 1000, 'h', '🍠'],
+  ['riz_blanc', 'Riz blanc parfumé', 200, 'm', '🍚'],
+  ['riz_exotique', 'Riz exotique', 500, 'h', '🍚'],
+  ['riz_exotique_boeuf', 'Riz exotique au bœuf', 1500, 'h', '🍚'],
+  ['alloco', 'Alloco (banane plantain)', 300, 'm', '🍌'],
+  ['frites', 'Frites', 400, 'm', '🍟'],
+  ['patates_douces_frites', 'Patates douces frites', 500, 'h', '🍠'],
   // Barquettes et entrées
-  ['accras_poisson', 'Accras de poisson', 1000, 'm', '🧆'],
-  ['petite_barquette', 'Petite barquette', 1500, 'm', '🥡'],
-  ['grande_barquette', 'Grande barquette', 3000, 'm', '🥡'],
-  ['canapes_froids', 'Canapés froids', 2000, 'h', '🥪'],
-  ['canapes_chauds', 'Canapés chauds', 2000, 'h', '🥪'],
+  ['accras_poisson', 'Accras de poisson', 300, 'm', '🧆'],
+  ['petite_barquette', 'Petite barquette', 800, 'm', '🥡'],
+  ['grande_barquette', 'Grande barquette', 1500, 'm', '🥡'],
+  ['canapes_froids', 'Canapés froids', 1000, 'h', '🥪'],
+  ['canapes_chauds', 'Canapés chauds', 1000, 'h', '🥪'],
   // Traiteur et desserts
-  ['gigot_agneau', 'Gigot d’agneau doré', 12000, 'h', '🍖'],
-  ['mechoui_farci', 'Méchoui farci', 20000, 'h', '🍖'],
-  ['cochon_de_lait', 'Cochon de lait', 25000, 'h', '🐖'],
-  ['mini_patisserie', 'Mini-pâtisserie', 2500, 'h', '🧁'],
+  ['gigot_agneau', 'Gigot d’agneau doré', 3000, 'h', '🍖'],
+  ['mechoui_farci', 'Méchoui farci', 3000, 'h', '🍖'],
+  ['cochon_de_lait', 'Cochon de lait', 3000, 'h', '🐖'],
+  ['mini_patisserie', 'Mini-pâtisserie', 1000, 'h', '🧁'],
 ];
 
 const DISH_WHERE = new Map<string, DishWhere>();
@@ -343,7 +346,7 @@ ITEMS.push(
     name: 'Bissap 50 cl',
     category: 'boisson',
     icon: '🍹',
-    price: 500,
+    price: 300,
     effects: { energy: 8, envy: 8, bladder: -9 },
     consumable: true,
     model: { kind: 'shape', shape: 'verre_paille', preset: 'Bissap glacé' },
@@ -353,7 +356,7 @@ ITEMS.push(
     name: 'Bissap 1,5 L',
     category: 'boisson',
     icon: '🍹',
-    price: 1500,
+    price: 1000,
     effects: { energy: 10, envy: 10, bladder: -14 },
     consumable: true,
     model: { kind: 'shape', shape: 'bouteille_grande', preset: 'Jus bissap 1,5 L' },

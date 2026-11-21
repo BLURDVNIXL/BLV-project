@@ -143,3 +143,19 @@ test('sauvegarde serveur : l’inventaire est conservé, validé, et les ancienn
   const unknown = normalizeSessionState({ ...s, inventory: [{ itemId: 'supprime', qty: 1 }] }, identity);
   assert.deepEqual(bagOf(unknown!), []);
 });
+
+test('échelle de prix : maquis 100 à 3 000 F, Akwaba Eats ≤ 3 900 F, hôtel Ivoire ≤ 6 000 F, aucun objet de base au-delà de 3 000 F', () => {
+  for (const item of ALL_ITEMS) assert.ok(item.price <= 3000, `${item.id} : ${item.price} F de base (max 3 000)`);
+  for (const [placeId, max] of [['maquis', 3000], ['akwaba', 3900], ['hotel_ivoire', 6000]] as const) {
+    for (const id of PLACE_MENUS[placeId].itemIds) {
+      const price = placePrice(id, placeId);
+      assert.ok(price >= 100 && price <= max, `${placeId} / ${id} : ${price} F (attendu 100 à ${max})`);
+    }
+  }
+});
+
+test('effets des plats : un plat cher rassasie plus, restent dans les bornes', () => {
+  const small = getItem('attieke')!.effects.hunger!;
+  const big = getItem('poulet_braise_entier')!.effects.hunger!;
+  assert.ok(small >= 5 && big > small && big <= 80, `faim ${small} → ${big}`);
+});

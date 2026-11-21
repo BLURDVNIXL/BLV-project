@@ -20,10 +20,11 @@ export interface HeldObject {
 
 /**
  * Calibration de départ par catégorie, à régler en jeu (le personnage est un chibi) : échelle de l'objet tenu.
- * Les plats du studio sont à taille réelle (assiette ≈ 23 cm) : réduits pour tenir dans une main.
+ * Les plats gardent leur taille réelle (assiette ≈ 23 cm) : la réduction globale de 0,7 les rendait trop petits.
+ * L'ajustement fin se fait par contenant (CONTAINER_SCALE).
  */
 export const HOLD_SCALE: Record<ItemCategory, number> = {
-  plat: 0.7,
+  plat: 1,
   boisson: 1,
   snack: 1,
   pain: 1,
@@ -32,6 +33,20 @@ export const HOLD_SCALE: Record<ItemCategory, number> = {
   laitier: 1,
   hygiene: 1,
   divers: 1,
+};
+
+/**
+ * Multiplicateur d'échelle d'un plat selon son contenant, en plus de HOLD_SCALE.plat.
+ * Les contenants étroits (pot de kédjénou, cornet, bol) paraissent petits à côté d'une assiette : on les agrandit un peu.
+ * Valeurs de départ à régler en jeu, un contenant à la fois.
+ */
+export const CONTAINER_SCALE: Record<string, number> = {
+  assiette: 1,
+  planche: 1,
+  barquette: 1.1,
+  bol: 1.15,
+  cornet_plat: 1.2,
+  pot_kedjenou: 1.25,
 };
 
 let sharedMaterial: THREE.MeshStandardMaterial | null = null;
@@ -51,6 +66,7 @@ function buildFor(itemId: string): Built | null {
   if (!item) return null;
   const model = item.model;
   let built: Built | null = null;
+  let containerK = 1;
   if (model.kind === 'shape') {
     const asset = BLV_PHASE1_CATALOG[model.shape];
     if (!asset) return null;
@@ -62,8 +78,9 @@ function buildFor(itemId: string): Built | null {
     const contenant = recipe ? BLV_PHASE2_CATALOG[recipe.contenant] : undefined;
     if (!recipe || !contenant) return null;
     built = { geometry: assemble(recipe), hold: contenant.hold };
+    containerK = CONTAINER_SCALE[recipe.contenant] ?? 1;
   }
-  const k = HOLD_SCALE[item.category] ?? 1;
+  const k = (HOLD_SCALE[item.category] ?? 1) * containerK;
   return { geometry: built.geometry, hold: { ...built.hold, scale: built.hold.scale * k } };
 }
 
