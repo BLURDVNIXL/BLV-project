@@ -27,7 +27,9 @@ import { isCommissariatId, isMairieId, isPetitHotelId } from './civicSites';
 import { districtAt, isWater } from './abidjanGeography';
 import { roadAt } from './roads';
 import { hash32 } from './rng';
-import { Buf, addHipRoof, addPrism, addRichTree, renderDecorProp } from './decorMeshes';
+import { Buf, addHipRoof, addPrism, addRichTree, geometryFromData, renderDecorProp, type BufData } from './decorMeshes';
+import { getBakeLod, setBakeLod } from './studioBake';
+import type { LodLevel } from './lod';
 
 export interface ChunkMaterials {
   facade: THREE.MeshStandardMaterial;
@@ -770,22 +772,119 @@ function renderDecorPlan(
   }
 }
 
+/** Géométrie complète d'un chunk en tableaux typés : construite dans le Worker, transférée sans copie. */
+export interface ChunkBuffers {
+  facade: BufData | null;
+  plain: BufData | null;
+  signs: BufData | null;
+  trees: BufData | null;
+  lamps: BufData | null;
+  puddles: BufData | null;
+  solids: ChunkSolid[];
+  venues: StreetVenueDecor[];
+  /** Niveau de détail réellement appliqué aux modèles du studio (0 = original). */
+  lod: LodLevel;
+}
+
+const BUFFER_KEYS = ['facade', 'plain', 'signs', 'trees', 'lamps', 'puddles'] as const;
+
+/** ArrayBuffers à passer en liste de transfert à postMessage. */
+export function bufferTransferList(b: ChunkBuffers): ArrayBuffer[] {
+  const out: ArrayBuffer[] = [];
+  for (const k of BUFFER_KEYS) {
+    const d = b[k];
+    if (d) out.push(d.pos.buffer as ArrayBuffer, d.nor.buffer as ArrayBuffer, d.uv.buffer as ArrayBuffer, d.col.buffer as ArrayBuffer, d.idx.buffer as ArrayBuffer);
+  }
+  return out;
+}
+
+/**
+ * Construit toute la géométrie d'un chunk (bâtiments, décor, arbres) sans toucher à Three.js côté GPU : exécutable
+ * dans un Worker. `lod` ne change que les modèles du studio (arbres, plantes, galets…) ; placement, collisions et
+ * bâtiments sont identiques à tous les niveaux. Le niveau 0 reproduit exactement le rendu d'origine.
+ */
+export function buildChunkBuffers(data: ChunkData, lod: LodLevel = 0): ChunkBuffers {
+  const previous = getBakeLod();
+  setBakeLod(lod);
+  const applied = getBakeLod();
+  try {
+    const x0 = data.cx * CHUNK;
+    const z0 = data.cz * CHUNK;
+    const HERO_LANDMARKS = new Set([
+      'port_collider', 'stade', 'cathedrale', 'hotel_ivoire', 'lycee_caiman', 'lycee_alysma',
+      'lycee_alex', 'marche_adjame', 'port', 'maquis', 'mairie', 'palais_culture', 'aeroport',
+    ]);
+    const facade = new Buf();
+    const plain = new Buf();
+    const tb = new Buf();
+    const lamps = new Buf();
+    const puddles = new Buf();
+    const signs = new Buf();
+
+    data.buildings.forEach((b, i) => {
+      if (b.landmark && (HERO_LANDMARKS.has(b.landmark) || isHospitalId(b.landmark) || isMairieId(b.landmark) || isCommissariatId(b.landmark) || isPetitHotelId(b.landmark))) return;
+      addBuilding(facade, plain, tb, lamps, b, i);
+    });
+
+    const decorPlan = collectChunkDecor(data);
+    renderDecorPlan(facade, plain, tb, lamps, puddles, signs, decorPlan);
+
+    const primaryDistrict = data.buildings[0]?.district ?? districtAt({ x: x0 + CHUNK / 2, z: z0 + CHUNK / 2 }).id;
+    data.trees.forEach((t, i) => {
+      const h = Math.abs(Math.floor(t.x * 7 + t.z * 13 + i)) | 0;
+      addRichTree(plain, tb, t.x, t.z, t.h, h, primaryDistrict);
+    });
+
+    return {
+      facade: facade.toData(),
+      plain: plain.toData(),
+      signs: signs.toData(),
+      trees: tb.toData(),
+      lamps: lamps.toData(),
+      puddles: puddles.toData(),
+      solids: decorPlan.solids,
+      venues: decorPlan.venues,
+      lod: applied,
+    };
+  } finally {
+    setBakeLod(previous);
+  }
+}
+
 export interface ChunkObjects {
   group: THREE.Group;
   solids: ChunkSolid[];
   venues: StreetVenueDecor[];
+  /** Niveau de détail actuellement affiché. */
+  lod: LodLevel;
+  /**
+   * Remplace la géométrie de détail (tout sauf le sol) par celle d'un autre niveau de détail : l'ancienne reste
+   * affichée jusqu'à cet appel, qui est un échange immédiat (aucune image sans arbres, aucun flou).
+   */
+  swapDetail(buffers: ChunkBuffers, mats: ChunkMaterials): void;
+  /** Active/désactive la projection d'ombres (chunks hors de la carte d'ombre). */
+  setShadowCasting(on: boolean): void;
   dispose(): void;
 }
 
-/** Construit les objets Three.js d'un chunk (sol + architecture + végétation + mobilier de rue). */
-export function buildChunkObjects(
+/** Matériau → projette une ombre quand les ombres sont actives pour ce chunk. */
+const CASTS_SHADOW: Record<(typeof BUFFER_KEYS)[number], boolean> = {
+  facade: true, plain: true, signs: false, trees: true, lamps: false, puddles: false,
+};
+const RECEIVES_SHADOW: Record<(typeof BUFFER_KEYS)[number], boolean> = {
+  facade: true, plain: true, signs: false, trees: false, lamps: false, puddles: false,
+};
+
+/** Crée les objets Three.js (appels de dessin) à partir de la géométrie déjà construite : quelques millisecondes. */
+export function assembleChunkObjects(
   data: ChunkData,
+  buffers: ChunkBuffers,
   ground: Uint8Array,
   groundSize: number,
   mats: ChunkMaterials
 ): ChunkObjects {
   const group = new THREE.Group();
-  const disposables: Array<{ dispose(): void }> = [];
+  const groundDisposables: Array<{ dispose(): void }> = [];
 
   // Sol
   const x0 = data.cx * CHUNK;
@@ -809,78 +908,64 @@ export function buildChunkObjects(
   const gmesh = new THREE.Mesh(gg, gmat);
   gmesh.receiveShadow = true;
   group.add(gmesh);
-  disposables.push(gg, tex, gmat);
+  groundDisposables.push(gg, tex, gmat);
 
-  const HERO_LANDMARKS = new Set([
-    'port_collider', 'stade', 'cathedrale', 'hotel_ivoire', 'lycee_caiman', 'lycee_alysma',
-    'lycee_alex', 'marche_adjame', 'port', 'maquis', 'mairie', 'palais_culture', 'aeroport',
-  ]);
-  const facade = new Buf();
-  const plain = new Buf();
-  const tb = new Buf();
-  const lamps = new Buf();
-  const puddles = new Buf();
-  const signs = new Buf();
+  let detail: Array<{ mesh: THREE.Mesh; key: (typeof BUFFER_KEYS)[number]; geo: THREE.BufferGeometry }> = [];
+  let shadows = true;
 
-  data.buildings.forEach((b, i) => {
-    if (b.landmark && (HERO_LANDMARKS.has(b.landmark) || isHospitalId(b.landmark) || isMairieId(b.landmark) || isCommissariatId(b.landmark) || isPetitHotelId(b.landmark))) return;
-    addBuilding(facade, plain, tb, lamps, b, i);
-  });
+  const addDetail = (b: ChunkBuffers, m: ChunkMaterials): void => {
+    const matFor: Record<(typeof BUFFER_KEYS)[number], THREE.Material> = {
+      facade: m.facade, plain: m.plain, signs: m.signs, trees: m.trees, lamps: m.lamps, puddles: m.puddles,
+    };
+    // Même ordre qu'avant : façades, plain, enseignes, arbres, lampes, flaques.
+    for (const key of BUFFER_KEYS) {
+      const d = b[key];
+      if (!d) continue;
+      const geo = geometryFromData(d);
+      const mesh = new THREE.Mesh(geo, matFor[key]);
+      mesh.castShadow = CASTS_SHADOW[key] && shadows;
+      mesh.receiveShadow = RECEIVES_SHADOW[key];
+      group.add(mesh);
+      detail.push({ mesh, key, geo });
+    }
+  };
+  addDetail(buffers, mats);
 
-  const decorPlan = collectChunkDecor(data);
-  renderDecorPlan(facade, plain, tb, lamps, puddles, signs, decorPlan);
+  const objects: ChunkObjects = {
+    group,
+    solids: buffers.solids,
+    venues: buffers.venues,
+    lod: buffers.lod,
+    swapDetail(next, m) {
+      const old = detail;
+      detail = [];
+      addDetail(next, m);
+      for (const o of old) {
+        group.remove(o.mesh);
+        o.geo.dispose();
+      }
+      objects.lod = next.lod;
+    },
+    setShadowCasting(on) {
+      if (on === shadows) return;
+      shadows = on;
+      for (const o of detail) o.mesh.castShadow = CASTS_SHADOW[o.key] && on;
+    },
+    dispose() {
+      groundDisposables.forEach((d) => d.dispose());
+      detail.forEach((o) => o.geo.dispose());
+    },
+  };
+  return objects;
+}
 
-  const primaryDistrict = data.buildings[0]?.district ?? districtAt({ x: x0 + CHUNK / 2, z: z0 + CHUNK / 2 }).id;
-  data.trees.forEach((t, i) => {
-    const h = Math.abs(Math.floor(t.x * 7 + t.z * 13 + i)) | 0;
-    addRichTree(plain, tb, t.x, t.z, t.h, h, primaryDistrict);
-  });
-  const fg = facade.geometry();
-  if (fg) {
-    const m = new THREE.Mesh(fg, mats.facade);
-    m.castShadow = true;
-    m.receiveShadow = true;
-    group.add(m);
-    disposables.push(fg);
-  }
-
-  const pg = plain.geometry();
-  if (pg) {
-    const m = new THREE.Mesh(pg, mats.plain);
-    m.castShadow = true;
-    m.receiveShadow = true;
-    group.add(m);
-    disposables.push(pg);
-  }
-
-  const sg = signs.geometry();
-  if (sg) {
-    const m = new THREE.Mesh(sg, mats.signs);
-    group.add(m);
-    disposables.push(sg);
-  }
-
-  const tg = tb.geometry();
-  if (tg) {
-    const m = new THREE.Mesh(tg, mats.trees);
-    m.castShadow = true;
-    group.add(m);
-    disposables.push(tg);
-  }
-
-  const lg = lamps.geometry();
-  if (lg) {
-    const m = new THREE.Mesh(lg, mats.lamps);
-    group.add(m);
-    disposables.push(lg);
-  }
-
-  const wpg = puddles.geometry();
-  if (wpg) {
-    const m = new THREE.Mesh(wpg, mats.puddles);
-    group.add(m);
-    disposables.push(wpg);
-  }
-
-  return { group, solids: decorPlan.solids, venues: decorPlan.venues, dispose: () => disposables.forEach((d) => d.dispose()) };
+/** Construit les objets Three.js d'un chunk (sol + architecture + végétation + mobilier de rue) en une seule étape. */
+export function buildChunkObjects(
+  data: ChunkData,
+  ground: Uint8Array,
+  groundSize: number,
+  mats: ChunkMaterials,
+  lod: LodLevel = 0
+): ChunkObjects {
+  return assembleChunkObjects(data, buildChunkBuffers(data, lod), ground, groundSize, mats);
 }

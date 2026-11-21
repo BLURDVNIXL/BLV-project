@@ -19,8 +19,11 @@
  */
 
 import * as THREE from 'three';
+import { MeshoptSimplifier } from 'meshoptimizer/simplifier';
 import type { AssetDefinition } from '../assets3d/types';
 import type { Buf } from './decorMeshes';
+import { LOD_NEAR, MAX_MODEL_SCALE, lodModelError, type LodLevel } from './lod';
+import { SILHOUETTE_TOLERANCE, silhouetteDiff, type GuardMesh } from './lodGuard';
 
 export interface BakedMesh {
   pos: Float32Array;
@@ -216,16 +219,148 @@ export function bakeGroup(group: THREE.Group): BakedTemplate {
 }
 
 const templateCache = new Map<string, BakedTemplate>();
+const lodCache = new Map<string, BakedTemplate>();
 
-/** Gabarit d'une variante du studio (généré à la demande, puis mis en cache). */
-export function getBakedTemplate(asset: AssetDefinition, variantId: string): BakedTemplate {
+// ── Niveaux de détail : simplification des gabarits (voir lod.ts) ─────────────────────────────────────────────────
+
+let simplifierReady = false;
+/** Niveau de détail courant des gabarits émis (fixé par buildChunkBuffers pour la durée d'une construction). */
+let activeLod: LodLevel = 0;
+
+/** Charge le simplificateur (WASM). Tant qu'il n'est pas prêt, tous les gabarits restent au niveau 0 (jamais d'erreur). */
+export async function initSimplifier(): Promise<boolean> {
+  try {
+    await MeshoptSimplifier.ready;
+    simplifierReady = MeshoptSimplifier.supported;
+  } catch {
+    simplifierReady = false;
+  }
+  return simplifierReady;
+}
+
+export const isSimplifierReady = (): boolean => simplifierReady;
+export const getBakeLod = (): LodLevel => activeLod;
+/** Niveau réellement applicable : 0 tant que le simplificateur n'est pas prêt. */
+export const setBakeLod = (level: LodLevel): void => {
+  activeLod = simplifierReady ? level : 0;
+};
+
+/** Soude les sommets identiques (position + normale + couleur) pour que le simplificateur voie les arêtes partagées. */
+function weld(m: BakedMesh): { pos: Float32Array; att: Float32Array; idx: Uint32Array } {
+  const map = new Map<string, number>();
+  const pos: number[] = [];
+  const att: number[] = [];
+  const idx: number[] = [];
+  const n = m.pos.length / 3;
+  const remap = new Uint32Array(n);
+  for (let v = 0; v < n; v++) {
+    const o = v * 3;
+    const k = `${m.pos[o]},${m.pos[o + 1]},${m.pos[o + 2]}|${m.nor[o]},${m.nor[o + 1]},${m.nor[o + 2]}|${m.col[o]},${m.col[o + 1]},${m.col[o + 2]}`;
+    let id = map.get(k);
+    if (id === undefined) {
+      id = pos.length / 3;
+      map.set(k, id);
+      pos.push(m.pos[o], m.pos[o + 1], m.pos[o + 2]);
+      att.push(m.nor[o], m.nor[o + 1], m.nor[o + 2], m.col[o], m.col[o + 1], m.col[o + 2]);
+    }
+    remap[v] = id;
+  }
+  for (let i = 0; i < m.idx.length; i += 3) {
+    const a = remap[m.idx[i]], b = remap[m.idx[i + 1]], c = remap[m.idx[i + 2]];
+    if (a !== b && b !== c && a !== c) idx.push(a, b, c);
+  }
+  return { pos: new Float32Array(pos), att: new Float32Array(att), idx: new Uint32Array(idx) };
+}
+
+/** Simplifie un maillage avec une erreur absolue maximale (m, repère du modèle). Renvoie l'original s'il n'y a rien à gagner. */
+function simplifyMesh(m: BakedMesh | null, error: number): BakedMesh | null {
+  if (!m) return null;
+  const w = weld(m);
+  if (w.idx.length === 0) return m;
+  const [res] = MeshoptSimplifier.simplifyWithAttributes(
+    w.idx, w.pos, 3, w.att, 6, [0.3, 0.3, 0.3, 0.3, 0.3, 0.3], null, 0, error, ['ErrorAbsolute']
+  );
+  if (res.length >= m.idx.length * 0.9) return m; // gain < 10 % : on garde le modèle d'origine, intact
+  // Compacte : ne garde que les sommets utilisés
+  const used = new Map<number, number>();
+  const pos: number[] = [], nor: number[] = [], col: number[] = [];
+  const idx = new Uint32Array(res.length);
+  for (let i = 0; i < res.length; i++) {
+    let id = used.get(res[i]);
+    if (id === undefined) {
+      id = used.size;
+      used.set(res[i], id);
+      const v = res[i];
+      pos.push(w.pos[v * 3], w.pos[v * 3 + 1], w.pos[v * 3 + 2]);
+      nor.push(w.att[v * 6], w.att[v * 6 + 1], w.att[v * 6 + 2]);
+      col.push(w.att[v * 6 + 3], w.att[v * 6 + 4], w.att[v * 6 + 5]);
+    }
+    idx[i] = id;
+  }
+  return { pos: new Float32Array(pos), nor: new Float32Array(nor), col: new Float32Array(col), idx };
+}
+
+const guardParts = (t: BakedTemplate): GuardMesh[] =>
+  [t.plain, t.trees, t.lamps, t.puddles].filter((m): m is BakedMesh => m !== null);
+
+/**
+ * Gabarit simplifié d'un niveau ≥ 1. Hauteur, rayon et étendues restent ceux du modèle d'origine (placement identique).
+ * Garde de qualité : on essaie l'erreur cible puis des erreurs 2×, 4×, 8× plus petites, puis les niveaux plus fins déjà
+ * acceptés ; le premier dont la silhouette reste à moins de SILHOUETTE_TOLERANCE de l'original (mesurée à la taille d'un
+ * demi-pixel de CE niveau) est retenu, et à défaut le modèle d'origine. Un modèle fragile (palmes, fougères) reste donc
+ * intact plutôt qu'abîmé.
+ */
+function simplifyTemplate(base: BakedTemplate, finer: BakedTemplate[], level: LodLevel): BakedTemplate {
+  const cell = (0.000985 * LOD_NEAR[level - 1]) / MAX_MODEL_SCALE;
+  const ref = guardParts(base);
+  const ok = (t: BakedTemplate): boolean => t === base || silhouetteDiff(ref, guardParts(t), cell) <= SILHOUETTE_TOLERANCE;
+  const floor = finer.length > 0 ? finer[finer.length - 1].triangles : base.triangles;
+  for (const f of [1, 0.5, 0.25, 0.125]) {
+    const e = lodModelError(level) * f;
+    const plain = simplifyMesh(base.plain, e);
+    const trees = simplifyMesh(base.trees, e);
+    const triangles = ((plain?.idx.length ?? 0) + (trees?.idx.length ?? 0) + (base.lamps?.idx.length ?? 0) + (base.puddles?.idx.length ?? 0)) / 3;
+    if (triangles >= floor) break; // plus rien à gagner par rapport aux niveaux plus fins
+    const cand: BakedTemplate = { ...base, plain, trees, triangles };
+    if (ok(cand)) return cand;
+  }
+  for (let i = finer.length - 1; i >= 0; i--) if (ok(finer[i])) return finer[i];
+  return base;
+}
+
+/** Soudure SANS PERTE : fusionne les sommets strictement identiques (position, normale, couleur). Mêmes triangles, même ordre. */
+function weldMesh(m: BakedMesh | null): BakedMesh | null {
+  if (!m) return null;
+  const w = weld(m);
+  if (w.idx.length !== m.idx.length) return m; // triangles dégénérés présents : on ne touche à rien
+  const n = w.pos.length / 3;
+  const nor = new Float32Array(n * 3), col = new Float32Array(n * 3);
+  for (let v = 0; v < n; v++) {
+    nor[v * 3] = w.att[v * 6]; nor[v * 3 + 1] = w.att[v * 6 + 1]; nor[v * 3 + 2] = w.att[v * 6 + 2];
+    col[v * 3] = w.att[v * 6 + 3]; col[v * 3 + 1] = w.att[v * 6 + 4]; col[v * 3 + 2] = w.att[v * 6 + 5];
+  }
+  return { pos: w.pos, nor, col, idx: w.idx };
+}
+
+/** Gabarit d'une variante du studio (généré à la demande, puis mis en cache), au niveau de détail demandé (défaut : courant). */
+export function getBakedTemplate(asset: AssetDefinition, variantId: string, level: LodLevel = activeLod): BakedTemplate {
   const key = `${asset.id}:${variantId}`;
   let tpl = templateCache.get(key);
   if (!tpl) {
-    tpl = bakeGroup(asset.build(variantId));
+    const raw = bakeGroup(asset.build(variantId));
+    tpl = { ...raw, plain: weldMesh(raw.plain), trees: weldMesh(raw.trees), lamps: weldMesh(raw.lamps), puddles: weldMesh(raw.puddles) };
     templateCache.set(key, tpl);
   }
-  return tpl;
+  if (level === 0 || !simplifierReady) return tpl;
+  const lk = `${key}:L${level}`;
+  let lt = lodCache.get(lk);
+  if (!lt) {
+    const finer: BakedTemplate[] = [];
+    for (let l = 1; l < level; l++) finer.push(getBakedTemplate(asset, variantId, l as LodLevel));
+    lt = simplifyTemplate(tpl, finer, level);
+    lodCache.set(lk, lt);
+  }
+  return lt;
 }
 
 export interface EmitOptions {

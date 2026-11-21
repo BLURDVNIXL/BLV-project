@@ -73,6 +73,39 @@ export class Buf {
     g.setIndex(this.idx);
     return g;
   }
+
+  /** Tableaux typés (transférables sans copie depuis un Worker), ou null si vide. */
+  toData(): BufData | null {
+    if (this.pos.length === 0) return null;
+    const idx = this.pos.length / 3 <= 65535 ? new Uint16Array(this.idx) : new Uint32Array(this.idx);
+    return {
+      pos: new Float32Array(this.pos),
+      nor: new Float32Array(this.nor),
+      uv: new Float32Array(this.uv),
+      col: new Float32Array(this.col),
+      idx,
+    };
+  }
+}
+
+/** Géométrie d'un buffer en tableaux typés (peut être construite dans un Worker puis transférée). */
+export interface BufData {
+  pos: Float32Array;
+  nor: Float32Array;
+  uv: Float32Array;
+  col: Float32Array;
+  idx: Uint16Array | Uint32Array;
+}
+
+/** Crée la BufferGeometry depuis des tableaux typés, sans les recopier. */
+export function geometryFromData(d: BufData): THREE.BufferGeometry {
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(d.pos, 3));
+  g.setAttribute('normal', new THREE.BufferAttribute(d.nor, 3));
+  g.setAttribute('uv', new THREE.BufferAttribute(d.uv, 2));
+  g.setAttribute('color', new THREE.BufferAttribute(d.col, 3));
+  g.setIndex(new THREE.BufferAttribute(d.idx, 1));
+  return g;
 }
 
 const TILE_W = 14;

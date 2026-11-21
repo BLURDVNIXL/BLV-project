@@ -11,11 +11,12 @@ import * as THREE from 'three';
 import { PhysicsCore, SolidFlag } from '../physics/PhysicsCore';
 import { CHUNK, ChunkData, chunkOf } from './city';
 import { ChunkSolid, StreetVenueDecor } from './chunkDecor';
-import { ChunkMaterials, ChunkObjects, buildChunkObjects } from './chunkMesh';
+import { ChunkMaterials, ChunkObjects, assembleChunkObjects } from './chunkMesh';
 import { ChunkProvider, GROUND_SIZE, ChunkPayload } from './chunkProvider';
 import { OCCLUDER_MIN_HEIGHT, occluderOf, type Occluder } from './pedVisibility';
+import { SHADOW_CASTER_RANGE, chunkDistance, lodForDistance, type LodLevel } from './lod';
 
-interface Loaded { objects: ChunkObjects; solids: number[]; occluders: Occluder[] }
+interface Loaded { cx: number; cz: number; objects: ChunkObjects; solids: number[]; occluders: Occluder[] }
 
 const key = (cx: number, cz: number): string => `${cx},${cz}`;
 
@@ -23,6 +24,9 @@ export class WorldStreamer {
   private loaded = new Map<string, Loaded>();
   private pending = new Set<string>();
   private arrived: Array<{ cx: number; cz: number; payload: ChunkPayload }> = [];
+  /** Reconstructions de niveau de détail demandées au Worker (clé de chunk) et leurs résultats à échanger. */
+  private pendingLod = new Set<string>();
+  private lodArrived: Array<{ k: string; payload: ChunkPayload }> = [];
   private disposed = false;
   private venuesVersion = 0;
   /** Rayon de chargement (en chunks de 64 m), modifiable en cours de partie (réglage de distance d'affichage). */
@@ -31,6 +35,8 @@ export class WorldStreamer {
   maxUnloadPerUpdate = 6;
   /** Nombre maximal de requêtes simultanées auprès du Worker. */
   maxInFlight = 12;
+  /** Nombre maximal de reconstructions de niveau de détail simultanées auprès du Worker. */
+  maxLodInFlight = 2;
   /** Budget (ms) de construction de chunks par image en jeu normal ; le nombre de chunks de `update` reste un plafond. */
   applyBudgetMs = 6;
   /** Temps (ms) passé à construire des chunks pendant la dernière image (diagnostic). */
@@ -112,10 +118,11 @@ export class WorldStreamer {
     const k = key(cx, cz);
     if (this.loaded.has(k) || this.disposed) return;
     const t0 = performance.now();
-    const objects = buildChunkObjects(payload.data, payload.ground, GROUND_SIZE, this.mats);
+    if (!payload.ground) return; // un chunk neuf arrive toujours avec son sol
+    const objects = assembleChunkObjects(payload.data, payload.buffers, payload.ground, GROUND_SIZE, this.mats);
     this.scene.add(objects.group);
     const occluders = payload.data.buildings.filter((b) => b.solid && b.h >= OCCLUDER_MIN_HEIGHT).map(occluderOf);
-    this.loaded.set(k, { objects, solids: this.registerSolids(payload.data, objects.solids), occluders });
+    this.loaded.set(k, { cx, cz, objects, solids: this.registerSolids(payload.data, objects.solids), occluders });
     if (objects.venues.length > 0) this.venuesVersion++;
     const cost = performance.now() - t0;
     this.lastApplyMs += cost;
@@ -130,6 +137,42 @@ export class WorldStreamer {
     for (const id of l.solids) this.physics.removeSolid(id);
     if (l.objects.venues.length > 0) this.venuesVersion++;
     this.loaded.delete(k);
+  }
+
+  /** Échange la géométrie d'un chunk contre celle du niveau de détail reconstruit par le Worker (instantané). */
+  private applyLod(k: string, payload: ChunkPayload): void {
+    const l = this.loaded.get(k);
+    if (!l || this.disposed) return;
+    const t0 = performance.now();
+    l.objects.swapDetail(payload.buffers, this.mats);
+    this.lastApplyMs += performance.now() - t0;
+  }
+
+  /**
+   * Niveaux de détail et ombres, sur CET appareil et autour de CE joueur (chaque client calcule les siens).
+   * Le niveau ne dépend que de la distance du chunk : tourner la tête ne change rien. Un chunk qui s'éloigne ou se
+   * rapproche d'un seuil est reconstruit en arrière-plan ; l'ancienne géométrie reste affichée jusqu'à l'échange.
+   */
+  private updateDetail(px: number, pz: number): void {
+    const wanted: Array<{ k: string; cx: number; cz: number; lod: LodLevel; finer: boolean; dist: number }> = [];
+    for (const [k, l] of this.loaded) {
+      const dist = chunkDistance(px, pz, l.cx, l.cz);
+      l.objects.setShadowCasting(dist <= SHADOW_CASTER_RANGE);
+      if (this.pendingLod.has(k)) continue;
+      const want = lodForDistance(dist, l.objects.lod);
+      if (want !== l.objects.lod) wanted.push({ k, cx: l.cx, cz: l.cz, lod: want, finer: want < l.objects.lod, dist });
+    }
+    if (wanted.length === 0) return;
+    // Les chunks qui se rapprochent d'abord (ils doivent redevenir fins avant d'être vus de près), puis les plus proches.
+    wanted.sort((a, b) => (a.finer === b.finer ? a.dist - b.dist : a.finer ? -1 : 1));
+    for (const w of wanted) {
+      if (this.pendingLod.size >= this.maxLodInFlight) break;
+      this.pendingLod.add(w.k);
+      this.provider.request(w.cx, w.cz, w.lod, false).then((payload) => {
+        this.pendingLod.delete(w.k);
+        if (!this.disposed) this.lodArrived.push({ k: w.k, payload });
+      });
+    }
   }
 
   /** À appeler à chaque image : demande, applique (budget limité) et décharge. */
@@ -151,6 +194,12 @@ export class WorldStreamer {
       if (Math.max(Math.abs(a.cx - ccx), Math.abs(a.cz - ccz)) <= R + 1) { this.apply(a.cx, a.cz, a.payload); applied++; }
     }
 
+    // Échanges de niveau de détail (très peu coûteux : la géométrie est déjà construite par le Worker)
+    for (let n = 0; n < 2 && this.lodArrived.length > 0; n++) {
+      const a = this.lodArrived.shift()!;
+      this.applyLod(a.k, a.payload);
+    }
+
     // Décharge les lointains (au plus `maxUnloadPerUpdate` par image : réduire le rayon ne doit pas libérer des dizaines de chunks d'un coup)
     let unloaded = 0;
     for (const k of Array.from(this.loaded.keys())) {
@@ -158,6 +207,8 @@ export class WorldStreamer {
       const [x, z] = k.split(',').map(Number);
       if (Math.max(Math.abs(x - ccx), Math.abs(z - ccz)) > R + 1) { this.unload(k); unloaded++; }
     }
+
+    this.updateDetail(px, pz);
 
     // Demande les plus proches d'abord
     if (this.pending.size >= this.maxInFlight) return;
@@ -174,7 +225,7 @@ export class WorldStreamer {
       if (this.pending.size >= this.maxInFlight) break;
       const k = key(w.cx, w.cz);
       this.pending.add(k);
-      this.provider.request(w.cx, w.cz).then((payload) => {
+      this.provider.request(w.cx, w.cz, lodForDistance(chunkDistance(px, pz, w.cx, w.cz), null), true).then((payload) => {
         this.pending.delete(k);
         if (!this.disposed) this.arrived.push({ cx: w.cx, cz: w.cz, payload });
       });
@@ -185,6 +236,8 @@ export class WorldStreamer {
     this.disposed = true;
     for (const k of Array.from(this.loaded.keys())) this.unload(k);
     this.arrived = [];
+    this.lodArrived = [];
+    this.pendingLod.clear();
     this.provider.dispose();
   }
 }
