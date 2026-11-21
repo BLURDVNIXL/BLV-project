@@ -346,7 +346,7 @@ export class AvatarController {
       this.actions.set(name, action);
     }
     root.traverse((o) => {
-      const n = o.name.replace(/^mixamorig:/, '');
+      const n = o.name.replace(/^mixamorig:?/, '');
       if (n === 'Hips') this.bones.hips = o;
       else if (n === 'Spine') this.bones.spine = o;
       else if (n === 'Head') this.bones.head = o;

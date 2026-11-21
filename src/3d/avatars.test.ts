@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import type * as THREE from 'three';
 import { avatarPath } from './avatars';
 
 /** Lit le bloc JSON d'un GLB (en-tête 12 octets, puis chunk JSON). */
@@ -128,3 +129,22 @@ test('computeActionPose : toutes les actions corporelles retournent des poses va
   assert.ok(showerPose.leftArmX < -0.9 && showerPose.rightArmX < -0.9, 'shower lève les deux bras');
 });
 
+
+test("les os Mixamo sont retrouvés une fois le nom nettoyé par GLTFLoader (« : » retiré)", async () => {
+  const THREE = await import('three');
+  const { AvatarController } = await import('./avatars');
+  const root = new THREE.Object3D();
+  const names = ['Hips', 'Spine', 'RightArm', 'RightForeArm', 'RightHand'];
+  let parent: THREE.Object3D = root;
+  for (const n of names) {
+    const bone = new THREE.Object3D();
+    // GLTFLoader applique PropertyBinding.sanitizeNodeName : « mixamorig:RightHand » devient « mixamorigRightHand ».
+    bone.name = THREE.PropertyBinding.sanitizeNodeName(`mixamorig:${n}`);
+    parent.add(bone);
+    parent = bone;
+  }
+  const ctl = new AvatarController(root, []);
+  const hand = (ctl as unknown as { bones: { rightHand?: THREE.Object3D } }).bones.rightHand;
+  assert.ok(hand, 'la main droite doit être trouvée (sinon l’objet reste aux pieds du joueur)');
+  assert.equal(hand.name, 'mixamorigRightHand');
+});
