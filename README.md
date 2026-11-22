@@ -55,6 +55,9 @@ Chargement du monde (côté client, sur l'appareil de chaque joueur) :
 PNJ (`src/3d/npcSystem.ts`, `src/3d/npcActors.ts`, `src/3d/studioNpc/`) :
 - Dans la rue : 12 PNJ de la foule instanciée (anciens, sans visage) et 12 acteurs (GLB de `public/npcs`), soit 24 PNJ mobiles (`NPC_POOL_SIZE`).
 - Dans les salles : uniquement des acteurs, construits à l'entrée avec le studio PNJ (visage, coiffure, vêtements), jamais la foule instanciée sauf si la construction échoue. Le quartier du studio dépend de la salle (`interiorLoadout.ts`), le profil de la graine du PNJ : la même salle montre toujours les mêmes personnes.
+- Tenues de métier dans les salles (`interiorLoadout.ts`) : `policier` → uniforme police, `soignant` → médecin, `serveur_maquis` → restaurant, personnel des deux hôtels → uniforme hôtel. Les PNJ ordinaires n'en portent jamais, même si le studio les propose au tirage.
+- Le livreur moto du studio n'est pas utilisé : sa moto n'est pas un mesh skinné et serait perdue à la fusion.
+- Les acteurs du studio ont 5 animations (`BLV_Idle`, `BLV_Walk`, `BLV_Run`, `BLV_Combat`, `BLV_Talk`) ; le jeu joue pour l'instant Idle, Walk et Talk.
 - Chaque personnage du studio est fusionné en 1 mesh skinné (couleurs de sommets, motifs de tissu aplatis, verres transparents écartés), comme les GLB. Limite de 16 acteurs par salle (`INTERIOR_ACTOR_MAX`).
 - `src/3d/studioNpc/` est une copie du studio PNJ (BLV — Babi Life Vibes Asset Studio) : les changements de profils ou de vêtements se font dans le studio, puis on recopie les fichiers.
 

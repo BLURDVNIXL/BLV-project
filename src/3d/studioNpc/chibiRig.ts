@@ -430,14 +430,17 @@ export function applyZoneSkinning(
         const hipY = j.leftUpLeg.y;
         const kneeY = j.leftLeg.y;
         const ankleY = j.leftFoot.y;
+        const kneeBand = 0.022;
         if (y >= hipY - 0.01) {
           setWeights(i, 'Hips', 0.55, 'LeftUpLeg', 0.45);
-        } else if (y > kneeY) {
-          const t = THREE.MathUtils.clamp((hipY - y) / Math.max(0.03, hipY - kneeY), 0, 1);
-          setWeights(i, 'LeftUpLeg', 1 - t * 0.3, 'LeftLeg', t * 0.3);
+        } else if (y > kneeY + kneeBand) {
+          setWeights(i, 'LeftUpLeg', 1);
+        } else if (y >= kneeY - kneeBand) {
+          const t = THREE.MathUtils.clamp((kneeY + kneeBand - y) / (kneeBand * 2), 0, 1);
+          setWeights(i, 'LeftUpLeg', 1 - t, 'LeftLeg', t);
         } else if (y > ankleY) {
           const t = THREE.MathUtils.clamp((kneeY - y) / Math.max(0.03, kneeY - ankleY), 0, 1);
-          setWeights(i, 'LeftLeg', 1 - t * 0.3, 'LeftFoot', t * 0.3);
+          setWeights(i, 'LeftLeg', 1 - t * 0.25, 'LeftFoot', t * 0.25);
         } else {
           setWeights(i, 'LeftFoot', 1);
         }
@@ -447,14 +450,17 @@ export function applyZoneSkinning(
         const hipY = j.rightUpLeg.y;
         const kneeY = j.rightLeg.y;
         const ankleY = j.rightFoot.y;
+        const kneeBand = 0.022;
         if (y >= hipY - 0.01) {
           setWeights(i, 'Hips', 0.55, 'RightUpLeg', 0.45);
-        } else if (y > kneeY) {
-          const t = THREE.MathUtils.clamp((hipY - y) / Math.max(0.03, hipY - kneeY), 0, 1);
-          setWeights(i, 'RightUpLeg', 1 - t * 0.3, 'RightLeg', t * 0.3);
+        } else if (y > kneeY + kneeBand) {
+          setWeights(i, 'RightUpLeg', 1);
+        } else if (y >= kneeY - kneeBand) {
+          const t = THREE.MathUtils.clamp((kneeY + kneeBand - y) / (kneeBand * 2), 0, 1);
+          setWeights(i, 'RightUpLeg', 1 - t, 'RightLeg', t);
         } else if (y > ankleY) {
           const t = THREE.MathUtils.clamp((kneeY - y) / Math.max(0.03, kneeY - ankleY), 0, 1);
-          setWeights(i, 'RightLeg', 1 - t * 0.3, 'RightFoot', t * 0.3);
+          setWeights(i, 'RightLeg', 1 - t * 0.25, 'RightFoot', t * 0.25);
         } else {
           setWeights(i, 'RightFoot', 1);
         }
@@ -484,8 +490,74 @@ export function createSkinnedPart(
   return mesh;
 }
 
+export function computeMotoRidingSeat(spec: BodySpec): {
+  hipsY: number;
+  hipsZ: number;
+  saddleTopY: number;
+} {
+  const dropFromHips = spec.legLength * 0.655 + spec.footHeight;
+  const hipsY = Math.max(0.335, dropFromHips + 0.07);
+  const hipsZ = -0.09;
+  const saddleTopY = hipsY - 0.025;
+  return { hipsY, hipsZ, saddleTopY };
+}
+
+/**
+ * Poses the 20-bone chibi rig into a seated motorbike riding posture (after skeleton bind inverses).
+ * Updates restQuaternions so riding animations modulate smoothly around the riding pose.
+ */
+export function applyMotoRidingPose(
+  rig: ChibiRig,
+  spec: BodySpec
+): {
+  hipsY: number;
+  hipsZ: number;
+  saddleTopY: number;
+  leftHandWorld: THREE.Vector3;
+  rightHandWorld: THREE.Vector3;
+} {
+  const { hipsY, hipsZ, saddleTopY } = computeMotoRidingSeat(spec);
+  const b = rig.boneMap;
+
+  b.Hips.position.set(0, hipsY, hipsZ);
+  b.Hips.rotation.set(0, 0, 0);
+
+  // Subtle forward rider lean while keeping head level forward
+  b.Spine.rotation.set(0.08 + spec.spineForwardTilt * 0.35, 0, 0);
+  b.Chest.rotation.set(0.11 + spec.spineForwardTilt * 0.35, 0, 0);
+  b.Neck.rotation.set(-0.04, 0, 0);
+  b.Head.rotation.set(-0.14 - spec.spineForwardTilt * 0.6, 0, 0);
+
+  // Seated legs straddling scooter onto floorboards
+  b.LeftUpLeg.rotation.set(-1.28, 0.04, 0.16);
+  b.LeftLeg.rotation.set(1.36, 0, 0);
+  b.LeftFoot.rotation.set(-0.08, 0, 0);
+
+  b.RightUpLeg.rotation.set(-1.28, -0.04, -0.16);
+  b.RightLeg.rotation.set(1.36, 0, 0);
+  b.RightFoot.rotation.set(-0.08, 0, 0);
+
+  // Arms reaching forward & slightly inward to grip handlebars
+  b.LeftArm.rotation.set(-1.12, 0, -0.18);
+  b.LeftForeArm.rotation.set(-0.24, 0, 0);
+  b.RightArm.rotation.set(-1.12, 0, 0.18);
+  b.RightForeArm.rotation.set(-0.24, 0, 0);
+
+  rig.rootBone.updateMatrixWorld(true);
+
+  for (const name of CHIBI_BONE_NAMES) {
+    rig.restQuaternions[name] = b[name].quaternion.clone();
+  }
+
+  const leftHandWorld = new THREE.Vector3().setFromMatrixPosition(b.LeftHand.matrixWorld);
+  const rightHandWorld = new THREE.Vector3().setFromMatrixPosition(b.RightHand.matrixWorld);
+
+  return { hipsY, hipsZ, saddleTopY, leftHandWorld, rightHandWorld };
+}
+
 const _deltaQuat = new THREE.Quaternion();
 const _euler = new THREE.Euler();
+const _spinAxis = new THREE.Vector3(1, 0, 0);
 
 function makeBoneTrack(
   boneName: ChibiBoneName,
@@ -503,11 +575,231 @@ function makeBoneTrack(
   return new THREE.QuaternionKeyframeTrack(`${boneName}.quaternion`, times, values);
 }
 
+function makeWheelSpinTrack(
+  nodeName: string,
+  duration: number,
+  turns: number
+): THREE.QuaternionKeyframeTrack {
+  const steps = turns * 8;
+  const times: number[] = [];
+  const values: number[] = [];
+  let prevQ: THREE.Quaternion | null = null;
+
+  for (let i = 0; i <= steps; i++) {
+    const t = (i / steps) * duration;
+    const angle = (i / steps) * Math.PI * 2 * turns;
+    const q = new THREE.Quaternion().setFromAxisAngle(_spinAxis, angle);
+    if (prevQ && prevQ.dot(q) < 0) {
+      q.set(-q.x, -q.y, -q.z, -q.w);
+    }
+    prevQ = q.clone();
+    times.push(t);
+    values.push(q.x, q.y, q.z, q.w);
+  }
+  return new THREE.QuaternionKeyframeTrack(`${nodeName}.quaternion`, times, values);
+}
+
 /**
- * Generates shared procedural animations (Idle, Walk, Talk) compatible with all 6 chibi rigs.
+ * Generates shared procedural animations (Idle, Walk, Run, Combat, Talk) compatible with all 6 chibi rigs.
+ * When isMotoRider is true, produces continuous motorbike driving animations with spinning wheels.
  */
-export function createChibiAnimations(rig: ChibiRig): THREE.AnimationClip[] {
+export function createChibiAnimations(
+  rig: ChibiRig,
+  isMotoRider = false
+): THREE.AnimationClip[] {
   const rq = rig.restQuaternions;
+
+  if (isMotoRider) {
+    const hipsPos = rig.boneMap.Hips.position;
+    const hy = hipsPos.y;
+    const hz = hipsPos.z;
+
+    // 1. BLV_Idle (1.2s steady city cruise on moto — driver always rides!)
+    const cruiseTimes = [0, 0.3, 0.6, 0.9, 1.2];
+    const motoIdleClip = new THREE.AnimationClip('BLV_Idle', 1.2, [
+      makeWheelSpinTrack('Moto_Wheel_Front', 1.2, 2),
+      makeWheelSpinTrack('Moto_Wheel_Rear', 1.2, 2),
+      new THREE.VectorKeyframeTrack('Moto_ChassisGroup.position', cruiseTimes, [
+        0, 0, 0,
+        0, 0.008, 0,
+        0, 0.001, 0,
+        0, 0.009, 0,
+        0, 0, 0,
+      ]),
+      new THREE.VectorKeyframeTrack('Hips.position', cruiseTimes, [
+        0, hy, hz,
+        0, hy + 0.008, hz,
+        0, hy + 0.001, hz,
+        0, hy + 0.009, hz,
+        0, hy, hz,
+      ]),
+      makeBoneTrack('Chest', rq.Chest, cruiseTimes, [
+        [0, 0, 0],
+        [0.02, 0.02, 0],
+        [0, 0, 0],
+        [0.02, -0.02, 0],
+        [0, 0, 0],
+      ]),
+      makeBoneTrack('Head', rq.Head, cruiseTimes, [
+        [0, 0, 0],
+        [-0.02, 0.06, 0.02],
+        [0, 0, 0],
+        [-0.02, -0.06, -0.02],
+        [0, 0, 0],
+      ]),
+    ]);
+
+    // 2. BLV_Walk (0.8s standard Abidjan delivery cruise)
+    const fastTimes = [0, 0.2, 0.4, 0.6, 0.8];
+    const motoWalkClip = new THREE.AnimationClip('BLV_Walk', 0.8, [
+      makeWheelSpinTrack('Moto_Wheel_Front', 0.8, 3),
+      makeWheelSpinTrack('Moto_Wheel_Rear', 0.8, 3),
+      new THREE.VectorKeyframeTrack('Moto_ChassisGroup.position', fastTimes, [
+        0, 0, 0,
+        0, 0.012, 0,
+        0, 0.002, 0,
+        0, 0.013, 0,
+        0, 0, 0,
+      ]),
+      new THREE.VectorKeyframeTrack('Hips.position', fastTimes, [
+        0, hy, hz,
+        0, hy + 0.012, hz,
+        0, hy + 0.002, hz,
+        0, hy + 0.013, hz,
+        0, hy, hz,
+      ]),
+      makeBoneTrack('Chest', rq.Chest, fastTimes, [
+        [0.05, 0, 0.02],
+        [0.08, 0.03, -0.02],
+        [0.05, 0, 0.02],
+        [0.08, -0.03, -0.02],
+        [0.05, 0, 0.02],
+      ]),
+      makeBoneTrack('Head', rq.Head, fastTimes, [
+        [-0.04, 0, 0],
+        [-0.06, 0.04, 0],
+        [-0.04, 0, 0],
+        [-0.06, -0.04, 0],
+        [-0.04, 0, 0],
+      ]),
+    ]);
+
+    // 3. BLV_Run (0.56s express sprint / tucked aerodynamic moto dash)
+    const turboTimes = [0, 0.14, 0.28, 0.42, 0.56];
+    const motoRunClip = new THREE.AnimationClip('BLV_Run', 0.56, [
+      makeWheelSpinTrack('Moto_Wheel_Front', 0.56, 4),
+      makeWheelSpinTrack('Moto_Wheel_Rear', 0.56, 4),
+      new THREE.VectorKeyframeTrack('Moto_ChassisGroup.position', turboTimes, [
+        0, 0, 0,
+        0, 0.015, 0,
+        0, 0.003, 0,
+        0, 0.015, 0,
+        0, 0, 0,
+      ]),
+      new THREE.VectorKeyframeTrack('Hips.position', turboTimes, [
+        0, hy, hz,
+        0, hy + 0.015, hz,
+        0, hy + 0.003, hz,
+        0, hy + 0.015, hz,
+        0, hy, hz,
+      ]),
+      makeBoneTrack('Chest', rq.Chest, turboTimes, [
+        [0.14, 0, 0],
+        [0.17, 0.02, -0.02],
+        [0.14, 0, 0],
+        [0.17, -0.02, 0.02],
+        [0.14, 0, 0],
+      ]),
+      makeBoneTrack('Head', rq.Head, turboTimes, [
+        [-0.12, 0, 0],
+        [-0.14, 0, 0],
+        [-0.12, 0, 0],
+        [-0.14, 0, 0],
+        [-0.12, 0, 0],
+      ]),
+    ]);
+
+    // 4. BLV_Combat (1.0s evasive traffic swerve while keeping wheels rolling)
+    const evadeTimes = [0, 0.25, 0.5, 0.75, 1.0];
+    const motoCombatClip = new THREE.AnimationClip('BLV_Combat', 1.0, [
+      makeWheelSpinTrack('Moto_Wheel_Front', 1.0, 3),
+      makeWheelSpinTrack('Moto_Wheel_Rear', 1.0, 3),
+      new THREE.VectorKeyframeTrack('Moto_ChassisGroup.position', evadeTimes, [
+        0, 0, 0,
+        0, 0.011, 0,
+        0, 0.002, 0,
+        0, 0.011, 0,
+        0, 0, 0,
+      ]),
+      new THREE.VectorKeyframeTrack('Hips.position', evadeTimes, [
+        0, hy, hz,
+        0, hy + 0.011, hz,
+        0, hy + 0.002, hz,
+        0, hy + 0.011, hz,
+        0, hy, hz,
+      ]),
+      makeBoneTrack('Hips', rq.Hips, evadeTimes, [
+        [0, 0, 0],
+        [0, -0.08, 0.14],
+        [0, 0, 0],
+        [0, 0.08, -0.14],
+        [0, 0, 0],
+      ]),
+      makeBoneTrack('Chest', rq.Chest, evadeTimes, [
+        [0.06, 0, 0],
+        [0.1, -0.12, 0.08],
+        [0.06, 0, 0],
+        [0.1, 0.12, -0.08],
+        [0.06, 0, 0],
+      ]),
+      makeBoneTrack('Head', rq.Head, evadeTimes, [
+        [-0.04, 0, 0],
+        [-0.06, 0.18, -0.06],
+        [-0.04, 0, 0],
+        [-0.06, -0.18, 0.06],
+        [-0.04, 0, 0],
+      ]),
+    ]);
+
+    // 5. BLV_Talk (1.4s friendly rider discussion / nod while wheels keep rolling)
+    const talkTimes = [0, 0.35, 0.7, 1.05, 1.4];
+    const motoTalkClip = new THREE.AnimationClip('BLV_Talk', 1.4, [
+      makeWheelSpinTrack('Moto_Wheel_Front', 1.4, 2),
+      makeWheelSpinTrack('Moto_Wheel_Rear', 1.4, 2),
+      new THREE.VectorKeyframeTrack('Moto_ChassisGroup.position', talkTimes, [
+        0, 0, 0,
+        0, 0.007, 0,
+        0, 0.001, 0,
+        0, 0.007, 0,
+        0, 0, 0,
+      ]),
+      new THREE.VectorKeyframeTrack('Hips.position', talkTimes, [
+        0, hy, hz,
+        0, hy + 0.007, hz,
+        0, hy + 0.001, hz,
+        0, hy + 0.007, hz,
+        0, hy, hz,
+      ]),
+      makeBoneTrack('Head', rq.Head, talkTimes, [
+        [0, 0, 0],
+        [-0.09, 0.18, 0.05],
+        [0.06, -0.14, -0.04],
+        [-0.07, 0.12, 0.04],
+        [0, 0, 0],
+      ]),
+      makeBoneTrack('Chest', rq.Chest, talkTimes, [
+        [0, 0, 0],
+        [0, 0.08, 0],
+        [-0.03, -0.06, 0],
+        [0, 0.06, 0],
+        [0, 0, 0],
+      ]),
+    ]);
+
+    return [motoIdleClip, motoWalkClip, motoRunClip, motoCombatClip, motoTalkClip];
+  }
+
+  const hy = rig.boneMap.Hips.position.y;
 
   // 1. BLV_Idle (2.4s gentle breathing + subtle head sway)
   const idleTimes = [0, 0.6, 1.2, 1.8, 2.4];
@@ -610,38 +902,278 @@ export function createChibiAnimations(rig: ChibiRig): THREE.AnimationClip[] {
     ]),
   ]);
 
-  // 3. BLV_Talk (1.6s friendly Abidjan greeting / gesture)
-  const talkTimes = [0, 0.4, 0.8, 1.2, 1.6];
-  const talkClip = new THREE.AnimationClip('BLV_Talk', 1.6, [
-    makeBoneTrack('Head', rq.Head, talkTimes, [
-      [0, 0, 0],
-      [-0.06, 0.1, 0.04],
-      [0.04, -0.08, -0.03],
-      [-0.04, 0.06, 0.03],
-      [0, 0, 0],
+  // 3. BLV_Run (0.6s dynamic chibi sprint cycle)
+  const runTimes = [0, 0.15, 0.3, 0.45, 0.6];
+  const runClip = new THREE.AnimationClip('BLV_Run', 0.6, [
+    new THREE.VectorKeyframeTrack('Hips.position', runTimes, [
+      0, hy + 0.005, 0,
+      0, hy + 0.034, 0,
+      0, hy + 0.005, 0,
+      0, hy + 0.034, 0,
+      0, hy + 0.005, 0,
     ]),
-    makeBoneTrack('LeftArm', rq.LeftArm, talkTimes, [
-      [0, 0, 0],
-      [-0.25, 0.15, 0.72],
-      [-0.35, 0.2, 0.92],
-      [-0.22, 0.15, 0.65],
-      [0, 0, 0],
+    makeBoneTrack('Hips', rq.Hips, runTimes, [
+      [0.06, 0.1, 0.03],
+      [0.1, 0, 0],
+      [0.06, -0.1, -0.03],
+      [0.1, 0, 0],
+      [0.06, 0.1, 0.03],
     ]),
-    makeBoneTrack('LeftForeArm', rq.LeftForeArm, talkTimes, [
+    makeBoneTrack('Spine', rq.Spine, runTimes, [
+      [0.08, -0.04, 0],
+      [0.1, 0, 0],
+      [0.08, 0.04, 0],
+      [0.1, 0, 0],
+      [0.08, -0.04, 0],
+    ]),
+    makeBoneTrack('Chest', rq.Chest, runTimes, [
+      [0.14, -0.14, 0],
+      [0.16, 0, 0],
+      [0.14, 0.14, 0],
+      [0.16, 0, 0],
+      [0.14, -0.14, 0],
+    ]),
+    makeBoneTrack('Head', rq.Head, runTimes, [
+      [-0.22, 0.05, 0],
+      [-0.24, 0, 0],
+      [-0.22, -0.05, 0],
+      [-0.24, 0, 0],
+      [-0.22, 0.05, 0],
+    ]),
+    makeBoneTrack('LeftUpLeg', rq.LeftUpLeg, runTimes, [
+      [-0.92, 0, 0],
+      [-0.1, 0, 0],
+      [0.74, 0, 0],
+      [0.15, 0, 0],
+      [-0.92, 0, 0],
+    ]),
+    makeBoneTrack('LeftLeg', rq.LeftLeg, runTimes, [
+      [0.28, 0, 0],
+      [0.15, 0, 0],
+      [0.85, 0, 0],
+      [1.26, 0, 0],
+      [0.28, 0, 0],
+    ]),
+    makeBoneTrack('LeftFoot', rq.LeftFoot, runTimes, [
+      [0.24, 0, 0],
+      [0.05, 0, 0],
+      [0.32, 0, 0],
+      [-0.18, 0, 0],
+      [0.24, 0, 0],
+    ]),
+    makeBoneTrack('RightUpLeg', rq.RightUpLeg, runTimes, [
+      [0.74, 0, 0],
+      [0.15, 0, 0],
+      [-0.92, 0, 0],
+      [-0.1, 0, 0],
+      [0.74, 0, 0],
+    ]),
+    makeBoneTrack('RightLeg', rq.RightLeg, runTimes, [
+      [0.85, 0, 0],
+      [1.26, 0, 0],
+      [0.28, 0, 0],
+      [0.15, 0, 0],
+      [0.85, 0, 0],
+    ]),
+    makeBoneTrack('RightFoot', rq.RightFoot, runTimes, [
+      [0.32, 0, 0],
+      [-0.18, 0, 0],
+      [0.24, 0, 0],
+      [0.05, 0, 0],
+      [0.32, 0, 0],
+    ]),
+    makeBoneTrack('LeftArm', rq.LeftArm, runTimes, [
+      [0.64, 0, 0.08],
+      [-0.08, 0, 0.05],
+      [-0.78, 0, 0.04],
+      [-0.05, 0, 0.05],
+      [0.64, 0, 0.08],
+    ]),
+    makeBoneTrack('LeftForeArm', rq.LeftForeArm, runTimes, [
+      [-1.08, 0, 0],
+      [-1.12, 0, 0],
+      [-1.18, 0, 0],
+      [-1.05, 0, 0],
+      [-1.08, 0, 0],
+    ]),
+    makeBoneTrack('RightArm', rq.RightArm, runTimes, [
+      [-0.78, 0, -0.04],
+      [-0.05, 0, -0.05],
+      [0.64, 0, -0.08],
+      [-0.08, 0, -0.05],
+      [-0.78, 0, -0.04],
+    ]),
+    makeBoneTrack('RightForeArm', rq.RightForeArm, runTimes, [
+      [-1.18, 0, 0],
+      [-1.05, 0, 0],
+      [-1.08, 0, 0],
+      [-1.12, 0, 0],
+      [-1.18, 0, 0],
+    ]),
+  ]);
+
+  // 4. BLV_Combat (1.4s athletic boxing / martial arts combo: guard -> jab -> cross -> hook -> guard)
+  const combatTimes = [0, 0.25, 0.52, 0.84, 1.12, 1.4];
+  const combatClip = new THREE.AnimationClip('BLV_Combat', 1.4, [
+    new THREE.VectorKeyframeTrack('Hips.position', combatTimes, [
+      0, hy - 0.018, 0,
+      0, hy - 0.025, 0.02,
+      0, hy - 0.028, 0.035,
+      0, hy - 0.022, 0.015,
+      0, hy - 0.014, 0,
+      0, hy - 0.018, 0,
+    ]),
+    makeBoneTrack('Hips', rq.Hips, combatTimes, [
+      [0.04, 0.32, 0],
+      [0.06, 0.14, 0],
+      [0.08, 0.42, 0],
+      [0.04, -0.18, 0],
+      [0.02, 0.24, 0],
+      [0.04, 0.32, 0],
+    ]),
+    makeBoneTrack('Chest', rq.Chest, combatTimes, [
+      [0.12, 0.18, 0],
+      [0.16, -0.34, -0.04],
+      [0.18, 0.48, 0.06],
+      [0.14, -0.42, 0.1],
+      [0.1, 0.12, 0],
+      [0.12, 0.18, 0],
+    ]),
+    makeBoneTrack('Head', rq.Head, combatTimes, [
+      [-0.1, -0.44, 0],
+      [-0.12, 0.16, 0],
+      [-0.14, -0.58, 0],
+      [-0.1, 0.45, -0.04],
+      [-0.08, -0.32, 0],
+      [-0.1, -0.44, 0],
+    ]),
+    makeBoneTrack('LeftUpLeg', rq.LeftUpLeg, combatTimes, [
+      [-0.36, 0.1, 0.06],
+      [-0.44, 0.1, 0.06],
+      [-0.48, 0.1, 0.06],
+      [-0.38, 0.1, 0.06],
+      [-0.32, 0.1, 0.06],
+      [-0.36, 0.1, 0.06],
+    ]),
+    makeBoneTrack('LeftLeg', rq.LeftLeg, combatTimes, [
+      [0.42, 0, 0],
+      [0.52, 0, 0],
+      [0.56, 0, 0],
+      [0.44, 0, 0],
+      [0.36, 0, 0],
+      [0.42, 0, 0],
+    ]),
+    makeBoneTrack('RightUpLeg', rq.RightUpLeg, combatTimes, [
+      [0.24, -0.15, -0.06],
+      [0.32, -0.15, -0.06],
+      [0.36, -0.15, -0.06],
+      [0.22, -0.15, -0.06],
+      [0.2, -0.15, -0.06],
+      [0.24, -0.15, -0.06],
+    ]),
+    makeBoneTrack('RightLeg', rq.RightLeg, combatTimes, [
+      [0.3, 0, 0],
+      [0.36, 0, 0],
+      [0.32, 0, 0],
+      [0.34, 0, 0],
+      [0.28, 0, 0],
+      [0.3, 0, 0],
+    ]),
+    makeBoneTrack('LeftArm', rq.LeftArm, combatTimes, [
+      [-0.82, 0.1, -0.22],
+      [-1.48, 0, -0.34],
+      [-0.92, 0.12, -0.26],
+      [-1.26, -0.38, 0.25],
+      [-0.86, 0.1, -0.22],
+      [-0.82, 0.1, -0.22],
+    ]),
+    makeBoneTrack('LeftForeArm', rq.LeftForeArm, combatTimes, [
+      [-1.22, 0, 0],
+      [-0.12, 0, 0],
+      [-1.28, 0, 0],
+      [-1.08, 0.2, 0.3],
+      [-1.2, 0, 0],
+      [-1.22, 0, 0],
+    ]),
+    makeBoneTrack('RightArm', rq.RightArm, combatTimes, [
+      [-0.88, -0.1, 0.24],
+      [-0.94, -0.12, 0.28],
+      [-1.52, 0, 0.36],
+      [-0.92, -0.1, 0.28],
+      [-0.86, -0.1, 0.24],
+      [-0.88, -0.1, 0.24],
+    ]),
+    makeBoneTrack('RightForeArm', rq.RightForeArm, combatTimes, [
+      [-1.26, 0, 0],
+      [-1.3, 0, 0],
+      [-0.1, 0, 0],
+      [-1.28, 0, 0],
+      [-1.24, 0, 0],
+      [-1.26, 0, 0],
+    ]),
+  ]);
+
+  // 5. BLV_Talk (2.2s expressive Abidjan two-handed conversation / discussion)
+  const talkTimes = [0, 0.45, 0.95, 1.45, 1.85, 2.2];
+  const talkClip = new THREE.AnimationClip('BLV_Talk', 2.2, [
+    makeBoneTrack('Hips', rq.Hips, talkTimes, [
       [0, 0, 0],
-      [-0.2, 0.35, 0.4],
-      [-0.28, 0.5, 0.6],
-      [-0.18, 0.3, 0.35],
+      [0, 0.05, 0.02],
+      [0, -0.04, -0.02],
+      [0, 0.04, 0.015],
+      [0, -0.02, 0],
       [0, 0, 0],
     ]),
     makeBoneTrack('Chest', rq.Chest, talkTimes, [
       [0, 0, 0],
-      [0, 0.05, 0],
-      [-0.03, -0.04, 0],
-      [0, 0.04, 0],
+      [0.04, 0.09, -0.02],
+      [0.06, -0.08, 0.02],
+      [0.05, 0.07, 0],
+      [0.02, -0.04, 0],
+      [0, 0, 0],
+    ]),
+    makeBoneTrack('Head', rq.Head, talkTimes, [
+      [0, 0, 0],
+      [-0.08, 0.14, 0.05],
+      [0.06, -0.14, -0.05],
+      [-0.06, 0.08, 0.04],
+      [0.05, -0.05, -0.02],
+      [0, 0, 0],
+    ]),
+    makeBoneTrack('LeftArm', rq.LeftArm, talkTimes, [
+      [0, 0, -0.02],
+      [-0.36, 0.08, 0.28],
+      [-0.68, -0.05, 0.18],
+      [-0.54, 0.04, 0.42],
+      [-0.24, 0, 0.14],
+      [0, 0, -0.02],
+    ]),
+    makeBoneTrack('LeftForeArm', rq.LeftForeArm, talkTimes, [
+      [0, 0, 0],
+      [-0.72, 0.15, 0.25],
+      [-0.98, 0.28, 0.35],
+      [-0.84, 0.18, 0.28],
+      [-0.42, 0.08, 0.12],
+      [0, 0, 0],
+    ]),
+    makeBoneTrack('RightArm', rq.RightArm, talkTimes, [
+      [0, 0, 0.02],
+      [-0.64, 0.06, -0.22],
+      [-0.34, -0.08, -0.28],
+      [-0.56, 0.05, -0.38],
+      [-0.28, 0, -0.15],
+      [0, 0, 0.02],
+    ]),
+    makeBoneTrack('RightForeArm', rq.RightForeArm, talkTimes, [
+      [0, 0, 0],
+      [-0.95, -0.22, -0.32],
+      [-0.68, -0.14, -0.22],
+      [-0.86, -0.2, -0.28],
+      [-0.45, -0.1, -0.12],
       [0, 0, 0],
     ]),
   ]);
 
-  return [idleClip, walkClip, talkClip];
+  return [idleClip, walkClip, runClip, combatClip, talkClip];
 }
+

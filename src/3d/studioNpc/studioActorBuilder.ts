@@ -5,14 +5,14 @@
  * BLV
  * Construit un PNJ du studio (visage, coiffure, vêtements) et le FUSIONNE en un seul mesh skinné, comme les .glb
  * fusionnés de `public/npcs` : 1 mesh, 1 matériau (couleurs de sommets), 1 squelette de 20 os, animations
- * BLV_Idle / BLV_Walk / BLV_Talk. Un personnage brut du studio fait ~50 meshes et ~14 matériaux : trop de draw calls.
+ * BLV_Idle / BLV_Walk / BLV_Run / BLV_Combat / BLV_Talk. Un personnage brut du studio fait ~50 meshes et ~14 matériaux : trop de draw calls.
  * Les motifs de tissu sont aplatis en leur couleur principale (comme dans les .glb existants).
  * Nécessite `document.createElement('canvas')` (textures de motifs) : à appeler sur le fil principal.
  */
 
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { BODY_SPECS, SKIN_TONES, type CharacterLoadout } from './blvCatalog';
+import { BODY_SPECS, GARMENTS, SKIN_TONES, type CharacterLoadout } from './blvCatalog';
 import { buildChibiBaseBody } from './chibiBodyBuilder';
 import { attachLoadoutToCharacter } from './chibiGarmentBuilder';
 import { createChibiAnimations, createChibiSkeleton } from './chibiRig';
@@ -57,6 +57,8 @@ function prepared(mesh: THREE.SkinnedMesh): THREE.BufferGeometry | null {
 
 /** Construit le personnage du studio pour ce profil et le fusionne en un seul mesh. `null` si la fusion échoue. */
 export function buildStudioActorTemplate(loadout: CharacterLoadout): StudioActorTemplate | null {
+  // Livreur moto : la moto n'est pas un mesh skinné et serait perdue à la fusion ; pas pris en charge ici.
+  if (loadout.fullOutfitId && GARMENTS.find((g) => g.id === loadout.fullOutfitId)?.isMotoRider) return null;
   const spec = BODY_SPECS[loadout.bodyId];
   const rig = createChibiSkeleton(spec);
   const skin = SKIN_TONES.find((s) => s.id === loadout.skinToneId) ?? SKIN_TONES[2];
