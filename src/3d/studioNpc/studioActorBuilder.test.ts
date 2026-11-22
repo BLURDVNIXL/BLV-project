@@ -12,6 +12,7 @@ import * as THREE from 'three';
 import { INTERIORS } from '../../world/interiors';
 import { interiorNpcKey, interiorNpcLoadout, isUniformGarment, studioDistrictOfInterior, uniformKindOf } from './interiorLoadout';
 import { GARMENTS } from './blvCatalog';
+import { deliveryRiderLoadout } from './deliveryRiderLoadout';
 import { buildStudioActorTemplate } from './studioActorBuilder';
 
 // Les motifs de tissu dessinent dans un canvas : un faux contexte suffit pour construire le modèle.
@@ -114,8 +115,27 @@ test('Uniformes : le corps (féminin, ado, aîné…) reçoit toujours une coupe
   }
 });
 
-test('Livreur moto : refusé (la moto serait perdue à la fusion), sans erreur', () => {
-  const moto = GARMENTS.find((g) => g.isMotoRider)!;
-  const l = { ...interiorNpcLoadout('boutique' as any, 'client' as any, 3), fullOutfitId: moto.id };
-  assert.equal(buildStudioActorTemplate(l), null);
+test('Livreur moto : cavalier + moto en 4 meshes, nœuds animés présents, clips sans avertissement', () => {
+  const l = deliveryRiderLoadout(1);
+  const t = buildStudioActorTemplate(l);
+  assert.ok(t);
+  let meshes = 0, skinned = 0;
+  t!.scene.traverse((o) => {
+    if ((o as THREE.Mesh).isMesh) meshes++;
+    if ((o as THREE.SkinnedMesh).isSkinnedMesh) skinned++;
+  });
+  assert.equal(meshes, 4);
+  assert.equal(skinned, 1);
+  for (const n of ['Moto_ChassisGroup', 'Moto_Wheel_Front', 'Moto_Wheel_Rear']) assert.ok(t!.scene.getObjectByName(n), n);
+  const warns: string[] = [];
+  const old = console.warn;
+  console.warn = (...a: unknown[]) => { warns.push(a.join(' ')); };
+  try {
+    const mixer = new THREE.AnimationMixer(t!.scene);
+    for (const c of t!.animations) mixer.clipAction(c).play();
+    mixer.update(0.1);
+  } finally {
+    console.warn = old;
+  }
+  assert.equal(warns.length, 0, warns[0]);
 });

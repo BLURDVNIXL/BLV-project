@@ -16,6 +16,7 @@ import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js
 import type { InteriorId } from '../world/interiors';
 import type { NpcRole } from '../world/npcAppearance';
 import { interiorNpcKey, interiorNpcLoadout } from './studioNpc/interiorLoadout';
+import { isStreetActorProfile } from './streetProfiles';
 import { buildStudioActorTemplate, disposeStudioActorTemplate, type StudioActorTemplate } from './studioNpc/studioActorBuilder';
 
 export type Moment = 'day' | 'night';
@@ -48,7 +49,7 @@ const ANIM_RANGE = 45;
 const HIDE_RANGE = 100;
 const FADE = 0.2;
 
-interface ManifestEntry { file: string; zone: string; moment: Moment }
+interface ManifestEntry { file: string; zone: string; moment: Moment; loadout?: { fullOutfitId?: string | null } | null }
 
 export class NpcActor {
   ready = false;
@@ -151,6 +152,7 @@ export class NpcActors {
       if (!res.ok) throw new Error(String(res.status));
       const list = (await res.json()) as ManifestEntry[];
       for (const e of list) {
+        if (!isStreetActorProfile(e)) continue; // ex. livreur moto : jamais comme piéton
         const k = `${e.zone}|${e.moment}`;
         const arr = this.files.get(k) ?? [];
         arr.push(e.file);

@@ -122,6 +122,7 @@ import {
 } from '../world/playerHouses';
 import { createHouseFacadeRig, createHouseFloorFurniture } from './houseModels';
 import { RoadCar, updateRoadTraffic } from '../world/roadTraffic';
+import { createDeliveryRider, type DeliveryRiderRig } from './deliveryRiders';
 import { computeVehicleAccel } from '../physics/controls';
 import { strHash } from '../world/rng';
 
@@ -316,6 +317,9 @@ export class AbidjanSceneManager {
   private activeTimedActionStartedAtMs = 0;
 
   private trafficCars: Array<RoadCar & { rig: VehicleRig }> = [];
+  /** Livreurs moto : roulent dans le trafic routier (même logique de voies que les voitures), jamais volables. */
+  private deliveryRiders: Array<RoadCar & { rider: DeliveryRiderRig }> = [];
+  private roadCarsScratch: RoadCar[] = [];
   // Maison du joueur (façade extérieure fermée + intérieur dédié par destin et par étage)
   private ownHouseLot: HouseLot | null = null;
   private ownHouseSpec: HouseSpec | null = null;
@@ -1023,6 +1027,23 @@ export class AbidjanSceneManager {
             wait: 0.3 + t * 0.4,
           });
         }
+      }
+
+      // Livreurs moto : 3 (1 sur rendu logiciel). Le corps physique est celui d'une voiture rapide (pas de preset moto).
+      const riderCount = this.isSoftwareGl ? 1 : 3;
+      for (let r = 0; r < riderCount; r++) {
+        const rider = createDeliveryRider(r + 1);
+        if (!rider) continue;
+        const vehId = core.createVehicle(VehiclePreset.COUPE_GT, 0, 0, 0);
+        if (vehId < 0) {
+          rider.dispose();
+          continue;
+        }
+        core.setVehicleEnabled(vehId, false);
+        rider.group.visible = false;
+        rider.group.rotation.order = 'YXZ';
+        this.scene.add(rider.group);
+        this.deliveryRiders.push({ rider, vehId, art: 0, dir: 1, targetSpeed: 12 + r * 1.5, stuckTimer: 0, wait: 1.2 + r * 0.9 });
       }
 
       if (this.pendingSpawnArgs) {
@@ -2918,7 +2939,11 @@ export class AbidjanSceneManager {
           x: v.rig.group.position.x,
           z: v.rig.group.position.z,
         }));
-        updateRoadTraffic(core, this.trafficCars, this.playerX, this.playerZ, dt, playerVehicles);
+        const roadCars = this.roadCarsScratch;
+        roadCars.length = 0;
+        for (const tc of this.trafficCars) roadCars.push(tc);
+        for (const dr of this.deliveryRiders) roadCars.push(dr);
+        updateRoadTraffic(core, roadCars, this.playerX, this.playerZ, dt, playerVehicles);
       }
 
       core.step(dt);
@@ -2988,6 +3013,18 @@ export class AbidjanSceneManager {
           tc.rig.setPhysicsWheelPose(ts.wheelAngle, ts.steer);
           tc.rig.updateSiren(nowSec, this.policeWanted > 0);
           this.animalSystem.pushThreat(ts.x, ts.z, Math.abs(ts.forwardSpeed)); // les animaux fuient la circulation
+        }
+      }
+
+      // Sync livreurs moto
+      for (const dr of this.deliveryRiders) {
+        const ds = core.readVehicle(dr.vehId, this.trafficState);
+        dr.rider.group.visible = dr.wait <= 0;
+        if (dr.rider.group.visible) {
+          dr.rider.group.position.set(ds.x, 0, ds.z);
+          dr.rider.group.rotation.set(-ds.pitch, ds.heading, ds.roll);
+          dr.rider.update(dt, ds.forwardSpeed);
+          this.animalSystem.pushThreat(ds.x, ds.z, Math.abs(ds.forwardSpeed));
         }
       }
 
