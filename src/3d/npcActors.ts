@@ -17,6 +17,7 @@ import type { InteriorId } from '../world/interiors';
 import type { NpcRole } from '../world/npcAppearance';
 import { interiorNpcKey, interiorNpcLoadout } from './studioNpc/interiorLoadout';
 import { isStreetActorProfile } from './streetProfiles';
+import { pickStreetModel } from './actorPick';
 import { buildStudioActorTemplate, disposeStudioActorTemplate, type StudioActorTemplate } from './studioNpc/studioActorBuilder';
 
 export type Moment = 'day' | 'night';
@@ -56,7 +57,7 @@ export class NpcActor {
   released = false;
   private root: THREE.Object3D | null = null;
   private mixer: THREE.AnimationMixer | null = null;
-  private actions: { idle?: THREE.AnimationAction; walk?: THREE.AnimationAction; talk?: THREE.AnimationAction } = {};
+  private actions: { idle?: THREE.AnimationAction; walk?: THREE.AnimationAction; run?: THREE.AnimationAction; talk?: THREE.AnimationAction } = {};
   private current: THREE.AnimationAction | null = null;
 
   constructor(
@@ -77,6 +78,7 @@ export class NpcActor {
       const a = mixer.clipAction(clip);
       if (clip.name === 'BLV_Idle') this.actions.idle = a;
       else if (clip.name === 'BLV_Walk') this.actions.walk = a;
+      else if (clip.name === 'BLV_Run') this.actions.run = a;
       else if (clip.name === 'BLV_Talk') this.actions.talk = a;
     }
     this.root = root;
@@ -85,8 +87,8 @@ export class NpcActor {
     this.ready = true;
   }
 
-  /** Pose et animation. `anim` : 'walk' | 'idle' | 'talk'. */
-  pose(x: number, z: number, cap: number, tilt: number, anim: 'walk' | 'idle' | 'talk', speed: number, dt: number, distToPlayer: number): void {
+  /** Pose et animation. `anim` : 'walk' | 'run' | 'idle' | 'talk' ('run' retombe sur la marche accélérée si le modèle n'a pas BLV_Run). */
+  pose(x: number, z: number, cap: number, tilt: number, anim: 'walk' | 'run' | 'idle' | 'talk', speed: number, dt: number, distToPlayer: number): void {
     const root = this.root;
     if (!root || !this.mixer) return;
     root.visible = distToPlayer < HIDE_RANGE;
@@ -94,13 +96,13 @@ export class NpcActor {
     root.position.set(x, 0, z);
     root.rotation.set(tilt, cap, 0, 'YXZ');
     if (distToPlayer > ANIM_RANGE) return;
-    const next = (anim === 'walk' ? this.actions.walk : anim === 'talk' ? this.actions.talk : this.actions.idle) ?? this.actions.idle ?? null;
+    const next = (anim === 'run' ? this.actions.run ?? this.actions.walk : anim === 'walk' ? this.actions.walk : anim === 'talk' ? this.actions.talk : this.actions.idle) ?? this.actions.idle ?? null;
     if (next && next !== this.current) {
       next.reset().fadeIn(FADE).play();
       this.current?.fadeOut(FADE);
       this.current = next;
     }
-    if (anim === 'walk' && this.actions.walk) this.actions.walk.timeScale = Math.min(1.8, Math.max(0.6, speed / 1.4));
+    if ((anim === 'walk' || anim === 'run') && next === this.actions.walk && this.actions.walk) this.actions.walk.timeScale = Math.min(1.8, Math.max(0.6, speed / 1.4));
     this.mixer.update(dt);
   }
 
@@ -128,6 +130,8 @@ export class NpcActors {
   private moment: Moment = 'day';
   private count = 0;
   private interiorCount = 0;
+  /** Acteurs de rue actifs par fichier : sert à éviter deux fois le même modèle dans le quartier. */
+  private streetUsage = new Map<string, number>();
   /** Modèles du studio de la salle courante (clé = profil) ; vidés au changement de salle. */
   private studioTemplates = new Map<string, StudioActorTemplate | 'failed'>();
   private studioRoom: InteriorId | null = null;
@@ -183,11 +187,12 @@ export class NpcActors {
     if (!zone) return null;
     const list = this.files.get(`${zone}|${this.moment}`);
     if (!list || list.length === 0) return null;
-    const file = list[Math.abs(Math.floor(seed)) % list.length];
+    const file = pickStreetModel(list, seed, this.streetUsage);
     const t = this.templates.get(file);
     if (t === undefined) { this.preload(file); return null; }
     if (t === 'loading' || t === 'failed') return null;
     this.count++;
+    this.streetUsage.set(file, (this.streetUsage.get(file) ?? 0) + 1);
     return new NpcActor(this, file, t);
   }
 
@@ -225,7 +230,11 @@ export class NpcActors {
   /** Appelé par un acteur qui se libère. */
   onReleased(a: NpcActor): void {
     if (a.interior) this.interiorCount = Math.max(0, this.interiorCount - 1);
-    else this.count = Math.max(0, this.count - 1);
+    else {
+      this.count = Math.max(0, this.count - 1);
+      const u = (this.streetUsage.get(a.file) ?? 0) - 1;
+      if (u > 0) this.streetUsage.set(a.file, u); else this.streetUsage.delete(a.file);
+    }
   }
 
   dispose(): void {

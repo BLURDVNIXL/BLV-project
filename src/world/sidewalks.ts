@@ -20,6 +20,8 @@ import { GRIDS, frameFor, roadAt } from './roads';
 
 /** Distance (m) entre le bord de la chaussée et la ligne de marche (milieu du trottoir de 1,2 m, cf. `terrain.ts`). */
 export const SW_OFFSET = 0.85;
+/** Part des carrefours où un piéton continue tout droit quand rien d'autre n'est précisé. */
+export const STRAIGHT_BIAS = 0.6;
 
 export interface SwNode {
   /** Indice du district dans `DISTRICTS`. */
@@ -213,13 +215,13 @@ export function randomNodeInRing(
  * Prochain nœud d'une marche : continue tout droit si possible (un piéton ne revient pas sur ses pas), sinon
  * tourne ; fait demi-tour seulement dans une impasse. `null` si le nœud n'a aucun voisin.
  */
-export function pickNextNode(cur: SwNode, prev: SwNode | null, rand: () => number): SwNode | null {
+export function pickNextNode(cur: SwNode, prev: SwNode | null, rand: () => number, straightBias = STRAIGHT_BIAS): SwNode | null {
   const nb = nodeNeighbors(cur);
   if (nb.length === 0) return null;
   const forward = prev ? nb.filter((n) => !sameNode(n, prev)) : nb;
   if (forward.length === 0) return prev;
   if (prev && forward.length > 1) {
-    // Préfère l'arête de même axe que celle d'où l'on vient (tout droit), 60 % du temps
+    // Préfère l'arête de même axe que celle d'où l'on vient (tout droit), `straightBias` du temps (le caractère du PNJ)
     const pp = nodePos(prev);
     const pc = nodePos(cur);
     const dxIn = pc.x - pp.x;
@@ -233,7 +235,7 @@ export function pickNextNode(cur: SwNode, prev: SwNode | null, rand: () => numbe
       const dot = ((q.x - pc.x) * dxIn + (q.z - pc.z) * dzIn) / (l * lIn);
       if (dot > bestDot) { bestDot = dot; best = n; }
     }
-    if (rand() < 0.6) return best;
+    if (rand() < straightBias) return best;
   }
   return forward[Math.floor(rand() * forward.length)];
 }

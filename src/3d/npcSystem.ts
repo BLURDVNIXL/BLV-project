@@ -27,7 +27,12 @@ import { NPC_CROWD_CAPACITY, NPC_POOL_SIZE, npcActiveFraction, scaleNpcDistances
 import { bridgeAt, roadAt } from '../world/roads';
 import { NpcActors, type NpcActor } from './npcActors';
 import { isHiddenFromView, type Occluder, type ViewState } from '../world/pedVisibility';
-import { nearestNode, nodePos, pickNextNode, randomNodeInRing, type SwNode } from '../world/sidewalks';
+import { STRAIGHT_BIAS, nearestNode, nodePos, pickNextNode, randomNodeInRing, type SwNode } from '../world/sidewalks';
+import { DEFAULT_NPC_SEED, walkerStraightBias } from './npcWander';
+import {
+  FLEE_SPEED, fleeDuration, unitDir, vehicleSeverity, witnessIndices, witnessPause,
+  type ImpactSeverity, type ImpactSource, type NpcIncident,
+} from './npcImpact';
 import { NpcCrowd, type NpcHandle } from './npcInstances';
 import { HIT_PUSH_SECONDS, HIT_PUSH_SPEED, HIT_STUN_SECONDS, pickPunchTarget, type PunchCandidate } from './punch';
 
@@ -90,12 +95,20 @@ interface MobileNpc {
   /** Trottoir : nœud visé et nœud précédent (piétons de rue uniquement). */
   swNode: SwNode | null;
   swPrev: SwNode | null;
+  /** Caractère de trajet : part des carrefours où il continue tout droit (tiré à chaque apparition d'un piéton de rue). */
+  straightBias: number;
   /** Personnage chibi (acteur) ; `null` : PNJ de la foule instanciée. */
   actor: NpcActor | null;
   /** Temps restant (s) au sol après un coup du joueur ; 0 = debout. */
   hitT: number;
   hitDirX: number;
   hitDirZ: number;
+  /** Temps de fuite restant (s) après un impact ; ne décompte que debout. */
+  fleeT: number;
+  fleeDirX: number;
+  fleeDirZ: number;
+  /** Étourdi à l'image précédente (détecte le front montant d'un choc de véhicule). */
+  wasStunned: boolean;
 }
 
 interface MarketVendorNpc {
@@ -124,6 +137,9 @@ interface InteriorStaticNpc {
   /** Amplitude du balancement du cap (gestes de la discussion). */
   sway: number;
   solidId: number;
+  /** Temps restant (s) au sol après un coup du joueur ; 0 = debout. */
+  hitT: number;
+  tilt: number;
 }
 
 /** Différence d'angle ramenée dans [−π, π]. */
@@ -147,7 +163,8 @@ export class NpcSystem {
   /** Rotation du repère du marché (même formule que `localToWorld`). */
   private marketRot = 0;
   private marketCenter: { x: number; z: number; hallHalfW: number; hallHalfD: number } | null = null;
-  private seed = 1337;
+  private seed = DEFAULT_NPC_SEED;
+  private readonly incidentListeners: Array<(incident: NpcIncident) => void> = [];
   private time = 0;
   private frame = 0;
   private readonly scratch: CharacterState = createCharacterState();
@@ -172,7 +189,9 @@ export class NpcSystem {
     this.activeFraction = npcActiveFraction(scale);
   }
 
-  constructor(scene: THREE.Scene, poolSize = NPC_POOL_SIZE) {
+  /** `rngSeed` : graine du hasard des PNJ (le jeu en passe une différente à chaque lancement ; les tests gardent la valeur par défaut). */
+  constructor(scene: THREE.Scene, poolSize = NPC_POOL_SIZE, rngSeed = DEFAULT_NPC_SEED) {
+    this.seed = rngSeed >>> 0;
     scene.add(this.crowd.group);
     this.actors = new NpcActors(scene);
 
@@ -231,7 +250,7 @@ export class NpcSystem {
         stuckT: 0, anchorX: 0, anchorZ: 0,
         sideT: 0, sideX: 0, sideZ: 0,
         route: null, routeIdx: 0,
-        swNode: null, swPrev: null, actor: null,
+        swNode: null, swPrev: null, straightBias: STRAIGHT_BIAS, fleeT: 0, fleeDirX: 0, fleeDirZ: 0, wasStunned: false, actor: null,
         hitT: 0, hitDirX: 0, hitDirZ: 0,
       });
     }
@@ -403,11 +422,14 @@ export class NpcSystem {
     n.handle = handle;
     // Piéton de rue (ni client, ni intérieur) : personnage chibi si son modèle est déjà chargé
     n.actor = !n.shopper && !n.route ? this.actors.request(districtId, seed) : null;
+    if (!n.shopper && !n.route) n.straightBias = walkerStraightBias(this.nextRand());
     n.x = x;
     n.z = z;
     n.state = 'walk';
     n.tilt = 0;
     n.hitT = 0;
+    n.fleeT = 0;
+    n.wasStunned = true; // un étourdissement résiduel ne compte pas comme un nouveau choc
     n.waitT = 0;
     n.yieldT = 0;
     n.aiAccum = 0;
@@ -473,7 +495,7 @@ export class NpcSystem {
       from = nearestNode(x, z, 12) ?? cur;
       prev = null;
     }
-    const next = pickNextNode(from, prev, () => this.nextRand());
+    const next = pickNextNode(from, prev, () => this.nextRand(), n.straightBias);
     if (!next) {
       n.targetX = tp.x;
       n.targetZ = tp.z;
@@ -547,6 +569,7 @@ export class NpcSystem {
           handle, actor, talk: d.behavior.kind === 'talk', wx: w.x, wz: w.z, baseCap: d.rotY, phase,
           sway: d.behavior.kind === 'talk' ? 0.3 : 0.15,
           solidId: core.addCircle(w.x, w.z, VENDOR_RADIUS, VENDOR_HEIGHT, SolidFlag.PROP),
+          hitT: 0, tilt: 0,
         });
       }
     }
@@ -578,11 +601,14 @@ export class NpcSystem {
     }
     for (const s of this.interiorStatics) {
       s.phase += dt * 2.2;
+      if (s.hitT > 0) s.hitT -= dt;
+      const down = s.hitT > 0;
+      s.tilt += ((down ? FALL_TILT : 0) - s.tilt) * Math.min(1, 8 * dt);
       const cap = s.baseCap + Math.sin(s.phase * 0.7) * s.sway;
       if (s.actor) {
-        s.actor.pose(s.wx, s.wz, cap, 0, s.talk ? 'talk' : 'idle', 0, dt, Math.hypot(s.wx - playerX, s.wz - playerZ));
+        s.actor.pose(s.wx, s.wz, cap, s.tilt, s.talk && !down ? 'talk' : 'idle', 0, dt, Math.hypot(s.wx - playerX, s.wz - playerZ));
       } else if (s.handle) {
-        this.crowd.setPose(s.handle, s.wx, s.wz, cap, s.phase, 0.08);
+        this.crowd.setPose(s.handle, s.wx, s.wz, cap, s.phase, 0.08, s.tilt);
       }
     }
     this.crowd.commit(this.time);
@@ -749,7 +775,14 @@ export class NpcSystem {
       core.characterInput(n.charId, n.hitDirX, n.hitDirZ, elapsed < HIT_PUSH_SECONDS ? HIT_PUSH_SPEED : 0);
       n.hitT -= dt;
     }
-    const knocked = st.stun > 0 || n.hitT > 0;
+    // Renversé par un véhicule : front montant de `stun` → même traitement que le coup du joueur (direction et
+    // vitesse de projection = ce que le moteur a donné au PNJ)
+    const stunned = st.stun > 0;
+    if (stunned && !n.wasStunned) {
+      this.applyImpact(n, 'vehicle', st.vx, st.vz, vehicleSeverity(st.speed));
+    }
+    n.wasStunned = stunned;
+    const knocked = stunned || n.hitT > 0;
     if (knocked) {
       // Renversé par un véhicule : aucun `characterInput` tant que `stun > 0`
       n.state = 'down';
@@ -758,7 +791,16 @@ export class NpcSystem {
         n.state = 'walk';
         this.resetStuck(n, st);
       }
-      if (dist < this.dist.farAi || ((this.frame + i) & 1) === 0) {
+      if (n.fleeT > 0) {
+        // S'enfuit à vitesse de course, loin de l'impact, puis reprend sa marche
+        n.fleeT -= dt;
+        core.characterInput(n.charId, n.fleeDirX, n.fleeDirZ, FLEE_SPEED);
+        n.state = 'walk';
+        if (n.fleeT <= 0) {
+          this.resetStuck(n, st);
+          this.pickGoal(n, st.x, st.z);
+        }
+      } else if (dist < this.dist.farAi || ((this.frame + i) & 1) === 0) {
         this.think(n, st, n.aiAccum, playerX, playerZ, isSuperstar);
         n.aiAccum = 0;
       }
@@ -773,30 +815,108 @@ export class NpcSystem {
     if (actor) {
       this.crowd.setVisible(handle, !actor.ready);
       const talk = n.state === 'wait' && Math.floor(handle.idle * 10) % 3 === 0;
-      actor.pose(st.x, st.z, n.cap, n.tilt, knocked ? 'idle' : moving ? 'walk' : talk ? 'talk' : 'idle', st.speed, dt, dist);
+      actor.pose(st.x, st.z, n.cap, n.tilt, knocked ? 'idle' : n.fleeT > 0 && moving ? 'run' : moving ? 'walk' : talk ? 'talk' : 'idle', st.speed, dt, dist);
+    }
+  }
+
+  /** Écoute les incidents (impact subi par un PNJ). Renvoie la fonction qui retire l'écouteur. */
+  onIncident(listener: (incident: NpcIncident) => void): () => void {
+    this.incidentListeners.push(listener);
+    return () => {
+      const k = this.incidentListeners.indexOf(listener);
+      if (k >= 0) this.incidentListeners.splice(k, 1);
+    };
+  }
+
+  private emitIncident(source: ImpactSource, x: number, z: number, severity: ImpactSeverity): void {
+    if (this.incidentListeners.length === 0) return;
+    const incident: NpcIncident = { source, x, z, severity, time: this.time };
+    for (const l of this.incidentListeners.slice()) l(incident);
+  }
+
+  /** Les PNJ de la rue ou de la salle à moins de `WITNESS_RADIUS` s'arrêtent et regardent l'impact. */
+  private makeWitnesses(x: number, z: number, victim: MobileNpc | null): void {
+    const core = this.core;
+    if (!core) return;
+    const pool = this.indoor ? this.interiorMobile : this.mobile;
+    const cands: MobileNpc[] = [];
+    for (const n of pool) {
+      if (n === victim || !n.handle || n.charId < 0 || n.state === 'down' || n.fleeT > 0 || n.hitT > 0) continue;
+      cands.push(n);
+    }
+    for (const k of witnessIndices(x, z, cands)) {
+      const w = cands[k];
+      core.characterInput(w.charId, 0, 0, 0);
+      w.state = 'wait';
+      w.waitT = witnessPause(this.nextRand());
+      w.cap = Math.atan2(x - w.x, z - w.z);
     }
   }
 
   /**
+   * Impact subi par un PNJ mobile, qu'il vienne du joueur ou d'un véhicule : l'incident n'est signalé et les voisins
+   * ne réagissent que si le PNJ était debout et ne fuyait pas déjà ; la chute et la fuite, elles, recommencent.
+   * Le coup du joueur impose lui-même l'étourdissement ; pour un véhicule, c'est le moteur physique qui l'a déjà fait.
+   * `dirX/dirZ` : sens du choc (le PNJ s'enfuit dans ce sens).
+   */
+  private applyImpact(n: MobileNpc, source: ImpactSource, dirX: number, dirZ: number, severity: ImpactSeverity): void {
+    const dir = unitDir(dirX, dirZ);
+    const fresh = n.fleeT <= 0 && n.state !== 'down';
+    if (source === 'player') {
+      n.hitT = HIT_STUN_SECONDS;
+      n.hitDirX = dir.x;
+      n.hitDirZ = dir.z;
+      n.state = 'down';
+    }
+    // Un PNJ qui suit un trajet en boucle dans une salle ne fuit pas (il n'a nulle part où aller)
+    n.fleeT = n.route ? 0 : fleeDuration(this.nextRand());
+    n.fleeDirX = dir.x;
+    n.fleeDirZ = dir.z;
+    if (!fresh) return;
+    this.emitIncident(source, n.x, n.z, severity);
+    this.makeWitnesses(n.x, n.z, n);
+  }
+
+  /**
    * Coup du joueur : le PNJ le plus proche dans le cône devant lui (portée courte) est poussé puis étourdi.
-   * Renvoie vrai si un PNJ est touché. Fonctionne en extérieur comme dans les salles.
+   * Dans une salle, les PNJ immobiles (comptoir, discussion) sont touchables aussi : ils tombent puis se relèvent à leur
+   * poste. Renvoie vrai si un PNJ est touché.
    */
   hit(px: number, pz: number, dirX: number, dirZ: number): boolean {
     const pool = this.indoor ? this.interiorMobile : this.mobile;
     const cands: PunchCandidate[] = [];
-    const owners: MobileNpc[] = [];
+    const mobileOwners: Array<MobileNpc | null> = [];
+    const staticOwners: Array<InteriorStaticNpc | null> = [];
     for (const n of pool) {
       if (!n.handle || n.charId < 0 || n.hitT > 0) continue;
       cands.push({ x: n.x, z: n.z });
-      owners.push(n);
+      mobileOwners.push(n);
+      staticOwners.push(null);
+    }
+    if (this.indoor) {
+      for (const s of this.interiorStatics) {
+        if (s.hitT > 0) continue;
+        cands.push({ x: s.wx, z: s.wz });
+        mobileOwners.push(null);
+        staticOwners.push(s);
+      }
     }
     const k = pickPunchTarget(px, pz, dirX, dirZ, cands);
     if (k < 0) return false;
-    const n = owners[k];
-    n.hitT = HIT_STUN_SECONDS;
-    n.hitDirX = dirX;
-    n.hitDirZ = dirZ;
-    n.state = 'down';
+    const m = mobileOwners[k];
+    if (m) {
+      this.applyImpact(m, 'player', dirX, dirZ, 1);
+      return true;
+    }
+    const s = staticOwners[k];
+    if (s) {
+      const fresh = s.hitT <= 0;
+      s.hitT = HIT_STUN_SECONDS;
+      if (fresh) {
+        this.emitIncident('player', s.wx, s.wz, 1);
+        this.makeWitnesses(s.wx, s.wz, null);
+      }
+    }
     return true;
   }
 

@@ -48,6 +48,7 @@ import {
   type DistancePref,
 } from '../world/qualitySettings';
 import { NpcSystem } from './npcSystem';
+import { launchSeed } from './npcWander';
 import { PUNCH_IMPACT_DELAY } from './punch';
 import { WeatherFxSystem, weatherFxMode } from './weatherFx';
 import { WaterTrafficSystem } from './waterTraffic';
@@ -567,7 +568,7 @@ export class AbidjanSceneManager {
     this.buildStaticHeroLandmarks();
     this.buildStaticHotspotsAndPickups();
 
-    this.npcSystem = new NpcSystem(this.scene, this.lowEnd ? NPC_POOL_SIZE_LOW : NPC_POOL_SIZE);
+    this.npcSystem = new NpcSystem(this.scene, this.lowEnd ? NPC_POOL_SIZE_LOW : NPC_POOL_SIZE, launchSeed());
     this.animalSystem = new AnimalSystem(this.scene, this.lowEnd);
     this.refreshDistances();
     this.weatherFx = new WeatherFxSystem(this.scene, this.isSoftwareGl);
