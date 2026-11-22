@@ -183,6 +183,7 @@ export function normalizeSessionState(
     },
     isDepressed: value.isDepressed as boolean,
     policeWanted: value.policeWanted as number,
+    ...(isFiniteRange(value.policeQuietSeconds, 0, 3600) ? { policeQuietSeconds: value.policeQuietSeconds as number } : {}),
     daysLived: value.daysLived as number,
     gameTimeHours: value.gameTimeHours as number,
     goldenBoyDaysLeft: value.goldenBoyDaysLeft as number,

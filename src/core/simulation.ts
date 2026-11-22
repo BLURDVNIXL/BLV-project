@@ -197,6 +197,48 @@ export function evaluateMissionProgress(state: PlayerState, currentDistrictId?: 
 /**
  * 1 real hour = 4 in-game hours.
  */
+/** Étoiles de recherche : plafond, secondes sans incident pour en perdre une, délai minimal entre deux hausses. */
+export const POLICE_MAX_STARS = 5;
+export const POLICE_DECAY_SECONDS = 60;
+export const POLICE_RAISE_COOLDOWN_MS = 2000;
+
+/** Étoiles gagnées pour un incident de gravité 1 à 3 (toute autre valeur est ramenée dans cette plage). */
+export function policeStarsForSeverity(severity: number): number {
+  if (!Number.isFinite(severity)) return 1;
+  return Math.min(3, Math.max(1, Math.round(severity)));
+}
+
+/** Redescente : une étoile de moins toutes les 60 s sans incident. */
+export function tickPoliceWanted(
+  wanted: number,
+  quietSeconds: number,
+  realSeconds: number
+): { wanted: number; quietSeconds: number; cleared: boolean } {
+  if (wanted <= 0) return { wanted: 0, quietSeconds: 0, cleared: false };
+  let w = wanted;
+  let q = quietSeconds + Math.max(0, realSeconds);
+  while (q >= POLICE_DECAY_SECONDS && w > 0) {
+    q -= POLICE_DECAY_SECONDS;
+    w -= 1;
+  }
+  if (w === 0) return { wanted: 0, quietSeconds: 0, cleared: true };
+  return { wanted: w, quietSeconds: q, cleared: false };
+}
+
+/** Incident vu par un témoin : monte les étoiles (plafond 5) et relance le compte à rebours de la redescente. */
+export function raisePoliceWanted(state: PlayerState, severity: number): PlayerState {
+  if (state.isGameOver) return state;
+  const next = Math.min(POLICE_MAX_STARS, state.policeWanted + policeStarsForSeverity(severity));
+  const updated: PlayerState = { ...state, policeWanted: next, policeQuietSeconds: 0 };
+  if (state.policeWanted === 0) {
+    return addLog(updated, `🚨 Un témoin a tout vu : la police te recherche (${next} ★).`, 'danger');
+  }
+  if (next === POLICE_MAX_STARS && state.policeWanted < POLICE_MAX_STARS) {
+    return addLog(updated, '🚨 Avis de recherche maximal (5 ★) !', 'danger');
+  }
+  return updated;
+}
+
 export function advanceGameTime(
   state: PlayerState,
   realSecondsElapsed: number,
@@ -357,8 +399,20 @@ export function advanceGameTime(
       'Épuisement total (faim et énergie à 0) sous le poids des dettes (> 25 000 FCFA) à Abidjan.';
   }
 
+  const police = tickPoliceWanted(state.policeWanted, state.policeQuietSeconds ?? 0, realSecondsElapsed);
+  if (police.cleared) {
+    newLogs.unshift({
+      id: `police_clear_${newDays}_${Math.round(newHours * 100)}`,
+      time: formatGameTime(newHours),
+      message: '🕊️ La police a perdu ta trace : plus de recherche.',
+      type: 'success',
+    });
+  }
+
   return evaluateMissionProgress({
     ...state,
+    policeWanted: police.wanted,
+    ...(police.quietSeconds > 0 || state.policeQuietSeconds !== undefined ? { policeQuietSeconds: police.quietSeconds } : {}),
     gameTimeHours: newHours,
     daysLived: newDays,
     cash: newCash,

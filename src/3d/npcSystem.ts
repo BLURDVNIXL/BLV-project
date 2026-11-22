@@ -828,29 +828,40 @@ export class NpcSystem {
     };
   }
 
-  private emitIncident(source: ImpactSource, x: number, z: number, severity: ImpactSeverity): void {
+  private emitIncident(source: ImpactSource, x: number, z: number, severity: ImpactSeverity, witnesses: number): void {
     if (this.incidentListeners.length === 0) return;
-    const incident: NpcIncident = { source, x, z, severity, time: this.time };
+    const incident: NpcIncident = { source, x, z, severity, witnesses, time: this.time };
     for (const l of this.incidentListeners.slice()) l(incident);
   }
 
-  /** Les PNJ de la rue ou de la salle à moins de `WITNESS_RADIUS` s'arrêtent et regardent l'impact. */
-  private makeWitnesses(x: number, z: number, victim: MobileNpc | null): void {
+  /**
+   * Les PNJ de la rue ou de la salle à moins de `WITNESS_RADIUS` s'arrêtent et regardent l'impact. Renvoie le nombre
+   * de témoins (PNJ mobiles debout, plus les PNJ immobiles de la salle encore debout, victime exclue).
+   */
+  private makeWitnesses(x: number, z: number, victim: MobileNpc | null, victimStatic: InteriorStaticNpc | null = null): number {
     const core = this.core;
-    if (!core) return;
+    if (!core) return 0;
+    let count = 0;
+    if (this.indoor) {
+      const statics = this.interiorStatics.filter((s) => s !== victimStatic && s.hitT <= 0);
+      count += witnessIndices(x, z, statics.map((s) => ({ x: s.wx, z: s.wz }))).length;
+    }
     const pool = this.indoor ? this.interiorMobile : this.mobile;
     const cands: MobileNpc[] = [];
     for (const n of pool) {
       if (n === victim || !n.handle || n.charId < 0 || n.state === 'down' || n.fleeT > 0 || n.hitT > 0) continue;
       cands.push(n);
     }
-    for (const k of witnessIndices(x, z, cands)) {
+    const near = witnessIndices(x, z, cands);
+    count += near.length;
+    for (const k of near) {
       const w = cands[k];
       core.characterInput(w.charId, 0, 0, 0);
       w.state = 'wait';
       w.waitT = witnessPause(this.nextRand());
       w.cap = Math.atan2(x - w.x, z - w.z);
     }
+    return count;
   }
 
   /**
@@ -873,8 +884,8 @@ export class NpcSystem {
     n.fleeDirX = dir.x;
     n.fleeDirZ = dir.z;
     if (!fresh) return;
-    this.emitIncident(source, n.x, n.z, severity);
-    this.makeWitnesses(n.x, n.z, n);
+    const witnesses = this.makeWitnesses(n.x, n.z, n);
+    this.emitIncident(source, n.x, n.z, severity, witnesses);
   }
 
   /**
@@ -913,8 +924,8 @@ export class NpcSystem {
       const fresh = s.hitT <= 0;
       s.hitT = HIT_STUN_SECONDS;
       if (fresh) {
-        this.emitIncident('player', s.wx, s.wz, 1);
-        this.makeWitnesses(s.wx, s.wz, null);
+        const witnesses = this.makeWitnesses(s.wx, s.wz, null, s);
+        this.emitIncident('player', s.wx, s.wz, 1, witnesses);
       }
     }
     return true;

@@ -15,6 +15,8 @@ import {
   buyCribUpgrade,
   buyOrEquipOutfit,
   clearPoliceViaNetwork,
+  POLICE_RAISE_COOLDOWN_MS,
+  raisePoliceWanted,
   createInitialPlayerState,
   depositToBank,
   donateYannisAcademy,
@@ -305,6 +307,7 @@ async function startServer() {
   });
 
   // 3. Server-Authoritative Economy Action Endpoint
+  const lastPoliceRaise = new Map<string, number>();
   app.post('/api/economy/action', (req, res) => {
     const body = (req.body ?? {}) as { playerId?: unknown; action?: unknown; payload?: unknown };
     const playerId = typeof body.playerId === 'string' ? body.playerId : '';
@@ -406,6 +409,16 @@ async function startServer() {
       case 'clear_police':
         st = clearPoliceViaNetwork(st, Boolean(payload?.isBlackMarket));
         break;
+      case 'raise_police': {
+        // Gravité bornée à 1-3 ici ; au plus une hausse toutes les 2 s par joueur (le client applique le même délai).
+        const now = Date.now();
+        if (now - (lastPoliceRaise.get(playerId) ?? 0) >= POLICE_RAISE_COOLDOWN_MS) {
+          if (lastPoliceRaise.size > 5000) lastPoliceRaise.clear();
+          lastPoliceRaise.set(playerId, now);
+          st = raisePoliceWanted(st, Number(payload?.severity));
+        }
+        break;
+      }
       case 'lavage_etoile':
         st = performLavageEtoile(st);
         break;

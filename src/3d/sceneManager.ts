@@ -48,6 +48,7 @@ import {
   type DistancePref,
 } from '../world/qualitySettings';
 import { NpcSystem } from './npcSystem';
+import type { NpcIncident } from './npcImpact';
 import { launchSeed } from './npcWander';
 import { PUNCH_IMPACT_DELAY } from './punch';
 import { WeatherFxSystem, weatherFxMode } from './weatherFx';
@@ -168,6 +169,8 @@ export interface RadarSnapshot {
 }
 
 export interface SceneCallbacks {
+  /** Un incident vu par au moins un témoin et causé par le joueur : `severity` de 1 à 3 (étoiles de recherche). */
+  onWantedIncident?: (severity: number) => void;
   onNearestHotspotChange: (hotspot: CityHotspot | null) => void;
   onNearestVehicleChange: (vehicle: { id: string; label: string; type: VehicleModelType } | null) => void;
   onDistrictChange: (district: string) => void;
@@ -569,6 +572,7 @@ export class AbidjanSceneManager {
     this.buildStaticHotspotsAndPickups();
 
     this.npcSystem = new NpcSystem(this.scene, this.lowEnd ? NPC_POOL_SIZE_LOW : NPC_POOL_SIZE, launchSeed());
+    this.npcSystem.onIncident((incident) => this.handleNpcIncident(incident));
     this.animalSystem = new AnimalSystem(this.scene, this.lowEnd);
     this.refreshDistances();
     this.weatherFx = new WeatherFxSystem(this.scene, this.isSoftwareGl);
@@ -2204,6 +2208,23 @@ export class AbidjanSceneManager {
     if (this.punchImpactIn > 0) return;
     this.punchImpactIn = -1;
     this.npcSystem.hit(this.playerX, this.playerZ, Math.sin(this.playerRotY), Math.cos(this.playerRotY));
+  }
+
+  /** Distance (m) max entre le joueur au volant et la victime d'un choc de véhicule pour que le choc soit le sien. */
+  private static readonly DRIVER_IMPACT_RANGE = 8;
+
+  /**
+   * Un impact sur un PNJ ne devient un incident « recherché » que si un témoin l'a vu et que le joueur en est
+   * l'auteur : son coup de poing, ou un choc de véhicule alors qu'il conduit et que la victime est à côté de lui
+   * (les voitures de la circulation ne font rien monter).
+   */
+  private handleNpcIncident(incident: NpcIncident): void {
+    if (incident.witnesses < 1) return;
+    if (incident.source === 'vehicle') {
+      if (!this.drivingVehicle) return;
+      if (Math.hypot(incident.x - this.playerX, incident.z - this.playerZ) > AbidjanSceneManager.DRIVER_IMPACT_RANGE) return;
+    }
+    this.callbacks.onWantedIncident?.(incident.severity);
   }
 
   public setHeldUseHandler(handler: (() => void) | null) {

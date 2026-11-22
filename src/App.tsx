@@ -27,6 +27,8 @@ import {
   taxiCallRefusal,
   performLavageEtoile,
   playLotoAkwaba,
+  POLICE_RAISE_COOLDOWN_MS,
+  raisePoliceWanted,
   rollDestiny,
   sleepAtHome,
   spendCash,
@@ -700,6 +702,9 @@ export default function App() {
   );
 
   const handleRepairStalledEngineRef = useRef<() => void>(() => {});
+  const lastWantedRaiseRef = useRef(0);
+  const syncEconomyRef = useRef(syncEconomy);
+  syncEconomyRef.current = syncEconomy;
 
   // Mount Three.js AbidjanSceneManager ONCE
   useEffect(() => {
@@ -769,6 +774,14 @@ export default function App() {
         }
       },
       onHorn: () => soundEngine.playHorn(),
+      onWantedIncident: (severity) => {
+        // Au plus une hausse toutes les 2 s (même délai que le serveur, sinon l'état renvoyé par le serveur ferait sauter les étoiles)
+        const now = Date.now();
+        if (now - lastWantedRaiseRef.current < POLICE_RAISE_COOLDOWN_MS) return;
+        lastWantedRaiseRef.current = now;
+        setPlayerState((prev) => raisePoliceWanted(prev, severity));
+        syncEconomyRef.current('raise_police', { severity });
+      },
       onPauseKey: () => {
         setScreenState((s) => (s === 'playing' ? 'paused' : s === 'paused' ? 'playing' : s));
       },

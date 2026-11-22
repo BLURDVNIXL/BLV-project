@@ -168,6 +168,8 @@ export interface PlayerState {
   needs: Needs;
   isDepressed: boolean; // True when envy <= 0 -> 50% work efficiency
   policeWanted: number; // 0 - 5 stars
+  /** Secondes écoulées depuis le dernier incident recherché (la redescente d'une étoile se fait toutes les 60 s). Absent = 0. */
+  policeQuietSeconds?: number;
   daysLived: number;
   gameTimeHours: number; // 0 - 23.99
   goldenBoyDaysLeft: number; // 30 days Platinum card timer

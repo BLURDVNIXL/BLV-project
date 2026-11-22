@@ -19,6 +19,8 @@ export interface NpcIncident {
   x: number;
   z: number;
   severity: ImpactSeverity;
+  /** PNJ debout à moins de `WITNESS_RADIUS` (hors victime) : 0 = personne n'a vu. */
+  witnesses: number;
   /** Temps de simulation des PNJ (s). */
   time: number;
 }
