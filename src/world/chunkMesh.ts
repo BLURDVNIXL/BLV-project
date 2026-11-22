@@ -37,6 +37,8 @@ export interface ChunkMaterials {
   trees: THREE.MeshLambertMaterial;
   lamps: THREE.MeshStandardMaterial;
   puddles: THREE.MeshStandardMaterial;
+  /** Flaques de lumière au sol sous les lampadaires (additif, visibles seulement la nuit). */
+  pools: THREE.MeshBasicMaterial;
   signs: THREE.MeshStandardMaterial;
   setNight: (night: boolean) => void;
   setWetness: (wet: boolean) => void;
@@ -181,6 +183,18 @@ export function createChunkMaterials(night: boolean, wind = false): ChunkMateria
     opacity: 0.74,
     depthWrite: false,
   });
+  const pools = new THREE.MeshBasicMaterial({
+    map: makePoolTexture(),
+    vertexColors: true,
+    transparent: true,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+    polygonOffset: true,
+    polygonOffsetFactor: -2,
+    polygonOffsetUnits: -2,
+  });
+  pools.visible = night;
   const signs = new THREE.MeshStandardMaterial({
     map: signTex,
     roughness: 0.42,
@@ -216,6 +230,7 @@ export function createChunkMaterials(night: boolean, wind = false): ChunkMateria
   const setNight = (isNight: boolean) => {
     facade.emissiveIntensity = isNight ? 0.95 : 0.0;
     lamps.emissiveIntensity = isNight ? 1.15 : 0.0;
+    pools.visible = isNight;
     signs.emissiveIntensity = isNight ? 0.8 : 0.18;
   };
 
@@ -234,6 +249,7 @@ export function createChunkMaterials(night: boolean, wind = false): ChunkMateria
     trees,
     lamps,
     puddles,
+    pools,
     signs,
     setNight,
     setWetness,
@@ -249,6 +265,8 @@ export function createChunkMaterials(night: boolean, wind = false): ChunkMateria
       trees.dispose();
       lamps.dispose();
       puddles.dispose();
+      pools.map?.dispose();
+      pools.dispose();
       signs.dispose();
     },
   };
@@ -577,7 +595,43 @@ function addDumpster(plain: Buf, d: DumpsterDecor): void {
   }
 }
 
-function addFoodVendor(plain: Buf, lamps: Buf, v: FoodVendorDecor): void {
+/** Dégradé circulaire (blanc au centre, noir au bord) pour les flaques de lumière : aucune image à charger. */
+function makePoolTexture(): THREE.DataTexture {
+  const N = 64;
+  const data = new Uint8Array(N * N * 4);
+  for (let y = 0; y < N; y++) {
+    for (let x = 0; x < N; x++) {
+      const r = Math.hypot((x + 0.5) / N - 0.5, (y + 0.5) / N - 0.5) * 2;
+      const v = Math.round(255 * Math.pow(Math.max(0, 1 - r), 2.2));
+      const i = (y * N + x) * 4;
+      data[i] = data[i + 1] = data[i + 2] = v;
+      data[i + 3] = 255;
+    }
+  }
+  const tex = new THREE.DataTexture(data, N, N, THREE.RGBAFormat);
+  tex.magFilter = THREE.LinearFilter;
+  tex.minFilter = THREE.LinearFilter;
+  tex.generateMipmaps = false;
+  tex.needsUpdate = true;
+  return tex;
+}
+
+/** Flaque de lumière : carré plaqué au sol, texturé d'un dégradé, teinté par la couleur du sommet (en additif). */
+export function addLightPool(pools: Buf, x: number, z: number, radius: number, color: THREE.Color, strength: number): void {
+  const y = 0.035;
+  const c = color.clone().multiplyScalar(strength);
+  pools.quad(
+    [x - radius, y, z - radius],
+    [x - radius, y, z + radius],
+    [x + radius, y, z + radius],
+    [x + radius, y, z - radius],
+    [0, 1, 0],
+    [0, 0, 0, 1, 1, 1, 1, 0],
+    c
+  );
+}
+
+function addFoodVendor(plain: Buf, lamps: Buf, pools: Buf, v: FoodVendorDecor): void {
   const c = Math.cos(v.angle);
   const s = Math.sin(v.angle);
   const pt = (lu: number, lv: number): [number, number] => [v.x + lu * c - lv * s, v.z + lu * s + lv * c];
@@ -613,6 +667,7 @@ function addFoodVendor(plain: Buf, lamps: Buf, v: FoodVendorDecor): void {
     const iron = new THREE.Color(0x334155);
     addPrism(plain, fx, fz, 0.52, 0.52, 0, 0.54, v.angle, iron, new THREE.Color(0x1e293b), plain, false);
     addPrism(lamps, fx, fz, 0.34, 0.34, 0.44, 0.1, v.angle, new THREE.Color(0xf97316), new THREE.Color(0xfbbf24), lamps, false);
+    addLightPool(pools, fx, fz, 2.3, new THREE.Color(0xff8a3d), 0.7);
     addPrism(plain, fx, fz, 0.58, 0.58, 0.54, 0.08, v.angle, new THREE.Color(0x1e293b), iron, plain, false);
     for (const side of [-0.32, 0.32]) {
       const [hx, hz] = pt(-0.28 + side, 0.34);
@@ -654,6 +709,7 @@ function renderDecorPlan(
   lamps: Buf,
   puddles: Buf,
   signs: Buf,
+  pools: Buf,
   plan: ChunkDecorPlan
 ): void {
   const poleMatCol = new THREE.Color(0x475569);
@@ -690,6 +746,7 @@ function renderDecorPlan(
     addPrism(plain, sl.poleX, sl.poleZ, 0.22, 0.22, 0, 5.4, sl.angle, poleMatCol, poleMatCol, plain, false);
     addPrism(plain, sl.armX, sl.armZ, 0.2, 1.5, 5.25, 0.16, sl.angle, poleMatCol, poleMatCol, plain, false);
     addPrism(lamps, sl.bulbX, sl.bulbZ, 0.38, 0.56, 5.1, 0.18, sl.angle, bulbCol, bulbCol, lamps, false);
+    addLightPool(pools, sl.bulbX, sl.bulbZ, 4.6, POOL_WARM, 0.85);
   }
 
   for (const s of plan.shelters) {
@@ -697,6 +754,7 @@ function renderDecorPlan(
     addPrism(plain, s.backX, s.backZ, 3.4, 0.14, 0, 2.35, s.angle, shelterGlass, poleMatCol, plain, false);
     addPrism(plain, s.backX, s.backZ, 1.4, 0.18, 1.65, 0.42, s.angle, shelterBench, shelterBench, plain, false);
     addPrism(lamps, s.x, s.z, 2.2, 0.24, 2.28, 0.08, s.angle, bulbCol, bulbCol, lamps, false);
+    addLightPool(pools, s.x, s.z, 2.8, POOL_COOL, 0.5);
     addPrism(plain, s.x, s.z, 2.6, 0.45, 0.42, 0.14, s.angle, shelterBench, shelterBench, plain, false);
     addPrism(plain, s.post1X, s.post1Z, 0.14, 0.14, 0, 2.35, s.angle, poleMatCol, poleMatCol, plain, false);
     addPrism(plain, s.post2X, s.post2Z, 0.14, 0.14, 0, 2.35, s.angle, poleMatCol, poleMatCol, plain, false);
@@ -706,6 +764,7 @@ function renderDecorPlan(
     addPrism(plain, p.x, p.z, 0.2, 0.2, 0, 5.2, p.angle, woodPoleCol, woodPoleCol, plain, false);
     addPrism(plain, p.x, p.z, 0.85, 0.14, 4.9, 0.12, p.angle, poleMatCol, poleMatCol, plain, false);
     addPrism(lamps, p.bulbX, p.bulbZ, 0.3, 0.35, 4.72, 0.14, p.angle, bulbCol, bulbCol, lamps, false);
+    addLightPool(pools, p.bulbX, p.bulbZ, 3.2, POOL_WARM, 0.6);
     if (p.wireMidX !== undefined && p.wireMidZ !== undefined && p.wireLen !== undefined) {
       addPrism(plain, p.wireMidX, p.wireMidZ, 0.05, p.wireLen, 4.98, 0.04, p.angle, wireCol, wireCol, plain, false);
     }
@@ -738,7 +797,7 @@ function renderDecorPlan(
   }
 
   for (const fv of plan.foodVendors) {
-    addFoodVendor(plain, lamps, fv);
+    addFoodVendor(plain, lamps, pools, fv);
   }
 
   for (const sh of plan.shrubs) {
@@ -780,13 +839,17 @@ export interface ChunkBuffers {
   trees: BufData | null;
   lamps: BufData | null;
   puddles: BufData | null;
+  pools: BufData | null;
   solids: ChunkSolid[];
   venues: StreetVenueDecor[];
   /** Niveau de détail réellement appliqué aux modèles du studio (0 = original). */
   lod: LodLevel;
 }
 
-const BUFFER_KEYS = ['facade', 'plain', 'signs', 'trees', 'lamps', 'puddles'] as const;
+const BUFFER_KEYS = ['facade', 'plain', 'signs', 'trees', 'lamps', 'puddles', 'pools'] as const;
+
+const POOL_WARM = new THREE.Color(0xffc46b);
+const POOL_COOL = new THREE.Color(0xdff1ff);
 
 /** ArrayBuffers à passer en liste de transfert à postMessage. */
 export function bufferTransferList(b: ChunkBuffers): ArrayBuffer[] {
@@ -819,6 +882,7 @@ export function buildChunkBuffers(data: ChunkData, lod: LodLevel = 0): ChunkBuff
     const tb = new Buf();
     const lamps = new Buf();
     const puddles = new Buf();
+    const pools = new Buf();
     const signs = new Buf();
 
     data.buildings.forEach((b, i) => {
@@ -827,7 +891,7 @@ export function buildChunkBuffers(data: ChunkData, lod: LodLevel = 0): ChunkBuff
     });
 
     const decorPlan = collectChunkDecor(data);
-    renderDecorPlan(facade, plain, tb, lamps, puddles, signs, decorPlan);
+    renderDecorPlan(facade, plain, tb, lamps, puddles, signs, pools, decorPlan);
 
     const primaryDistrict = data.buildings[0]?.district ?? districtAt({ x: x0 + CHUNK / 2, z: z0 + CHUNK / 2 }).id;
     data.trees.forEach((t, i) => {
@@ -842,6 +906,7 @@ export function buildChunkBuffers(data: ChunkData, lod: LodLevel = 0): ChunkBuff
       trees: tb.toData(),
       lamps: lamps.toData(),
       puddles: puddles.toData(),
+      pools: pools.toData(),
       solids: decorPlan.solids,
       venues: decorPlan.venues,
       lod: applied,
@@ -869,10 +934,10 @@ export interface ChunkObjects {
 
 /** Matériau → projette une ombre quand les ombres sont actives pour ce chunk. */
 const CASTS_SHADOW: Record<(typeof BUFFER_KEYS)[number], boolean> = {
-  facade: true, plain: true, signs: false, trees: true, lamps: false, puddles: false,
+  facade: true, plain: true, signs: false, trees: true, lamps: false, puddles: false, pools: false,
 };
 const RECEIVES_SHADOW: Record<(typeof BUFFER_KEYS)[number], boolean> = {
-  facade: true, plain: true, signs: false, trees: false, lamps: false, puddles: false,
+  facade: true, plain: true, signs: false, trees: false, lamps: false, puddles: false, pools: false,
 };
 
 /** Crée les objets Three.js (appels de dessin) à partir de la géométrie déjà construite : quelques millisecondes. */
@@ -915,7 +980,7 @@ export function assembleChunkObjects(
 
   const addDetail = (b: ChunkBuffers, m: ChunkMaterials): void => {
     const matFor: Record<(typeof BUFFER_KEYS)[number], THREE.Material> = {
-      facade: m.facade, plain: m.plain, signs: m.signs, trees: m.trees, lamps: m.lamps, puddles: m.puddles,
+      facade: m.facade, plain: m.plain, signs: m.signs, trees: m.trees, lamps: m.lamps, puddles: m.puddles, pools: m.pools,
     };
     // Même ordre qu'avant : façades, plain, enseignes, arbres, lampes, flaques.
     for (const key of BUFFER_KEYS) {

@@ -855,7 +855,7 @@ export default function App() {
           }
         }
 
-        sceneRef.current?.updateWorldConditions(next.weather, next.gameTimeHours, next.policeWanted, next.star);
+        sceneRef.current?.updateWorldConditions(next.weather, next.gameTimeHours, next.policeWanted, next.star, next.daysLived);
         return next;
       });
     }, 1000);

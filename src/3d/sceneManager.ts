@@ -77,6 +77,7 @@ import { WorldStreamer } from '../world/WorldStreamer';
 import { horizontalHalfFov } from '../world/pedVisibility';
 import { ChunkMaterials, createChunkMaterials } from '../world/chunkMesh';
 import { daylight, sampleAmbient, sunDirection } from './ambiance';
+import { celestialState } from './celestial';
 import { createSkyDome, SkyDome } from './sky';
 import {
   MANUAL_CAM_COOLDOWN_S,
@@ -286,6 +287,15 @@ export class AbidjanSceneManager {
   private skyDome: SkyDome | null = null;
   /** Direction unitaire du soleil (ou de la lune la nuit), mise à jour avec l'heure de jeu. */
   private sunDir = new THREE.Vector3(0.5, 0.78, 0.37).normalize();
+  /** Brume qui prend la couleur du soleil (ou de la lune) quand on regarde vers lui, plus froide à l'opposé. */
+  private hazeHorizon = new THREE.Color();
+  private hazeZenith = new THREE.Color();
+  private hazeSunColor = new THREE.Color();
+  private hazeWarm = 0;
+  private hazeCool = 0;
+  private hazeDirH = new THREE.Vector3(1, 0, 0);
+  private hazeTmp = new THREE.Color();
+  private hazeFwd = new THREE.Vector3();
   private floodWaterMesh!: THREE.Mesh;
   private bridgeSetNights: Array<(night: boolean) => void> = [];
   private beaconRings: THREE.Mesh[] = [];
@@ -505,7 +515,7 @@ export class AbidjanSceneManager {
     this.camera = new THREE.PerspectiveCamera(56, width / height, 0.4, this.isSoftwareGl ? 280 : 720);
 
     if (!this.isSoftwareGl) {
-      this.skyDome = createSkyDome(this.camera.far * 0.9);
+      this.skyDome = createSkyDome(this.camera.far * 0.9, import.meta.env.BASE_URL ?? '/');
       this.scene.add(this.skyDome.mesh);
     }
 
@@ -1449,7 +1459,7 @@ export class AbidjanSceneManager {
     this.activeHouse.updateUpgrades(u);
   }
 
-  public updateWorldConditions(weather: WeatherType, gameTimeHours: number, policeWanted: number, star = 50) {
+  public updateWorldConditions(weather: WeatherType, gameTimeHours: number, policeWanted: number, star = 50, dayIndex = 0) {
     this.weather = weather;
     this.policeWanted = policeWanted;
     this.star = star;
@@ -1504,7 +1514,41 @@ export class AbidjanSceneManager {
     (this.scene.fog as THREE.FogExp2).density = fogDensity * this.fogScale;
 
     this.skyDome?.apply(amb, this.sunDir, { zenith, horizon, glowScale: skyGlowScale });
-    this.lagoonWaterHandle.setAmbient(this.sunDir, amb.sunColor, horizon, glint);
+    // Soleil et lune dessinés : voilés par la pluie et l'harmattan
+    const skyVisibility = weather === 'pluie' || weather === 'inondation' ? 0.12 : weather === 'harmattan' ? 0.5 : 1;
+    const cel = celestialState(gameTimeHours, dayIndex, skyVisibility);
+    this.skyDome?.setCelestial(cel);
+    // Brume teintée : réglages de la journée, appliqués à chaque image selon la direction regardée
+    this.hazeHorizon.copy(horizon);
+    this.hazeZenith.copy(zenith);
+    this.hazeSunColor.copy(amb.sunColor);
+    this.hazeWarm = THREE.MathUtils.clamp(0.1 + 0.22 * amb.skyGlow, 0, 0.4) * (1 - cel.moonMix) * skyVisibility + 0.06 * cel.moonMix;
+    this.hazeCool = 0.12 * (1 - cel.moonMix) * skyVisibility;
+    this.hazeDirH.copy(cel.sunDir).lerp(cel.moonDir, cel.moonMix);
+    this.hazeDirH.y = 0;
+    if (this.hazeDirH.lengthSq() < 1e-6) this.hazeDirH.set(1, 0, 0);
+    this.hazeDirH.normalize();
+    this.lagoonWaterHandle.setAmbient(this.sunDir, amb.sunColor, horizon, glint, cel.moonMix * 0.9 * skyVisibility);
+  }
+
+  /**
+   * Couleur de l'horizon selon la direction regardée : plus chaude vers le soleil (dorée au lever et au coucher),
+   * plus froide dans le sens opposé. Le fond, le brouillard et le bas du ciel gardent la même couleur : aucune couture.
+   */
+  private applyViewHaze(): void {
+    if (!this.skyDome) return;
+    this.camera.getWorldDirection(this.hazeFwd);
+    this.hazeFwd.y = 0;
+    const len = this.hazeFwd.length();
+    if (len < 1e-3) return;
+    this.hazeFwd.multiplyScalar(1 / len);
+    const d = this.hazeFwd.dot(this.hazeDirH);
+    const warm = Math.pow(Math.max(d, 0), 2) * this.hazeWarm;
+    const cool = Math.pow(Math.max(-d, 0), 2) * this.hazeCool;
+    this.hazeTmp.copy(this.hazeHorizon).lerp(this.hazeSunColor, warm).lerp(this.hazeZenith, cool);
+    (this.scene.background as THREE.Color).copy(this.hazeTmp);
+    (this.scene.fog as THREE.FogExp2).color.copy(this.hazeTmp);
+    this.skyDome.setHorizon(this.hazeTmp);
   }
 
   /** Vrai si le joueur est dans un intérieur (salle fermée hors carte). */
@@ -3160,7 +3204,8 @@ export class AbidjanSceneManager {
 
       const tSim = performance.now();
       this.stepSimulation(dt, now / 1000);
-      this.skyDome?.followCamera(this.camera);
+      this.applyViewHaze();
+      this.skyDome?.followCamera(this.camera, now / 1000);
       const tRender = performance.now();
       this.renderer.render(this.scene, this.camera);
       const tEnd = performance.now();

@@ -244,7 +244,7 @@ export interface AnimatedWaterHandle {
    * Ambiance de l'eau : direction et couleur du soleil, couleur de l'horizon (reflet de Fresnel),
    * et force du scintillement (0 la nuit). Sans effet sur rendu logiciel.
    */
-  setAmbient: (sunDir: THREE.Vector3, sunColor: THREE.Color, horizon: THREE.Color, glint: number) => void;
+  setAmbient: (sunDir: THREE.Vector3, sunColor: THREE.Color, horizon: THREE.Color, glint: number, moonGlint?: number) => void;
 }
 
 /**
@@ -262,6 +262,7 @@ export function createAnimatedWaterMaterial(
   const sunColorUniform = { value: new THREE.Color(0xfff6dc) };
   const horizonUniform = { value: new THREE.Color(0xbfe7f7) };
   const glintUniform = { value: 1 };
+  const moonGlintUniform = { value: 0 };
 
   const material = new THREE.MeshStandardMaterial({
     color: colorHex,
@@ -280,6 +281,7 @@ export function createAnimatedWaterMaterial(
       shader.uniforms.uSunColor = sunColorUniform;
       shader.uniforms.uHorizon = horizonUniform;
       shader.uniforms.uGlint = glintUniform;
+      shader.uniforms.uMoonGlint = moonGlintUniform;
 
       shader.vertexShader = `uniform float uWaterTime;\nvarying vec3 vWaterWorld;\n` + shader.vertexShader;
       shader.vertexShader = shader.vertexShader.replace(
@@ -295,6 +297,7 @@ export function createAnimatedWaterMaterial(
          uniform vec3 uSunColor;
          uniform vec3 uHorizon;
          uniform float uGlint;
+         uniform float uMoonGlint;
          varying vec3 vWaterWorld;\n` + shader.fragmentShader;
       // Reflet de Fresnel vers la couleur de l'horizon + scintillement du soleil sur les vaguelettes.
       // Les vaguelettes sont calculées en espace monde (deux fréquences) : aucune texture supplémentaire.
@@ -313,6 +316,9 @@ export function createAnimatedWaterMaterial(
            vec3 R = reflect(-V, n);
            float glint = pow(max(dot(R, normalize(uSunDir)), 0.0), 140.0);
            outgoingLight += uSunColor * glint * 1.6 * uGlint;
+           // Reflet de la lune : traînée étroite et scintillante, plus un voile lumineux plus large
+           float mdot = max(dot(R, normalize(uSunDir)), 0.0);
+           outgoingLight += uSunColor * (pow(mdot, 220.0) * 1.4 + pow(mdot, 28.0) * 0.2) * uMoonGlint;
          }
          #include <opaque_fragment>`
       );
@@ -326,7 +332,8 @@ export function createAnimatedWaterMaterial(
       waterTex.offset.x = (timeSec * 0.015) % 1;
       waterTex.offset.y = (timeSec * 0.01) % 1;
     },
-    setAmbient: (sunDir, sunColor, horizon, glint) => {
+    setAmbient: (sunDir, sunColor, horizon, glint, moonGlint = 0) => {
+      moonGlintUniform.value = moonGlint;
       sunDirUniform.value.copy(sunDir);
       sunColorUniform.value.copy(sunColor);
       horizonUniform.value.copy(horizon);

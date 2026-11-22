@@ -131,7 +131,7 @@ test('worker : la liste de transfert couvre tous les tableaux (rien n\'est copiÃ
   const data = chunkOfDistrict('plateau');
   const b = buildChunkBuffers(data, 0);
   const list = bufferTransferList(b);
-  const n = (['facade', 'plain', 'signs', 'trees', 'lamps', 'puddles'] as const).filter((k) => b[k]).length;
+  const n = (['facade', 'plain', 'signs', 'trees', 'lamps', 'puddles', 'pools'] as const).filter((k) => b[k]).length;
   assert.equal(list.length, n * 5);
   assert.equal(new Set(list).size, list.length);
 });

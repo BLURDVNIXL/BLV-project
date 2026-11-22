@@ -45,8 +45,8 @@ interface Key {
 const NIGHT: Omit<Key, 'h'> = {
   zenith: 0x050a18,
   horizon: 0x0b152b,
-  sun: 0x93c5fd,
-  sunI: 0.42,
+  sun: 0xa5c8ff,
+  sunI: 0.55,
   hemiSky: 0x1e3a5f,
   hemiGround: 0x0f172a,
   hemiI: 0.48,
@@ -77,7 +77,7 @@ export const AMBIENT_KEYS: readonly Key[] = [
     h: 7.8,
     zenith: 0x4cb2ea,
     horizon: 0xffdcae,
-    sun: 0xffe9c0,
+    sun: 0xffd9a3,
     sunI: 1.5,
     hemiSky: 0xcfeaff,
     hemiGround: 0x7c5338,
@@ -91,7 +91,7 @@ export const AMBIENT_KEYS: readonly Key[] = [
     h: 12,
     zenith: 0x2f9fe6,
     horizon: 0xbfe7f7,
-    sun: 0xfff6dc,
+    sun: 0xffeac2,
     sunI: 1.7,
     hemiSky: 0xbae6fd,
     hemiGround: 0x8a5a3a,
@@ -105,14 +105,14 @@ export const AMBIENT_KEYS: readonly Key[] = [
     h: 16.3,
     zenith: 0x4f9fdc,
     horizon: 0xffcf8a,
-    sun: 0xffd08a,
+    sun: 0xffc27a,
     sunI: 1.55,
     hemiSky: 0xffe0b0,
     hemiGround: 0x6a3a1e,
     hemiI: 0.74,
-    exposure: 1.07,
+    exposure: 1.1,
     fogD: 0.0016,
-    glow: 0.8,
+    glow: 0.95,
   },
   // Coucher de soleil sur la lagune
   {
@@ -124,9 +124,9 @@ export const AMBIENT_KEYS: readonly Key[] = [
     hemiSky: 0xfdba74,
     hemiGround: 0x451a03,
     hemiI: 0.7,
-    exposure: 1.05,
+    exposure: 1.08,
     fogD: 0.0018,
-    glow: 1.2,
+    glow: 1.3,
   },
   // Crépuscule
   {
@@ -185,7 +185,7 @@ export function sampleAmbient(hours: number): AmbientSample {
 /** Élévation minimale de la lumière : évite des ombres infiniment longues hors de la boîte d'ombre. */
 export const MIN_SUN_Y = 0.3;
 
-const MOON_DIR = new THREE.Vector3(-0.3, 0.85, 0.4).normalize();
+export const MOON_DIR = new THREE.Vector3(-0.3, 0.85, 0.4).normalize();
 
 /**
  * Direction (unitaire, du sol vers l'astre) du soleil ou de la lune.
@@ -196,11 +196,17 @@ export function sunDirection(hours: number, out = new THREE.Vector3()): THREE.Ve
   const t = THREE.MathUtils.clamp((h - 6) / 13, 0, 1);
   const sun = out.set(Math.cos(Math.PI * t), Math.max(MIN_SUN_Y, Math.sin(Math.PI * t)), 0.35).normalize();
 
-  let moonWeight = 0;
-  if (h >= 19) moonWeight = smooth(THREE.MathUtils.clamp((h - 19) / 1.5, 0, 1));
-  else if (h < 6.2) moonWeight = 1 - smooth(THREE.MathUtils.clamp((h - 5) / 1.2, 0, 1));
-  if (moonWeight > 0) sun.lerp(MOON_DIR, moonWeight).normalize();
+  const mw = moonWeight(h);
+  if (mw > 0) sun.lerp(MOON_DIR, mw).normalize();
   return sun;
+}
+
+/** Part « lune » de la lumière directionnelle (0 le jour, 1 la nuit) : sert aussi à fondre le soleil et la lune dans le ciel. */
+export function moonWeight(hours: number): number {
+  const h = wrapHours(hours);
+  if (h >= 19) return smooth(THREE.MathUtils.clamp((h - 19) / 1.5, 0, 1));
+  if (h < 6.2) return 1 - smooth(THREE.MathUtils.clamp((h - 5) / 1.2, 0, 1));
+  return 0;
 }
 
 /** Part de « lumière du jour » (0 la nuit, 1 en plein jour) : pilote le scintillement de l'eau. */
